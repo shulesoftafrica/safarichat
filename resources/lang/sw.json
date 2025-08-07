@@ -1,0 +1,227 @@
+{
+    "category": "Kampeni",
+    "message": "Meseji",
+    "support":"Msaada",
+    "summary":"Dashibodi",
+    "dashboard":"Dashibodi",
+    "people":"Watu",
+    "contributions":"Michango",
+    "budget":"Bajeti",
+    "expenses":"Matumizi",
+    "vendors":"Watoa Huduma",
+    "channels":"Njia za Meseji",
+    "compose":"Tuma Meseji",
+    "schedule":"Meseji Zijazo",
+    "sms_sent":"Meseji Zilizotumwa",
+    "reports":"Ripoti",
+    "requests":"Maombi",
+    "products":"Bidhaa",
+    "services":"Huduma",
+    "promotions":"Matangazo",
+    "search":"Tafuta",
+    "selected_services":"Huduma Zilizotafutwa",
+    "payments":"Malipo",
+    "settings":"Mpangilio",
+    "Logout":"Toka Nje",
+    "quick_menu":"Njia Mkato",
+    "simplest_way":"Njia Nyepesi",
+    "to_manage_category":"Kusimamia Kampeni Yako",
+    "upgrade":"Boresha Akaunti Yako",
+    "total_guests":"Jumla ya Watu",
+    "paid_guests":"Waliochangia",
+    "total_pledge":"Ahadi",
+    "collections":"Michango",
+    "guest_registered_per_month":"Watu Uliowasajili kwa mwezi",
+    "total_budget":"Bajeti Jumla",
+    "total_expenses":"Matumizi Jumla",
+    "home":"Nyumbani"
+    ,"event":"Kampeni"
+    ,"guests":"Watu"
+    ,"list_of_guests":"Orodha ya Watu"
+    ,"manage_list_of_guests":"Simamia Orodha ya Watu"
+    ,"add_new_guest":"Ongeza Mtu"
+    ,"upload_excel":"Pakia faili la Exceli"
+    ,"name":"Jina"
+    ,"phone":"Namba ya Simu"
+    ,"email":"Barua Pepe"
+    ,"pledge":"Ahadi"
+    ,"type":"Aina"
+    ,"action":"Hatua"
+    ,"total":"Jumla"
+    ,"edit_guest_details":"Sahihisha Taarifa za Mtu"
+    ,"guest_name":"Jina la Mtu",
+    "user_group":"Kikundi cha Mtumiaji",
+    "user_group_name_help":" Dokezo: Sehemu hii inaweza kuwa eneo, kundi la umri, mapendeleo, au aina nyingine yoyote inayofaa."
+    ,"user_group_name":"Jina la Kikundi cha Mtumiaji"
+    ,"close":"Funga"
+    ,"save":"Hifadhi"
+    ,"add_new_type":"Ongeza Aina Mpya"
+    ,"type_name":"Jina la Aina"
+    ,"upload_guest_details":"Pakia Taarifa za Watu"
+    ,"download_sample_file":"Pakua faili la Mfano"
+    ,"sample_excel_file":"Faili la Mfano la Ekseli"
+    ,"click_to_upload_excel":"Bonyeza hapa kupakia faili la ekseli"
+    ,"message_channels":"Njia za Ujumbe"
+    ,"create_new_whatsapp_instance":"Unda WhatsApp Akaunti Mpya"
+    ,"create_bulk-sms_instance":"Unda BulkSMS Akaunti Mpya"
+    ,"please_add_a_bulk-sms_sender_name_to_use_this_option":"Tafadhali ongeza jina la mtumaji wa Bulk SMS kutumia chaguo hili"
+    ,"note":"Kumbuka"
+    ,"instance_type":"Aina ya Kifaa"
+    ,"phone_number":"Namba ya Simu"
+    ,"date_registered":"Tarehe Iliyosajiliwa"
+    ,"message_balance":"Salio la Ujumbe"
+    ,"whatsapp_message":"Meseji za WhatsApp"
+    ,"status":"Hali"
+    ,"actions":"Vitendo"
+    ,"waiting_for_payment":"Inasubiri Malipo"
+    ,"approved_&_running":"Imekubaliwa na Inaendelea"
+    ,"stopped":"Imesitishwa"
+    ,"pending_approval":"Inasubiri Idhini"
+    ,"approved":"Imekubaliwa"
+    ,"pay":"Lipa"
+    ,"pay_for_whatsapp_instance":"Lipa kwa WhatsApp"
+    ,"add_balance":"Ongeza Salio"
+    ,"add_balance_to":"Ongeza Salio Kwa"
+    ,"enter_amount_to_add":"Weka Kiasi cha Kuongeza"
+    ,"cancel":"Ghairi"
+    ,"delete_this_instance?":"Futa Kifaa Hiki?"
+    ,"delete":"Futa"
+    ,"no_message_instances_found.":"Hakuna Vifaa vya Ujumbe Vilivyopatikana."
+    ,"enable/upgrade_whatsapp_integration":"Washa/Boresha Muunganiko wa WhatsApp"
+    ,"tsh":"Tsh"
+    ,"per_one_sender":"Kwa Mtumaji Mmoja"
+    ,"send_and_receive_messages_to_members_via_whatsapp":"Tuma na Pokea Ujumbe kwa Wanachama Kupitia WhatsApp"
+    ,"send_photo_audio_videos_etc_to_event_member_via_your_whatsapp":"Tuma Picha, Sauti, Video n.k. kwa Mwanachama Kupitia WhatsApp Yako"
+    ,"engage_globarly,_not_limited_to_your_country":"Shirikiana Kimataifa, Sio Tu Nchini Kwako"
+    ,"send_almost_up_to_unlimited_messages_per_day":"Tuma Karibu Ujumbe Usio na Kikomo kwa Siku"
+    ,"enter_your_whatsapp_number_below_to_proceed":"Weka Namba Yako ya WhatsApp Hapo Chini Kuendelea"
+    ,"enter_your_whatsapp_number_here":"Weka Namba Yako ya WhatsApp Hapa"
+    ,"enable_whatsapp_integration":"Washa Muunganiko wa WhatsApp"
+    ,"now!":"Sasa!"
+    ,"bulk-sms_sender_name_registration":"Usajili wa Jina la Mtumaji wa Bulk SMS"
+    ,"important":"Muhimu"
+    ,"to_register_a_bulk-sms_sender_name,_you_must_submit_the_following_details_for_approval_by_tcra._the_approval_process_may_take_up_to_3_weeks.":"Ili kusajili jina la mtumaji wa Bulk SMS, lazima uwasilishe maelezo yafuatayo kwa idhini ya TCRA. Mchakato wa idhini unaweza kuchukua hadi wiki 3."
+    ,"per_sender_name":"Kwa Jina la Mtumaji"
+    ,"sender_name":"Jina la Mtumaji"
+    ,"maximum_11_characters._letters,_numbers,_and_spaces_only.":"Upeo wa herufi 11. Herufi, namba na nafasi pekee."
+    ,"maximum_11_characters._no_special_characters_allowed.":"Upeo wa herufi 11. Hakuna alama maalum zinazoruhusiwa."
+    ,"nida_number":"Namba ya NIDA"
+    ,"introduction_letter":"Barua ya Utambulisho"
+    ,"download_sample_introduction_letter":"Pakua Mfano wa Barua ya Utambulisho"
+    ,"the_letter_must_introduce_the_applicant_in_detail_and_include_a_sample_message_to_be_sent._accepted_formats:_pdf,_doc,_docx.":"Barua lazima itambulishe mwombaji kwa undani na kujumuisha mfano wa ujumbe utakaotumwa. Aina zinazokubalika: PDF, DOC, DOCX."
+    ,"submit_sender_name_for_approval":"Wasilisha Jina la Mtumaji kwa Idhini"
+    ,"purchase_more_sms":"Nunua SMS Zaidi"
+    ,"your_current_price":"Bei Yako ya Sasa"
+    ,"per_sms":"Kwa SMS"
+    ,"enter_number_of_sms":"Weka Idadi ya SMS"
+    ,"number_of_sms":"Idadi ya SMS"
+    ,"submit":"Wasilisha"
+    ,"please_enter_your_whatsapp_number_to_proceed":"Tafadhali weka namba yako ya WhatsApp kuendelea"
+    ,"message_reports":"Ripoti za Ujumbe"
+    ,"sent_sms":"SMS Zilizotumwa"
+    ,"sent_emails":"Barua Pepe Zilizotumwa"
+    ,"scheduleted_sms":"SMS Zilizopangwa"
+    ,"sms_sent_per_month":"SMS Zilizotumwa kwa Mwezi"
+    ,"number_of_sms_sent_per_month":"Idadi ya SMS Zilizotumwa kwa Mwezi"
+    ,"report_is_based_on_date_recorded_in_the_system":"Ripoti inategemea tarehe iliyorekodiwa kwenye mfumo"
+    ,"of_total":"ya jumla"
+    ,"month_year":"Mwezi/Mwaka"
+    ,"report":"Ripoti"
+    ,"sms_schedules":"Ratiba za SMS"
+    ,"create_a_message_that_you_want_to_be_sent_later_to_your_users":"Tengeneza ujumbe unaotaka utumwe baadaye kwa watumiaji wako"
+    ,"schedule_a_message":"Panga Ujumbe"
+    ,"title":"Kichwa"
+    ,"day_date":"Siku/Tarehe"
+    ,"time":"Muda"
+    ,"end_date":"Tarehe ya Mwisho"
+    ,"send_to":"Tuma Kwa"
+    ,"users":"Watumiaji"
+    ,"show_users":"Onyesha Watumiaji"
+    ,"list_of_users":"Orodha ya Watumiaji"
+    ,"is_repeated":"Inarudiwa"
+    ,"repeated":"Imerudiwa"
+    ,"one_time":"Mara Moja"
+    ,"edit":"Hariri"
+    ,"reminder_title":"Kichwa cha Kumbusho"
+    ,"hashtag_guide":"Mwongozo wa Hashtag"
+    ,"supported_harshtag_lists":"Orodha ya Hashtag Zinazoungwa Mkono"
+    ,"hashtag":"Hashtag"
+    ,"meaning_it_will_pick":"Inamaanisha Itachukua"
+    ,"pledge_amount":"Kiasi cha Ahadi"
+    ,"paid_amount":"Kiasi Kilicholipwa"
+    ,"remaining_amount_pledge_paid_amount":"Kiasi Kilichobaki cha Ahadi na Malipo"
+    ,"total_days_remains_up_to_the_event_date":"Jumla ya Siku Zilizobaki hadi Tarehe ya Tukio"
+    ,"all":"Zote"
+    ,"sub_category":"Kategoria Ndogo"
+    ,"all_guests":"Wageni Wote"
+    ,"full_paid_guest":"Mgeni Aliyelipa Zote"
+    ,"non_paid_guest":"Mgeni Asiyelipa"
+    ,"partially_paid_guest":"Mgeni Aliyelipa Sehemu"
+    ,"custom_selection":"Chaguo Maalum"
+    ,"exclude":"Ondoa"
+    ,"select":"Chagua"
+    ,"loading":"Inapakia"
+    ,"schedule_date":"Tarehe ya Ratiba"
+    ,"schedule_days":"Siku za Ratiba"
+    ,"last_date":"Tarehe ya Mwisho"
+    ,"source":"Chanzo"
+    ,"save_changes":"Hifadhi Mabadiliko"
+    ,"manage_list_of_nessage_sent":"Simamia Orodha ya Ujumbe Uliotumwa"
+    ,"select_channel":"Chagua Njia"
+    ,"phone_sms":"SMS ya Simu"
+    ,"quick_sms":"SMS ya Haraka"
+    ,"email_sms":"SMS ya Barua Pepe"
+    ,"whatsapp_sms":"SMS ya WhatsApp"
+    ,"no_data_found":"Hakuna Taarifa Zilizopatikana"
+    ,"view_details":"Tazama Maelezo"
+    ,"resend":"Tuma Tena"
+    ,"filter":"Chuja"
+    ,"expense_history":"Historia ya Matumizi"
+    ,"list_of_expenses_done_to_support":"Orodha ya Matumizi yaliyofanywa kusaidia"
+    ,"record_expense":"Rekodi Matumizi"
+    ,"expense_info":"Taarifa za Matumizi"
+    ,"manage_expenses":"Simamia Matumizi"
+    ,"service_name":"Jina la Huduma"
+    ,"service_provider":"Mtoa Huduma"
+    ,"add_new_service_provider":"Ongeza Mtoa Huduma Mpya"
+    ,"provide_details_here":"Toa Maelezo Hapa"
+    ,"valid_business_name_or_common_name_that_people_identify":"Jina halali la biashara au jina linalotambulika na watu"
+    ,"if_this_business_exists_and_the_business_owner_creates_dikodiko_account_you_will_get_a_discount_of_tsh_5000":"Ikiwa biashara hii ipo na mmiliki wa biashara atafungua akaunti ya Dikodiko utapata punguzo la Tsh 5000"
+    ,"amount_paid":"Kiasi Kilicholipwa"
+    ,"payment_date":"Tarehe ya Malipo"
+    ,"payment_method":"Njia ya Malipo"
+    ,"m_pesa":"M-Pesa"
+    ,"tigo_pesa":"Tigo Pesa"
+    ,"airtel_money":"Airtel Money"
+    ,"bank_transfer":"Uhamisho wa Benki"
+    ,"others":"Nyingine"
+    ,"payment_descriptions":"Maelezo ya Malipo"
+    ,"any_descriptions_about_the_expense":"Maelezo yoyote kuhusu matumizi"
+    ,"event_budget":"Bajeti ya Tukio"
+    ,"manage_your_budget_by_adding_new_item_edit_or_delete_the_item_below":"Simamia bajeti yako kwa kuongeza kipengele kipya, hariri au futa kipengele hapa chini"
+    ,"add_new_item":"Ongeza Kipengele Kipya"
+    ,"item_name":"Jina la Kipengele"
+    ,"budget_amount":"Kiasi cha Bajeti"
+    ,"remained":"Kilichobaki"
+    ,"not_approved":"Haijakubaliwa"
+    ,"add_new_budget_item":"Ongeza Kipengele Kipya cha Bajeti"
+    ,"service":"Huduma"
+    ,"major_service":"Huduma Kuu"
+    ,"quantity":"Idadi"
+    ,"unit_price":"Bei kwa Kimoja"
+    ,"price_per_item":"Bei kwa Kipengele"
+    ,"edit_budget_item":"Hariri Kipengele cha Bajeti",
+    "manage_list_of_payments":"Simamia Malipo yaliyo fanyika",
+    "add_new_payment":"Ongeza Malipo"
+    ,"open_whatsapp_on_your_phone":"Fungua WhatsApp kwenye simu yako"
+    ,"tap_menu_or_settings_and_select_linked_devices":"Gonga menyu ya kukubali kuunganisha whatsapp"
+    ,"tap_link_a_device":"Ukisha Kubali, itakuja eneo la kuweka Msimbo (code) a"
+    ,"enter_the_pairing_code_below_when_prompted":"Weka msimbo (Code) wa kuunganisha hapa chini utakapoulizwa"
+    ,"whatsapp_messages":"Meseji za WhatsApp"
+    ,"total_budget_amount": "Jumla ya Bajeti"
+    ,"add_payment_details":"Ongeza Maelezo ya Malipo"
+    ,"message_source":"Chanzo cha Meseji",
+    "add_new_user_group":"Ongeza Kikundi Kipya cha Mtumiaji",
+    "transactions":"Malipo Yaliyofanyika",
+    "manage_list_of_transactions":"Simamia Orodha ya Malipo Yaliyofanyika"
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>System Design</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>Database Arrangement</div>
+        <table>
+            <tr>
+                <td>users</td>
+                <td>(store all bride and bridegooms)</td>
+            </tr>
+            <tr>
+                <td>events</td>
+                <td> (store all event details)</td>
+            </tr>
+            <tr>
+                <td>events_type</td>
+                <td>(let us know if its a wedding, birthday,kipaimara, sendoff etc)</td>
+            </tr>
+            <tr>
+                <td>businesses</td>
+                <td>Store details about business, but business is also a user</td>
+            </tr>
+            <tr>
+                <td>services</td>
+                <td>Store list of all services and items that are supposed to be in the wedding/event</td>
+            </tr>
+            <tr>
+                <td>business_services</td>
+                <td>store which services are offered by each business</td>
+            </tr>
+            <tr>
+                <td>users_events</td>
+                <td>store which which events are subscribed by user</td>
+            </tr>
+            <tr>
+                <td>budget</td>
+                <td>allow user to plan and then write the actuals letter</td>
+            </tr>
+            <tr>
+                <td>payments</td>
+                <td>store all payments</td>
+            </tr>
+
+            <h2>Application specifics</h2>
+            <div>
+                install auth 
+
+                <ul> composer require laravel/ui
+                    php artisan ui vue --auth
+                    php artisan migrate
+                </ul>
+            </div>
+        </table>
+    </body>
+</html>
