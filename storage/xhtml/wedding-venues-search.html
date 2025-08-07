@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="keywords" content="" />
+	<meta name="author" content="" />
+	<meta name="robots" content="" />
+	<meta name="description" content="Wedding Manager" />
+	<meta property="og:title" content="Wedding Manager" />
+	<meta property="og:description" content="Wedding Manager" />
+	<meta property="og:image" content="" />
+	<meta name="format-detection" content="telephone=no">
+	
+	<!-- FAVICONS ICON -->
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.png" />
+	
+	<!-- PAGE TITLE HERE -->
+	<title>Wedding Manager</title>
+	
+	<!-- MOBILE SPECIFIC -->
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!--[if lt IE 9]>
+	<script src="js/html5shiv.min.js"></script>
+	<script src="js/respond.min.js"></script>
+	<![endif]-->
+	
+	<!-- STYLESHEETS -->
+	<link rel="stylesheet" type="text/css" href="css/plugins.css">
+	<link rel="stylesheet" type="text/css" href="plugins/range-slider/css/bootstrap-slider.min.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/templete.css">
+	<link rel="stylesheet" type="text/css" href="css/responsive.min.css">
+	<link class="skin" rel="stylesheet" type="text/css" href="css/skin/skin-1.css">	
+	<link rel="stylesheet" type="text/css" href="css/star-rating-svg.css">
+	<link rel="stylesheet" href="plugins/datepicker/bootstrap-datetimepicker.css"/>
+	
+</head>
+<body id="bg">
+
+<div id="loading-area"></div>
+<div class="page-wraper">
+	<!-- header -->
+    <header class="site-header header mo-left">
+		<!-- main header -->
+        <div class="sticky-header main-bar-wraper navbar-expand-lg">
+            <div class="main-bar clearfix ">
+                <div class="container-fluid clearfix">
+                    <!-- website logo -->
+					<div class="logo-header mostion">
+						<a class="header-logo1" href="index.html"><img src="images/logo-black-1.png" alt=""></a>
+						<a class="header-logo2" href="index.html"><img src="images/logo-black-1.png" alt=""></a>
+					</div>
+                    <!-- extra nav -->
+                    <div class="extra-nav">
+                        <div class="extra-cell">
+							<a href="#" class="btn gradient openbtn"><span>Your Wedding Manager </span><i class="fa fa-bars"></i></a>
+                        </div>
+                    </div>                    
+                </div>
+            </div>
+        </div>
+		<div id="mySidenav" class="sidenav right-nav">
+			<a href="javascript:void(0)" class="closebtn menu-close"><i class="ti-close"></i></a>
+			<ul class="">
+				<li><a href="my-account.html"><i class="la la-home"></i>Home</a></li>
+				<li><a href="planner-guest-list.html"><i class="la la-user"></i>Guest List</a></li>
+				<li><a href="planner-budget-select.html"><i class="la la-money"></i>Budget</a></li>
+				<li><a href="planner-checklist-select-date.html"><i class="la la-check-square"></i>Checklist</a></li>
+				<li><a href="planner-shortlist.html"><i class="la la-file-text-o"></i>Shortlist</a></li>
+				<li><a href="planner-shortlist.html"><i class="la la-user-plus"></i>Booked Suppliers</a></li>
+				<li><a href="planner-advice.html"><i class="la la-lightbulb-o"></i>Advice</a></li>
+				<li><a href="scrapbook.html"><i class="la la-laptop"></i>Scrapbook</a></li>
+				<li><a href="settings.html"><i class="la la-cog"></i>Settings</a></li>
+				<li><a href="index.html"><i class="la la-sign-out"></i>Log out</a></li>
+			</ul>
+		</div>
+        <!-- main header END -->
+    </header>
+    <!-- header END -->
+    <!-- Content -->
+    <div class="page-content bg-white">
+       <!-- contact area -->
+        <div class="content-block">
+			<!-- Search Filter -->
+			<div class="search-filter wadding-vanues-filter">
+				<div class="container">
+					<form class="filter-form" action="wedding-venues-search.html">
+						<div class="row">
+							<div class="col-lg-4 col-md-4 col-sm-6 col-6">
+								<input type="text" class="form-control" placeholder="We’re looking for">
+							</div>
+							<div class="col-lg-3 col-md-3 col-sm-6 col-6">
+								<input type="text" class="form-control" placeholder="Near">
+							</div>
+							<div class="col-lg-3 col-md-3 col-sm-6 col-6">
+								<input type="text" class="form-control" placeholder="Or Called">
+							</div>
+							<div class="col-lg-2 col-md-2 col-sm-6 col-6 d-flex">
+								<button class="btn btn-block gradient text-uppercase"> Search</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+			<input type="text" class="form-control" placeholder="We’re looking for" id="datetimepicker4">
+			<!-- Search Filter END -->
+			<div class="section-full bg-gray wadding-vanues-search">
+				<div class="clearfix">
+					<div class="row m-lr0 column-reverse-md">
+						<div class="col-xl-8 col-lg-12 sidebar-list p-lr0">
+							<div class="search-results-topbar">
+								<div class="search-results">
+									<h6 class="search-content"><span class="text-primary">36 of 559  </span>Wedding Venues in the United Kingdom</h6>
+									<a href="planner-shortlist.html" class="btn-link">Your Sortlist <span class="text-primary">(02)</span></a>
+									<select> 
+										<option>Our Favourites</option>
+										<option>Most Popular</option>
+										<option>Recently Added</option> 
+									</select>
+									<a class="btn gray collapsed" role="button" data-toggle="collapse" href="#wadding-vanues-filter" aria-expanded="false" aria-controls="wadding-vanues-filter">Filter by</a>
+								</div>
+								<div class="filter-bx collapse fade" id="wadding-vanues-filter">
+									<form>
+										<div class="form-group">
+											<label class="label-title">Seated Dining Capacity</label>
+											<div class="range-sliderbx">
+												<input id="ex14" type="text" data-slider-ticks="[0, 10, 20, 40]" data-slider-ticks-snap-bounds="30" data-slider-ticks-labels='["$0", "$10", "$20", "$40"]' data-slider-ticks-positions="[0, 30, 70, 10]" />
+											</div>
+										</div>
+										<div class="form-group">
+											<label class="label-title">Your must-haves</label>
+											<ul class="select-list clearfix list-inline">
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves1">
+														<label class="custom-control-label" for="must-haves1">Exclusive Use</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves2">
+														<label class="custom-control-label" for="must-haves2">Wedding Licence</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves3">
+														<label class="custom-control-label" for="must-haves3">On-Site Accommodation</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves4">
+														<label class="custom-control-label" for="must-haves4">Late Night Extension</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves5">
+														<label class="custom-control-label" for="must-haves5">Alcohol Licence</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves6">
+														<label class="custom-control-label" for="must-haves6">Late Night Extension</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves7">
+														<label class="custom-control-label" for="must-haves7">Alcohol Licence</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves8">
+														<label class="custom-control-label" for="must-haves8">Exclusive Use</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves9">
+														<label class="custom-control-label" for="must-haves9">Wedding Licence</label>
+													</div>
+												</li>
+												<li>
+													<div class="custom-control custom-checkbox checkbox-lg">
+														<input type="checkbox" class="custom-control-input" id="must-haves10">
+														<label class="custom-control-label" for="must-haves10">On-Site Accommodation</label>
+													</div>
+												</li>
+											</ul>
+										</div>
+										<div class="accordion form-accordion" id="accordionExample">
+											<div class="card">
+												<div class="card-header" id="headingOne">
+													<a class="collapsed" href="javascript:;" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+														Venue Types
+													</a>
+												</div>
+												<div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+													<div class="card-body">
+														<ul class="select-list clearfix list-inline">
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types1">
+																	<label class="custom-control-label" for="venue-types1">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types2">
+																	<label class="custom-control-label" for="venue-types2">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types3">
+																	<label class="custom-control-label" for="venue-types3">On-Site Accommodation</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types4">
+																	<label class="custom-control-label" for="venue-types4">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types5">
+																	<label class="custom-control-label" for="venue-types5">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types6">
+																	<label class="custom-control-label" for="venue-types6">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types7">
+																	<label class="custom-control-label" for="venue-types7">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types8">
+																	<label class="custom-control-label" for="venue-types8">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types9">
+																	<label class="custom-control-label" for="venue-types9">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-types10">
+																	<label class="custom-control-label" for="venue-types10">On-Site Accommodation</label>
+																</div>
+															</li>
+														</ul>
+													</div>
+												</div>
+											</div>
+											<div class="card">
+												<div class="card-header" id="headingTwo">
+													<a class="collapsed" href="javascript:;" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+													 Venue Styles
+													</a>
+												</div>
+												<div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionExample">
+													<div class="card-body">
+														<ul class="select-list clearfix list-inline">
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles1">
+																	<label class="custom-control-label" for="venue-styles1">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles2">
+																	<label class="custom-control-label" for="venue-styles2">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles3">
+																	<label class="custom-control-label" for="venue-styles3">On-Site Accommodation</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles4">
+																	<label class="custom-control-label" for="venue-styles4">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles5">
+																	<label class="custom-control-label" for="venue-styles5">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles6">
+																	<label class="custom-control-label" for="venue-styles6">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles7">
+																	<label class="custom-control-label" for="venue-styles7">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles8">
+																	<label class="custom-control-label" for="venue-styles8">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles9">
+																	<label class="custom-control-label" for="venue-styles9">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-styles10">
+																	<label class="custom-control-label" for="venue-styles10">On-Site Accommodation</label>
+																</div>
+															</li>
+														</ul>
+													</div>
+												</div>
+											</div>
+											<div class="card">
+												<div class="card-header" id="headingThree">
+													<a class="collapsed" href="javascript:;" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+														Venue Features
+													</a>
+												</div>
+												<div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
+													<div class="card-body">
+														<ul class="select-list clearfix list-inline">
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features1">
+																	<label class="custom-control-label" for="venue-features1">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features2">
+																	<label class="custom-control-label" for="venue-features2">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features3">
+																	<label class="custom-control-label" for="venue-features3">On-Site Accommodation</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features4">
+																	<label class="custom-control-label" for="venue-features4">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features5">
+																	<label class="custom-control-label" for="venue-features5">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features6">
+																	<label class="custom-control-label" for="venue-features6">Late Night Extension</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features7">
+																	<label class="custom-control-label" for="venue-features7">Alcohol Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features8">
+																	<label class="custom-control-label" for="venue-features8">Exclusive Use</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features9">
+																	<label class="custom-control-label" for="venue-features9">Wedding Licence</label>
+																</div>
+															</li>
+															<li>
+																<div class="custom-control custom-checkbox checkbox-lg">
+																	<input type="checkbox" class="custom-control-input" id="venue-features10">
+																	<label class="custom-control-label" for="venue-features10">On-Site Accommodation</label>
+																</div>
+															</li>
+														</ul>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="text-center m-t10">
+											<button class="btn gray">Apply filters (0)</button>
+										</div>
+									</form>
+								</div>
+							</div>
+							
+							<div class="bg-gray wadding-vanues-list">
+								<div class="row sp20">
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic1.jpg" alt="">
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic2.jpg" alt="">
+												<div class="offer">
+													<div class="event upcoming">Upcoming Event</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic3.jpg" alt="">
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic4.jpg" alt="">
+												<div class="offer">
+													<div class="event upcoming">Upcoming Event</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic5.jpg" alt="">
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic6.jpg" alt="">
+												<div class="offer">
+													<div class="event available">Deal Available</div>
+													<div class="event upcoming">Upcoming Event</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic7.jpg" alt="">
+												<div class="offer">
+													<div class="event available">Deal Available</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic8.jpg" alt="">
+												<div class="offer">
+													<div class="event upcoming">Upcoming Event</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+									<div class="col-lg-4 col-md-6 col-sm-6">
+										<div class="listing-bx listing-sm">
+											<div class="listing-media">
+												<img src="images/listing/pic9.jpg" alt="">
+												<div class="offer">
+													<div class="event available">Deal Available</div>
+													<div class="event upcoming">Upcoming Event</div>
+												</div>
+												<div class="media-info">
+													<ul class="featured-star">
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+														<li><i class="fa fa-star"></i></li>
+													</ul>
+													<a class="like-btn" href="javascript:void(0)"><i class="fa fa-heart-o"></i></a>
+												</div>
+											</div>
+											<div class="listing-info">
+												<h3 class="title"><a href="listing-details.html">Wedding Venue Title Name</a></h3>
+												<p class="location"><i class="fa fa-map-marker"></i> Ahmedabad, Gujarat.</p>
+												<ul class="place-info">
+													<li class="vendor-guest">
+														<span>Venue Vendor</span>
+														<h6 class="title">$120-$500</h6>
+													</li>
+													<li class="vendor-price">
+														<span>Guest</span>
+														<h6 class="title">120+</h6>
+													</li>
+												</ul>
+												<a href="#" class="btn purple  btn-block gradient" data-toggle="modal" data-target="#exampleModal2">Request a brochure</a>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-xl-4 col-lg-12 p-lr0 map-bx">
+							<div class="sticky-top">
+								<div class="map-box">
+									<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d14445.871196953145!2d75.8417313!3d25.153677599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sin!4v1560937937217!5m2!1sen!2sin" style="border:0;" allowfullscreen></iframe>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Modal -->
+			<div class="modal fade add-guest planner-modal-bx" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2" aria-hidden="true">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<h2 class="modal-title text-center">Send a message to Maidens Barn</h2>
+						<form>
+							<div class="form-group text-center">
+								<small class="small-bx">We will pass your details to the supplier so they can get back to you with a proposal.</small>
+							</div>
+							<div>
+								<ul class="popup-profile-info">
+									<li><strong>Email:</strong><span>kkgaur9736@gmail.com</span></li>
+									<li><strong>Names:</strong><span>kk gaur & kk kuldeep</span></li>
+									<li><strong>Phone:</strong><span>[recommended]</span></li>
+									<li><strong>Ideal date:</strong><span>20th Feb 2020</span></li>
+									<li><strong>Estimated guests:</strong><span>[missing]</span></li>
+									<li><a class="collapsed btn-link" role="button" data-toggle="collapse" href="#edit" aria-expanded="false" aria-controls="edit">Edit <i class="fa fa-pencil"></i></a></li>
+								</ul>
+								<div class="filter-bx fade collapse gray-bx" id="edit" style="">
+									<div class="row">
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Email address</label>
+												<input type="text" class="form-control" placeholder="Add an email">
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Phone number</label>
+												<input type="text" class="form-control" placeholder="Add a phone number">
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Your name</label>
+												<input type="text" class="form-control" placeholder="">
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Your partner's name</label>
+												<input type="text" class="form-control" placeholder="">
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Estimated guests</label>
+												<input type="text" class="form-control" placeholder="">
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label class="label-title">Ideal date</label>
+												<input id="example_1" class="form-control" type="text">	
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="form-group gray-bx">
+								<label class="label-title">Your must-haves</label>
+								<ul class="select-list clearfix list-inline list-3">
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="more-info">
+											<label class="custom-control-label" for="more-info">More info</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Brochure">
+											<label class="custom-control-label" for="Brochure">Brochure</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Pricing-details">
+											<label class="custom-control-label" for="Pricing-details">Pricing details</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Alternative-dates">
+											<label class="custom-control-label" for="Alternative-dates">Alternative-dates</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Availability">
+											<label class="custom-control-label" for="Availability">Availability</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Quote">
+											<label class="custom-control-label" for="Quote">Quote</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Showround-date">
+											<label class="custom-control-label" for="Showround-date">Showround date</label>
+										</div>
+									</li>
+									<li>
+										<div class="custom-control custom-checkbox checkbox-lg">
+											<input type="checkbox" class="custom-control-input" id="Other">
+											<label class="custom-control-label" for="Other">Other</label>
+										</div>
+									</li>
+								</ul>
+							</div>
+							<div class="form-group gray-bx">
+								<div class="text-center">
+									<a class="collapsed black btn-link" role="button" data-toggle="collapse" href="#maidens-barn" aria-expanded="false" aria-controls="maidens-barn"><i class="fa fa-plus-circle"></i> Add a custom message</a>
+								</div>
+								<div class="filter-bx fade collapse" id="maidens-barn" style="">
+									<div class="row">
+										<div class="col-md-12">
+											<div class="m-t30">
+												<label class="label-title">Edit your message below</label>
+												<textarea class="form-control" placeholder="Add an email"></textarea>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-md-12 text-center m-t30">
+									<button class="btn green gradient">Request brochure</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+			<!-- Modal End -->
+
+        </div>
+		<!-- contact area END -->
+    </div>
+    <!-- Content END-->
+    <button class="scroltop fa fa-chevron-up" ></button>
+</div>
+<!-- JAVASCRIPT FILES ========================================= -->
+<script src="js/jquery.min.js"></script><!-- JQUERY.MIN JS -->
+<script src="js/jquery-ui.js"></script><!-- JQUERY.MIN JS -->
+<script src="plugins/wow/wow.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/popper.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/bootstrap.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap-select/bootstrap-select.min.js"></script><!-- FORM JS -->
+<script src="plugins/bootstrap-touchspin/jquery.bootstrap-touchspin.js"></script><!-- FORM JS -->
+<script src="plugins/magnific-popup/magnific-popup.js"></script><!-- MAGNIFIC POPUP JS -->
+<script src="plugins/counter/waypoints-min.js"></script><!-- WAYPOINTS JS -->
+<script src="plugins/counter/counterup.min.js"></script><!-- COUNTERUP JS -->
+<script src="plugins/imagesloaded/imagesloaded.js"></script><!-- IMAGESLOADED -->
+<script src="plugins/masonry/masonry-3.1.4.js"></script><!-- MASONRY -->
+<script src="plugins/masonry/masonry.filter.js"></script><!-- MASONRY -->
+<script src="plugins/rangeslider/rangeslider.js"></script><!-- RANGESLIDER -->
+<script src="plugins/owl-carousel/owl.carousel.js"></script><!-- OWL SLIDER -->
+<script src="plugins/particles/particles.js"></script>
+<script src="plugins/particles/particles-app.js"></script>
+<script src="js/dz.carousel.js"></script><!-- SORTCODE FUCTIONS  -->
+<script src="js/custom.min.js"></script><!-- CUSTOM FUCTIONS  -->
+<script src="js/dz.ajax.js"></script><!-- CONTACT JS  -->
+<script src="plugins/range-slider/bootstrap-slider.min.js"></script><!-- FORM JS -->
+<script src="plugins/datepicker/bootstrap-datetimepicker.min.js"></script><!-- DATEPICKER JS -->
+
+<script>
+jQuery(document).ready(function() {
+	$('#example_1').datepickerInFullscreen();
+});	/*ready*/
+</script>
+
+<script>
+// With JQuery
+$("#ex14").slider({
+    ticks: [0, 10, 20, 40],
+    ticks_positions: [0, 30, 70, 100],
+    ticks_labels: ['$0', '$10', '$20',  '$40'],
+    ticks_snap_bounds: 30
+});
+
+// Without JQuery
+var slider = new Slider("#ex14", {
+    ticks: [0, 10, 20, 30, 40],
+    ticks_positions: [0, 30, 70,  100],
+    ticks_labels: ['$0', '$10', '$20',  '$40'],
+    ticks_snap_bounds: 30
+});
+</script>
+
+</body>
+</html>

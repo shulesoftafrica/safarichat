@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="keywords" content="" />
+	<meta name="author" content="" />
+	<meta name="robots" content="" />
+	<meta name="description" content="Wedding Manager" />
+	<meta property="og:title" content="Wedding Manager" />
+	<meta property="og:description" content="Wedding Manager" />
+	<meta property="og:image" content="" />
+	<meta name="format-detection" content="telephone=no">
+	
+	<!-- FAVICONS ICON -->
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.png" />
+	
+	<!-- PAGE TITLE HERE -->
+	<title>Wedding Manager</title>
+	
+	<!-- MOBILE SPECIFIC -->
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!--[if lt IE 9]>
+	<script src="js/html5shiv.min.js"></script>
+	<script src="js/respond.min.js"></script>
+	<![endif]-->
+	
+	<!-- STYLESHEETS -->
+	<link rel="stylesheet" type="text/css" href="css/plugins.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/templete.css">
+	<link rel="stylesheet" type="text/css" href="css/responsive.min.css">
+	<link class="skin" rel="stylesheet" type="text/css" href="css/skin/skin-4.css">
+	
+</head>
+<body id="bg">
+
+<div id="loading-area"></div>
+<div class="page-wraper">
+	<!-- header -->
+    <header class="site-header header-transparent mo-left">
+		<!-- main header -->
+        <div class="sticky-header main-bar-wraper navbar-expand-lg">
+            <div class="main-bar clearfix ">
+                <div class="container-fluid clearfix">
+                    <!-- website logo -->
+                    <div class="logo-header mostion">
+						<a class="header-logo1" href="index.html"><img src="images/logo-white-4.png" alt=""></a>
+						<a class="header-logo2" href="index.html"><img src="images/logo-black-4.png" alt=""></a>
+					</div>
+                    <div class="extra-nav">
+                        <div class="extra-cell home-sign">
+                            <a href="business-faq.html" class="btn gradient blue radius-sm"><span>Need help?</span><i class="la la-industry"></i></a>
+							<a href="javascript:void(0);" class="btn purple gradient radius-sm m-l10" data-toggle="modal" data-target="#signup"><span>Sign Up</span> <i class="la la-user-plus"></i></a>
+							<a href="javascript:void(0);" class="btn green gradient radius-sm m-l10" data-toggle="modal" data-target="#login"><span>login</span> <i class="la la-sign-in"></i></a>
+                        </div>
+                    </div>                        
+                </div>
+            </div>
+        </div>
+        <!-- main header END -->
+    </header>
+    <!-- header END -->
+	<!-- Modal -->
+	<div class="modal fade my-account-bx" id="signup" tabindex="-1" role="dialog" aria-labelledby="signup" aria-hidden="true">
+		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+		</button>
+		<div class="modal-dialog bns-modal" role="document">
+			<div class="modal-content business-form">
+				<form>
+					<h3 class="bns-title">Join Wedding Manager to get your business listed or to claim your listing for FREE!</h3>
+					<div class="bns-register">
+						<div class="bns-inner" data-name="01">
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Name">
+							</div>
+							<div class="form-group">
+								<select class="form-control">
+									<option value="">Select a category</option>
+									<option value="venue">Venues</option>
+									<option value="photo">Photographers</option>
+									<option value="florist">Florists</option>
+									<option value="video">Videographers</option>
+									<option value="catering">Catering</option>
+									<option value="dress">Wedding Dress and Accessories</option>
+									<option value="music">Music</option>
+									<option value="entertainment">Entertainment</option>
+									<option value="cakes">Cakes</option>
+									<option value="stationery">Stationery</option>
+									<option value="beauty">Beauty, Hair and Make-Up</option>
+									<option value="menswear">Menswear</option>
+									<option value="jewellery">Wedding Rings and Jewellery</option>
+									<option value="transport">Transport</option>
+									<option value="decoration">Decoration and Hire</option>
+									<option value="planners">Planners, Toastmasters and Celebrants</option>
+									<option value="marquee">Marquee Hire</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Website">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Phone Number">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Email address">
+							</div>
+							<div class="form-group">
+								<a class="btn blue gradient" data-toggle="collapse" href="#proceed" role="button" aria-expanded="false" aria-controls="proceed">Proceed to step 2 of 2</a>
+							</div>
+						</div>
+						<div class="bns-inner collapse next-proceed" id="proceed" data-name="02">
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Name">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Enter your Postcode and select an option">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Business Address">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Town/City">
+							</div>
+							<div class="form-group">
+								<input type="text" class="form-control" placeholder="Country">
+							</div>
+							<div class="form-group">
+								<a class="btn gray" data-toggle="collapse" href="#proceed" role="button" aria-expanded="false" aria-controls="proceed">Back</a>
+								<a href="#" class="btn blue gradient">Request FREE Listing</a>
+							</div>
+						</div>
+						<div class="sign-text">Already a registered supplier? <a href="javascript:;" data-toggle="modal" data-target="#login">Log in</a></div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade my-account-bx" id="login" tabindex="-1" role="dialog" aria-labelledby="login" aria-hidden="true">
+		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+		</button>
+		<div class="modal-dialog" role="document">
+			<div class="modal-content  business-form">
+				<form action="business-supplier.html">
+					<h3 class="bns-title">Log in to Wedding Manager Business</h3>
+					<div class="form-group">
+						<input type="email" class="form-control" placeholder="Email Address">
+					</div>
+					<div class="form-group">
+						<input type="password" class="form-control" placeholder="Password">
+						<div class="reset-password">
+							<a class="btn-link collapsed" data-toggle="collapse" href="#reset-password" role="button" aria-expanded="false" aria-controls="reset-password">Reset password?</a>
+						</div>
+					</div>
+					<div class="form-group">
+						<button type="submit" class="btn blue btn-block gradient">Login</button>
+					</div>
+					<div class="sign-text">
+						<span class="">Don't have a Wedding Manager account? <a href="#">Sign up</a></span>
+					</div>
+				</form>
+			</div>
+			<div class="modal-content collapse reset-password  business-form" id="reset-password">
+				<form>
+					<h3 class="bns-title">Password reset</h3>
+					<div class="form-group">
+						<input type="email" class="form-control" placeholder="Enter email address">
+					</div>
+					<div class="form-group">
+						<button type="submit" class="btn btn-block blue gradient">Send reset link</button>
+					</div>
+					<div class="sign-text">
+						<span class=""><a data-toggle="collapse" href="#reset-password" role="button" aria-expanded="false" aria-controls="reset-password">Back</a></span>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<!-- Modal End -->
+    <!-- Content -->
+    <div class="page-content bg-white">
+        <!-- Section Banner -->
+		<div class="dlab-bnr-inr text-center bus-banner overlay-black-dark ov-blue" id="app-banner" style="background-image:url(images/main-slider/slide2.jpg); background-size: cover;">
+            <div class="container">
+               <div class="row">
+				   <div class="col-lg-7 col-md-12 align-self-center">
+						<div class="bus-bnr-title text-left">
+							<h2 class="title">Wedding Manager Business</h2>	
+							<p>Promote your business and book more couples for free using the UK’s largest wedding manager platform</p>
+							<a href="javascript:void(0);" class="btn gradient blue radius-sm m-l10 btn-md radius-xl" data-toggle="modal" data-target="#login"><span>Join Business</span></a>							
+						</div>
+				   </div>
+				   <div class="col-lg-5 col-md-12">
+						<div class="tab-content nav">
+							<form class="business-form">
+								<h3 class="bns-title">Join Wedding Manager to get your business listed or to claim your listing for FREE!</h3>
+								<div class="bns-register">
+									<div class="bns-inner" data-name="01">
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Name">
+										</div>
+										<div class="form-group">
+											<select class="form-control">
+												<option value="">Select a category</option>
+												<option value="venue">Venues</option>
+												<option value="photo">Photographers</option>
+												<option value="florist">Florists</option>
+												<option value="video">Videographers</option>
+												<option value="catering">Catering</option>
+												<option value="dress">Wedding Dress and Accessories</option>
+												<option value="music">Music</option>
+												<option value="entertainment">Entertainment</option>
+												<option value="cakes">Cakes</option>
+												<option value="stationery">Stationery</option>
+												<option value="beauty">Beauty, Hair and Make-Up</option>
+												<option value="menswear">Menswear</option>
+												<option value="jewellery">Wedding Rings and Jewellery</option>
+												<option value="transport">Transport</option>
+												<option value="decoration">Decoration and Hire</option>
+												<option value="planners">Planners, Toastmasters and Celebrants</option>
+												<option value="marquee">Marquee Hire</option>
+											</select>
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Website">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Phone Number">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Email address">
+										</div>
+										<div class="form-group">
+											<a class="btn blue gradient" data-toggle="collapse" href="#proceed1" role="button" aria-expanded="false" aria-controls="proceed1">Proceed to step 2 of 2</a>
+										</div>
+									</div>
+									<div class="bns-inner collapse next-proceed" id="proceed1" data-name="02">
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Name">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Enter your Postcode and select an option">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Business Address">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Town/City">
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" placeholder="Country">
+										</div>
+										<div class="form-group">
+											<a class="btn gray" data-toggle="collapse" href="#proceed1" role="button" aria-expanded="false" aria-controls="proceed1">Back</a>
+											<a href="#" class="btn blue gradient">Request FREE Listing</a>
+										</div>
+									</div>
+									<div class="sign-text">Already a registered supplier? <a href="javascript:;" data-toggle="modal" data-target="#login">Log in</a></div>
+								</div>
+							</form>
+						</div>
+				   </div>
+			   </div>
+            </div>
+        </div>
+		<!-- Section Banner END -->
+		<!-- Manager Tools -->
+		<div class="section-full bg-gray content-inner" style="background-image: url(images/background/bg1.png); background-size: cover; background-position: right bottom;">
+			<div class="container">
+				<div class="section-head text-center">
+					<h3 class="box-title text-italic">View some amazing suppliers who have created free profiles on Wedding Manager:</h3>
+				</div>
+				<div class="row sp15">
+					<div class="col-lg-7 col-md-6 col-sm-12 card-container">
+						<div class="featured-bx wedding-supplier m-b15">
+							<div class="featured-media">
+								<img src="images/wedding-suppliers/pic1.jpg" alt="">
+							</div>	
+							<div class="featured-info">
+								<h2 class="title"><a href="listing-details.html">Venues </a></h2>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-5 col-md-6 col-sm-12 card-container">
+						<div class="featured-bx wedding-supplier m-b15">
+							<div class="featured-media">
+								<img src="images/wedding-suppliers/pic2.jpg" alt="">
+							</div>	
+							<div class="featured-info">
+								<h2 class="title"><a href="listing-details.html">Photographers </a></h2>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-12 card-container">
+						<div class="featured-bx wedding-supplier m-b15">
+							<div class="featured-media">
+								<img src="images/wedding-suppliers/pic16.jpg" alt="">
+							</div>	
+							<div class="featured-info">
+								<h4 class="title"><a href="listing-details.html">Florists </a></h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-6 col-md-6 col-sm-12 card-container">
+						<div class="featured-bx wedding-supplier m-b15">
+							<div class="featured-media">
+								<img src="images/wedding-suppliers/pic4.jpg" alt="">
+							</div>	
+							<div class="featured-info">
+								<h3 class="title"><a href="listing-details.html">Videographers </a></h3>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-12 card-container">
+						<div class="featured-bx wedding-supplier m-b15">
+							<div class="featured-media">
+								<img src="images/wedding-suppliers/pic17.jpg" alt="">
+							</div>	
+							<div class="featured-info">
+								<h4 class="title"><a href="listing-details.html">Catering </a></h4>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-12 m-tb30 text-center">
+						<a href="wedding-suppliers.html" class="btn btn-md blue gradient">and many more…</a>
+					</div>
+				</div>
+			</div>
+			<div class="dlab-divider bg-black op1"></div>
+			<div class="container">
+				<div class="row">
+					<div class="col-md-12 text-center">
+						<h5>As seen in:</h5>
+						<ul class="logo-list">
+							<li><img src="images/client-logo/logo/logo1.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo2.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo3.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo4.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo5.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo6.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo7.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo8.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo9.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo10.png" alt=""/></li>
+							<li><img src="images/client-logo/logo/logo11.png" alt=""/></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Manager Tools End -->
+		<!-- Venue Search Box -->
+		<div class="section-full content-inner-2 overlay-black-dark ov-blue wow fadeIn bns-search bg-img-fix" id="app-search" data-wow-duration="2s" data-wow-delay="0.3s" style="background-image: url(images/background/bg4.jpg); background-size: cover; background-position: right bottom;">
+			<div class="container">
+				<div class="row">
+					<div class="col-lg-12">
+						<div class="section-head venue-search-title text-center">
+							<h2 class="box-title text-italic">Advanced filtering means couples can find your business by category, location or name</h2>
+						</div>
+					</div>
+					<div class="col-lg-12 search-filter">
+						<form class="filter-form style1" action="wedding-venues-search.html">
+							<div class="row sp10">
+								<div class="col-lg-4">
+									<input type="text" class="form-control" placeholder="We’re looking for">
+								</div>
+								<div class="col-lg-3">
+									<input type="text" class="form-control" placeholder="Near">
+								</div>
+								<div class="col-lg-3">
+									<input type="text" class="form-control" placeholder="Or Called">
+								</div>
+								<div class="col-lg-2 d-flex">
+									<button class="btn black btn-block radius-xl text-uppercase"> Search</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Venue Search End -->
+		<!-- Insightful Inspiration -->
+		<div class="section-full bg-gray content-inner" style="background-image: url(images/background/bg3.jpg); background-size: cover; background-position: right bottom;">
+			<div class="container">
+				<div class="section-head text-center">
+					<h2 class="box-title text-italic">Create a free account in under 10 minutes</h2>
+					<P>Your Wedding Manager profile is the best way for couples around the UK to discover everything your wedding business has to offer. Rank higher on searches by adding:</P>
+				</div>
+				<div class="row">
+					<div class="col-lg-12 col-md-12">
+						<ul class="serlist">
+							<li><strong><i class="la la-photo"></i> <span>Unlimited photos</span></strong></li>
+							<li><strong><i class="la la-star"></i> <span>Supplier recommendations</span></strong></li>
+							<li><strong><i class="la la-phone-square"></i> <span>Direct Contact Details</span></strong></li>
+							<li><strong><i class="la la-youtube-play"></i> <span>Unlimited videos</span></strong></li>
+							<li><strong><i class="la la-check-square"></i> <span>Description of services</span></strong></li>
+							<li><strong><i class="la la-cart-plus"></i> <span>Selection of products</span></strong></li>
+							<li><strong><i class="la la-heart"></i> <span>Links to Social Media</span></strong></li>
+							<li><strong><i class="la la-trophy"></i> <span>Industry awards and features</span></strong></li>
+							<li><strong><i class="fa fa-usd"></i> <span>Pricing Information</span></strong></li>
+							<li><strong><i class="la la-comments-o"></i> <span>Client reviews & testimonials</span></strong></li>
+						</ul>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-lg-12 col-md-12 m-t20 text-center">
+						<a href="" class="btn blue gradient" data-toggle="modal" data-target="#signup">Create my free business account</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Insightful Inspiration End -->
+		<!-- Venue Search Box -->
+		<div class="section-full content-inner overlay-black-dark ov-blue wow fadeIn bns-search bg-img-fix" id="app-info" data-wow-duration="2s" data-wow-delay="0.3s" style="background-image: url(images/background/bg4.jpg); background-size: cover; background-position: right bottom;">
+			<div class="container">
+				<div class="col-lg-12">
+					<div class="section-head venue-search-title text-center">
+						<h2 class="box-title text-italic">Who’s using Wedding Manager?</h2>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-lg-4 col-lg-4 m-b30">
+						<div class="counter-bx">
+							<span>MORE THAN</span>
+							<h2 class="counter">100000</h2>
+							<p>Couples are planning their wedding with Wedding Manager</p>
+						</div>
+					</div>
+					<div class="col-lg-4 col-lg-4 m-b30">
+						<div class="counter-bx">
+							<span>OVER</span>
+							<h2 class="counter">350000</h2>
+							<p>Social Media Followers</p>
+						</div>
+					</div>
+					<div class="col-lg-4 col-lg-4 m-b10">
+						<div class="counter-bx">
+							<span>MORE THAN</span>
+							<h2 class="counter">16000</h2>
+							<p>Registered Wedding Businesses</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Venue Search End -->
+		<!-- Weddings Services Box End -->
+		<div class="section-full bg-gray content-inner">
+			<div class="container">
+				<div class="row">
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.2s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon1.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="wedding-venues-search.html">Search</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.4s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon2.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="wedding-planning-tools.html">Manager Tools</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.6s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon3.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="planner-guest-list.html">Guestlist</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.8s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon4.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="planner-checklist-select-date.html">Checklist</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.2s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon5.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="planner-budget-select.html">Budget</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.4s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon6.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="planner-shortlist.html">Shortlist</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.6s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon7.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="planner-advice.html">Advice</a>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 col-md-6 col-sm-6 col-6 m-b30 wow fadeInUp" data-wow-duration="2s" data-wow-delay="0.8s">
+						<div class="wedding-services">
+							<div class="icon-bx">
+								<img src="images/icon/icon2/icon8.png" alt="">
+							</div>
+							<div class="content-bx">
+								<a class="title" href="wedding-gift-lists.html">Gift Lists</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="dlab-divider bg-black op1"></div>
+			<div class="container">
+				<div class="row">
+					<div class="col-md-12 text-center">
+						<h5>As seen in:</h5>
+						<ul class="logo-list">
+							<li><img src="images/client-logo/logo/logo1.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo2.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo3.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo4.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo5.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo6.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo7.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo8.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo9.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo10.png" alt=""></li>
+							<li><img src="images/client-logo/logo/logo11.png" alt=""></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Manager Tools End -->
+    </div>
+    <!-- Content END-->
+	<!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-top">
+            <div class="container">
+                <div class="row">
+					<div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                        <div class="widget widget-list">
+                            <h5 class="widget-title">About Us</h5>
+                            <ul>
+                                <li><a href="about-us.html">About Us</a></li>
+                                <li><a href="pressandmedia.html">Press And Media</a></li>
+                                <li><a href="javascript:void(0);">info@example.com</a></li>
+							</ul>
+                        </div>
+                    </div>
+					<div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                        <div class="widget widget-list">
+                            <h5 class="widget-title">For Couples</h5>
+                            <ul>
+                                <li><a href="wedding-planning-tools.html">Manager Tools</a></li>
+                                <li><a href="wedding-suppliers.html">Wedding Suppliers</a></li>
+                                <li><a href="wedding-ideas-inspiration.html">Ideas Inspiration</a></li>
+                                <li><a href="wedding-gift-lists.html">Wedding Gift Lists</a></li>
+							</ul>
+                        </div>
+                    </div>
+					<div class="col-lg-3 col-md-3 col-sm-6  col-6">
+                        <div class="widget widget-list">
+                            <h5 class="widget-title">For Business</h5>
+                            <ul>
+                                <li><a href="index-business.html">Business</a></li>
+							</ul>
+                        </div>
+                    </div>
+					<div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                        <div class="widget widget-app">
+                            <h5 class="widget-title">GET THE APP</h5>
+							<img src="images/app1.jpg" alt="">
+							<img src="images/app2.jpg" alt="">
+                        </div>
+                    </div>
+				</div>
+            </div>
+        </div>
+		<div class="footer-bottom">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-6">
+						<span class="copyright"> © Copyright 2020 Wedding Manager</span> 
+					</div>
+					<div class="col-lg-6">
+						<ul class="footer-list">
+							<li><a href="cookie-policy.html">Cookie Policy</a></li>
+							<li><a href="privacy-policy.html">Privacy Policy</a></li>
+							<li><a href="terms.html">Terms & Conditions</a></li>
+						</ul> 
+					</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- Footer END-->
+    <button class="scroltop fa fa-chevron-up" ></button>
+</div>
+<!-- JAVASCRIPT FILES ========================================= -->
+<script src="js/jquery.min.js"></script><!-- JQUERY.MIN JS -->
+<script src="js/jquery-ui.js"></script><!-- JQUERY.MIN JS -->
+<script src="plugins/wow/wow.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/popper.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/bootstrap.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap-select/bootstrap-select.min.js"></script><!-- FORM JS -->
+<script src="plugins/bootstrap-touchspin/jquery.bootstrap-touchspin.js"></script><!-- FORM JS -->
+<script src="plugins/magnific-popup/magnific-popup.js"></script><!-- MAGNIFIC POPUP JS -->
+<script src="plugins/counter/waypoints-min.js"></script><!-- WAYPOINTS JS -->
+<script src="plugins/counter/counterup.min.js"></script><!-- COUNTERUP JS -->
+<script src="plugins/imagesloaded/imagesloaded.js"></script><!-- IMAGESLOADED -->
+<script src="plugins/masonry/masonry-3.1.4.js"></script><!-- MASONRY -->
+<script src="plugins/masonry/masonry.filter.js"></script><!-- MASONRY -->
+<script src="plugins/rangeslider/rangeslider.js"></script><!-- RANGESLIDER -->
+<script src="plugins/owl-carousel/owl.carousel.js"></script><!-- OWL SLIDER -->
+<script src="plugins/particles/particles.js"></script>
+<script src="plugins/particles/particles-app.js"></script>
+<script src="js/dz.carousel.js"></script><!-- SORTCODE FUCTIONS  -->
+<script src="js/custom.min.js"></script><!-- CUSTOM FUCTIONS  -->
+<script src="js/dz.ajax.js"></script><!-- CONTACT JS  -->
+</body>
+</html>

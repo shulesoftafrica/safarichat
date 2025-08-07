@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="keywords" content="" />
+	<meta name="author" content="" />
+	<meta name="robots" content="" />
+	<meta name="description" content="Wedding Manager" />
+	<meta property="og:title" content="Wedding Manager" />
+	<meta property="og:description" content="Wedding Manager" />
+	<meta property="og:image" content="" />
+	<meta name="format-detection" content="telephone=no">
+	
+	<!-- FAVICONS ICON -->
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.png" />
+	
+	<!-- PAGE TITLE HERE -->
+	<title>Wedding Manager</title>
+	
+	<!-- MOBILE SPECIFIC -->
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!--[if lt IE 9]>
+	<script src="js/html5shiv.min.js"></script>
+	<script src="js/respond.min.js"></script>
+	<![endif]-->
+	
+	<!-- STYLESHEETS -->
+	<link rel="stylesheet" type="text/css" href="css/plugins.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/templete.css">
+	<link rel="stylesheet" type="text/css" href="css/business.min.css">
+	<link rel="stylesheet" type="text/css" href="css/responsive.min.css">
+	<link class="skin" rel="stylesheet" type="text/css" href="css/skin/skin-1.css">
+	<link rel="stylesheet" type="text/css" href="plugins/drop/imageuploadify.min.css">
+	
+</head>
+<body id="bg">
+
+<div id="loading-area"></div>
+<div class="page-wraper">
+	
+	<div class="bns-frame">
+		<div class="bns-frame-top">
+			<div class="bns-logo">
+				<a href="business-enquiries.html"><img src="images/logo-white1.png" alt=""></a>
+			</div>
+			<a class="bns-navicon" href="#">
+				<i class="la la-bars"></i>
+				<i class="la la-close"></i>
+			</a>
+			<div class="bns-user">
+				<div class="dropdown show">
+					<div role="button" class="dropbx" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<img src="images/testimonials/pic1.jpg" alt=""/>
+						<span>info@example.com</span>
+					</div>
+					<ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+						<li><a href="business-settings.html">Your account</a></li>
+						<li><a href="index-business.html">Log out</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="bns-frame-side">
+			<div class="bns-nav">
+				<ul>
+					<li><a href="business-enquiries.html">Enquiries</a></li>
+					<li><a target="bank" href="#">Preview your profile</a></li>
+					<li class="bns-menu"><a href="#">Edit your profile <i class="la la-plus"></i></a> 
+						<ul class="sub-menu">
+							<li><a href="business-supplier.html">Profile details</a></li>
+							<li><a href="business-upload-photo.html">Photos</a></li>
+							<li><a href="business-add-videos.html">Add Videos +</a></li>
+							<li><a href="business-testimonials-review.html">Testimonials & Reviews</a></li>
+							<li><a href="business-report.html">Fairs, Reports & Network</a></li>
+						</ul>
+					</li>
+					<li><a href="business-profile-settings.html">Settings & Badges</a></li>
+					<li class="bns-menu"><a href="#">More info <i class="la la-plus"></i></a>
+						<ul class="sub-menu">
+							<li><a target="bank" href="business-faq.html">Supplier FAQs</a></li>
+							<li><a target="bank" href="about-us.html">About Us</a></li>
+							<li><a target="bank" href="pressandmedia.html">Press & Media</a></li>
+							<li><a target="bank" href="privacy-policy.html">Privacy Policy</a></li>
+							<li><a target="bank" href="terms.html">Terms & Conditions</a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+			<div class="bns-copy">
+				<p>Get in touch!</p>
+				<a href="#" class="bns-mail">info@example.com</a>
+				<p class="bns-pno">0208 068 6859</p>
+				<ul class="nav-social">
+					<li><a href="#" class="fa fa-facebook"></a></li>
+					<li><a href="#" class="fa fa-google"></a></li>
+					<li><a href="#" class="fa fa-twitter"></a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="bg-gray">
+            <div class="container-fluid">
+				
+					<form class="business-supplier bns-form">
+						<div class="form-box">
+							<h4 class="title">Contact Details*</h4>
+							<div class="row">
+								<div class="col-lg-6 col-md-6 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Name</label>
+										<input type="text" class="form-control" placeholder="Name">
+									</div>
+								</div>
+								<div class="col-lg-6 col-md-6 d-lg-block d-md-none d-sm-none col-sm-6"></div>
+								<div class="col-lg-6 col-md-6 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Website URL</label>
+										<input type="text" class="form-control" placeholder="Website">
+									</div>
+								</div>
+								<div class="col-lg-6 col-md-12 col-sm-12">
+									<div class="form-group">
+										<label class="label-title">Phone number <span>(the best number for enquiries)</span></label>
+										<input type="text" class="form-control" placeholder="Phone number">
+									</div>
+								</div>
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<label class="label-title">Address:</label>
+									<div class="row">
+										<div class="col-lg-6 col-md-6 col-sm-6">
+											<div class="form-group">
+												<input type="text" class="form-control" placeholder="Address">
+											</div>
+										</div>
+										<div class="col-lg-6 col-md-6 col-sm-6">
+											<div class="form-group">
+												<input type="text" class="form-control" placeholder="Town">
+											</div>	
+										</div>
+										<div class="col-lg-4 col-md-4 col-sm-4">
+											<div class="form-group">
+												<select>
+													<option>Neath Port Talbot</option>
+													<option>Newport</option>
+													<option>North Ayrshire</option>
+													<option>Orkney</option>
+													<option>Powys</option>
+												</select>
+											</div>	
+										</div>
+										<div class="col-lg-4 col-md-4 col-sm-4">
+											<div class="form-group">
+												<div class="form-group">
+													<select>
+														<option>England</option>
+														<option>Northern Ireland</option>
+														<option>Scotland</option>
+														<option>Wales</option>
+													</select>
+												</div>
+											</div>	
+										</div>		
+										<div class="col-lg-4 col-md-4 col-sm-4">
+											<div class="form-group">
+												<input type="text" class="form-control" placeholder="Postcode">
+											</div>	
+										</div>	
+									</div>	
+								</div>	
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<div class="form-group">
+										<div class="custom-control custom-checkbox">
+											<input type="checkbox" class="custom-control-input" id="check1" name="example1">
+											<label class="custom-control-label" for="check1">Hide first line of address on public profile </label>
+										</div>
+									</div>
+								</div>
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<label class="label-title">Email address </label>
+									<div class="row">
+										<div class="col-lg-6">
+											<div class="form-group">
+												<input type="text" class="form-control" placeholder="Email">
+											</div>
+										</div>
+										<div class="col-lg-6 col-md-6 col-sm-6">
+											<button class="btn blue gradient"><i class="fa fa-envelope m-r5"></i>Trigger test enquiry</button>
+										</div>
+									</div>
+								</div>									
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Regions Served</h4>
+							<p>Please select the region(s) that are relevant to your business</p>
+							<ul class="select-list clearfix list-inline">
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list1">
+										<label class="custom-control-label" for="list1">North East England</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list2">
+										<label class="custom-control-label" for="list2">North West England</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list3">
+										<label class="custom-control-label" for="list3">East Midlands</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list4">
+										<label class="custom-control-label" for="list4">West Midlands</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list5">
+										<label class="custom-control-label" for="list5">London</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list6">
+										<label class="custom-control-label" for="list6">South East England</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list7">
+										<label class="custom-control-label" for="list7">South West England</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list8">
+										<label class="custom-control-label" for="list8">Yorkshire and the Humber</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list9">
+										<label class="custom-control-label" for="list9">East of England</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list10">
+										<label class="custom-control-label" for="list10">Scotland</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list11">
+										<label class="custom-control-label" for="list11">Ireland</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="list12">
+										<label class="custom-control-label" for="list12">Wales</label>
+									</div>
+								</li>
+							</ul>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Upload Your Photos* (1 photo uploaded so far)</h4>
+							<p>To upload a photo you can either drag & drop photos in the box below, select a file, or copy & paste a direct link to a photo stored online. You can also add pictures on the separate Photos’ page.</p>
+							<input type="file" accept=".xlsx,.xls,image/*,.doc,audio/*,.docx,video/*,.ppt,.pptx,.txt,.pdf" multiple>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Description</h4>
+							<p>Please include a brief description of your business and wedding services which will appear at the top of your profile.</p>
+							<div class="row">
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<div class="form-group">
+										<textarea class="form-control" placeholder="Brief Description (max 200 characters)" rows="3"></textarea>
+									</div>
+								</div>
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<div class="form-group">
+										<p>Please provide a more detailed description of the products and services that you offer. Be sure to highlight the wonderful features that make your business unique!</p>
+										<textarea class="form-control" placeholder="Description of Services (max 2000 characters)" rows="3"></textarea>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">General Services</h4>
+							<p>Please select the products and services that your business offers.</p>
+							<ul class="select-list clearfix list-inline">
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services1">
+										<label class="custom-control-label" for="genera-services1">Bespoke Design</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services2">
+										<label class="custom-control-label" for="genera-services2">Tiered Cakes</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services3">
+										<label class="custom-control-label" for="genera-services3">Cupcakes</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services4">
+										<label class="custom-control-label" for="genera-services4">Sheet Cakes</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services5">
+										<label class="custom-control-label" for="genera-services5">Cake Accessories</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services6">
+										<label class="custom-control-label" for="genera-services6">Treats and Favours</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services7">
+										<label class="custom-control-label" for="genera-services7">Tastings</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services8">
+										<label class="custom-control-label" for="genera-services8">Pre-wedding Consultation</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services9">
+										<label class="custom-control-label" for="genera-services9">Set-up</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services10">
+										<label class="custom-control-label" for="genera-services10">Delivery</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services11">
+										<label class="custom-control-label" for="genera-services11">Last-minute Orders</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="genera-services12">
+										<label class="custom-control-label" for="genera-services12">Physical Shop / Studio</label>
+									</div>
+								</li>
+							</ul>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Dietary Options</h4>
+							<p>Please select the dietary options that you are able to cater for.</p>
+							<ul class="select-list clearfix list-inline">
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options1">
+										<label class="custom-control-label" for="dietary-options1">Vegetarian</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options2">
+										<label class="custom-control-label" for="dietary-options2">Vegan</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options3">
+										<label class="custom-control-label" for="dietary-options3">Nut-free</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options4">
+										<label class="custom-control-label" for="dietary-options4">Gluten-free</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options5">
+										<label class="custom-control-label" for="dietary-options5">Dairy-free</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options6">
+										<label class="custom-control-label" for="dietary-options6">Kosher</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="dietary-options7">
+										<label class="custom-control-label" for="dietary-options7">Halal</label>
+									</div>
+								</li>
+							</ul>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Pricing</h4>
+							<p>Please indicate the starting price for your services.</p>
+							<div class="row">
+								<div class="col-lg-4 col-md-4 col-sm-4">
+									<div class="form-group">
+										<input type="text" class="form-control" placeholder="Starting Price">
+									</div>
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Choose your pricing category.</label>
+										<div class="d-flex">
+											<div class="btn-group-toggle btn-select" data-toggle="buttons">
+												<label class="btn">
+													<input type="radio" name="options" id="Affordable"> Affordable
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="Moderate"> Moderate
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="Luxury"> Luxury
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="Superluxury"> Super luxury
+												</label>
+											</div>
+										</div>
+									</div>	
+								</div>									
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Self-Promotion</h4>
+							<p>Here's an opportunity to share some of the achievements that you're proud of. Have you been featured in a magazine or blog? Have you won any awards? Or have you achieved any accreditations? Please list them below.</p>
+							<div class="row">
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Featured In</label>
+										<div class="row">
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Publication/issue name">
+											</div>
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Related link (optional)">
+											</div>
+											<div class="col-lg-12">
+												<a href="javascript:void(0);" class="btn-link">+ Add more</a>
+											</div>	
+										</div>	
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Industry Awards</label>
+										<div class="row">
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Award name">
+											</div>	
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Related link (optional)">
+											</div>
+											<div class="col-lg-12">
+												<a href="javascript:void(0);" class="btn-link">+ Add more</a>
+											</div>	
+										</div>	
+									</div>	
+								</div>	
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Accreditations / Associations</label>
+										<div class="row">
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Accreditation">
+											</div>	
+											<div class="col-lg-6 col-md-6 col-sm-6 m-b15">
+												<input type="text" class="form-control" placeholder="Related link (optional)">
+											</div>
+											<div class="col-lg-12">
+												<a href="javascript:void(0);" class="btn-link">+ Add more</a>
+											</div>	
+										</div>	
+									</div>	
+								</div>											
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Experience</h4>
+							<p>Help give our couples a sense of your industry experience.</p>
+							<div class="row">
+								<div class="col-lg-4 col-md-4 col-sm-4">
+									<div class="form-group">
+										<label class="label-title">Year business was established</label>
+										<input type="text" class="form-control" placeholder="Year established">
+									</div>
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">No. of Weddings Hosted</label>
+										<div class="d-flex">
+											<div class="btn-group-toggle btn-select" data-toggle="buttons">
+												<label class="btn">
+													<input type="radio" name="options" id="weddings-hosted1"> Less than 10
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="weddings-hosted2"> Between 10 and 30
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="weddings-hosted3"> Between 30 and 50
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="weddings-hosted4"> More than 50
+												</label>
+											</div>
+										</div>
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-4">
+									<div class="form-group">
+										<label class="label-title">Number of people in your team</label>
+										<input type="text" class="form-control" placeholder="Enter number">
+									</div>
+								</div>	
+								<div class="col-lg-12 col-md-12 col-sm-12">
+									<div class="form-group">
+										<div class="custom-control custom-checkbox">
+											<input type="checkbox" class="custom-control-input" id="check2" name="example2">
+											<label class="custom-control-label" for="check2">Yes, my business holds public liability insurance </label>
+										</div>
+									</div>
+								</div>										
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Wedding Manager Special Offers</h4>
+							<p>Is there an exclusive offer you would provide for couples booking your services through Wedding Manager?</p>
+							<div class="row">
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Wedding Manager Discount</label>
+										<div class="d-flex">
+											<div class="btn-group-toggle btn-select" data-toggle="buttons">
+												<label class="btn">
+													<input type="radio" name="options" id="None"> None
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="5Discount"> 5% Discount
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="10Discount"> 10% Discount
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="20Discount"> 20% Discount
+												</label>
+												<label class="btn">
+													<input type="radio" name="options" id="Other"> Other
+												</label>
+											</div>
+										</div>
+									</div>	
+								</div>									
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Social</h4>
+							<p>Please include any links to Social Media, Videos or your blog. Be sure to include the 'http://www...' as it would read in a web address. For example: http://www.facebook.com/Wedding Manager info@example.com or http://www.instagram.com/Wedding Manager UKhq</p>
+							<div class="row">
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Facebook</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Pinterest</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Twitter</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Instagram</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">GooglePlus</label>
+										<input type="text" class="form-control" placeholder="Enter link"> 									
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Youtube</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Vimeo</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Blog</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>
+								<div class="col-lg-4 col-md-4 col-sm-6">
+									<div class="form-group">
+										<label class="label-title">Linkedin</label>
+										<input type="text" class="form-control" placeholder="Enter link">
+									</div>	
+								</div>										
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Personal Message from the Manager</h4>
+							<p>Please include a personal welcome message to couples to add that extra personal touch!</p>
+							<div class="row">
+								<div class="col-lg-6">
+									<div class="form-group">
+										<label class="label-title">Name of wedding contact</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Message</label>
+										<textarea class="form-control" placeholder="Write your message (max 500 characters)"></textarea>
+									</div>	
+								</div>
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">FAQs</h4>
+							<p>Your answers to the questions below will help show your personality and give couples a sense of what it's like working with you and your business - beyond a general description of services. Answer as many as you like, and have fun with your personalised responses!</p>
+							<div class="row">
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What is your most memorable wedding?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Describe your style in 5 adjectives.</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What about your business are you most proud of?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What is your No.1 wedding manager tip for couples?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What is your favourite personal touch you have seen at a wedding?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Describe your typical process with a couple.</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What is your signature cake?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What is the most original creation you have baked for a wedding?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Describe how you got into making wedding cakes.</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">What would be your show stopper in the Great British Bake Off?</label>
+										<input type="text" class="form-control" placeholder="Enter your answer">
+									</div>	
+								</div>
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Getting Here</h4>
+							<div class="row">
+								<div class="col-lg-4">
+									<div class="form-group">
+										<label class="label-title">Nearest town</label>
+										<input type="text" class="form-control" placeholder="Nearest town">
+									</div>	
+								</div>
+								<div class="col-lg-4">
+									<div class="form-group">
+										<label class="label-title">Nearest train station</label>
+										<input type="text" class="form-control" placeholder="Nearest train station">
+									</div>	
+								</div>
+								<div class="col-lg-4">
+									<div class="form-group">
+										<label class="label-title">Nearest motorway and junction</label>
+										<input type="text" class="form-control" placeholder="Nearest motorway and junction">
+									</div>	
+								</div>
+								<div class="col-lg-4">
+									<div class="form-group">
+										<label class="label-title">Nearest airport</label>
+										<input type="text" class="form-control" placeholder="Nearest airport">
+									</div>	
+								</div>
+								<div class="col-lg-12">
+									<div class="form-group">
+										<label class="label-title">Travel notes</label>
+										<input type="text" class="form-control" placeholder="'It is best to enter our venue in Google Maps and you will find us at the end of our 1-kilometer spectacular drive!'"> 									
+									</div>	
+								</div>										
+							</div>
+						</div>
+						<div class="form-box">
+							<h4 class="title">Cultural Experience</h4>
+							<p>Would you consider your business a specialist in any of the following types of weddings?</p>
+							<ul class="select-list clearfix list-inline">
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="AsianWeddings">
+										<label class="custom-control-label" for="AsianWeddings">Asian Weddings</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="JewishWeddings">
+										<label class="custom-control-label" for="JewishWeddings">Jewish Weddings</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="MuslimWeddings">
+										<label class="custom-control-label" for="MuslimWeddings">Muslim Weddings</label>
+									</div>
+								</li>
+								<li>
+									<div class="custom-control custom-checkbox checkbox-lg">
+										<input type="checkbox" class="custom-control-input" id="OtherSpeciality">
+										<label class="custom-control-label" for="OtherSpeciality">Other Speciality</label>
+									</div>
+								</li>
+							</ul>
+						</div>
+						<div class="p-b50 text-center">
+							<button type="button" class="btn gradient blue btn-md">Save changes</button>
+						</div>
+					</form>
+			</div>
+		</div>
+		<!-- Contact area END -->	  
+    </div>
+</div>
+<!-- JAVASCRIPT FILES ========================================= -->
+<script src="js/jquery.min.js"></script><!-- JQUERY.MIN JS -->
+<script src="js/jquery-ui.js"></script><!-- JQUERY.MIN JS -->
+<script src="plugins/wow/wow.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/popper.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap/js/bootstrap.min.js"></script><!-- BOOTSTRAP.MIN JS -->
+<script src="plugins/bootstrap-select/bootstrap-select.min.js"></script><!-- FORM JS -->
+<script src="plugins/bootstrap-touchspin/jquery.bootstrap-touchspin.js"></script><!-- FORM JS -->
+<script src="plugins/magnific-popup/magnific-popup.js"></script><!-- MAGNIFIC POPUP JS -->
+<script src="plugins/counter/waypoints-min.js"></script><!-- WAYPOINTS JS -->
+<script src="plugins/counter/counterup.min.js"></script><!-- COUNTERUP JS -->
+<script src="plugins/imagesloaded/imagesloaded.js"></script><!-- IMAGESLOADED -->
+<script src="plugins/masonry/masonry-3.1.4.js"></script><!-- MASONRY -->
+<script src="plugins/masonry/masonry.filter.js"></script><!-- MASONRY -->
+<script src="plugins/rangeslider/rangeslider.js"></script><!-- RANGESLIDER -->
+<script src="plugins/owl-carousel/owl.carousel.js"></script><!-- OWL SLIDER -->
+<script src="plugins/particles/particles.js"></script>
+<script src="plugins/particles/particles-app.js"></script>
+<script src="js/dz.carousel.js"></script><!-- SORTCODE FUCTIONS  -->
+<script src="js/custom.min.js"></script><!-- CUSTOM FUCTIONS  -->
+<script src="js/dz.ajax.js"></script><!-- CONTACT JS  -->
+<script src="plugins/drop/imageuploadify.min.js"></script><!-- CONTACT JS  -->
+<script>
+    $(document).ready(function() {
+       $('input[type="file"]').imageuploadify();
+    });
+</script>
+</body>
+</html>
