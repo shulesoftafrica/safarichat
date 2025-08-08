@@ -17,46 +17,6 @@ class Business extends Controller {
         $this->middleware('auth');
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index() {
-        return view('business.index');
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function summary() {
-        $business_service = \App\Models\BusinessService::where('business_id', Auth::user()->business->id);
-        $budget = \App\Models\Budget::whereIn('business_service_id', $business_service->get(['id']));
-        $this->data['requests'] = $budget->get();
-        $this->data['amount'] = $budget->sum('actual_price');
-        $this->data['business_services'] = $business_service->get();
-        $this->data['page_viewers'] = \App\Models\PageViewer::whereIn('business_service_id', $business_service->get(['id']))->offset(0)
-                ->limit(5)
-                ->get();
-        $this->data['reports'] = DB::select("select sum(amount), extract(month from created_at)||'-'||extract(year from created_at) as month_date from budget_payments where"
-                        . " budget_id in (select id from budgets where business_service_id in (select id from business_services where business_id=" . Auth::user()->business->id . " )) group by month_date order by month_date asc ");
-
-        return view('business.summary', $this->data);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function request() {
-        $business_service = \App\Models\BusinessService::where('business_id', Auth::user()->business->id);
-        $budget = \App\Models\Budget::whereIn('business_service_id', $business_service->get(['id']));
-        $this->data['requests'] = $budget->get();
-        return view('business.request', $this->data);
-    }
 
     /**
      * Update the specified resource in storage.
@@ -94,55 +54,7 @@ class Business extends Controller {
         }
     }
 
-    private function serviceProfile($id) {
-
-        $business_info = \App\Models\BusinessService::where('business_id', Auth::user()->business->id)->where('service_id', $id);
-        $this->data['business_service'] = $business_info->firstOrFail();
-        $this->data['service'] = $this->data['business_service']->service;
-        $this->data['business'] =Auth::user()->business;
-        $budget = \App\Models\Budget::whereIn('business_service_id', $business_info->get(['id']));
-        $this->data['bookings_payments_lists'] = $budget_payment = \App\Models\BudgetPayment::whereIn('budget_id', $budget->get(['id']));
-        $this->data['amount'] = $budget_payment->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->sum('amount');
-        $this->data['total_amount'] = \App\Models\BudgetPayment::whereIn('budget_id', $budget->get(['id']))->sum('amount');
-        $this->data['page_viewers'] = \App\Models\PageViewer::where('business_service_id', $this->data['business']->id)->whereMonth('created_at', date('m'))->count();
-        $this->data['bookings'] = $budget->count();
-        $this->data['bookings_payment'] = $budget_payment->count();
-        $this->data['reports'] = DB::select("select count(*), extract(month from created_at)||'-'||extract(year from created_at) as month_date from page_viewers where"
-                        . "  business_service_id=" . $this->data['business']->id . " group by month_date order by month_date asc ");
-
-
-        return view('business.profile', $this->data);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function promote() {
-        $this->data['data'] = [];
-        return view('business.promote_service', $this->data);
-    }
-
-    public function promotion() {
-        $unit_price = request('type');
-        $number_of_users = request('number');
-        $total_price = $unit_price * $number_of_users;
-        //create a promotion tab
-        $admin_package = \App\Models\AdminPackage::firstOrCreate([
-                    'name' => 'promotion',
-                    'is_addon' => 1
-        ]);
-        $payment = new \App\Http\Controllers\Payment();
-        $param = [
-            'uid' => time() . substr(str_shuffle('abcdefghkmnpqrstqrstvwoij'), 0, 3),
-            'business_id' => Auth::user()->business->id,
-            'promotion_type' => $unit_price == 10000 ? 'Advanced' : 'Basic',
-            'total_users' => $number_of_users
-        ];
-        return $payment->createReference($admin_package->id, 'promotion', (float) str_replace(',', null, $total_price), $param);
-    }
-
+    
     public function createService() {
         $imageUrls = [];
  
