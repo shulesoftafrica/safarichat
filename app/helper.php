@@ -181,6 +181,7 @@ function is_trial()
     if ((int) $days > (int) $trialDays) {
         $trial = 0;
     }
+
     return $trial;
 }
 
