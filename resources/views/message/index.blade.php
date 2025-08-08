@@ -76,6 +76,32 @@
         background: white;
     }
     
+    .form-control-modern.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+    
+    .form-control-modern.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+    
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #dc3545;
+    }
+    
+    .valid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #28a745;
+    }
+    
     .recipient-card {
         background: #f8fafc;
         border: 2px solid #e5e7eb;
@@ -483,6 +509,39 @@
         </div>
         
         <div class="compose-main">
+            <!-- Error Display Section -->
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            @endif
+
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show m-4" role="alert">
+                    <i class="fas fa-check-circle"></i> {{ session('success') }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            @endif
+
             <form class="compose-form" method="POST" action="{{ url('message/store') }}" enctype="multipart/form-data" id="messageForm">
                 @csrf
                 
@@ -538,6 +597,7 @@
                     </div>
                     
                     <input type="hidden" name="criteria" id="criteriaInput" required>
+                    <div id="criteria-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
                 <!-- Category Selection (Hidden by default) -->
@@ -545,14 +605,18 @@
                     <label class="form-label">
                         <i class="fas fa-tag"></i> Select Customer Category
                     </label>
-                    <select class="form-control-modern" name="event_guest_category_id" id="categorySelect">
+                    <select class="form-control-modern @error('event_guest_category_id') is-invalid @enderror" name="event_guest_category_id" id="categorySelect">
                         <option value="">Choose a category...</option>
                         @if(isset($guest_categories))
                             @foreach ($guest_categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                <option value="{{ $category->id }}" {{ old('event_guest_category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
                             @endforeach
                         @endif
                     </select>
+                    @error('event_guest_category_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div id="category-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
                 <!-- Custom Numbers Input (Hidden by default) -->
@@ -560,10 +624,14 @@
                     <label class="form-label">
                         <i class="fas fa-phone"></i> Enter Phone Numbers
                     </label>
-                    <div class="contact-tags" id="contactTags">
+                    <div class="contact-tags @error('custom_numbers') is-invalid @enderror" id="contactTags">
                         <input type="text" class="contact-input" placeholder="Type phone numbers separated by comma or space..." id="contactInput">
                     </div>
-                    <input type="hidden" name="custom_numbers" id="customNumbersInput">
+                    <input type="hidden" name="custom_numbers" id="customNumbersInput" value="{{ old('custom_numbers') }}">
+                    @error('custom_numbers')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div id="custom-numbers-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-lightbulb"></i> 
                         Enter numbers with country code (e.g., +255712345678)
@@ -575,7 +643,11 @@
                     <label class="form-label">
                         <i class="fas fa-file-excel"></i> Upload Excel File
                     </label>
-                    <input type="file" class="form-control-modern" name="excel_contacts" id="excelContactsInput" accept=".xls,.xlsx,.csv">
+                    <input type="file" class="form-control-modern @error('excel_contacts') is-invalid @enderror" name="excel_contacts" id="excelContactsInput" accept=".xls,.xlsx,.csv">
+                    @error('excel_contacts')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div id="excel-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-info-circle"></i>
                         Upload an Excel file (.xls, .xlsx, .csv) with a column containing name (optional) as name, and phone number as phone (Mandatory).
@@ -605,13 +677,18 @@
                         <!-- Message Input -->
                         <div class="message-input-area">
                             <textarea 
-                                class="message-input" 
+                                class="message-input @error('message') is-invalid @enderror" 
                                 placeholder="Type your message here... Use #name for hashtag customer name"
                                 name="message" 
                                 id="messageInput"
                                 rows="1"
                                 required
-                            ></textarea>
+                            >{{ old('message') }}</textarea>
+                            
+                            @error('message')
+                                <div class="invalid-feedback position-absolute" style="bottom: -20px; left: 16px;">{{ $message }}</div>
+                            @enderror
+                            <div id="message-validation-feedback" class="invalid-feedback position-absolute" style="bottom: -20px; left: 16px; display: none;"></div>
                             
                             <div class="input-actions">
                                 <!-- File Upload -->
@@ -722,8 +799,20 @@ document.addEventListener('DOMContentLoaded', function() {
             customNumbersSection.style.display = value === '6' ? 'block' : 'none';
             excelUploadSection.style.display = value === '7' ? 'block' : 'none';
             
+            // Clear validation errors when switching criteria
+            clearValidationErrors();
+            
             updateRecipientCount();
         });
+    });
+
+    // Category Selection Validation
+    document.getElementById('categorySelect').addEventListener('change', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+            document.getElementById('category-validation-feedback').style.display = 'none';
+        }
+        updateRecipientCount();
     });
 
     // Custom Numbers Input
@@ -741,12 +830,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value && !contactNumbers.includes(value)) {
             // Validate phone number format
             const cleanNumber = value.replace(/\D/g, '');
-            if (cleanNumber.length >= 9) {
+            if (cleanNumber.length >= 9 && cleanNumber.length <= 15) {
                 contactNumbers.push(value);
                 createContactTag(value);
                 contactInput.value = '';
                 updateCustomNumbersInput();
                 updateRecipientCount();
+                
+                // Clear validation errors
+                document.getElementById('contactTags').classList.remove('is-invalid');
+                document.getElementById('custom-numbers-validation-feedback').style.display = 'none';
+            } else {
+                // Show validation error
+                showValidationError('custom-numbers', 'Invalid phone number format. Use country code (e.g., +255712345678)');
+                document.getElementById('contactTags').classList.add('is-invalid');
             }
         }
     }
@@ -783,6 +880,33 @@ document.addEventListener('DOMContentLoaded', function() {
     excelContactsInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
+            // Clear previous validation state
+            this.classList.remove('is-invalid');
+            document.getElementById('excel-validation-feedback').style.display = 'none';
+            
+            // Validate file type
+            const validTypes = ['.xls', '.xlsx', '.csv'];
+            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+            
+            if (!validTypes.includes(fileExtension)) {
+                showValidationError('excel', 'Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                this.classList.add('is-invalid');
+                this.value = '';
+                excelFileName = '';
+                updateRecipientCount();
+                return;
+            }
+            
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                showValidationError('excel', 'File size too large. Maximum 5MB allowed');
+                this.classList.add('is-invalid');
+                this.value = '';
+                excelFileName = '';
+                updateRecipientCount();
+                return;
+            }
+            
             excelFileName = file.name;
             updateRecipientCount();
             
@@ -790,18 +914,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const fileLabel = this.parentElement.querySelector('.form-label');
             const originalText = fileLabel.innerHTML;
             fileLabel.innerHTML = `<i class="fas fa-file-excel text-success"></i> Selected: ${file.name}`;
-            
-            // Validate file type
-            const validTypes = ['.xls', '.xlsx', '.csv'];
-            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-            
-            if (!validTypes.includes(fileExtension)) {
-                alert('Please select a valid Excel file (.xls, .xlsx, .csv)');
-                this.value = '';
-                excelFileName = '';
-                fileLabel.innerHTML = originalText;
-                updateRecipientCount();
-            }
         } else {
             excelFileName = '';
             updateRecipientCount();
@@ -810,6 +922,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Message Input Auto-resize
     messageInput.addEventListener('input', function() {
+        // Clear validation errors
+        this.classList.remove('is-invalid');
+        document.getElementById('message-validation-feedback').style.display = 'none';
+        
         // Auto-resize
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
@@ -1022,22 +1138,209 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form Submission
     document.getElementById('messageForm').addEventListener('submit', function(e) {
+        // Clear previous validation states
+        clearValidationErrors();
+        
+        let isValid = true;
+        let errors = [];
+
+        // Validate recipient selection
         if (!selectedCriteria) {
-            e.preventDefault();
-            alert('Please select who you want to message');
-            return;
+            isValid = false;
+            errors.push('Please select who you want to message');
+            showValidationError('criteria', 'Please select a recipient type');
         }
-        
-        if (!messageInput.value.trim()) {
-            e.preventDefault();
-            alert('Please enter a message');
-            return;
+
+        // Validate category selection if needed
+        if (selectedCriteria === '2') {
+            const categorySelect = document.getElementById('categorySelect');
+            if (!categorySelect.value) {
+                isValid = false;
+                errors.push('Please select a customer category');
+                showValidationError('category', 'Please select a customer category');
+                categorySelect.classList.add('is-invalid');
+            }
         }
-        
+
+        // Validate custom numbers if needed
+        if (selectedCriteria === '6') {
+            if (contactNumbers.length === 0) {
+                isValid = false;
+                errors.push('Please enter at least one phone number');
+                showValidationError('custom-numbers', 'Please enter at least one valid phone number');
+                document.getElementById('contactTags').classList.add('is-invalid');
+            } else {
+                // Validate phone number format
+                const invalidNumbers = contactNumbers.filter(number => {
+                    const cleanNumber = number.replace(/\D/g, '');
+                    return cleanNumber.length < 9 || cleanNumber.length > 15;
+                });
+                
+                if (invalidNumbers.length > 0) {
+                    isValid = false;
+                    errors.push(`Invalid phone numbers: ${invalidNumbers.join(', ')}`);
+                    showValidationError('custom-numbers', `Invalid phone numbers: ${invalidNumbers.join(', ')}`);
+                    document.getElementById('contactTags').classList.add('is-invalid');
+                }
+            }
+        }
+
+        // Validate Excel file if needed
+        if (selectedCriteria === '7') {
+            const excelFile = document.getElementById('excelContactsInput').files[0];
+            if (!excelFile) {
+                isValid = false;
+                errors.push('Please upload an Excel file');
+                showValidationError('excel', 'Please upload an Excel file');
+                document.getElementById('excelContactsInput').classList.add('is-invalid');
+            } else {
+                // Validate file type
+                const validExtensions = ['.xls', '.xlsx', '.csv'];
+                const fileExtension = excelFile.name.toLowerCase().substring(excelFile.name.lastIndexOf('.'));
+                if (!validExtensions.includes(fileExtension)) {
+                    isValid = false;
+                    errors.push('Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                    showValidationError('excel', 'Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                    document.getElementById('excelContactsInput').classList.add('is-invalid');
+                }
+                
+                // Validate file size (5MB limit)
+                if (excelFile.size > 5 * 1024 * 1024) {
+                    isValid = false;
+                    errors.push('File size too large. Maximum 5MB allowed');
+                    showValidationError('excel', 'File size too large. Maximum 5MB allowed');
+                    document.getElementById('excelContactsInput').classList.add('is-invalid');
+                }
+            }
+        }
+
+        // Validate message content
+        const messageText = messageInput.value.trim();
+        if (!messageText && attachedFiles.length === 0) {
+            isValid = false;
+            errors.push('Please enter a message or attach files');
+            showValidationError('message', 'Please enter a message or attach files');
+            messageInput.classList.add('is-invalid');
+        }
+
+        // Validate message length
+        if (messageText.length > 1000) {
+            isValid = false;
+            errors.push('Message is too long. Maximum 1000 characters allowed');
+            showValidationError('message', 'Message is too long. Maximum 1000 characters allowed');
+            messageInput.classList.add('is-invalid');
+        }
+
+        // Validate attached files
+        if (attachedFiles.length > 0) {
+            const oversizedFiles = attachedFiles.filter(file => file.size > 16 * 1024 * 1024);
+            if (oversizedFiles.length > 0) {
+                isValid = false;
+                errors.push('Some attached files are too large. Maximum 16MB per file');
+                showValidationError('message', 'Some attached files are too large. Maximum 16MB per file');
+            }
+
+            if (attachedFiles.length > 10) {
+                isValid = false;
+                errors.push('Too many files attached. Maximum 10 files allowed');
+                showValidationError('message', 'Too many files attached. Maximum 10 files allowed');
+            }
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            
+            // Show error summary
+            showErrorSummary(errors);
+            
+            // Scroll to first error
+            const firstError = document.querySelector('.is-invalid');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
+            
+            return false;
+        }
+
         // Show loading state
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         sendBtn.disabled = true;
+        floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        floatingSendBtn.disabled = true;
+
+        // Add loading overlay
+        showLoadingOverlay();
     });
+
+    function clearValidationErrors() {
+        // Remove validation classes
+        const invalidElements = document.querySelectorAll('.is-invalid');
+        invalidElements.forEach(element => {
+            element.classList.remove('is-invalid');
+        });
+
+        // Hide validation feedback
+        const feedbackElements = document.querySelectorAll('[id$="-validation-feedback"]');
+        feedbackElements.forEach(element => {
+            element.style.display = 'none';
+        });
+
+        // Hide error summary
+        const errorSummary = document.getElementById('error-summary');
+        if (errorSummary) {
+            errorSummary.remove();
+        }
+    }
+
+    function showValidationError(fieldType, message) {
+        const feedbackElement = document.getElementById(`${fieldType}-validation-feedback`);
+        if (feedbackElement) {
+            feedbackElement.textContent = message;
+            feedbackElement.style.display = 'block';
+        }
+    }
+
+    function showErrorSummary(errors) {
+        // Remove existing error summary
+        const existingErrorSummary = document.getElementById('error-summary');
+        if (existingErrorSummary) {
+            existingErrorSummary.remove();
+        }
+
+        // Create error summary
+        const errorSummary = document.createElement('div');
+        errorSummary.id = 'error-summary';
+        errorSummary.className = 'alert alert-danger alert-dismissible fade show';
+        errorSummary.innerHTML = `
+            <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+            <ul class="mb-0">
+                ${errors.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+            <button type="button" class="close" onclick="this.parentElement.remove()">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        `;
+
+        // Insert error summary at the top of the form
+        const composeForm = document.querySelector('.compose-form');
+        composeForm.insertBefore(errorSummary, composeForm.firstChild);
+    }
+
+    function showLoadingOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'loading-overlay';
+        overlay.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #25d366; margin-bottom: 15px;"></i>
+                    <h5>Sending Message...</h5>
+                    <p class="text-muted mb-0">Please wait while we process your request</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
 
     // Floating send button
     floatingSendBtn.addEventListener('click', function() {

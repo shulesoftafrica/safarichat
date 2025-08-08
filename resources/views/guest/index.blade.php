@@ -639,9 +639,11 @@
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <select class="form-control" name="country_code" id="country_code" style="max-width: 100px;">
-                                    <option value="+255">+255</option>
-                                    <option value="+254">+254</option>
-                                    <option value="+256">+256</option>
+                                    @foreach(\App\Models\Country::orderBy('name')->get() as $country)
+                                        <option value="+{{ $country->phonecode }}">
+                                            +{{ $country->name }} 
+                                        </option>
+                                    @endforeach
                                     <!-- Add more country codes as needed -->
                                 </select>
                             </div>

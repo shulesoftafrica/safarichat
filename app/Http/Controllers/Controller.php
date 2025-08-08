@@ -30,7 +30,15 @@ class Controller extends BaseController {
 
 
     public function getCleanSms($replacements, $message, $pattern = null) {
-        $sms = preg_replace($pattern != null ? $pattern : $this->patterns, $replacements, $message);
+     
+        $pattern = !empty($pattern) ? $pattern : $this->patterns;
+
+        $array = array ( 'abc' => 'Test', 'def' => 'Variable', 'ghi' => 'Change' );
+
+        $regexes = array_map(function ($k) { return "/" . preg_quote("%!$k!%") . "/"; }, array_keys($pattern));
+
+
+        $sms = preg_replace($regexes, $replacements, $message);
         if (preg_match('/#/', $sms)) {
             //try to replace that character
             return preg_replace('/\#[a-zA-Z]+/i', '', $sms);
