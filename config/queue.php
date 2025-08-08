@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'sync'),
+    'default' => env('QUEUE_CONNECTION', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -63,7 +63,31 @@ return [
             'driver' => 'redis',
             'connection' => 'default',
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => 90,
+            'retry_after' => 300,
+            'block_for' => null,
+        ],
+
+        'messages' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => 'messages',
+            'retry_after' => 300,
+            'block_for' => null,
+        ],
+
+        'high_priority' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => 'high_priority',
+            'retry_after' => 300,
+            'block_for' => null,
+        ],
+
+        'bulk_messages' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => 'bulk_messages',
+            'retry_after' => 600,
             'block_for' => null,
         ],
 

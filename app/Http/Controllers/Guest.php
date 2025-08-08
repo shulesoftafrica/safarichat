@@ -27,7 +27,7 @@ class Guest extends Controller {
         }
         
         // Get paginated guests data
-        $this->data['guests'] = EventsGuest::whereEventId($event_id)->get();
+        $this->data['guests'] = EventsGuest::whereEventId($event_id)->limit(1000)->get();
         $this->data['guest_categories'] = EventGuestCategory::where('event_id', $event_id)->get();
         $this->data['total_guests'] = EventsGuest::whereEventId($event_id)->count();
         return view('guest.index', $this->data);

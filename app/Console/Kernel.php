@@ -257,18 +257,7 @@ class Kernel extends ConsoleKernel {
         }
     }
 
-    public function sendAnnualAniversary() {
-        $events = \App\Models\Events::where('date', '<=', Carbon::now()->subDays(360)->toDateTimeString())->whereMonth('date', date('m'))->whereDay('date', date('d'))->get();
-        foreach ($events as $event) {
 
-            $message = 'Hello ' || c . name || ', tunapenda kukutakia ' || a . name || ' HAPPY ANNIVERSARY kwa ' . $event->name . ' iliyofanyika  tarehe kama ya leo ' . date('d M Y', strtotime($event->date)) . ' '
-                    . '. Ubarikiwe';
-            $messages = \App\Models\Message::firstOrCreate([
-                        'body' => $message, 'user_id' => $event->user_id, 'phone' => $event->user->phone
-            ]);
-            \App\Models\MessageSentby::create(['message_id' => $messages->id, 'channel' => 'phone-sms']);
-        }
-    }
 
     /**
      * Register the commands for the application.

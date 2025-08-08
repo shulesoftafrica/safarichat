@@ -91,6 +91,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/guest/getContactMessages/{id}', [App\Http\Controllers\Guest::class, 'getContactMessages'])->name('guest.getContactMessages');
     Route::post('/guest/sendMessage', [App\Http\Controllers\Guest::class, 'sendMessage'])->name('guest.sendMessage');
     Route::delete('/guest/bulkDelete', [App\Http\Controllers\Guest::class, 'bulkDelete'])->name('guest.bulkDelete');
+    
+    // Payment verification route
+    Route::post('/payment/verify', [App\Http\Controllers\Payment::class, 'verify'])->name('payment.verify');
+    Route::get('/payment/subscription', [App\Http\Controllers\Payment::class, 'subscriptionStatus'])->name('payment.subscription');
 });
 
 // WhatsApp Status Monitoring

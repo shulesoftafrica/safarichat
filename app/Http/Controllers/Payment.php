@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use \App\Models\EventsGuest;
+use  \App\Models\SmsPayments;
 use Auth;
 use DB;
 use PDF;
@@ -305,39 +306,7 @@ class Payment extends Controller {
             'prefix' => $prefix,
         ];
 
-        // Check if the invoice already exists
-        $existingInvoice = DB::connection('shulesoft')->table('admin.addon_invoices')
-            ->where('schema_name', $data['schema_name'])
-            ->where('addon_id', $data['addon_id'])
-            ->where('amount', $data['amount'])
-            ->where('status', 0) // Assuming status 0 means unpaid
-            ->where('client_id', $data['client_id'])
-            ->first();
-
-        if (!$existingInvoice) {
-            DB::connection('shulesoft')->table('admin.addon_invoices')->insert($data);
-        }
-
-     //before create booking, check if instance for bulksms exists , if not create it
-        $instance = \App\Models\MessageInstance::where('user_id', Auth::user()->id)->where('type','bulksms')->first();
-        if (empty($instance)) {
-   $user = Auth::user();
-            if($user->bulksms_enabled == 1){
-            $instance = \App\Models\([
-                'name' => substr(preg_replace('/[^A-Za-z0-9 ]/', '', Auth::user()->name), 0, 11),
-                'user_id' => Auth::id(),
-                'phone_number' => Auth::user()->phone,
-                'status' => 1,
-                'type' => 'bulksms',
-
-            ]);
-           
-            if ($user && !empty($user->phone)) {
-                $waMessage = "Hello {$user->name}, your sender name has been created. To complete registration, please submit your NIDA number and an introduction letter for approval.";
-                $this->sendMessage($user->phone, $waMessage, 'whatsapp');
-            }
-        }
-        }   
+    
 
         $this->data['minimal'] = 1;
         // Check if a booking already exists for this user, package, and amount
@@ -376,11 +345,7 @@ class Payment extends Controller {
         return view('payment.pay', $this->data);
     }
 
-    public function verify() {
-        $booking_id = request()->segment(3);
-        $this->data['payment_complete'] = \App\Models\AdminPayment::where('user_id', Auth::user()->id)->whereIn('admin_booking_id', \App\Models\AdminBooking::where('order_id', $booking_id)->get(['id']))->first();
-        return view('payment.verify', $this->data);
-    }
+
 
     public function verifyPayment() {
         $transaction_id = request('transaction_id');
@@ -536,5 +501,216 @@ class Payment extends Controller {
         ->paginate(10);
         $this->data['title'] = 'Payment Transactions';
         return view('payment.transactions', $this->data);
+    }
+
+    public function processPayment()
+{      
+    DB::table('messagelogs')->insert([
+        'message' => json_encode(request()->all()),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $payment = new SmsPayments();
+
+    if(strtoupper(request('from')) != 'CRDB BANK') {
+        return response()->json(['success' => true, 'message' => 'Not a payment message.'], 400);
+    }
+
+    $message = request('content');
+
+    // Extract amount (TZS 1000 or TZS 10.0)
+    preg_match('/TZS\s*([\d,\.]+)/i', $message, $amountMatch);
+    $amount = isset($amountMatch[1]) ? str_replace(',', '', $amountMatch[1]) : null;
+
+    // Extract token from REF or Ref:
+    preg_match('/REF[:\s]*([0-9-a-z]+)/i', $message, $tokenMatch);
+    if (empty($tokenMatch[1])) {
+        // Try alternative format (space after REF:)
+        preg_match('/REF[:\s]*([0-9a-z]+)/i', $message, $tokenMatch);
+    }
+    $token = isset($tokenMatch[1]) ? $tokenMatch[1] : null;
+
+    // Extract date (YYYY-MM-DD HH:MM:SS)
+    preg_match('/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/', $message, $dateMatch);
+    $paymentDate = isset($dateMatch[1]) ? $dateMatch[1] : null;
+
+    // Extract payer name (after "From:" or "Kutoka:")
+    if (preg_match('/From:\s*([A-Z\s\.]+)/i', $message, $payerMatch)) {
+        $payer = trim($payerMatch[1]);
+    } elseif (preg_match('/Kutoka:\s*([A-Z\s\.]+)/iu', $message, $payerMatch)) {
+        $payer = trim($payerMatch[1]);
+    } else {
+        $payer = null;
+    }
+
+    //if amount is null or 0, skip the request
+    if (is_null($amount) || $amount <= 0) {
+        return response()->json(['success' => false, 'message' => 'Invalid amount.'], 400);
+    }
+    $payment->amount = $amount;
+    $payment->method = null; // Not available in message
+    $payment->token = $token;
+    $payment->status = 0; // Assuming 0 means pending
+    $payment->phone_number = null; // Not available in message
+    $payment->message = $message;
+    $payment->payer = $payer;
+    $payment->payment_date = $paymentDate;
+
+    //check first if the payment already exists
+    $existingPayment = SmsPayment::where('token', $token)
+        ->where('status', 0) // Assuming 0 means pending
+        ->first();
+
+    if ($existingPayment) {
+        return response()->json(['success' => false, 'message' => 'Payment already exists.'], 409);
+    }
+
+    if ($payment->save()) {
+        // Generate a unique confirmation code
+        $confirmationCode = strtoupper(uniqid('CODE_'));
+        //$payment->code = $confirmationCode;
+        $payment->save();
+
+        return response()->json(['success' => true, 'code' => $confirmationCode]);
+    }
+
+    return response()->json(['success' => false, 'message' => 'Payment processing failed.'], 500);
+}
+    /**
+     * Verify monthly subscription payment
+     */
+    public function verify(Request $request)
+    {
+        $request->validate([
+            'reference_number' => 'required|string|max:255|min:5',
+            'amount_paid' => 'required|numeric|min:1|max:1000000'
+        ]);
+
+        $userId = Auth::user()->id;
+        $referenceNumber = trim($request->reference_number);
+        $amountPaid = (float) $request->amount_paid;
+        $monthlyFee = 50000; // TSH 50,000 per month
+
+        try {
+            $checkexistingPayment = \App\Models\AdminPayment::where('transaction_id', $referenceNumber)->first();
+            if (!$checkexistingPayment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This transaction ID is not valid or has not been used received by us.'
+                ]);
+            }
+
+            // Check if reference number already exists
+            $existingPayment = \App\Models\AdminPayment::where('transaction_id', $referenceNumber)->where('status',1)->first();
+            if ($existingPayment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This reference number has already been used for another payment.'
+                ]);
+            }
+
+            // Check if amount is sufficient
+            if ($amountPaid < $monthlyFee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment amount (TSH ' . number_format($amountPaid) . ') is less than required monthly fee (TSH ' . number_format($monthlyFee) . '). Please pay the full amount to activate your subscription.'
+                ]);
+            }
+
+            // Calculate months covered by payment
+            $monthsCovered = floor($amountPaid / $monthlyFee);
+            $excessAmount = $amountPaid % $monthlyFee;
+
+            // Get current active subscription end date
+            $currentSubscription = \App\Models\AdminPayment::where('user_id', $userId)
+                ->where('subscription_end', '>=', now())
+                ->orderBy('subscription_end', 'desc')
+                ->first();
+
+            // Calculate subscription start and end dates
+            $startDate = $currentSubscription ? 
+                \Carbon\Carbon::parse($currentSubscription->subscription_end) : 
+                now();
+
+            $endDate = \Carbon\Carbon::parse($startDate)->addMonths($monthsCovered);
+
+            // Create payment record
+            $payment = \App\Models\AdminPayment::create([
+                'user_id' => $userId,
+                'amount' => $amountPaid,
+                'transaction_id' => $referenceNumber,
+                'method' => 'LIPA_NAMBA',
+                'date' => now(),
+                'subscription_start' => $startDate,
+                'subscription_end' => $endDate,
+                'months_covered' => $monthsCovered,
+                'excess_amount' => $excessAmount
+            ]);
+
+            $message = 'Payment verified successfully! ';
+            $message .= 'Your subscription is now active for ' . $monthsCovered . ' month(s) until ' . $endDate->format('d M Y') . '.';
+            
+            if ($excessAmount > 0) {
+                $message .= ' Excess amount of TSH ' . number_format($excessAmount) . ' will be credited for future renewals.';
+            }
+
+            // Log the successful payment
+            \Log::info('Subscription payment verified', [
+                'user_id' => $userId,
+                'amount' => $amountPaid,
+                'reference' => $referenceNumber,
+                'months_covered' => $monthsCovered,
+                'subscription_end' => $endDate
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'subscription_end' => $endDate->format('Y-m-d H:i:s'),
+                'months_covered' => $monthsCovered
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Payment verification error: ' . $e->getMessage(), [
+                'user_id' => $userId,
+                'reference_number' => $referenceNumber,
+                'amount_paid' => $amountPaid
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing your payment. Please try again or contact support.'
+            ]);
+        }
+    }
+
+    /**
+     * Show subscription status
+     */
+    public function subscriptionStatus()
+    {
+        $userId = Auth::user()->id;
+        $activeSubscription = getPackage();
+        $isTrialActive = is_trial();
+        
+        $this->data['user'] = Auth::user();
+        $this->data['active_subscription'] = $activeSubscription;
+        $this->data['is_trial'] = $isTrialActive;
+        $this->data['trial_days_left'] = 0;
+        
+        if ($isTrialActive) {
+            $trialStart = Auth::user()->created_at;
+            $trialDays = config('app.TRIAL_DAYS', 3);
+            $daysUsed = now()->diffInDays($trialStart);
+            $this->data['trial_days_left'] = max(0, $trialDays - $daysUsed);
+        }
+        
+        $this->data['recent_payments'] = \App\Models\AdminPayment::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+            
+        return view('payment.subscription_status', $this->data);
     }
 }

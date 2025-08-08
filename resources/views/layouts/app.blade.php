@@ -156,7 +156,7 @@ $(document).ready(ajax_setup);
                     <?php
                     // if (Auth::user()->usersEvents()->count() > 0) {
                     ?>
-                    {{-- @include('layouts.checkpayment') --}}
+                     @include('layouts.checkpayment')
 
                     @include('layouts.nav')
 

@@ -22,7 +22,27 @@ class AdminPayment extends Model
     /**
      * @var array
      */
-    protected $fillable = ['user_id', 'amount', 'transaction_id', 'method', 'date', 'created_at', 'updated_at', 'deleted_at','admin_booking_id'];
+    protected $fillable = [
+        'user_id', 
+        'amount', 
+        'transaction_id', 
+        'method', 
+        'date', 
+        'subscription_start',
+        'subscription_end',
+        'months_covered',
+        'excess_amount',
+        'created_at', 
+        'updated_at', 
+        'deleted_at',
+        'admin_booking_id'
+    ];
+
+    protected $casts = [
+        'subscription_start' => 'datetime',
+        'subscription_end' => 'datetime',
+        'date' => 'datetime',
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

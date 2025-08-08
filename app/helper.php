@@ -148,24 +148,37 @@ function number_to_words($number)
 function getPackage()
 {
     $user_id = \Auth::user()->id;
-
-    //    $package = DB::table('admin_packages_payments')->whereIn('admin_payment_id', \App\Models\AdminPayment::whereUserId($user_id)->get(['id']))
-    //                    ->whereIn('admin_package_id', \App\Models\AdminPackage::whereIsAddon(0)->get(['id']))
-    //                    ->where('end_date', '>=', date('Y-m-d H:i', time()))->first();
-    $package = DB::table('admin_payments')->where('user_id', $user_id)->first();
-    return $package;
+    
+    // Check for active subscription
+    $activePayment = DB::table('admin_payments')
+        ->where('user_id', $user_id)
+        ->where('subscription_end', '>=', now())
+        ->orderBy('subscription_end', 'desc')
+        ->first();
+    
+    return $activePayment;
 }
 
 function is_trial()
 {
-    $try_period = Auth::user()->created_at;
+    $user = \Auth::user();
+    $try_period = $user->created_at;
     $now = time();
     $your_date = strtotime($try_period);
     $datediff = $now - $your_date;
     $days = round($datediff / (60 * 60 * 24));
 
+    // Check if user has active subscription
+    $hasActiveSubscription = getPackage();
+    if ($hasActiveSubscription) {
+        return 0; // Not in trial if has active subscription
+    }
+
+    // Default trial period is 3 days for new users
+    $trialDays = config('app.TRIAL_DAYS', 3);
+    
     $trial = 1;
-    if ((int) $days > (int) config('app.TRIAL_DAYS')) {
+    if ((int) $days > (int) $trialDays) {
         $trial = 0;
     }
     return $trial;

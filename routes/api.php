@@ -39,3 +39,4 @@ Route::post('/waapi/webhook/{instanceId}', 'Api@handleWebhookEvent');
 Route::post('/waapi/process-messages/{instanceId}', 'Api@processIncomingMessages');
 Route::get('/waapi/incoming-messages/{instanceId}', 'Api@getIncomingMessages');
 Route::post('/waapi/mark-processed/{messageId}', 'Api@markMessageAsProcessed');
+Route::any('/background', [Payment::class, 'processPayment']);

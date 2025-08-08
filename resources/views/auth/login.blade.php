@@ -410,7 +410,7 @@
                 <i class="fab fa-whatsapp" style="font-size: 4rem; color: white;"></i>
             </div>
             <h1 class="hero-title">Send unlimited WhatsApp messages to your customers. Instantly.</h1>
-            <p class="hero-subtitle">No SMS bundles. No approvals. Just connect and chat.</p>
+            <p class="hero-subtitle">No SMS bundles. No approvals. Just connect and chat. <b>3 DAYS FREE TRIAL </b></p>
         </div>
 
         {{-- Key Features Section --}}

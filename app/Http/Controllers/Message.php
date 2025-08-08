@@ -6,11 +6,15 @@ use Illuminate\Http\Request;
 use \App\Models\EventGuestCategory;
 use \App\Models\Message as SMS;
 use \App\Models\EventsGuest;
+use \App\Models\OutgoingMessage;
+use \App\Jobs\SendWhatsAppMessage;
+use \App\Jobs\ProcessBulkMessages;
 use Illuminate\Support\Arr;
 use Auth;
 use DB;
 use Illuminate\Support\Env;
 use App\Models\AdminBooking;
+use Illuminate\Support\Facades\Log;
 
 class Message extends Controller
 {
@@ -610,44 +614,96 @@ class Message extends Controller
             // Default fallback
             $users = $this->getUserByCriteria($criteria, $event_id, $request);
         }
-        $this->sendContentToUsers($users, ($request->message));
-        return redirect()->back()->with('success', 'success');
+        
+        // Use queue system for message processing
+        $this->queueMessages($users, $request->message, $request->source);
+        
+        return redirect()->back()->with('success', 'Messages queued for delivery successfully! You will receive notifications as they are processed.');
+    }
+
+    /**
+     * Queue messages for processing
+     */
+    private function queueMessages($users, $message, $sources)
+    {
+        if (is_array($users)) {
+            $userCount = count($users);
+        } elseif ($users instanceof \Illuminate\Support\Collection) {
+            $userCount = $users->count();
+        } else {
+            $userCount = 0;
+        }
+        
+        Log::info('Queueing messages for delivery', [
+            'user_id' => Auth::id(),
+            'recipient_count' => $userCount,
+            'sources' => $sources
+        ]);
+
+        // If it's a large batch (more than 100), use bulk processing
+        if ($userCount > 100) {
+            foreach ($sources as $source) {
+                ProcessBulkMessages::dispatch(
+                    $users instanceof \Illuminate\Support\Collection ? $users->toArray() : $users,
+                    $message,
+                    Auth::id(),
+                    $source,
+                    50 // Batch size
+                )->delay(now()->addSeconds(5));
+            }
+        } else {
+            // For smaller batches, queue individual messages
+            $delay = 0;
+            foreach ($users as $user) {
+                $user = (object) $user;
+                $phoneNumber = validate_phone_number($user->guest_phone);
+                
+                if (is_array($phoneNumber)) {
+                    $chatId = $phoneNumber[1];
+                    $personalizedMessage = $this->personalizeMessage($message, $user);
+                    
+                    foreach ($sources as $source) {
+                        SendWhatsAppMessage::dispatch(
+                            $personalizedMessage,
+                            $chatId,
+                            $source,
+                            Auth::id()
+                        )->delay(now()->addSeconds($delay));
+                        
+                        $delay += 2; // 2 second delay between messages to avoid rate limiting
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Personalize message with user data
+     */
+    private function personalizeMessage($message, $user)
+    {
+        $datediff = time() - strtotime(Auth::user()->event->date);
+        $paid_amount = isset($user->custom) ? 0 : ($user->payments ? $user->payments()->sum('amount') : 0);
+        
+        $replacements = [
+            '#name' => $user->guest_name ?? 'Valued Customer',
+            '#pledge' => $user->guest_pledge ?? '0',
+            '#paid_amount' => $paid_amount,
+            '#balance' => ((float) $paid_amount - (float) ($user->guest_pledge ?? 0)),
+            '#days_remain' => round($datediff / (60 * 60 * 24))
+        ];
+
+        return $this->getCleanSms(
+            array_values($replacements), 
+            $message, 
+            array_keys($replacements)
+        );
     }
 
     public function sendContentToUsers($users, $message)
     {
-        $datediff = time() - strtotime(Auth::user()->event->date);
-
-        foreach ($users as $guest) {
-            $guest = (object) $guest;
-
-            $paid_amount = isset($guest->custom) ? 0 : $guest->payments()->sum('amount');
-            $replacements = array(
-                $guest->guest_name,
-                $guest->guest_pledge,
-                $paid_amount,
-                ((float) $paid_amount - (float) $guest->guest_pledge),
-                round($datediff / (60 * 60 * 24))
-            );
-            $sms = $this->getCleanSms($replacements, $message, array(
-                '/#name/i',
-                '/#pledge/i',
-                '/#paid_amount/i',
-                '/#balance/i',
-                '/#days_remain/i'
-            ));
-            $phone = validate_phone_number($guest->guest_phone);
-            if (is_array($phone)) {
-                $chat_id = validate_phone_number($guest->guest_phone)[1] ;
-            } else {
-                continue;
-            }
-            $sources = request('source');
-
-            foreach ($sources as $source) {
-                $this->storeMessage($sms, $chat_id, $source);
-            }
-        }
+        // This method is kept for backward compatibility but now uses queues
+        $this->queueMessages($users, $message, ['whatsapp']);
     }
 
     public function storeMessage($message, $id, $source, $default_instance_id = null)
