@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Product;
 
 class Service extends Controller {
 
@@ -18,6 +19,37 @@ class Service extends Controller {
     public function index() {
         $this->data['suppliers'] = [];
         return view('service.index', $this->data);
+    }
+
+    public function jd(){
+         $this->data['suppliers'] = [];
+        return view('service.job-description', $this->data); 
+    }
+
+    /**
+     * Handle tab content loading
+     */
+    public function getTabContent(Request $request)
+    {
+        $tab = $request->get('tab', 'products');
+        
+        // Security: only allow specific tab names
+        $allowedTabs = ['products', 'job-description'];
+        if (!in_array($tab, $allowedTabs)) {
+            $tab = 'products';
+        }
+        
+        switch ($tab) {
+            case 'products':
+                $products = Product::with('faqs')->orderBy('created_at', 'desc')->get();
+                return view('service.products', compact('products'));
+                
+            case 'job-description':
+                return view('service.job-description');
+                
+            default:
+                return response()->json(['error' => 'Tab content not found'], 404);
+        }
     }
 
     /**

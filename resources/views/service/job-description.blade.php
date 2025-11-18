@@ -1,3 +1,44 @@
+@extends('layouts.app')
+@section('content')
+<div class="ai-sales-officer">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="reports-header mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="reports-title">
+                        <i class="fas fa-robot"></i>
+                        AI Sales Officer
+                        <span class="ai-badge ms-3">
+                            <i class="fas fa-brain me-1"></i>
+                            AI Powered
+                        </span>
+                    </h1>
+                    <p class="reports-subtitle mb-0">
+                        Configure your intelligent WhatsApp sales assistant for automated customer engagement
+                    </p>
+                </div>
+            </div>
+        </div>
+               <div class="main-layout d-flex">
+            <!-- Sidebar Navigation (Compact) -->
+            <nav class="sidebar shadow-sm">
+                <ul class="sidebar-nav nav flex-column py-3">
+                    <li>
+                        <a href="{{ url('service/index') }}" class="nav-link{{ request()->is('service/index') ? ' active' : '' }}">
+                            <span>Products</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url('service/jd') }}" class="nav-link{{ request()->is('service/jd') ? ' active' : '' }}">
+                            <span>Job Description</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content Area -->
+            <div class="content-area flex-grow-1 p-3 ms-3 mb-4" style="width:80%">
 <div class="job-description-page">
     <div class="page-header">
         <h2 class="page-title">
@@ -16,114 +57,84 @@
         </div>
     </div>
     
-    <div class="configuration-wizard">
+    <form id="ai-agent-form" method="POST" action="{{ route('ai-agents.store') }}">
+        @csrf
+        <div class="configuration-wizard">
         <!-- Progress Steps -->
         <div class="steps-progress">
             <div class="step active" data-step="1">
                 <div class="step-number">1</div>
-                <div class="step-label">Target Group</div>
+                <div class="step-label">Assistant Info</div>
             </div>
             <div class="step" data-step="2">
                 <div class="step-number">2</div>
-                <div class="step-label">Working Hours</div>
+                <div class="step-label">Target Group</div>
             </div>
-            <div class="step" data-step="3">
-                <div class="step-number">3</div>
-                <div class="step-label">Languages</div>
-            </div>
-            <div class="step" data-step="4">
-                <div class="step-number">4</div>
-                <div class="step-label">Negotiation</div>
-            </div>
+            
             <div class="step" data-step="5">
                 <div class="step-number">5</div>
-                <div class="step-label">Fallback</div>
+                <div class="step-label">Negotiation</div>
             </div>
             <div class="step" data-step="6">
                 <div class="step-number">6</div>
-                <div class="step-label">Review</div>
+                <div class="step-label">Fallback</div>
             </div>
+            <div class="step" data-step="7">
+                <div class="step-number">7</div>
+                <div class="step-label">Terms & Review</div>
+            </div>
+
         </div>
         
-        <!-- Step 1: Target Group -->
+        <!-- Step 1: Assistant Information -->
         <div class="step-content active" id="step-1">
             <div class="step-card">
                 <h4 class="step-title">
-                    <i class="fas fa-users text-primary"></i>
-                    Step 1: Define Target Group
+                    <i class="fas fa-robot text-primary"></i>
+                    Step 1: Assistant Information
                 </h4>
-                <p class="step-description">Define who your AI sales officer should target and how to approach them.</p>
+                <p class="step-description">Give your AI sales assistant a name and define its basic identity.</p>
                 
                 <div class="form-group">
-                    <label class="form-label">Primary Target Audience *</label>
-                    <select class="form-select" name="target_audience" required>
-                        <option value="">Select target audience</option>
-                        <option value="small-businesses">Small Businesses (1-10 employees)</option>
-                        <option value="medium-businesses">Medium Businesses (11-50 employees)</option>
-                        <option value="enterprises">Large Enterprises (50+ employees)</option>
-                        <option value="individuals">Individual Customers</option>
-                        <option value="mixed">Mixed (All types)</option>
-                    </select>
+                    <label class="form-label">Assistant Name *</label>
+                    <input type="text" class="form-control" name="assistant_name" placeholder="e.g., Sarah, Alex, SalesBot Pro" required>
+                    <small class="text-muted">Choose a friendly name that customers will interact with</small>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Industry Focus</label>
-                    <div class="checkbox-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="retail" id="retail">
-                            <label class="form-check-label" for="retail">Retail & E-commerce</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="hospitality" id="hospitality">
-                            <label class="form-check-label" for="hospitality">Hospitality & Tourism</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="healthcare" id="healthcare">
-                            <label class="form-check-label" for="healthcare">Healthcare</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="education" id="education">
-                            <label class="form-check-label" for="education">Education</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="finance" id="finance">
-                            <label class="form-check-label" for="finance">Finance & Banking</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="technology" id="technology">
-                            <label class="form-check-label" for="technology">Technology</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="industries[]" value="other" id="other">
-                            <label class="form-check-label" for="other">Other</label>
+                    <label class="form-label">Contact Categories to Target *</label>
+                    <p class="text-muted mb-3">Select which customer segments this assistant should focus on selling to:</p>
+                    <div class="checkbox-group" id="user-types-container">
+                        <!-- User types will be loaded dynamically -->
+                        <div class="text-center py-3">
+                           <label for="quantity" class=" col-form-label text-right">{{__('user_group')}}</label>
+                        
+                           <select class="form-control" name="event_guest_category_id" id="append_option">
+
+                            @php
+                                // Load guest categories from the database
+                                $guest_categories = \App\Models\EventGuestCategory::all();
+                            @endphp
+                            @foreach ($guest_categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                           
+                        </select>
                         </div>
                     </div>
+                    <small class="text-muted">Your assistant will be optimized to sell to these specific customer types</small>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Communication Tone *</label>
-                    <select class="form-select" name="communication_tone" required>
-                        <option value="">Select communication style</option>
-                        <option value="professional">Professional & Formal</option>
-                        <option value="friendly">Friendly & Casual</option>
-                        <option value="consultative">Consultative & Advisory</option>
-                        <option value="direct">Direct & To-the-point</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">AI Personality Description</label>
-                    <textarea class="form-control" name="personality_description" rows="4" placeholder="Describe how the AI should behave and interact with customers...">Act as a professional and knowledgeable WhatsApp business consultant who understands the unique challenges faced by African SMEs. Be patient, culturally sensitive, and always focus on providing value to the customer.</textarea>
+                    <label class="form-label">Assistant Description</label>
+                    <textarea class="form-control" name="personality_description" rows="4" placeholder="Describe your assistant's personality and approach...">Meet {{ $assistantName ?? 'our AI assistant' }}, your dedicated WhatsApp sales consultant who understands the unique needs of African businesses. Professional, patient, and always ready to help you find the perfect solution for your business growth.</textarea>
+                    <small class="text-muted">This helps define how your assistant will interact with customers</small>
                 </div>
             </div>
-        </div>
-        
-        <!-- Step 2: Working Hours -->
-        <div class="step-content" id="step-2">
-            <div class="step-card">
+              <div class="step-card">
                 <h4 class="step-title">
                     <i class="fas fa-clock text-primary"></i>
-                    Step 2: Define Working Hours
+                    Step 3: Define Working Hours
                 </h4>
                 <p class="step-description">Set when your AI sales officer should be active and respond to customers.</p>
                 
@@ -198,15 +209,11 @@
                     <label class="form-label">Out-of-Hours Message</label>
                     <textarea class="form-control" name="out_of_hours_message" rows="3" placeholder="Message to send when AI is not available...">Thank you for contacting us! Our AI assistant is currently offline. Our business hours are Monday-Friday, 8:00 AM - 6:00 PM EAT. We'll respond to your message as soon as we're back online.</textarea>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Step 3: Languages -->
-        <div class="step-content" id="step-3">
-            <div class="step-card">
+
+                <div class="step-card">
                 <h4 class="step-title">
                     <i class="fas fa-language text-primary"></i>
-                    Step 3: Choose Languages
+                    Step 4: Choose Languages
                 </h4>
                 <p class="step-description">Select which languages your AI sales officer should support.</p>
                 
@@ -275,14 +282,94 @@
                     <textarea class="form-control" name="language_fallback_message" rows="3" placeholder="Message when language is not supported...">I understand you're writing in a language I don't fully support yet. I can communicate in English, Swahili, French, and Arabic. Could you please send your message in one of these languages? Thank you!</textarea>
                 </div>
             </div>
+                
+            </div>
         </div>
         
-        <!-- Step 4: Negotiation Behavior -->
-        <div class="step-content" id="step-4">
+        <!-- Step 2: Target Group -->
+        <!-- Step 2: Target Group -->
+        <div class="step-content" id="step-2">
+            <div class="step-card">
+                <h4 class="step-title">
+                    <i class="fas fa-users text-primary"></i>
+                    Step 2: Define Target Approach
+                </h4>
+                <p class="step-description">Define how your AI sales officer should approach and communicate with customers.</p>
+                
+                <div class="form-group">
+                    <label class="form-label">Primary Target Audience *</label>
+                    <select class="form-select" name="target_audience" required>
+                        <option value="">Select target audience</option>
+                        <option value="small-businesses">Small Businesses (1-10 employees)</option>
+                        <option value="medium-businesses">Medium Businesses (11-50 employees)</option>
+                        <option value="enterprises">Large Enterprises (50+ employees)</option>
+                        <option value="individuals">Individual Customers</option>
+                        <option value="mixed">Mixed (All types)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Industry Focus</label>
+                    <div class="checkbox-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="retail" id="retail">
+                            <label class="form-check-label" for="retail">Retail & E-commerce</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="hospitality" id="hospitality">
+                            <label class="form-check-label" for="hospitality">Hospitality & Tourism</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="healthcare" id="healthcare">
+                            <label class="form-check-label" for="healthcare">Healthcare</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="education" id="education">
+                            <label class="form-check-label" for="education">Education</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="finance" id="finance">
+                            <label class="form-check-label" for="finance">Finance & Banking</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="technology" id="technology">
+                            <label class="form-check-label" for="technology">Technology</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="industries[]" value="other" id="other">
+                            <label class="form-check-label" for="other">Other</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Communication Tone *</label>
+                    <select class="form-select" name="communication_tone" required>
+                        <option value="">Select communication style</option>
+                        <option value="professional">Professional & Formal</option>
+                        <option value="friendly">Friendly & Casual</option>
+                        <option value="consultative">Consultative & Advisory</option>
+                        <option value="direct">Direct & To-the-point</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">AI Personality Description</label>
+                    <textarea class="form-control" name="personality_description" rows="4" placeholder="Describe how the AI should behave and interact with customers...">Act as a professional and knowledgeable WhatsApp business consultant who understands the unique challenges faced by African SMEs. Be patient, culturally sensitive, and always focus on providing value to the customer.</textarea>
+                </div>
+            </div>
+        </div>
+        
+       
+        
+    
+        
+        <!-- Step 5: Negotiation Behavior -->
+        <div class="step-content" id="step-5">
             <div class="step-card">
                 <h4 class="step-title">
                     <i class="fas fa-handshake text-primary"></i>
-                    Step 4: Set Negotiation Behavior
+                    Step 5: Set Negotiation Behavior
                 </h4>
                 <p class="step-description">Configure how your AI should handle pricing negotiations and special offers.</p>
                 
@@ -361,12 +448,12 @@
             </div>
         </div>
         
-        <!-- Step 5: Fallback Number -->
-        <div class="step-content" id="step-5">
+        <!-- Step 6: Fallback Number -->
+        <div class="step-content" id="step-6">
             <div class="step-card">
                 <h4 class="step-title">
                     <i class="fas fa-phone text-primary"></i>
-                    Step 5: Assign Fallback Number & Escalation Rules
+                    Step 6: Assign Fallback Number & Escalation Rules
                 </h4>
                 <p class="step-description">Set up human backup support and escalation procedures.</p>
                 
@@ -513,14 +600,74 @@
             </div>
         </div>
         
-        <!-- Step 6: Review -->
-        <div class="step-content" id="step-6">
+        <!-- Step 7: Terms & Conditions -->
+        <div class="step-content" id="step-7">
             <div class="step-card">
                 <h4 class="step-title">
-                    <i class="fas fa-check-circle text-success"></i>
-                    Step 6: Review All Selections
+                    <i class="fas fa-file-contract text-primary"></i>
+                    Step 7: Terms & Conditions
                 </h4>
-                <p class="step-description">Review your AI sales officer configuration before saving.</p>
+                <p class="step-description">Please review and accept our terms and conditions to proceed.</p>
+                
+                <div class="terms-section">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                AI Sales Agent Service Agreement
+                            </h6>
+                            <p class="card-text">
+                                By using our AI Sales Agent service, you agree to our terms of service, privacy policy, and acceptable use guidelines.
+                            </p>
+                            <div class="key-points mb-3">
+                                <h6>Key Points:</h6>
+                                <ul class="small">
+                                    <li>Your data is protected and encrypted</li>
+                                    <li>Service availability is 99.9% uptime target</li>
+                                    <li>You can modify or cancel anytime</li>
+                                    <li>Support is available during business hours</li>
+                                    <li>Billing is monthly based on usage</li>
+                                </ul>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('ai-agent-terms') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-1"></i>
+                                    Read Full Terms
+                                </a>
+                                <a href="{{ route('privacy-policy') }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-shield-alt me-1"></i>
+                                    Privacy Policy
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="accepted_terms" name="accepted_terms" required>
+                        <label class="form-check-label" for="accepted_terms">
+                            <strong>I have read and accept the Terms & Conditions and Privacy Policy *</strong>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="marketing_consent" name="marketing_consent">
+                        <label class="form-check-label" for="marketing_consent">
+                            I consent to receiving marketing communications about product updates and features
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="legal-notice mt-3 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                    <small class="text-dark">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <strong>Legal Notice:</strong> By proceeding, you confirm that you have the authority to bind your organization to these terms and that you understand the AI service capabilities and limitations.
+                    </small>
+                </div>
+                 <p class="step-description">Review your AI Sales Agent configuration before submitting.</p>
                 
                 <div id="configuration-summary">
                     <!-- Summary will be populated by JavaScript -->
@@ -537,6 +684,8 @@
             </div>
         </div>
         
+
+        
         <!-- Navigation Buttons -->
         <div class="wizard-navigation">
             <button class="btn btn-outline-secondary" id="prev-step" onclick="previousStep()" style="display: none;">
@@ -551,6 +700,12 @@
                 <i class="fas fa-save"></i>
                 Save & Activate Configuration
             </button>
+        </div>
+    </div>
+    </form>
+</div>
+
+      </div>
         </div>
     </div>
 </div>
@@ -820,17 +975,221 @@
             grid-template-columns: 1fr;
         }
     }
+/* Use the application's base font and sizing for consistency */
+body, .ai-sales-officer {
+    font-family: inherit !important;
+    font-size: 1rem;
+    background: #f8fafc;
+}
+
+.ai-sales-officer {
+    min-height: 100vh;
+    padding-bottom: 24px;
+}
+
+.reports-header {
+    background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+    border-radius: 14px;
+    padding: 18px 18px 12px 18px;
+    color: white;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 16px rgba(37, 211, 102, 0.10);
+}
+
+.reports-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reports-subtitle {
+    font-size: 0.97rem;
+    opacity: 0.92;
+    margin-bottom: 0;
+}
+
+.ai-badge {
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #0ea5e9 !important;
+    color: #fff !important;
+    border-radius: 10px;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.main-layout {
+    gap: 18px;
+}
+
+.sidebar {
+    width: 140px;
+    min-width: 120px;
+    max-width: 140px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    position: sticky;
+    top: 24px;
+    height: fit-content;
+    padding: 0;
+}
+
+.sidebar-nav .nav-link {
+    border: none;
+    background: none;
+    color: #334155;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.18s, color 0.18s;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-nav .nav-link.active,
+.sidebar-nav .nav-link:hover {
+    background: #e0f2fe;
+    color: #0ea5e9;
+}
+
+.sidebar-nav .nav-link .metric-icon {
+    font-size: 1rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #f1f5f9;
+    color: #64748b;
+    margin-right: 0;
+}
+
+.content-area {
+    min-height: 400px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    transition: box-shadow 0.18s;
+    font-size: 1rem;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.loading {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+@media (max-width: 991px) {
+    .main-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .sidebar {
+        width: 100%;
+        min-width: unset;
+        max-width: unset;
+        position: static;
+        margin-bottom: 10px;
+    }
+    .content-area {
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .reports-header {
+        padding: 10px;
+    }
+    .reports-title {
+        font-size: 1rem;
+    }
+    .main-layout {
+        gap: 6px;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px);}
+    to { opacity: 1; transform: translateY(0);}
+}
 </style>
 
-<script>
+<script type="text/javascript">
+
+    
+//job description
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            updateStepVisibility();
+            updateNavigationButtons();
+            
+            if (currentStep === totalSteps) {
+                populateReviewStep();
+            }
+        }
+    }
+}
+
 let currentStep = 1;
-const totalSteps = 6;
+const totalSteps = 8;
 
 function initializeJobDescription() {
     // Initialize form interactions
     setupFormInteractions();
     updateStepVisibility();
     updateNavigationButtons();
+    
+    // Load user types for contact category dropdown
+    loadUserTypes();
+}
+
+function loadUserTypes() {
+    fetch('/api/user-types')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('contact_category');
+                if (select) {
+                    // Clear existing options except the first one
+                    select.innerHTML = '<option value="">-- Select Contact Category --</option>';
+                    
+                    // Add user types as options
+                    data.data.forEach(userType => {
+                        const option = document.createElement('option');
+                        option.value = userType.id;
+                        option.textContent = userType.name;
+                        option.title = userType.description;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading user types:', error);
+        });
 }
 
 function setupFormInteractions() {
@@ -859,19 +1218,7 @@ function setupFormInteractions() {
     });
 }
 
-function nextStep() {
-    if (validateCurrentStep()) {
-        if (currentStep < totalSteps) {
-            currentStep++;
-            updateStepVisibility();
-            updateNavigationButtons();
-            
-            if (currentStep === totalSteps) {
-                generateSummary();
-            }
-        }
-    }
-}
+
 
 function previousStep() {
     if (currentStep > 1) {
@@ -915,10 +1262,26 @@ function validateCurrentStep() {
     const currentStepElement = document.getElementById(`step-${currentStep}`);
     const requiredFields = currentStepElement.querySelectorAll('[required]');
     
+    // Special validation for Terms & Conditions step (step 7)
+    if (currentStep === 7) {
+        const termsCheckbox = document.getElementById('accepted_terms');
+        if (!termsCheckbox.checked) {
+            termsCheckbox.focus();
+            showNotification('You must accept the Terms & Conditions to proceed', 'warning');
+            return false;
+        }
+    }
+    
     for (let field of requiredFields) {
-        if (!field.value.trim()) {
+        if (!field.value.trim() && field.type !== 'checkbox') {
             field.focus();
-            showNotification(`Please fill in the required field: ${field.previousElementSibling.textContent}`, 'warning');
+            showNotification(`Please fill in the required field: ${field.previousElementSibling?.textContent || field.name}`, 'warning');
+            return false;
+        }
+        
+        if (field.type === 'checkbox' && field.required && !field.checked) {
+            field.focus();
+            showNotification(`Please check the required field: ${field.nextElementSibling?.textContent || field.name}`, 'warning');
             return false;
         }
     }
@@ -1081,4 +1444,114 @@ function showNotification(message, type = 'info') {
         }
     }, 5000);
 }
+
+function populateReviewStep() {
+    // Populate Assistant Information
+    document.getElementById('review-assistant-name').textContent = 
+        document.getElementById('assistant_name')?.value || '-';
+    const selectedCategory = document.getElementById('contact_category');
+    document.getElementById('review-contact-category').textContent = 
+        selectedCategory?.selectedOptions[0]?.text || '-';
+    
+    // Populate Company Details (from existing fields if they exist)
+    document.getElementById('review-company-name').textContent = 
+        document.querySelector('input[name="company_name"]')?.value || '-';
+    document.getElementById('review-company-industry').textContent = 
+        document.querySelector('select[name="company_industry"]')?.selectedOptions[0]?.text || '-';
+    document.getElementById('review-company-size').textContent = 
+        document.querySelector('select[name="company_size"]')?.selectedOptions[0]?.text || '-';
+    
+    // Populate Products & Goals
+    document.getElementById('review-products').textContent = 
+        document.querySelector('textarea[name="products_services"]')?.value || '-';
+    document.getElementById('review-goals').textContent = 
+        document.querySelector('textarea[name="sales_goals"]')?.value || '-';
+    
+    // Populate Target Audience
+    document.getElementById('review-demographics').textContent = 
+        document.querySelector('textarea[name="target_demographics"]')?.value || '-';
+    document.getElementById('review-pain-points').textContent = 
+        document.querySelector('textarea[name="pain_points"]')?.value || '-';
+    
+    // Populate Configuration
+    document.getElementById('review-tone').textContent = 
+        document.querySelector('select[name="communication_tone"]')?.selectedOptions[0]?.text || '-';
+    document.getElementById('review-style').textContent = 
+        document.querySelector('select[name="communication_style"]')?.selectedOptions[0]?.text || '-';
+    document.getElementById('review-personality').textContent = 
+        document.querySelector('select[name="personality_type"]')?.selectedOptions[0]?.text || '-';
+    
+    // Populate Keywords
+    const keywords = document.querySelector('textarea[name="keywords"]')?.value;
+    document.getElementById('review-keywords').textContent = 
+        keywords ? keywords.split(',').slice(0, 3).join(', ') + (keywords.split(',').length > 3 ? '...' : '') : '-';
+    
+    // Populate Availability
+    const alwaysAvailable = document.getElementById('always_available')?.checked;
+    document.getElementById('review-availability').textContent = 
+        alwaysAvailable ? '24/7 Available' : 'Custom Schedule';
+    
+    // Populate Terms Status
+    const termsAccepted = document.getElementById('accepted_terms')?.checked;
+    document.getElementById('review-terms').textContent = 
+        termsAccepted ? 'Accepted' : 'Not Accepted';
+}
+
+function submitConfiguration() {
+    const form = document.getElementById('ai-agent-form');
+    const formData = new FormData(form);
+    
+    // Show loading state
+    const submitBtn = document.getElementById('next-step');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitBtn.disabled = true;
+    
+    // Submit using fetch API
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('AI Sales Agent configured successfully!', 'success');
+            // Redirect to dashboard or agents list
+            setTimeout(() => {
+                window.location.href = data.redirect || '/dashboard';
+            }, 2000);
+        } else {
+            throw new Error(data.message || 'Configuration failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error submitting configuration: ' + error.message, 'error');
+        // Restore button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            updateStepVisibility();
+            updateNavigationButtons();
+            
+            if (currentStep === totalSteps) {
+                populateReviewStep();
+            }
+        } else {
+            // Submit the form
+            submitConfiguration();
+        }
+    }
+}
 </script>
+@endsection
