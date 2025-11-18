@@ -1023,19 +1023,29 @@ class Api extends Controller {
                 return response()->json(['status' => 'error', 'message' => 'Instance not found'], 404);
             }
             
-            // Process messages if they exist in the payload
+            // Process messages if they exist in the payload - USE QUEUE for better performance
             if (isset($payload['messages']) && is_array($payload['messages'])) {
                 foreach ($payload['messages'] as $messageData) {
-                    $this->processSingleMessage($whatsappInstance, $messageData);
+                    // Dispatch to queue for processing
+                    \App\Jobs\ProcessIncomingMessage::dispatch($messageData, $instanceId, $whatsappInstance)
+                        ->onQueue('high_priority');
                 }
+                
+                \Log::info('Dispatched ' . count($payload['messages']) . ' messages to queue for processing', [
+                    'instance_id' => $instanceId
+                ]);
             }
             
-            // Handle different webhook event types
+            // Handle different webhook event types immediately (these are lightweight)
             if (isset($payload['event_type'])) {
                 $this->handleWebhookEvent($whatsappInstance, $payload);
             }
             
-            return response()->json(['status' => 'success', 'message' => 'Messages processed']);
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'Messages queued for processing',
+                'queued_messages' => isset($payload['messages']) ? count($payload['messages']) : 0
+            ]);
             
         } catch (\Exception $e) {
             \Log::error('Error processing incoming messages: ' . $e->getMessage(), [

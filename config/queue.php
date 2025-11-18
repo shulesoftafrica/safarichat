@@ -11,9 +11,12 @@ return [
     | API, giving you convenient access to each back-end using the same
     | syntax for every one. Here you may define a default connection.
     |
+    | For development: Use 'database' for easy testing
+    | For production: Use 'redis' for better performance
+    |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'redis'),
+    'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
     |--------------------------------------------------------------------------
@@ -39,24 +42,7 @@ return [
             'table' => 'jobs',
             'queue' => 'default',
             'retry_after' => 90,
-        ],
-
-        'beanstalkd' => [
-            'driver' => 'beanstalkd',
-            'host' => 'localhost',
-            'queue' => 'default',
-            'retry_after' => 90,
-            'block_for' => 0,
-        ],
-
-        'sqs' => [
-            'driver' => 'sqs',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'prefix' => env('SQS_PREFIX', 'https://sqs.us-east-1.amazonaws.com/your-account-id'),
-            'queue' => env('SQS_QUEUE', 'your-queue-name'),
-            'suffix' => env('SQS_SUFFIX'),
-            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'after_commit' => false,
         ],
 
         'redis' => [
@@ -65,30 +51,40 @@ return [
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => 300,
             'block_for' => null,
+            'after_commit' => false,
         ],
 
-        'messages' => [
-            'driver' => 'redis',
-            'connection' => 'default',
-            'queue' => 'messages',
-            'retry_after' => 300,
-            'block_for' => null,
-        ],
-
+        // High priority queue for urgent messages (incoming messages, single sends)
         'high_priority' => [
-            'driver' => 'redis',
-            'connection' => 'default',
+            'driver' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'redis' : 'database',
+            'connection' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'default' : null,
+            'table' => env('QUEUE_CONNECTION', 'database') === 'database' ? 'jobs' : null,
             'queue' => 'high_priority',
             'retry_after' => 300,
             'block_for' => null,
+            'after_commit' => false,
         ],
 
+        // Regular messages queue
+        'messages' => [
+            'driver' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'redis' : 'database',
+            'connection' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'default' : null,
+            'table' => env('QUEUE_CONNECTION', 'database') === 'database' ? 'jobs' : null,
+            'queue' => 'messages',
+            'retry_after' => 300,
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
+        // Bulk messages queue for large batches
         'bulk_messages' => [
-            'driver' => 'redis',
-            'connection' => 'default',
+            'driver' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'redis' : 'database',
+            'connection' => env('QUEUE_CONNECTION', 'database') === 'redis' ? 'default' : null,
+            'table' => env('QUEUE_CONNECTION', 'database') === 'database' ? 'jobs' : null,
             'queue' => 'bulk_messages',
             'retry_after' => 600,
             'block_for' => null,
+            'after_commit' => false,
         ],
 
     ],

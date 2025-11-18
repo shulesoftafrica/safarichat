@@ -1,307 +1,1272 @@
 @extends('layouts.app')
 @section('content')
-<style>
-    .ai-sales-officer {
-        font-family: 'Inter', sans-serif;
-        background: #f8fafc;
-        min-height: 100vh;
-        padding: 2rem 0;
-    }
-    
-    .page-header {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
-        padding: 2rem 0;
-        margin-bottom: 2rem;
-        border-radius: 16px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .page-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="white" opacity="0.1"/><circle cx="80" cy="80" r="1" fill="white" opacity="0.1"/><circle cx="40" cy="60" r="1.5" fill="white" opacity="0.1"/></svg>');
-    }
-    
-    .page-header-content {
-        position: relative;
-        z-index: 1;
-    }
-    
-    .page-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .ai-badge {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .page-subtitle {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        margin: 0;
-    }
-    
-    .main-layout {
-        display: flex;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        min-height: 700px;
-    }
-    
-    .sidebar {
-        width: 280px;
-        background: #f8fafc;
-        border-right: 1px solid #e2e8f0;
-        padding: 0;
-    }
-    
-    .sidebar-nav {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .nav-item {
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .nav-link {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1.5rem 2rem;
-        color: #64748b;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        border-left: 4px solid transparent;
-        background: none;
-        border: none;
-        width: 100%;
-        text-align: left;
-        border-bottom: 1px solid #e2e8f0;
-        cursor: pointer;
-    }
-    
-    .nav-link:hover {
-        background: #f1f5f9;
-        color: #334155;
-    }
-    
-    .nav-link.active {
-        background: white;
-        color: #6366f1;
-        border-left-color: #6366f1;
-        box-shadow: 2px 0 10px rgba(99, 102, 241, 0.1);
-    }
-    
-    .nav-icon {
-        font-size: 1.2rem;
-        width: 20px;
-        text-align: center;
-    }
-    
-    .content-area {
-        flex: 1;
-        padding: 2rem;
-        background: white;
-        overflow-y: auto;
-    }
-    
-    .tab-content {
-        display: none;
-    }
-    
-    .tab-content.active {
-        display: block;
-    }
-    
-    .loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 300px;
-        color: #64748b;
-        font-size: 1.1rem;
-    }
-    
-    .loading i {
-        margin-right: 0.5rem;
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    @media (max-width: 768px) {
-        .main-layout {
-            flex-direction: column;
-        }
-        
-        .sidebar {
-            width: 100%;
-            border-right: none;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .sidebar-nav {
-            display: flex;
-            overflow-x: auto;
-        }
-        
-        .nav-item {
-            border-bottom: none;
-            border-right: 1px solid #e2e8f0;
-            flex-shrink: 0;
-        }
-        
-        .nav-item:last-child {
-            border-right: none;
-        }
-        
-        .content-area {
-            padding: 1rem;
-        }
-        
-        .page-title {
-            font-size: 2rem;
-        }
-    }
-</style>
 
 <div class="ai-sales-officer">
     <div class="container-fluid">
-        <div class="page-header">
-            <div class="page-header-content">
-                <div class="container-fluid">
-                    <h1 class="page-title">
+        <!-- Header -->
+        <div class="reports-header mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="reports-title">
                         <i class="fas fa-robot"></i>
                         AI Sales Officer
-                        <span class="ai-badge">
-                            <i class="fas fa-brain"></i>
+                        <span class="ai-badge ms-3">
+                            <i class="fas fa-brain me-1"></i>
                             AI Powered
                         </span>
                     </h1>
-                    <p class="page-subtitle">Configure your intelligent WhatsApp sales assistant for automated customer engagement</p>
+                    <p class="reports-subtitle mb-0">
+                        Configure your intelligent WhatsApp sales assistant for automated customer engagement
+                    </p>
                 </div>
             </div>
         </div>
 
-        <div class="main-layout">
-            <div class="sidebar">
-                <ul class="sidebar-nav">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-tab="products">
-                            <i class="fas fa-box nav-icon"></i>
+        <div class="main-layout d-flex">
+            <!-- Sidebar Navigation (Compact) -->
+            <nav class="sidebar shadow-sm">
+                <ul class="sidebar-nav nav flex-column py-3">
+                    <li>
+                        <a href="{{ url('service/index') }}" class="nav-link{{ request()->is('service/index') ? ' active' : '' }}">
                             <span>Products</span>
-                        </button>
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-tab="job-description">
-                            <i class="fas fa-clipboard-list nav-icon"></i>
+                    <li>
+                        <a href="{{ url('service/jd') }}" class="nav-link{{ request()->is('service/jd') ? ' active' : '' }}">
                             <span>Job Description</span>
-                        </button>
+                        </a>
                     </li>
                 </ul>
-            </div>
+            </nav>
 
-            <div class="content-area">
-                <div id="products" class="tab-content active">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        Loading products...
-                    </div>
-                </div>
-                
-                <div id="job-description" class="tab-content">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        Loading job description...
-                    </div>
-                </div>
+            <!-- Main Content Area -->
+            <div class="content-area flex-grow-1 p-3 ms-3">
+                 @include('service.products')
+              
             </div>
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    // Load initial content
-    loadTabContent('products');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-tab');
-            
-            // Update nav active state
-            navLinks.forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update content active state
-            tabContents.forEach(content => content.classList.remove('active'));
-            document.getElementById(targetTab).classList.add('active');
-            
-            // Load content if not already loaded
-            loadTabContent(targetTab);
-        });
-    });
-    
-    function loadTabContent(tabName) {
-        const contentDiv = document.getElementById(tabName);
-        
-        // Check if content is already loaded (has more than just loading div)
-        if (contentDiv.children.length === 1 && contentDiv.querySelector('.loading')) {
-            const url = `{{ route('service.tab-content') }}?tab=${tabName}`;
-            
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    contentDiv.innerHTML = html;
-                    
-                    // Initialize tab-specific functions
-                    if (tabName === 'products' && typeof initializeProducts === 'function') {
-                        initializeProducts();
-                    } else if (tabName === 'job-description' && typeof initializeJobDescription === 'function') {
-                        initializeJobDescription();
-                    }
-                })
-                .catch(error => {
-                    contentDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Error loading content. Please try again.
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i>
+                    Add New Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProductForm">
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="section-title">
+                                    <i class="fas fa-info-circle"></i>
+                                    Basic Information
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Product Name *</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">SKU *</label>
+                                    <input type="text" class="form-control" name="sku" placeholder="e.g., WBP-001" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Category *</label>
+                                    <select class="form-select" name="category" required>
+                                        <option value="">Select Category</option>
+                                        <option value="Communication">Communication</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Enterprise">Enterprise</option>
+                                        <option value="Analytics">Analytics</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="autoGenerateDescription">
+                                        <label class="form-check-label" for="autoGenerateDescription">
+                                            <i class="fas fa-robot text-primary"></i>
+                                            Let AI auto-generate description?
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3" id="descriptionField">
+                                    <label class="form-label">Key Description *</label>
+                                    <textarea class="form-control" name="description" rows="4" placeholder="Describe the main features and benefits of this product..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3" id="minimalDescriptionField" style="display: none;">
+                                    <label class="form-label">Minimal Info for AI *</label>
+                                    <input type="text" class="form-control" name="minimal_description" placeholder="e.g., WhatsApp automation tool for businesses">
+                                    <small class="text-muted">AI will generate detailed description from this</small>
+                                </div>
+                            </div>
                         </div>
-                    `;
-                });
-        }
+                        
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="section-title">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Pricing & Stock
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Retail Price *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" name="retail_price" step="0.01" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Wholesale Price *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" name="wholesale_price" step="0.01" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Max Discount % *</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="max_discount" min="0" max="100" required>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Quantity Available</label>
+                                        <input type="number" class="form-control" name="quantity" min="0" placeholder="Leave empty for unlimited">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Product Tags</label>
+                                    <div class="tag-options">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="tags[]" value="new-arrival" id="tag1">
+                                            <label class="form-check-label" for="tag1">New Arrival</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="tags[]" value="hot-deal" id="tag2">
+                                            <label class="form-check-label" for="tag2">Hot Deal</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="tags[]" value="limited-stock" id="tag3">
+                                            <label class="form-check-label" for="tag3">Limited Stock</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="tags[]" value="featured" id="tag4">
+                                            <label class="form-check-label" for="tag4">Featured</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="tags[]" value="bestseller" id="tag5">
+                                            <label class="form-check-label" for="tag5">Bestseller</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Product Image</label>
+                                    <input type="file" class="form-control" name="product_image" accept="image/*" id="productImageInput">
+                                    <small class="text-muted">Upload product image (JPG, PNG, GIF - Max 5MB)</small>
+                                    <div id="imagePreview" class="mt-2" style="display: none;">
+                                        <img id="previewImg" src="" alt="Preview" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeImagePreview()">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Product Attachment (PDF)</label>
+                                    <input type="file" class="form-control" name="product_attachment" accept=".pdf" id="productAttachmentInput">
+                                    <small class="text-muted">Upload product documentation (PDF only - Max 10MB)</small>
+                                    <div id="attachmentPreview" class="mt-2" style="display: none;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                                            <span id="attachmentName"></span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeAttachmentPreview()">
+                                                <i class="fas fa-times"></i> Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Status *</label>
+                                    <select class="form-select" name="status" required>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="draft">Draft</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-question-circle"></i>
+                            Frequently Asked Questions
+                        </h6>
+                        
+                        <div id="faqContainer">
+                            <div class="faq-item mb-3">
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="faq_questions[]" placeholder="Question">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="faq_answers[]" placeholder="Answer">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFAQ(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addFAQ()">
+                            <i class="fas fa-plus"></i>
+                            Add FAQ
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-close" data-bs-dismiss="modal" aria-label="Close">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProduct()">
+                    <i class="fas fa-save"></i>
+                    Save Product
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+/* Use the application's base font and sizing for consistency */
+body, .ai-sales-officer {
+    font-family: inherit !important;
+    font-size: 1rem;
+    background: #f8fafc;
+}
+
+.ai-sales-officer {
+    min-height: 100vh;
+    padding-bottom: 24px;
+}
+
+.reports-header {
+    background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+    border-radius: 14px;
+    padding: 18px 18px 12px 18px;
+    color: white;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 16px rgba(37, 211, 102, 0.10);
+}
+
+.reports-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reports-subtitle {
+    font-size: 0.97rem;
+    opacity: 0.92;
+    margin-bottom: 0;
+}
+
+.ai-badge {
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #0ea5e9 !important;
+    color: #fff !important;
+    border-radius: 10px;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.main-layout {
+    gap: 18px;
+}
+
+.sidebar {
+    width: 140px;
+    min-width: 120px;
+    max-width: 140px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    position: sticky;
+    top: 24px;
+    height: fit-content;
+    padding: 0;
+}
+
+.sidebar-nav .nav-link {
+    border: none;
+    background: none;
+    color: #334155;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.18s, color 0.18s;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-nav .nav-link.active,
+.sidebar-nav .nav-link:hover {
+    background: #e0f2fe;
+    color: #0ea5e9;
+}
+
+.sidebar-nav .nav-link .metric-icon {
+    font-size: 1rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #f1f5f9;
+    color: #64748b;
+    margin-right: 0;
+}
+
+.content-area {
+    min-height: 400px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    transition: box-shadow 0.18s;
+    font-size: 1rem;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.loading {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+@media (max-width: 991px) {
+    .main-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .sidebar {
+        width: 100%;
+        min-width: unset;
+        max-width: unset;
+        position: static;
+        margin-bottom: 10px;
+    }
+    .content-area {
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .reports-header {
+        padding: 10px;
+    }
+    .reports-title {
+        font-size: 1rem;
+    }
+    .main-layout {
+        gap: 6px;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px);}
+    to { opacity: 1; transform: translateY(0);}
+}
+</style>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+    // Tab navigation (placeholder for future use)
+
+    // Modal reset on close
+    const addProductModal = document.getElementById('addProductModal');
+    if (addProductModal) {
+        addProductModal.addEventListener('hidden.bs.modal', function () {
+            const form = document.getElementById('addProductForm');
+            if (form) form.reset();
+
+            // Explicitly reset required attributes for description/minimal_description
+            const descInput = document.querySelector('[name="description"]');
+            const minDescInput = document.querySelector('[name="minimal_description"]');
+            if (descInput) descInput.required = true;
+            if (minDescInput) minDescInput.required = false;
+
+            // Hide image and attachment previews
+            const imagePreview = document.getElementById('imagePreview');
+            if (imagePreview) imagePreview.style.display = 'none';
+            const previewImg = document.getElementById('previewImg');
+            if (previewImg) previewImg.src = '';
+            const attachmentPreview = document.getElementById('attachmentPreview');
+            if (attachmentPreview) attachmentPreview.style.display = 'none';
+            const attachmentName = document.getElementById('attachmentName');
+            if (attachmentName) attachmentName.textContent = '';
+
+            // Reset modal title and button
+            const modalTitle = document.querySelector('#addProductModal .modal-title');
+            if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-plus"></i> Add New Product';
+            const saveButton = document.querySelector('#addProductModal .btn-primary');
+            if (saveButton) {
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Product';
+                saveButton.setAttribute('onclick', 'saveProduct()');
+                saveButton.disabled = false;
+            }
+
+            // Reset description fields
+            const descriptionField = document.getElementById('descriptionField');
+            if (descriptionField) descriptionField.style.display = 'block';
+            const minimalDescriptionField = document.getElementById('minimalDescriptionField');
+            if (minimalDescriptionField) minimalDescriptionField.style.display = 'none';
+
+            // Reset FAQ container
+            const faqContainer = document.getElementById('faqContainer');
+            if (faqContainer) {
+                faqContainer.innerHTML = '';
+                addFAQ();
+            }
+        });
+    }
+
+    // Add search event listener
+    const productSearchInput = document.getElementById('productSearch');
+    if (productSearchInput) {
+        productSearchInput.addEventListener('keyup', searchProducts);
+    }
+
+    // Add status filter event listener
+    const statusFilterInput = document.getElementById('statusFilter');
+    if (statusFilterInput) {
+        statusFilterInput.addEventListener('change', filterByStatus);
+    }
+
+    // Add initial FAQ item if container exists
+    if (document.getElementById('faqContainer')) {
+        addFAQ();
+    }
+    
+    // Image preview functionality
+    const imageInput = document.getElementById('productImageInput');
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Image file size must be less than 5MB');
+                    this.value = '';
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file');
+                    this.value = '';
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImg = document.getElementById('previewImg');
+                    const imagePreview = document.getElementById('imagePreview');
+                    if (previewImg) previewImg.src = e.target.result;
+                    if (imagePreview) imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Attachment preview functionality
+    const attachmentInput = document.getElementById('productAttachmentInput');
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file size (10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('PDF file size must be less than 10MB');
+                    this.value = '';
+                    return;
+                }
+                
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    alert('Please select a PDF file only');
+                    this.value = '';
+                    return;
+                }
+                
+                // Show preview
+                const attachmentName = document.getElementById('attachmentName');
+                const attachmentPreview = document.getElementById('attachmentPreview');
+                if (attachmentName) attachmentName.textContent = file.name;
+                if (attachmentPreview) attachmentPreview.style.display = 'block';
+            }
+        });
     }
 });
+
+// Image and attachment preview functions
+function removeImagePreview() {
+    const imageInput = document.getElementById('productImageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    
+    if (imageInput) imageInput.value = '';
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (previewImg) previewImg.src = '';
+}
+
+function removeAttachmentPreview() {
+    const attachmentInput = document.getElementById('productAttachmentInput');
+    const attachmentPreview = document.getElementById('attachmentPreview');
+    const attachmentName = document.getElementById('attachmentName');
+    
+    if (attachmentInput) attachmentInput.value = '';
+    if (attachmentPreview) attachmentPreview.style.display = 'none';
+    if (attachmentName) attachmentName.textContent = '';
+}
+
+// Initialize DataTable and AI description toggle
+function initializeProducts() {
+    // Wait for next tick to ensure table content is loaded
+    setTimeout(() => {
+        if (typeof $ === 'undefined' || !$.fn.DataTable) {
+            console.warn('DataTables plugin not loaded');
+            return;
+        }
+
+        const productsTable = $('#productsTable');
+        if (!productsTable.length) {
+            console.warn('Products table not found');
+            return;
+        }
+
+        try {
+            // Destroy existing DataTable if it exists
+            if ($.fn.DataTable.isDataTable(productsTable)) {
+                productsTable.DataTable().destroy();
+            }
+
+            // Initialize new DataTable with proper configuration
+            productsTable.DataTable({
+                processing: true,
+                retrieve: true,
+                responsive: true,
+                pageLength: 10,
+                ordering: true,
+                searching: true,
+                order: [[0, 'asc']],
+                columnDefs: [
+                    { orderable: false, targets: -1 }, // Make last column non-sortable
+                    { searchable: false, targets: -1 } // Make last column non-searchable
+                ],
+                language: {
+                    search: "Search products:",
+                    lengthMenu: "Show _MENU_ products",
+                    info: "Showing _START_ to _END_ of _TOTAL_ products",
+                    emptyTable: "No products available"
+                },
+                dom: '<"top"lf>rt<"bottom"ip><"clear">',
+                drawCallback: function(settings) {
+                    // Reinitialize any event handlers if needed
+                    $('.product-checkbox').on('change', updateBulkActions);
+                }
+            });
+        } catch (error) {
+            console.error('Error initializing DataTable:', error);
+        }
+    }, 100);
+
+    // AI description toggle
+    const autoDesc = document.getElementById('autoGenerateDescription');
+    
+    if (autoDesc) {
+        autoDesc.addEventListener('change', function () {
+            const descriptionField = document.getElementById('descriptionField');
+            const minimalField = document.getElementById('minimalDescriptionField');
+            const descInput = document.querySelector('[name="description"]');
+            const minDescInput = document.querySelector('[name="minimal_description"]');
+            if (this.checked) {
+                if (descriptionField) descriptionField.style.display = 'none';
+                if (minimalField) minimalField.style.display = 'block';
+                if (descInput) descInput.required = false;
+                if (minDescInput) minDescInput.required = true;
+            } else {
+                if (descriptionField) descriptionField.style.display = 'block';
+                if (minimalField) minimalField.style.display = 'none';
+                if (descInput) descInput.required = true;
+                if (minDescInput) minDescInput.required = false;
+            }
+        });
+    }
+}
+
+// FAQ functions
+function addFAQ() {
+    const container = document.getElementById('faqContainer');
+    if (!container) return;
+    const faqItem = document.createElement('div');
+    faqItem.className = 'faq-item mb-3';
+    faqItem.innerHTML = `
+        <div class="row">
+            <div class="col-md-5">
+                <input type="text" class="form-control" name="faq_questions[]" placeholder="Question" required>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="faq_answers[]" placeholder="Answer" required>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFAQ(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.appendChild(faqItem);
+}
+
+function removeFAQ(button) {
+    const faqItem = button.closest('.faq-item');
+    const container = document.getElementById('faqContainer');
+    if (!faqItem || !container) return;
+    // Keep at least one FAQ item
+    if (container.children.length > 1) {
+        faqItem.remove();
+    } else {
+        // Clear the inputs instead of removing
+        const inputs = faqItem.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+    }
+}
+
+// Save product
+function saveProduct() {
+    const form = document.getElementById('addProductForm');
+    if (!form) return;
+    const button = event && event.target ? event.target : null;
+    const originalText = button ? button.innerHTML : '';
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    if (button) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        button.disabled = true;
+    }
+
+    const formData = new FormData(form);
+
+    fetch("{{ url('api/products') }}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide modal
+                const modalElem = document.getElementById('addProductModal');
+                if (modalElem) {
+                    const modal = new bootstrap.Modal(modalElem);
+                    modal.hide();
+                }
+                // Reset form
+                form.reset();
+                const descriptionField = document.getElementById('descriptionField');
+                if (descriptionField) descriptionField.style.display = 'block';
+                const minimalDescriptionField = document.getElementById('minimalDescriptionField');
+                if (minimalDescriptionField) minimalDescriptionField.style.display = 'none';
+                // Clear FAQ container except first item
+                const faqContainer = document.getElementById('faqContainer');
+                if (faqContainer) {
+                    const faqItems = faqContainer.querySelectorAll('.faq-item');
+                    for (let i = 1; i < faqItems.length; i++) {
+                        faqItems[i].remove();
+                    }
+                }
+                showNotification(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showNotification(data.message || 'Failed to save product', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error saving product:', error);
+            showNotification('An error occurred while saving the product', 'error');
+        })
+        .finally(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        });
+}
+
+// Edit product from view modal
+function editProductFromView() {
+    const modalElem = document.getElementById('viewProductModal');
+    if (modalElem) {
+        // Close the view modal
+        // Use new bootstrap.Modal(modalElem) for compatibility with Bootstrap <5.2
+        const modal = new bootstrap.Modal(modalElem);
+        modal.hide();
+    }
+    
+    // Get product ID from the view modal (we'll store it when viewing)
+    const productId = modalElem ? modalElem.getAttribute('data-product-id') : null;
+    if (productId) {
+        // Wait a bit for the modal to close before opening edit modal
+        setTimeout(() => {
+            editProduct(productId);
+        }, 300);
+    }
+}
+
+// View product
+function viewProduct(id) {
+    const modalElem = document.getElementById('viewProductModal');
+    const content = document.getElementById('productDetailsContent');
+    if (!modalElem || !content) return;
+    
+    // Store product ID in modal for edit functionality
+    modalElem.setAttribute('data-product-id', id);
+    
+    const modal = new bootstrap.Modal(modalElem);
+
+    content.innerHTML = `
+        <div class="text-center p-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+            <p class="mt-2">Loading product details...</p>
+        </div>
+    `;
+
+    modal.show();
+
+    fetch("{{ url('api/products') }}/" + id, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const product = data.product;
+                content.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <table class="table table-borderless">
+                                <tr><td><strong>Name:</strong></td><td>${product.name}</td></tr>
+                                <tr><td><strong>SKU:</strong></td><td>${product.sku}</td></tr>
+                                <tr><td><strong>Category:</strong></td><td>${product.category}</td></tr>
+                                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${product.status === 'active' ? 'success' : product.status === 'inactive' ? 'secondary' : 'warning'}">${product.status.charAt(0).toUpperCase() + product.status.slice(1)}</span></td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Pricing & Stock</h6>
+                            <table class="table table-borderless">
+                                <tr><td><strong>Retail Price:</strong></td><td>$${parseFloat(product.retail_price).toFixed(2)}/month</td></tr>
+                                <tr><td><strong>Wholesale Price:</strong></td><td>$${parseFloat(product.wholesale_price).toFixed(2)}/month</td></tr>
+                                <tr><td><strong>Max Discount:</strong></td><td>${product.max_discount}%</td></tr>
+                                <tr><td><strong>Stock:</strong></td><td>${product.quantity || 'Unlimited'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Description</h6>
+                        <p>${product.description}</p>
+                    </div>
+                    ${product.tags && product.tags.length > 0 ? `
+                    <div class="mt-3">
+                        <h6>Tags</h6>
+                        ${product.tags.map(tag => {
+                            const badgeClass = tag === 'hot-deal' ? 'bg-danger' :
+                                tag === 'featured' ? 'bg-info' :
+                                    tag === 'new-arrival' ? 'bg-primary' :
+                                        tag === 'limited-stock' ? 'bg-warning' :
+                                            tag === 'bestseller' ? 'bg-success' : 'bg-secondary';
+                            return `<span class="badge ${badgeClass} me-1">${tag.charAt(0).toUpperCase() + tag.slice(1).replace('-', ' ')}</span>`;
+                        }).join('')}
+                    </div>
+                    ` : ''}
+                    ${product.faqs && product.faqs.length > 0 ? `
+                    <div class="mt-3">
+                        <h6>FAQs</h6>
+                        ${product.faqs.map(faq => `
+                            <div class="mb-2">
+                                <strong>Q: ${faq.question}</strong><br>
+                                <span class="text-muted">A: ${faq.answer}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ${data.message || 'Failed to load product details'}
+                    </div>
+                `;
+            }
+        })
+        .catch((error) => {
+            console.error('Error loading product details:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error loading product details: ${error.message}
+                </div>
+            `;
+        });
+}
+
+// Edit product
+function editProduct(id) {
+    fetch("{{ url('api/products') }}/" + id + "/edit", {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const product = data.product;
+                const nameInput = document.querySelector('[name="product_name"]');
+                const skuInput = document.querySelector('[name="sku"]');
+                const categoryInput = document.querySelector('[name="category"]');
+                const descInput = document.querySelector('[name="description"]');
+                const minDescInput = document.querySelector('[name="minimal_description"]');
+                const retailInput = document.querySelector('[name="retail_price"]');
+                const wholesaleInput = document.querySelector('[name="wholesale_price"]');
+                const maxDiscountInput = document.querySelector('[name="max_discount"]');
+                const quantityInput = document.querySelector('[name="quantity"]');
+                const statusInput = document.querySelector('[name="status"]');
+                const autoDesc = document.getElementById('autoGenerateDescription');
+
+                if (nameInput) nameInput.value = product.name;
+                if (skuInput) skuInput.value = product.sku;
+                if (categoryInput) categoryInput.value = product.category;
+                if (descInput) descInput.value = product.description;
+                if (minDescInput) minDescInput.value = product.minimal_description || '';
+                if (retailInput) retailInput.value = product.retail_price;
+                if (wholesaleInput) wholesaleInput.value = product.wholesale_price;
+                if (maxDiscountInput) maxDiscountInput.value = product.max_discount;
+                if (quantityInput) quantityInput.value = product.quantity || '';
+                if (statusInput) statusInput.value = product.status;
+                if (autoDesc) autoDesc.checked = !!product.ai_generated_description;
+
+                // Handle AI description toggle
+                const descriptionField = document.getElementById('descriptionField');
+                const minimalDescriptionField = document.getElementById('minimalDescriptionField');
+                if (autoDesc && autoDesc.checked) {
+                    if (descriptionField) descriptionField.style.display = 'none';
+                    if (minimalDescriptionField) minimalDescriptionField.style.display = 'block';
+                } else {
+                    if (descriptionField) descriptionField.style.display = 'block';
+                    if (minimalDescriptionField) minimalDescriptionField.style.display = 'none';
+                }
+
+                // Handle tags
+                if (product.tags) {
+                    product.tags.forEach(tag => {
+                        const checkbox = document.querySelector(`[name="tags[]"][value="${tag}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+
+                // Handle FAQs
+                const faqContainer = document.getElementById('faqContainer');
+                if (faqContainer) {
+                    faqContainer.innerHTML = '';
+                    if (product.faqs && product.faqs.length > 0) {
+                        product.faqs.forEach(faq => {
+                            const faqItem = document.createElement('div');
+                            faqItem.className = 'faq-item mb-3';
+                            faqItem.innerHTML = `
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="faq_questions[]" placeholder="Question" value="${faq.question}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="faq_answers[]" placeholder="Answer" value="${faq.answer}" required>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFAQ(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            faqContainer.appendChild(faqItem);
+                        });
+                    } else {
+                        addFAQ();
+                    }
+                }
+
+                // Change modal title and form action
+                const modalTitle = document.querySelector('#addProductModal .modal-title');
+                if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+
+                // Change save button to update
+                const saveButton = document.querySelector('#addProductModal .btn-primary');
+                if (saveButton) {
+                    saveButton.innerHTML = '<i class="fas fa-save"></i> Update Product';
+                    saveButton.setAttribute('onclick', `updateProduct(${id})`);
+                    saveButton.disabled = false;
+                }
+
+                // Show modal
+                const modalElem = document.getElementById('addProductModal');
+                if (modalElem) {
+                    const modal = new bootstrap.Modal(modalElem);
+                    modal.show();
+                }
+            } else {
+                showNotification(data.message || 'Failed to load product for editing', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error loading product for editing:', error);
+            showNotification('Error loading product for editing: ' + error.message, 'error');
+        });
+}
+
+// Update product
+function updateProduct(id) {
+    const form = document.getElementById('addProductForm');
+    const button = event && event.target ? event.target : null;
+    const originalText = button ? button.innerHTML : '';
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    if (button) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        button.disabled = true;
+    }
+
+    const formData = new FormData(form);
+    formData.append('_method', 'PUT');
+
+    fetch("{{ url('api/products') }}/" + id, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const modalElem = document.getElementById('addProductModal');
+                if (modalElem) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElem);
+                    modal.hide();
+                }
+                showNotification(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showNotification(data.message || 'Failed to update product', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error updating product:', error);
+            showNotification('An error occurred while updating the product: ' + error.message, 'error');
+        })
+        .finally(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+            // Reset modal for adding
+            const modalTitle = document.querySelector('#addProductModal .modal-title');
+            if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-plus"></i> Add New Product';
+            const saveButton = document.querySelector('#addProductModal .btn-primary');
+            if (saveButton) {
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Product';
+                saveButton.setAttribute('onclick', 'saveProduct()');
+                saveButton.disabled = false;
+            }
+        });
+}
+
+// Delete product
+function deleteProduct(id) {
+    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+    
+    const formData = new FormData();
+    formData.append('_method', 'DELETE');
+
+    fetch("{{ url('api/products') }}/" + id, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                const row = document.querySelector(`tr[data-product-id="${id}"]`);
+                if (row) row.remove();
+                const tbody = document.querySelector('#productsTable tbody');
+                if (tbody && tbody.children.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No products found. Click "Add New Product" to get started.</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } else {
+                showNotification(data.message || 'Failed to delete product', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error deleting product:', error);
+            showNotification('Error deleting product: ' + error.message, 'error');
+        });
+}
+
+// Notification
+function showNotification(message, type = 'info') {
+    const alertTypes = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    };
+    const alertClass = alertTypes[type] || 'alert-info';
+    const iconClass = type === 'success' ? 'fa-check-circle' :
+        type === 'error' ? 'fa-exclamation-triangle' :
+            type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas ${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+        if (notification.parentNode) notification.remove();
+    }, 5000);
+}
+
+// Bulk actions
+function selectAllProducts() {
+    const masterCheckbox = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    if (!masterCheckbox) return;
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    const bulkActionsDiv = document.getElementById('bulkActions');
+    const countSpan = document.getElementById('selectedCount');
+    if (bulkActionsDiv && countSpan) {
+        if (checkboxes.length > 0) {
+            bulkActionsDiv.style.display = 'block';
+            countSpan.textContent = checkboxes.length;
+        } else {
+            bulkActionsDiv.style.display = 'none';
+        }
+    }
+}
+
+function executeBulkAction() {
+    const action = document.getElementById('bulkActionSelect') ? document.getElementById('bulkActionSelect').value : '';
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    if (!action) {
+        showNotification('Please select an action', 'warning');
+        return;
+    }
+    if (checkboxes.length === 0) {
+        showNotification('Please select at least one product', 'warning');
+        return;
+    }
+    const productIds = Array.from(checkboxes).map(cb => cb.value);
+    let confirmMessage = '';
+    switch (action) {
+        case 'activate':
+            confirmMessage = `Are you sure you want to activate ${productIds.length} product(s)?`;
+            break;
+        case 'deactivate':
+            confirmMessage = `Are you sure you want to deactivate ${productIds.length} product(s)?`;
+            break;
+        case 'delete':
+            confirmMessage = `Are you sure you want to delete ${productIds.length} product(s)? This action cannot be undone.`;
+            break;
+        default:
+            showNotification('Invalid action selected', 'error');
+            return;
+    }
+    if (confirm(confirmMessage)) {
+        fetch("{{ url('api/products/bulk-action') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                action: action,
+                product_ids: productIds
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(data.message || 'Bulk action failed', 'error');
+                }
+            })
+            .catch((error) => {
+                console.error('Error executing bulk action:', error);
+                showNotification('Error executing bulk action: ' + error.message, 'error');
+            });
+    }
+}
+
+// Search function
+function searchProducts() {
+    const searchTerm = document.getElementById('productSearch') ? document.getElementById('productSearch').value.toLowerCase() : '';
+    const tableRows = document.querySelectorAll('#productsTable tbody tr');
+    tableRows.forEach(row => {
+        const productName = row.cells[1]?.textContent.toLowerCase() || '';
+        const sku = row.cells[2]?.textContent.toLowerCase() || '';
+        const category = row.cells[3]?.textContent.toLowerCase() || '';
+        if (productName.includes(searchTerm) || sku.includes(searchTerm) || category.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Filter by status
+function filterByStatus() {
+    const selectedStatus = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+    const tableRows = document.querySelectorAll('#productsTable tbody tr');
+    tableRows.forEach(row => {
+        const statusCell = row.cells[4];
+        if (!statusCell) return;
+        const statusText = statusCell.textContent.trim().toLowerCase();
+        if (!selectedStatus || statusText === selectedStatus.toLowerCase()) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+
 </script>
 
 @endsection

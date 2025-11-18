@@ -117,11 +117,11 @@
                                 <i class="fas fa-calendar-alt align-middle mr-2" title="Schedule"></i>{{__('schedule')}}
                             </a>
                         </li> -->
-                        <!-- <li class="nav-item">
+                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('service/index') ?>">
-                                <i class="fas fa-robot align-middle mr-2" title="AI Sales Officer"></i>{{__('AI Sales Officer')}}
+                                <i class="fas fa-brain align-middle mr-2" title="AI Sales Officer"></i>{{__('AI Sales Officer')}}
                             </a>
-                        </li> -->
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/report') ?>">
                                 <i class="fas fa-calendar-alt align-middle mr-2" title="Reports"></i>{{__('reports')}}
