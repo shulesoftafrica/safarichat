@@ -68,6 +68,14 @@ class AiSalesAgent extends Model
         'notify_on_deal' => 'boolean',
         'accepted_terms' => 'boolean',
         'terms_accepted_at' => 'datetime',
+        'start_time' => 'datetime:H:i',
+        'end_time' => 'datetime:H:i',
+        'max_discount_allowed' => 'integer',
+        'max_installments' => 'integer',
+        'min_down_payment' => 'integer',
+        'low_stock_threshold' => 'integer',
+        'followup_delay' => 'integer',
+        'max_followups' => 'integer',
         'large_order_threshold' => 'decimal:2'
     ];
 
@@ -77,6 +85,14 @@ class AiSalesAgent extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get leads associated with this agent
+     */
+    public function leads()
+    {
+        return $this->hasMany(Lead::class);
     }
 
     /**
@@ -144,5 +160,61 @@ class AiSalesAgent extends Model
         }
 
         return UserType::whereIn('id', $this->target_user_types)->pluck('name')->toArray();
+    }
+
+    /**
+     * Check if agent can negotiate within discount limits
+     */
+    public function canNegotiate($requestedDiscount)
+    {
+        return $this->allow_negotiation && 
+               ($this->max_discount_allowed >= $requestedDiscount);
+    }
+
+    /**
+     * Check if situation should escalate to human agent
+     */
+    public function shouldEscalate($trigger)
+    {
+        return in_array($trigger, $this->escalation_triggers ?? []);
+    }
+
+    /**
+     * Get personality prompt for OpenAI
+     */
+    public function getPersonalityPrompt()
+    {
+        $tone = match($this->communication_tone) {
+            'professional' => 'Maintain a professional, business-focused tone',
+            'friendly' => 'Be warm, approachable, and conversational',
+            'consultative' => 'Act as a trusted advisor, asking thoughtful questions',
+            'direct' => 'Be clear, concise, and straight to the point'
+        };
+        
+        $personality = $this->personality_description ?: "I am {$this->assistant_name}, a helpful sales assistant.";
+        
+        return "{$personality} {$tone}. Target audience: {$this->target_audience}.";
+    }
+
+    /**
+     * Get out of hours response message
+     */
+    public function getOutOfHoursResponse()
+    {
+        return $this->out_of_hours_message ?: 
+               "Thank you for your message! I'm currently unavailable, but I'll respond during business hours: {$this->start_time} - {$this->end_time} {$this->timezone}.";
+    }
+
+    /**
+     * Get follow-up configuration
+     */
+    public function getFollowupSettings()
+    {
+        return [
+            'enabled' => $this->auto_followup,
+            'delay_hours' => $this->followup_delay ?? 24,
+            'max_attempts' => $this->max_followups ?? 3,
+            'message' => $this->followup_message
+        ];
     }
 }

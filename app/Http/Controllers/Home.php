@@ -37,7 +37,7 @@ class Home extends Controller
      */
     public function index()
     {
-       
+
           // Check if user has no active whatsapp instance
             $hasWhatsappInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
             ->where('type', 'whatsapp')
@@ -47,10 +47,12 @@ class Home extends Controller
             if (!$hasWhatsappInstance) {
                   $this->data['ward'] = Auth::user()->business;
                 $this->data['event'] = [];
-               
-                return view('auth.business.setup', $this->data);
+           
+                return view('auth.business.wasender', $this->data);
             }
         $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+   
+     
         if (!$user_events) {
             // Create a dummy event
             $event = \App\Models\Event::create([
