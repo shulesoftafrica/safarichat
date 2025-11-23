@@ -11,7 +11,8 @@ class Lead extends Model
     use HasFactory;
 
     protected $fillable = [
-        'events_guest_id', 'ai_sales_agent_id', 'source', 'status', 'last_interaction_at',
+        'events_guest_id', 'ai_sales_agent_id', 'user_id', 'event_id', 'name', 'phone_number', 
+        'email', 'source', 'status', 'last_interaction_at', 'last_contact_at', 'follow_up_sent_at',
         'notes', 'company_name', 'industry', 'is_churned', 'churn_date', 'churn_reason',
         'churn_notes', 'win_back_eligible_at', 'win_back_attempts', 'last_win_back_at',
         'final_price', 'deal_value', 'conversion_probability', 'lead_score',
@@ -20,6 +21,8 @@ class Lead extends Model
 
     protected $casts = [
         'last_interaction_at' => 'datetime',
+        'last_contact_at' => 'datetime',
+        'follow_up_sent_at' => 'datetime',
         'churn_date' => 'datetime',
         'win_back_eligible_at' => 'datetime',
         'last_win_back_at' => 'datetime',

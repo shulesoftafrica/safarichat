@@ -24,19 +24,15 @@ class StoreProductRequest extends FormRequest
      */
     public function rules()
     {
-        return [
+        $rules = [
             'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:100|unique:products,sku',
             'category' => 'required|string|max:100',
             'description' => 'required_without:minimal_description|string|max:2000',
-            //'minimal_description' => 'required_without:description|string|max:500',
-            'retail_price' => 'required|numeric|min:0|max:999999.99',
-            'wholesale_price' => 'required|numeric|min:0|max:999999.99|lte:retail_price',
-            'max_discount' => 'required|integer|min:0|max:100',
+            'product_type' => 'required|in:tangible,service',
+            'max_discount' => 'nullable|integer|min:0|max:100',
             'quantity' => 'nullable|integer|min:0',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
-            'status' => 'required|in:active,inactive,draft',
             'ai_generated_description' => 'boolean',
             'faq_questions' => 'nullable|array',
             'faq_questions.*' => 'string|max:500',
@@ -45,6 +41,39 @@ class StoreProductRequest extends FormRequest
             'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             'product_attachment' => 'nullable|mimes:pdf|max:10240' // 10MB max
         ];
+
+        // Check if this is a tangible product or service
+        $productType = $this->input('product_type');
+        
+        if ($productType === 'tangible') {
+            // For tangible products, these fields are required
+            $rules['sku'] = 'required|string|max:100|unique:products,sku';
+            $rules['retail_price'] = 'required|numeric|min:0|max:999999.99';
+            $rules['wholesale_price'] = 'required|numeric|min:0|max:999999.99|lte:retail_price';
+            $rules['status'] = 'required|in:active,inactive,draft';
+        } else {
+            // For services, these fields are optional
+            $rules['sku'] = 'nullable|string|max:100|unique:products,sku';
+            $rules['retail_price'] = 'nullable|numeric|min:0|max:999999.99';
+            $rules['wholesale_price'] = 'nullable|numeric|min:0|max:999999.99|lte:retail_price';
+            $rules['status'] = 'nullable|in:active,inactive,draft';
+            
+            // Service-specific validations
+            $rules['service_delivery_type'] = 'required|in:digital,physical,hybrid,consultation';
+            $rules['pricing_type'] = 'required|in:one_time,monthly,yearly,per_hour,per_project,tiered';
+            
+            // Tiered pricing validation
+            if ($this->input('pricing_type') === 'tiered') {
+                $rules['tier_names'] = 'required|array|min:1';
+                $rules['tier_names.*'] = 'required|string|max:100';
+                $rules['tier_prices'] = 'required|array|min:1';
+                $rules['tier_prices.*'] = 'required|numeric|min:0';
+                $rules['tier_descriptions'] = 'nullable|array';
+                $rules['tier_descriptions.*'] = 'nullable|string|max:255';
+            }
+        }
+        
+        return $rules;
     }
 
     /**
@@ -55,20 +84,30 @@ class StoreProductRequest extends FormRequest
     public function messages()
     {
         return [
-            'name.required' => 'Product name is required.',
-            'sku.required' => 'SKU is required.',
+            'name.required' => 'Product/Service name is required.',
+            'product_type.required' => 'Product type is required.',
+            'product_type.in' => 'Product type must be tangible or service.',
+            'sku.required' => 'SKU is required for tangible products.',
             'sku.unique' => 'This SKU is already in use.',
             'category.required' => 'Category is required.',
             'description.required_without' => 'Description is required when not using AI generation.',
             'minimal_description.required_without' => 'Minimal description is required for AI generation.',
-            'retail_price.required' => 'Retail price is required.',
+            'retail_price.required' => 'Retail price is required for tangible products.',
             'retail_price.numeric' => 'Retail price must be a valid number.',
-            'wholesale_price.required' => 'Wholesale price is required.',
+            'wholesale_price.required' => 'Wholesale price is required for tangible products.',
             'wholesale_price.lte' => 'Wholesale price must not exceed retail price.',
-            'max_discount.required' => 'Maximum discount is required.',
             'max_discount.max' => 'Maximum discount cannot exceed 100%.',
-            'status.required' => 'Status is required.',
+            'status.required' => 'Status is required for tangible products.',
             'status.in' => 'Status must be active, inactive, or draft.',
+            'service_delivery_type.required' => 'Service delivery type is required for services.',
+            'service_delivery_type.in' => 'Service delivery type must be digital, physical, hybrid, or consultation.',
+            'pricing_type.required' => 'Pricing type is required for services.',
+            'pricing_type.in' => 'Pricing type must be one_time, monthly, yearly, per_hour, per_project, or tiered.',
+            'tier_names.required' => 'At least one tier name is required for tiered pricing.',
+            'tier_names.*.required' => 'Tier name is required.',
+            'tier_prices.required' => 'At least one tier price is required for tiered pricing.',
+            'tier_prices.*.required' => 'Tier price is required.',
+            'tier_prices.*.numeric' => 'Tier price must be a valid number.',
             'product_image.image' => 'Product image must be a valid image file.',
             'product_image.mimes' => 'Product image must be jpeg, png, jpg, or gif.',
             'product_image.max' => 'Product image size cannot exceed 5MB.',

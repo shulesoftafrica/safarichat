@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\AiSalesAgent;
+use App\Models\UserType;
 
 class Service extends Controller {
 
@@ -18,11 +20,27 @@ class Service extends Controller {
      */
     public function index() {
         $this->data['suppliers'] = [];
+        // Load products with relationships
+        $this->data['products'] = Product::with('faqs')->orderBy('created_at', 'desc')->get();
         return view('service.index', $this->data);
     }
 
     public function jd(){
          $this->data['suppliers'] = [];
+         // Get existing AI agent for the current user
+         $existingAgent = \App\Models\AiSalesAgent::where('user_id', auth()->id())->latest()->first();
+         $this->data['existingAgent'] = $existingAgent;
+         // Get user types for the form
+         $this->data['userTypes'] = \App\Models\UserType::active()->orderBy('name')->get();
+         
+         // Debug logging
+         \Log::info('JD Page Loading', [
+             'user_id' => auth()->id(),
+             'existing_agent_id' => $existingAgent ? $existingAgent->id : null,
+             'existing_agent_user_id' => $existingAgent ? $existingAgent->user_id : null,
+             'user_authenticated' => auth()->check()
+         ]);
+         
         return view('service.job-description', $this->data); 
     }
 
@@ -45,7 +63,11 @@ class Service extends Controller {
                 return view('service.products', compact('products'));
                 
             case 'job-description':
-                return view('service.job-description');
+                // Get existing AI agent for the current user
+                $existingAgent = \App\Models\AiSalesAgent::where('user_id', auth()->id())->latest()->first();
+                // Get user types for the form
+                $userTypes = \App\Models\UserType::active()->orderBy('name')->get();
+                return view('service.job-description', compact('existingAgent', 'userTypes'));
                 
             default:
                 return response()->json(['error' => 'Tab content not found'], 404);

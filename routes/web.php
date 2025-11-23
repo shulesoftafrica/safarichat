@@ -40,7 +40,7 @@ Route::post('/resetpassword/resetP','Api@resetP');
 //Auth::routes();
 Auth::routes(['verify' => true]);
 
-Route::resource('bookings', \App\Http\Controllers\Booking::class);
+
 
 Route::get('/message/channel', [App\Http\Controllers\Message::class, 'channel'])->name('message.channel');
 Route::post('/messages/buy', [App\Http\Controllers\Message::class, 'buy'])->name('messages.buy');
@@ -49,6 +49,7 @@ Route::any('/support', [App\Http\Controllers\Home::class, 'support'])->name('sup
 
 // Service routes
 Route::get('/service', [App\Http\Controllers\Service::class, 'index'])->name('service.index')->middleware('auth');
+Route::get('/service/jd', [App\Http\Controllers\Service::class, 'jd'])->name('service.jd')->middleware('auth');
 Route::get('/service/tab-content', [App\Http\Controllers\Service::class, 'getTabContent'])->name('service.tab-content');
 
 // Contact Management Routes
@@ -122,49 +123,27 @@ Route::get('/whatsapp/status', function() {
 Route::get('/whatsapp/incoming-messages', [App\Http\Controllers\Guest::class, 'incomingMessages'])
     ->middleware('auth')->name('whatsapp.incoming-messages');
 
-// Official WhatsApp Business API Integration Routes
-Route::middleware('auth')->prefix('whatsapp/official')->name('whatsapp.official.')->group(function () {
-    Route::get('/integration-options', [App\Http\Controllers\OfficialWhatsAppController::class, 'showIntegrationOptions'])
-        ->name('integration-options');
-    Route::post('/initialize', [App\Http\Controllers\OfficialWhatsAppController::class, 'initializeOnboarding'])
-        ->name('initialize');
-    Route::get('/callback', [App\Http\Controllers\OfficialWhatsAppController::class, 'handleEmbeddedSignupCallback'])
-        ->name('callback');
-    Route::get('/status', [App\Http\Controllers\OfficialWhatsAppController::class, 'getOnboardingStatus'])
-        ->name('status');
-    Route::post('/disconnect', [App\Http\Controllers\OfficialWhatsAppController::class, 'disconnect'])
+// WA Sender QR Code Integration
+Route::get('/wasender', [App\Http\Controllers\WaSenderController::class, 'index'])
+    ->middleware('auth')->name('wasender.index');
+
+# WA Sender AJAX endpoints for web interface
+Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function () {
+    Route::post('/create-session', [App\Http\Controllers\WaSenderController::class, 'createSession'])
+        ->name('create-session');
+    Route::get('/session-status/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'checkSessionStatus'])
+        ->name('session-status');
+    Route::post('/verify-code', [App\Http\Controllers\WaSenderController::class, 'verifyPhoneCode'])
+        ->name('verify-code');
+    Route::get('/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances'])
+        ->name('user-instances');
+    Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance'])
         ->name('disconnect');
-    Route::post('/test-connection', [App\Http\Controllers\OfficialWhatsAppController::class, 'testConnection'])
-        ->name('test-connection');
-    Route::get('/embedded-signup', [App\Http\Controllers\OfficialWhatsAppController::class, 'showEmbeddedSignup'])
-        ->name('embedded-signup');
-    Route::get('/phase2-test', function() {
-        return view('whatsapp.phase2-test');
-    })->name('phase2-test');
 });
 
-// WhatsApp Webhook Routes (Public - no auth required)
-Route::prefix('api/whatsapp')->name('api.whatsapp.')->group(function () {
-    Route::get('/webhook', [App\Http\Controllers\WhatsAppWebhookController::class, 'verify'])
-        ->name('webhook.verify');
-    Route::post('/webhook', [App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
-        ->name('webhook.handle');
-});
 
-// WhatsApp Integration Status Pages
-Route::get('/whatsapp/integration-success', function() {
-    return view('whatsapp.integration-success');
-})->middleware('auth')->name('whatsapp.integration-success');
 
-Route::get('/whatsapp/integration-error', function() {
-    return view('whatsapp.integration-error');
-})->middleware('auth')->name('whatsapp.integration-error');
 
-// Phase 1 Testing Page (Development)
-Route::get('/whatsapp/phase1-test', function() {
-    return view('whatsapp.phase1-test');
-})->middleware('auth')->name('whatsapp.phase1-test');
 
-// Backward compatibility for existing WhatsApp routes
-Route::get('/whatsapp/integration-options', [App\Http\Controllers\OfficialWhatsAppController::class, 'showIntegrationOptions'])
-    ->middleware('auth')->name('whatsapp.integration-options');
+
+

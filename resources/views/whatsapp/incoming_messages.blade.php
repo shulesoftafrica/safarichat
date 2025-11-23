@@ -197,7 +197,7 @@ $(document).ready(function() {
         }
     });
     
-    // Process messages from WAAPI
+    // Process messages from WaSender
     $('#processMessages').click(function() {
         if (!currentInstanceId) {
             alert('Please select a WhatsApp instance first');
@@ -207,7 +207,7 @@ $(document).ready(function() {
         const btn = $(this);
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
 
-        $.post(`{{url('api/waapi/process-messages/${currentInstanceId}')}}`)
+        $.post(`{{url('api/WaSender/process-messages/${currentInstanceId}')}}`)
             .done(function(response) {
                 if (response.status=='success') {
                     alert(`Successfully processed  messages`);
@@ -273,7 +273,7 @@ $(document).ready(function() {
             date: $('#dateFilter').val()
         };
         
-        $.get(`{{url('/api/waapi/incoming-messages/${currentInstanceId}')}}`, params)
+        $.get(`{{url('/api/WaSender/incoming-messages/${currentInstanceId}')}}`, params)
             .done(function(response) {
                 if (response.success) {
                     displayMessages(response.messages);
@@ -432,7 +432,7 @@ $(document).ready(function() {
     }
     
     function markAsProcessed(messageId) {
-        $.post(`{{url('/api/waapi/mark-processed/${messageId}')}}`, {
+        $.post(`{{url('/api/WaSender/mark-processed/${messageId}')}}`, {
             _token: $('meta[name="csrf-token"]').attr('content')
         })
         .done(function(response) {

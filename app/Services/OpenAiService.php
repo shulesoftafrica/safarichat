@@ -70,6 +70,165 @@ class OpenAiService
         }
     }
 
+    // === NEW RAG METHODS ===
+
+    /**
+     * Generate embedding vector for text
+     */
+    public function generateEmbedding(string $text): array
+    {
+        try {
+            $response = $this->client->embeddings()->create([
+                'model' => 'text-embedding-3-small',
+                'input' => trim($text),
+                'encoding_format' => 'float'
+            ]);
+            
+            return $response->embeddings[0]->embedding;
+        } catch (\Exception $e) {
+            Log::error('OpenAI Embedding Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Generate summary for document chunk
+     */
+    public function generateChunkSummary(string $content, string $productName): string
+    {
+        try {
+            $prompt = "Summarize this product documentation chunk for '{$productName}' in 1-2 sentences, focusing on key information for sales conversations:\n\n{$content}";
+            
+            $response = $this->client->chat()->create([
+                'model' => 'gpt-4o-mini', // Cheaper model for summaries
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are an expert at summarizing product documentation for sales teams. Focus on actionable information that helps answer customer questions.'],
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'max_tokens' => 150,
+                'temperature' => 0.3
+            ]);
+            
+            return $response->choices[0]->message->content;
+        } catch (\Exception $e) {
+            Log::warning('Chunk summary generation failed: ' . $e->getMessage());
+            return "Key information about {$productName} from documentation.";
+        }
+    }
+
+    /**
+     * Generate sales response with RAG enhancement
+     */
+    public function generateSalesResponseWithRAG(
+        string $customerMessage,
+        \App\Models\AiSalesAgent $agent,
+        \App\Models\Lead $lead,
+        array $conversationHistory = [],
+        ?\App\Models\Product $product = null
+    ): array {
+        try {
+            // Step 1: Search for relevant document content
+            $ragService = app(\App\Services\RagSearchService::class);
+            $productIds = $product ? [$product->id] : $lead->leadProducts()->pluck('product_id')->toArray();
+            $relevantDocs = $ragService->searchDocuments($customerMessage, $productIds, 3);
+            
+            // Step 2: Build enhanced prompt with document context
+            $prompt = $this->buildRAGPrompt($customerMessage, $agent, $lead, $conversationHistory, $product, $relevantDocs);
+            
+            // Step 3: Generate response
+            $response = $this->client->chat()->create([
+                'model' => $this->defaultModel,
+                'messages' => $prompt,
+                'max_tokens' => 1200, // Increased for more detailed responses
+                'temperature' => 0.7,
+                'presence_penalty' => 0.1,
+                'frequency_penalty' => 0.1,
+            ]);
+
+            $aiResponse = $response->choices[0]->message->content;
+            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product);
+
+            return [
+                'success' => true,
+                'response' => $constraints['response'],
+                'actions' => $constraints['actions'],
+                'confidence' => $this->calculateConfidence($response),
+                'tokens_used' => $response->usage->totalTokens,
+                'rag_sources' => $relevantDocs, // Include source documents
+                'rag_used' => count($relevantDocs) > 0
+            ];
+
+        } catch (\Exception $e) {
+            Log::warning('RAG-enhanced response failed, falling back to standard: ' . $e->getMessage());
+            // Fallback to regular response generation
+            return $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product);
+        }
+    }
+
+    /**
+     * Build RAG-enhanced prompt
+     */
+    private function buildRAGPrompt(
+        string $customerMessage,
+        \App\Models\AiSalesAgent $agent,
+        \App\Models\Lead $lead,
+        array $conversationHistory,
+        ?\App\Models\Product $product,
+        array $relevantDocs
+    ): array {
+        $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product);
+        
+        // Enhanced context with RAG documents
+        $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
+        
+        // Add relevant document context
+        if (!empty($relevantDocs)) {
+            $contextPrompt .= "\n\n=== RELEVANT DOCUMENTATION ===\n";
+            $contextPrompt .= "The following information from product documentation may help answer the customer's question:\n\n";
+            
+            foreach ($relevantDocs as $doc) {
+                $contextPrompt .= "**Source:** {$doc['document_title']} ({$doc['document_type']})";
+                if ($doc['section_title']) {
+                    $contextPrompt .= " - {$doc['section_title']}";
+                }
+                if ($doc['page_number']) {
+                    $contextPrompt .= " (Page {$doc['page_number']})";
+                }
+                $contextPrompt .= "\n";
+                $contextPrompt .= "**Content:** " . substr($doc['content'], 0, 800) . "\n";
+                if ($doc['summary']) {
+                    $contextPrompt .= "**Summary:** {$doc['summary']}\n";
+                }
+                $contextPrompt .= "**Relevance Score:** " . round($doc['similarity_score'], 2) . "\n\n";
+            }
+            
+            $contextPrompt .= "INSTRUCTIONS FOR USING DOCUMENTATION:\n";
+            $contextPrompt .= "- Use this documentation to provide accurate, detailed answers\n";
+            $contextPrompt .= "- Reference specific sections when helpful (e.g., 'According to our technical specifications...')\n";
+            $contextPrompt .= "- If the customer needs more detailed information, mention you can provide the full documentation\n";
+            $contextPrompt .= "- Always prioritize accuracy over completeness - if unsure, say so\n";
+            $contextPrompt .= "===============================\n";
+        }
+        
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'assistant', 'content' => $contextPrompt],
+        ];
+
+        // Add conversation history
+        foreach ($conversationHistory as $message) {
+            $messages[] = [
+                'role' => $message['from_customer'] ? 'user' : 'assistant',
+                'content' => $message['content']
+            ];
+        }
+
+        // Add current message
+        $messages[] = ['role' => 'user', 'content' => $customerMessage];
+
+        return $messages;
+    }
+
     /**
      * Build comprehensive prompt with agent configuration
      */
@@ -182,7 +341,7 @@ class OpenAiService
     }
 
     /**
-     * Build context prompt with lead and product information
+     * Build context prompt with lead and product information (enhanced for services and RAG)
      */
     private function buildContextPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product): string
     {
@@ -206,40 +365,76 @@ class OpenAiService
             $context .= "(Low Priority)\n";
         }
 
-        // Product context
+        // Enhanced Product Context
         if ($product) {
-            $context .= "\nFocused Product:\n";
+            $context .= "\nProduct Information:\n";
             $context .= "- {$product->name} (SKU: {$product->sku})\n";
+            $context .= "- Type: " . ($product->isService() ? 'SERVICE' : 'PRODUCT') . "\n";
             $context .= "- Category: {$product->category}\n";
-            $context .= "- Price: \${$product->retail_price}";
             
-            if ($product->wholesale_price && $product->wholesale_price < $product->retail_price) {
-                $context .= " (Wholesale: \${$product->wholesale_price})";
+            // Pricing context - different for services
+            if ($product->isService() && $product->pricing_type) {
+                $context .= "- Pricing: " . ucfirst($product->pricing_type);
+                if ($product->hourly_rate) {
+                    $context .= " (\${$product->hourly_rate}/hour)";
+                } else {
+                    $context .= " (\${$product->retail_price})";
+                }
+                $context .= "\n";
+            } else {
+                $context .= "- Price: \${$product->retail_price}";
+                if ($product->wholesale_price && $product->wholesale_price < $product->retail_price) {
+                    $context .= " (Wholesale: \${$product->wholesale_price})";
+                }
+                $context .= "\n";
             }
             
             if ($product->max_discount > 0) {
-                $context .= "\n- Maximum discount: {$product->max_discount}%";
+                $context .= "- Maximum discount: {$product->max_discount}%\n";
             }
             
-            if ($product->quantity !== null) {
-                $context .= "\n- Stock: {$product->quantity} units";
+            // Stock only for tangible products
+            if ($product->isTangible() && $product->tracksInventory()) {
+                $context .= "- Stock: {$product->quantity} units";
                 if ($product->isLowStock()) {
                     $context .= " (LOW STOCK - Handle carefully)";
                 }
+                $context .= "\n";
+            } elseif ($product->isService()) {
+                $context .= "- Availability: Service available\n";
             }
 
-            $context .= "\n- Description: {$product->description}";
+            $context .= "- Description: {$product->description}\n";
             
             if ($product->ai_description) {
-                $context .= "\n- AI Highlights: {$product->ai_description}";
+                $context .= "- AI Highlights: {$product->ai_description}\n";
             }
+            
+            // Service-specific context
+            if ($product->isService()) {
+                $serviceContext = $product->getAiServiceContext();
+                if ($serviceContext) {
+                    $context .= "\n" . $serviceContext;
+                }
+            }
+            
+            // Available attachments for sharing
+            $publicAttachments = $product->attachments()->where('is_public', true)->processed()->get();
+            if ($publicAttachments->count() > 0) {
+                $context .= "\nAvailable Resources to Share:\n";
+                foreach ($publicAttachments as $attachment) {
+                    $context .= "- {$attachment->title} ({$attachment->attachment_type})\n";
+                }
+                $context .= "Note: You can reference these documents or offer to share them with the customer.\n";
+            }
+            
         } else {
             // Show lead's interested products
             $interestedProducts = $lead->leadProducts()->with('product')->get();
             if ($interestedProducts->count() > 0) {
                 $context .= "\nCustomer's Product Interest:\n";
                 foreach ($interestedProducts as $leadProduct) {
-                    $context .= "- {$leadProduct->product->name}: {$leadProduct->status}";
+                    $context .= "- {$leadProduct->product->name} ({$leadProduct->product->product_type}): {$leadProduct->status}";
                     if ($leadProduct->negotiated_price) {
                         $context .= " (Negotiated: \${$leadProduct->negotiated_price})";
                     }
@@ -248,21 +443,24 @@ class OpenAiService
             }
         }
 
-        // Recent interactions
+        // Recent interactions summary
         $recentConversations = $lead->conversations()
             ->latest()
             ->limit(3)
             ->get();
-        
+            
         if ($recentConversations->count() > 0) {
-            $context .= "\nRecent Interaction Summary:\n";
-            foreach ($recentConversations as $conv) {
-                $context .= "- " . \Carbon\Carbon::parse($conv->created_at)->diffForHumans() . 
-                           ": {$conv->summary} (Sentiment: {$conv->sentiment})\n";
+            $context .= "\nRecent Conversation Summary:\n";
+            foreach ($recentConversations as $conversation) {
+                $context .= "- " . substr($conversation->ai_response, 0, 100) . "...\n";
             }
         }
 
         return $context;
+    }
+
+    /**
+     * Build detailed system prompt (existing method continues...)
     }
 
     /**

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Test - File Method</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+        .qr-display { text-align: center; margin: 20px 0; }
+        .qr-display img { border: 2px solid #25D366; border-radius: 10px; max-width: 300px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>QR Code Generation Test - File Method</h1>
+    
+    <div class="test-section">
+        <h2>Test External QR Service</h2>
+        <p>This tests the external QR service directly:</p>
+        
+        <div class="qr-display">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&format=png&data=Test%20External%20QR" 
+                 alt="External QR Test" 
+                 onload="showStatus('external-status', 'External QR service is working!', 'success')"
+                 onerror="showStatus('external-status', 'External QR service failed!', 'error')">
+        </div>
+        
+        <div id="external-status" class="status" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Laravel Generated QR</h2>
+        <p>Enter a phone number to test the Laravel QR generation:</p>
+        
+        <form id="test-form">
+            <input type="tel" id="test-phone" placeholder="+255712345678" value="+255712345678" style="padding: 10px; width: 200px;">
+            <button type="submit" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 5px;">Generate Test QR</button>
+        </form>
+        
+        <div id="laravel-qr-display" class="qr-display" style="display:none;">
+            <img id="laravel-qr-image" src="" alt="Laravel Generated QR">
+        </div>
+        
+        <div id="laravel-status" class="status" style="display:none;"></div>
+        
+        <div id="debug-info" style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; display: none;"></div>
+    </div>
+
+    <script>
+        function showStatus(id, message, type) {
+            const statusDiv = document.getElementById(id);
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+        
+        document.getElementById('test-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('test-phone').value;
+            const debugDiv = document.getElementById('debug-info');
+            
+            if (!phone) {
+                showStatus('laravel-status', 'Please enter a phone number', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('laravel-status', 'Generating QR code...', 'success');
+                debugDiv.style.display = 'block';
+                debugDiv.innerHTML = 'Sending request to Laravel...';
+                
+                const response = await fetch('/wasender/create-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}' // This won't work in static HTML, but shows the idea
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        auth_method: 'qr'
+                    })
+                });
+                
+                const data = await response.json();
+                debugDiv.innerHTML = 'Response: ' + JSON.stringify(data, null, 2);
+                
+                if (data.success && data.qr_code) {
+                    document.getElementById('laravel-qr-display').style.display = 'block';
+                    
+                    const qrImage = document.getElementById('laravel-qr-image');
+                    qrImage.onload = function() {
+                        showStatus('laravel-status', 'QR code generated and loaded successfully!', 'success');
+                    };
+                    qrImage.onerror = function() {
+                        showStatus('laravel-status', 'QR code generated but failed to load image', 'error');
+                    };
+                    
+                    // Add cache buster
+                    qrImage.src = data.qr_code + '?t=' + Date.now();
+                } else {
+                    showStatus('laravel-status', 'Failed to generate QR: ' + (data.message || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                showStatus('laravel-status', 'Request failed: ' + error.message, 'error');
+                debugDiv.innerHTML = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

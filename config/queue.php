@@ -49,7 +49,17 @@ return [
             'driver' => 'redis',
             'connection' => 'default',
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => 300,
+            'retry_after' => 90,
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+        
+        // Dedicated RAG processing queue
+        'rag_redis' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => 'rag_processing',
+            'retry_after' => 600, // 10 minutes
             'block_for' => null,
             'after_commit' => false,
         ],

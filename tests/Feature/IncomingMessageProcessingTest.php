@@ -37,7 +37,7 @@ class IncomingMessageProcessingTest extends TestCase
 
     public function test_webhook_can_process_incoming_message()
     {
-        // Simulate a webhook payload from WAAPI
+        // Simulate a webhook payload from wasender
         $webhookPayload = [
             'event' => 'message',
             'data' => [
@@ -52,7 +52,7 @@ class IncomingMessageProcessingTest extends TestCase
         ];
 
         // Make a POST request to the webhook endpoint
-        $response = $this->postJson("/api/waapi/webhook/{$this->whatsappInstance->instance_id}", $webhookPayload);
+        $response = $this->postJson("/api/wasender/webhook/{$this->whatsappInstance->instance_id}", $webhookPayload);
 
         // Assert the response is successful
         $response->assertStatus(200);
@@ -74,10 +74,10 @@ class IncomingMessageProcessingTest extends TestCase
         ]);
     }
 
-    public function test_process_incoming_messages_from_waapi()
+    public function test_process_incoming_messages_from_wasender()
     {
         // Make a request to process incoming messages
-        $response = $this->postJson("/api/waapi/process-messages/{$this->whatsappInstance->instance_id}");
+        $response = $this->postJson("/api/wasender/process-messages/{$this->whatsappInstance->instance_id}");
 
         // Assert the response is successful
         $response->assertStatus(200);
@@ -104,7 +104,7 @@ class IncomingMessageProcessingTest extends TestCase
         ]);
 
         // Make a request to get incoming messages
-        $response = $this->getJson("/api/waapi/incoming-messages/{$this->whatsappInstance->instance_id}");
+        $response = $this->getJson("/api/wasender/incoming-messages/{$this->whatsappInstance->instance_id}");
 
         // Assert the response is successful and contains the message
         $response->assertStatus(200);
@@ -131,7 +131,7 @@ class IncomingMessageProcessingTest extends TestCase
         ]);
 
         // Mark the message as processed
-        $response = $this->postJson("/api/waapi/mark-processed/{$incomingMessage->id}");
+        $response = $this->postJson("/api/wasender/mark-processed/{$incomingMessage->id}");
 
         // Assert the response is successful
         $response->assertStatus(200);

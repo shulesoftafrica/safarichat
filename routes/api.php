@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Api\ContactApiController;
 
 /*
   |--------------------------------------------------------------------------
@@ -19,27 +20,20 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Official WhatsApp Business API Routes
-Route::middleware('auth:api')->prefix('whatsapp/official')->name('api.whatsapp.official.')->group(function () {
-    Route::post('/send/text', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendText'])
-        ->name('send.text');
-    Route::post('/send/template', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendTemplate'])
-        ->name('send.template');
-    Route::post('/send/image', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendImage'])
-        ->name('send.image');
-    Route::post('/send/buttons', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendButtons'])
-        ->name('send.buttons');
-    Route::post('/send/list', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendList'])
-        ->name('send.list');
-    Route::post('/send/immediate', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'sendImmediate'])
-        ->name('send.immediate');
-    Route::get('/stats', [App\Http\Controllers\Api\OfficialWhatsAppApiController::class, 'getStats'])
-        ->name('stats');
+// Contact Management API Routes
+Route::middleware('auth:sanctum')->prefix('contacts')->name('api.contacts.')->group(function () {
+    // Single contact operations
+    Route::post('/', [ContactApiController::class, 'store'])->name('store');
+    Route::get('/', [ContactApiController::class, 'index'])->name('index');
+    
+    // Bulk operations
+    Route::post('/bulk', [ContactApiController::class, 'bulkStore'])->name('bulk.store');
+    
+    // Contact status update
+    Route::put('/{contact}/status', [ContactApiController::class, 'updateContactStatus'])->name('status.update');
 });
 
-// WhatsApp Webhook (no auth required for Meta to send webhooks)
-Route::any('/whatsapp/webhook', [App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
-    ->name('whatsapp.webhook');
+
 
 // Product Management API Routes
 Route::post('products', [ProductController::class, 'store']);
@@ -50,33 +44,82 @@ Route::put('products/{id}', [ProductController::class, 'update']);
 Route::delete('products/{id}', [ProductController::class, 'destroy']);
 Route::post('products/bulk-action', [ProductController::class, 'bulkAction']);
 
+// RAG Document Management API Routes
+Route::prefix('products/{product}')->group(function () {
+    Route::post('/attachments', [App\Http\Controllers\Api\ProductAttachmentController::class, 'store']);
+    Route::get('/attachments', [App\Http\Controllers\Api\ProductAttachmentController::class, 'index']);
+    Route::get('/attachments/{attachment}', [App\Http\Controllers\Api\ProductAttachmentController::class, 'show']);
+    Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\ProductAttachmentController::class, 'destroy']);
+    Route::post('/attachments/{attachment}/reprocess', [App\Http\Controllers\Api\ProductAttachmentController::class, 'reprocessRAG']);
+});
+
+// RAG Search API Routes
+Route::prefix('documents')->group(function () {
+    Route::post('/search', [App\Http\Controllers\Api\ProductAttachmentController::class, 'searchDocuments']);
+    Route::get('/processing-status', [App\Http\Controllers\Api\ProductAttachmentController::class, 'getProcessingStatus']);
+});
+
 Route::post('/whatsapp', 'Api@whatsapp');
 Route::any('/message','Api@pushEmailsToSend');
 Route::any('/sms/{code}/{imei?}/{model?}', 'Api@pushPhoneSMS');
 Route::any('/validate/{null}/{imei?}/{model?}/{param1?}/{id?}/{param3?}/{param4?}','Api@aunthenticateMobile');
 Route::any('/updatestatus/{code?}/{sms_id?}/{imei?}{device?}','Api@updatestatus');
 Route::any('/smsreport/{code?}/{imei?}/{model?}', 'Api@smsReport');
+// WaSender testing and management routes
+Route::get('/wasender/test-connection', 'WaSenderController@testConnection');
+Route::get('/wasender/user-instances', 'WaSenderController@getUserInstances');
+Route::post('/wasender/send-test-message', 'WaSenderController@sendTestMessage');
+
+// Queue testing routes
+Route::post('/wasender/test-queue-message', 'WaSenderController@testQueueMessage');
+Route::post('/wasender/test-incoming-message', 'WaSenderController@testIncomingMessage');
+Route::get('/wasender/queue-stats', 'WaSenderController@getQueueStats');
+Route::post('/wasender/clear-failed-jobs', 'WaSenderController@clearFailedJobs');
+Route::post('/wasender/retry-failed-jobs', 'WaSenderController@retryFailedJobs');
+
+// WaSender Incoming Message Processing
+Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook');
+
+// WaSender API endpoints for sending messages
+Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {
+    // Text messages
+    Route::post('/send/text', [App\Http\Controllers\Api\WaSenderApiController::class, 'sendTextMessage']);
+    Route::post('/queue/text', [App\Http\Controllers\Api\WaSenderApiController::class, 'queueTextMessage']);
+    
+    // Media messages
+    Route::post('/send/image', [App\Http\Controllers\Api\WaSenderApiController::class, 'sendImage']);
+    Route::post('/send/document', [App\Http\Controllers\Api\WaSenderApiController::class, 'sendDocument']);
+    Route::post('/queue/media', [App\Http\Controllers\Api\WaSenderApiController::class, 'queueMediaMessage']);
+    
+    // Location
+    Route::post('/send/location', [App\Http\Controllers\Api\WaSenderApiController::class, 'sendLocation']);
+    
+    // Instance management
+    Route::get('/instances', [App\Http\Controllers\Api\WaSenderApiController::class, 'getUserInstances']);
+    Route::get('/instances/{instanceId}/status', [App\Http\Controllers\Api\WaSenderApiController::class, 'checkInstanceStatus']);
+});
+
 Route::post('/payment','Api@apiAcceptPayment');
 Route::post('/save-whatsapp-instance', 'Api@saveWhatsappInstance');
 Route::post('/update-instance-status', 'Api@updateInstanceStatus');
 Route::get('/user-whatsapp-instances', 'Api@getUserWhatsappInstances');
 Route::delete('/delete-whatsapp-instance', 'Api@deleteWhatsappInstance');
 
-// WAAPI testing and management routes
-Route::get('/waapi/test-connection', 'WaapiController@testConnection');
-Route::get('/waapi/user-instances', 'WaapiController@getUserInstances');
-Route::post('/waapi/send-test-message', 'WaapiController@sendTestMessage');
 
-// Queue testing routes
-Route::post('/waapi/test-queue-message', 'WaapiController@testQueueMessage');
-Route::post('/waapi/test-incoming-message', 'WaapiController@testIncomingMessage');
-Route::get('/waapi/queue-stats', 'WaapiController@getQueueStats');
-Route::post('/waapi/clear-failed-jobs', 'WaapiController@clearFailedJobs');
-Route::post('/waapi/retry-failed-jobs', 'WaapiController@retryFailedJobs');
-
-// WAAPI Incoming Message Processing
-Route::post('/waapi/webhook/{instanceId}', 'Api@handleWebhookEvent');
-Route::post('/waapi/process-messages/{instanceId}', 'Api@processIncomingMessages');
-Route::get('/waapi/incoming-messages/{instanceId}', 'Api@getIncomingMessages');
-Route::post('/waapi/mark-processed/{messageId}', 'Api@markMessageAsProcessed');
 Route::any('/background', [App\Http\Controllers\Payment::class, 'processPayment']);
+
+// WA Sender - QR Code Session Management (API with auth)
+Route::middleware('auth:api')->prefix('whatsapp')->group(function () {
+    Route::post('/create-session', [App\Http\Controllers\WaSenderController::class, 'createSession']);
+    Route::get('/session-status/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'checkSessionStatus']);
+    Route::get('/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances']);
+    Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance']);
+});
+
+// WA Sender - Web authenticated routes (for frontend use)
+Route::middleware('auth:web')->prefix('whatsapp')->group(function () {
+    Route::post('/web/create-session', [App\Http\Controllers\WaSenderController::class, 'createSession']);
+    Route::get('/web/session-status/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'checkSessionStatus']);
+    Route::get('/web/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances']);
+    Route::post('/web/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance']);
+});

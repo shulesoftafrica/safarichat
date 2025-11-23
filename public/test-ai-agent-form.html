@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Form Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>AI Agent Form Test Suite</h1>
+    <div id="test-results"></div>
+    
+    <h2>Manual Tests</h2>
+    <p>Click the button below to open the AI Agent creation form in a new tab:</p>
+    <button onclick="openFormInNewTab()">Open AI Agent Form</button>
+    
+    <h2>Test Instructions</h2>
+    <div class="info test-result">
+        <strong>Expected 4-Step Structure:</strong>
+        <ol>
+            <li><strong>Step 1: Assistant Information</strong>
+                <ul>
+                    <li>Assistant Name (required)</li>
+                    <li>Target Audience dropdown (required)</li>
+                    <li>Communication Tone dropdown (required)</li>
+                </ul>
+            </li>
+            <li><strong>Step 2: Working Hours & Language</strong>
+                <ul>
+                    <li>24/7 availability toggle</li>
+                    <li>Primary Language dropdown</li>
+                </ul>
+            </li>
+            <li><strong>Step 3: Negotiation & Fallback</strong>
+                <ul>
+                    <li>Allow negotiation toggle</li>
+                    <li>Max discount % (if negotiation enabled)</li>
+                    <li>Fallback number (required)</li>
+                </ul>
+            </li>
+            <li><strong>Step 4: Terms & Review</strong>
+                <ul>
+                    <li>Configuration summary</li>
+                    <li>Terms acceptance checkbox</li>
+                    <li>Submit button</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <h2>What to Test</h2>
+    <div class="info test-result">
+        <ul>
+            <li>✅ Form should have exactly 4 steps</li>
+            <li>✅ No multiple language selection should be visible</li>
+            <li>✅ No industry focus checkboxes should be visible</li>
+            <li>✅ No AI personality description field should be visible</li>
+            <li>✅ Communication tone should be in Step 1</li>
+            <li>✅ Navigation between steps should work smoothly</li>
+            <li>✅ Form validation should work without console errors</li>
+            <li>✅ Step 4 summary should display correctly</li>
+            <li>✅ Form submission should work</li>
+        </ul>
+    </div>
+
+    <script>
+        function openFormInNewTab() {
+            window.open('http://127.0.0.1:8000/ai-agents/create', '_blank');
+        }
+        
+        function runAutomatedTests() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<h3>Automated Test Results</h3>';
+            
+            // Test 1: Check if server is running
+            fetch('http://127.0.0.1:8000/ai-agents/create')
+                .then(response => {
+                    if (response.ok) {
+                        addTestResult('✅ Server is running and AI agent form is accessible', 'success');
+                    } else {
+                        addTestResult('❌ Server error: ' + response.status, 'error');
+                    }
+                })
+                .catch(error => {
+                    addTestResult('❌ Cannot connect to server: ' + error.message, 'error');
+                });
+        }
+        
+        function addTestResult(message, type) {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        // Run tests when page loads
+        window.onload = function() {
+            runAutomatedTests();
+        };
+    </script>
+</body>
+</html>

@@ -102,42 +102,22 @@ class User extends Authenticatable implements MustVerifyEmail{
             ->value('message_left') ?? 0;
     }
 
-    /** 
-     * @return messageinstances for this user
-     */
-    public function messageInstances() {
-        return $this->hasMany('App\Models\MessageInstance');
-    }
-
     /**
      * Get the user's WhatsApp instance
-     * @return \App\Models\MessageInstance|null
+     * @return \App\Models\WhatsappInstance|null
      */
     public function whatsappInstance() {
-        // First check new WhatsappInstance model
-        $newInstance = \App\Models\WhatsappInstance::where('user_id', $this->id)
+        // Get ready instance first
+        $readyInstance = \App\Models\WhatsappInstance::where('user_id', $this->id)
             ->where('connect_status', 'ready')
             ->first();
             
-        if ($newInstance) {
-            return $newInstance;
+        if ($readyInstance) {
+            return $readyInstance;
         }
         
-        // Get most recent new instance
-        $newInstance = \App\Models\WhatsappInstance::where('user_id', $this->id)
-            ->orderBy('created_at', 'desc')
-            ->first();
-            
-        if ($newInstance) {
-            return $newInstance;
-        }
-        
-        // Fallback to old MessageInstance model
-        return $this->messageInstances()
-            ->where('type', 'whatsapp')
-            ->where('connect_status', 'ready')
-            ->first() ?: $this->messageInstances()
-            ->where('type', 'whatsapp')
+        // Get most recent instance
+        return \App\Models\WhatsappInstance::where('user_id', $this->id)
             ->orderBy('created_at', 'desc')
             ->first();
     }

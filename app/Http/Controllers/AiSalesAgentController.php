@@ -45,13 +45,24 @@ class AiSalesAgentController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if user already has an AI sales agent (only one allowed per user)
+        $existingAgent = AiSalesAgent::forUser(Auth::id())->first();
+        if ($existingAgent) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have an AI Sales Agent configured. Please edit the existing one instead of creating a new one.',
+                'errors' => ['general' => ['Only one AI Sales Agent is allowed per user.']]
+            ], 422);
+        }
+        
         $validatedData = $this->validateAgentData($request);
         
         try {
             DB::beginTransaction();
             
-            // Add user ID and terms acceptance timestamp
+            // Add user ID, status and terms acceptance timestamp
             $validatedData['user_id'] = Auth::id();
+            $validatedData['status'] = 'active'; // Set default status
             $validatedData['terms_accepted_at'] = now();
             
             // Create the AI sales agent
@@ -81,12 +92,36 @@ class AiSalesAgentController extends Controller
     /**
      * Update an existing AI sales agent configuration
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $aiSalesAgent)
     {
-        $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($id);
-        $validatedData = $this->validateAgentData($request);
-        
         try {
+            Log::info('AiSalesAgentController::update - START', [
+                'agent_parameter' => $aiSalesAgent,
+                'agent_type' => gettype($aiSalesAgent),
+                'user_id' => Auth::id(),
+                'request_method' => $request->method(),
+                'request_url' => $request->url(),
+                'full_url' => $request->fullUrl(),
+                'route_name' => $request->route() ? $request->route()->getName() : 'no_route',
+                'route_parameters' => $request->route() ? $request->route()->parameters() : [],
+                'is_ajax' => $request->ajax(),
+                'content_type' => $request->header('Content-Type'),
+                'accept_header' => $request->header('Accept'),
+            ]);
+            
+            // Convert to ID if it's a model instance, otherwise treat as ID
+            $agentId = is_object($aiSalesAgent) ? $aiSalesAgent->id : $aiSalesAgent;
+            
+            Log::info('Agent ID resolved', ['agent_id' => $agentId]);
+            
+            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($agentId);
+            $validatedData = $this->validateAgentData($request);
+            
+            Log::info('Agent found and data validated', [
+                'agent_id' => $agent->id,
+                'agent_name' => $agent->assistant_name
+            ]);
+            
             DB::beginTransaction();
             
             // Update terms acceptance if changed
@@ -98,15 +133,33 @@ class AiSalesAgentController extends Controller
             
             DB::commit();
             
+            Log::info('AI Sales Agent updated successfully', ['agent_id' => $agent->id]);
+            
             return response()->json([
                 'success' => true,
                 'message' => 'AI Sales Agent configuration updated successfully!',
                 'agent_id' => $agent->id
             ]);
             
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning('AI Sales Agent not found', [
+                'agent_param' => $aiSalesAgent,
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'AI Sales Agent not found or you do not have permission to edit it.'
+            ], 404);
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('AI Sales Agent update failed: ' . $e->getMessage());
+            Log::error('AI Sales Agent update failed: ' . $e->getMessage(), [
+                'agent_param' => $aiSalesAgent,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
                 'success' => false,
@@ -119,10 +172,13 @@ class AiSalesAgentController extends Controller
     /**
      * Get AI sales agent configuration
      */
-    public function show($id)
+    public function show($aiSalesAgent)
     {
         try {
-            $agent = AiSalesAgent::forUser(Auth::id())->with('user')->findOrFail($id);
+            // Convert to ID if it's a model instance, otherwise treat as ID
+            $agentId = is_object($aiSalesAgent) ? $aiSalesAgent->id : $aiSalesAgent;
+            
+            $agent = AiSalesAgent::forUser(Auth::id())->with('user')->findOrFail($agentId);
             
             return response()->json([
                 'success' => true,
@@ -163,10 +219,13 @@ class AiSalesAgentController extends Controller
     /**
      * Activate/Deactivate an AI sales agent
      */
-    public function toggleStatus(Request $request, $id)
+    public function toggleStatus(Request $request, $aiSalesAgent)
     {
         try {
-            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($id);
+            // Convert to ID if it's a model instance, otherwise treat as ID
+            $agentId = is_object($aiSalesAgent) ? $aiSalesAgent->id : $aiSalesAgent;
+            
+            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($agentId);
             
             $newStatus = $request->status === 'active' ? 'active' : 'inactive';
             $agent->update(['status' => $newStatus]);
@@ -188,10 +247,13 @@ class AiSalesAgentController extends Controller
     /**
      * Delete an AI sales agent
      */
-    public function destroy($id)
+    public function destroy($aiSalesAgent)
     {
         try {
-            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($id);
+            // Convert to ID if it's a model instance, otherwise treat as ID
+            $agentId = is_object($aiSalesAgent) ? $aiSalesAgent->id : $aiSalesAgent;
+            
+            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($agentId);
             $agentName = $agent->assistant_name;
             
             $agent->delete();
@@ -241,12 +303,9 @@ class AiSalesAgentController extends Controller
             // Basic Information
             'assistant_name' => 'required|string|max:255',
             'target_audience' => 'required|string|in:small-businesses,medium-businesses,enterprises,individuals,mixed',
-            'target_user_types' => 'required|array|min:1',
-            'target_user_types.*' => 'exists:user_types,id',
-            'industries' => 'nullable|array',
-            'industries.*' => 'string|in:retail,hospitality,healthcare,education,finance,technology,other',
+            'target_user_types' => 'nullable|array', // Made nullable
+            'target_user_types.*' => 'nullable|integer', // Changed validation
             'communication_tone' => 'required|string|in:professional,friendly,consultative,direct',
-            'personality_description' => 'nullable|string|max:1000',
             
             // Working Hours
             'always_available' => 'boolean',
@@ -257,12 +316,8 @@ class AiSalesAgentController extends Controller
             'timezone' => 'required|string',
             'out_of_hours_message' => 'nullable|string|max:500',
             
-            // Languages
+            // Languages - Primary only
             'primary_language' => 'required|string|in:en,sw,fr,ar,pt,am',
-            'additional_languages' => 'nullable|array',
-            'additional_languages.*' => 'string|in:sw,fr,ar,pt,am,yo,ig,ha',
-            'auto_detect_language' => 'boolean',
-            'language_fallback_message' => 'nullable|string|max:500',
             
             // Negotiation
             'allow_negotiation' => 'boolean',

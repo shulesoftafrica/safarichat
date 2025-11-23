@@ -9,6 +9,7 @@ use \App\Models\EventsGuest;
 use \App\Models\OutgoingMessage;
 use \App\Jobs\SendWhatsAppMessage;
 use \App\Jobs\ProcessBulkMessages;
+use \App\Services\WaSenderService;
 use Illuminate\Support\Arr;
 use Auth;
 use DB;
@@ -38,8 +39,7 @@ class Message extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->baseUrl = 'https://waapi.app/api/v1/instances/';
-        $this->token = 'j7BiHiAiUsJfuKN3b99rhEUzVEfEuhSICQo5LdNPbc240e88';
+        // WaSender configuration is now handled by the service
     }
 
     /**
@@ -52,14 +52,13 @@ class Message extends Controller
         $this->data[''] = [];
         $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
         $event_id = $user_events->event_id;
-        if (Auth::user()->messageInstances()->where('type', 'whatsapp')->count() == 0) {
+        if (Auth::user()->whatsappInstances()->count() == 0) {
             // Create a new WhatsApp instance for the user
-            \App\Models\MessageInstance::create([
+            \App\Models\WhatsappInstance::create([
                 'user_id' => Auth::id(),
-                'type' => 'whatsapp',
-                'status' => 0,
-                'phone_number' => ltrim(Auth::user()->phone, '+') ,
-                'name' => Auth::user()->name,
+                'status' => 'pending',
+                'phone_number' => ltrim(Auth::user()->phone, '+'),
+                'instance_name' => Auth::user()->name,
             ]);
         }
         $this->data['guest_categories'] = EventGuestCategory::where('event_id', $event_id)->get();
@@ -127,7 +126,7 @@ class Message extends Controller
                         // Send a message to the user informing about SMS allocation
                         $message = "Hello {$user->name}, SMS credits have been allocated to your account. You can now start sending messages using your DikoDiko account.";
                         // Use the send_message method to notify the user via SMS
-                          $this->sendMessage($user->phone, $message, 'whatsapp');
+                          $this->send($message, $user->phone);
                 }
                 }
             }
@@ -138,15 +137,15 @@ class Message extends Controller
     public function channel()
     {
 
-        $this->data['instances'] = Auth::user()->messageInstances()->get();
+        $this->data['instances'] = Auth::user()->whatsappInstances()->get();
        
-        $instance = \App\Models\MessageInstance::where('user_id', Auth::user()->id)->where('type','bulksms')->first();
+        $instance = \App\Models\WhatsappInstance::where('user_id', Auth::user()->id)->first();
         if (empty($instance)) {
               $user = Auth::user();
 
               if($user->bulksms_enabled == 1){
                
-            $instance = \App\Models\MessageInstance::create([
+            $instance = \App\Models\WhatsappInstance::create([
                 'name' => substr(preg_replace('/[^A-Za-z0-9 ]/', '', Auth::user()->name), 0, 11),
                 'user_id' => Auth::id(),
                 'phone_number' => Auth::user()->phone,
@@ -158,7 +157,7 @@ class Message extends Controller
           
             if ($user && !empty($user->phone)) {
                 $waMessage = "Hello {$user->name}, your sender name has been created. To complete registration, please submit your NIDA number and an introduction letter for approval.";
-                $this->sendMessage($user->phone, $waMessage, 'whatsapp');
+                $this->send($waMessage, $user->phone);
             }
         }
         }  
@@ -197,7 +196,7 @@ class Message extends Controller
                     return redirect()->back()->withErrors(['intro_letter' => 'Introduction letter is required.']);
                 }
 
-                \App\Models\MessageInstance::create([
+                \App\Models\WhatsappInstance::create([
                     'name' => $validatedData['sender_name'],
                     'nida' => $validatedData['nida_number'],
                     'file_path' => $filePath,
@@ -223,12 +222,12 @@ class Message extends Controller
             return redirect()->back()->with('error', 'Channel UUID is required.');
         }
 
-        $instance = \App\Models\MessageInstance::where('uuid', $uuid)->first();
+        $instance = \App\Models\WhatsappInstance::where('id', $uuid)->first();
         if (!$instance) {
             return redirect()->back()->with('error', 'Channel not found.');
         }
-        //check if its whatsapp
-        if ($instance->type === 'whatsapp' && !empty($instance->instance_id)) {
+        //check if its whatsapp instance and has instance_id
+        if (!empty($instance->instance_id)) {
             $this->LogoutInstance($instance->instance_id);
         }
         $instance->delete();
@@ -518,9 +517,9 @@ class Message extends Controller
 
         //save message to DB here first
         if (in_array('whatsapp', $request->source)) {
-            $whatsappInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
-                ->where('type', 'whatsapp')
-                ->where('is_paid', 1)
+            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+                ->where('status', 'connected')
+                ->where('connect_status', 'ready')
                 ->first();
             if (!$whatsappInstance) {
                 return redirect()->back()->withErrors(['error' => 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.']);
@@ -622,10 +621,16 @@ class Message extends Controller
     }
 
     /**
-     * Queue messages for processing
+     * Queue messages for processing via WaSender
      */
     private function queueMessages($users, $message, $sources)
     {
+        // Only handle WhatsApp now, ignore other sources
+        if (!in_array('whatsapp', $sources)) {
+            Log::info('No WhatsApp source specified, skipping message queuing');
+            return;
+        }
+
         if (is_array($users)) {
             $userCount = count($users);
         } elseif ($users instanceof \Illuminate\Support\Collection) {
@@ -634,47 +639,49 @@ class Message extends Controller
             $userCount = 0;
         }
         
-        Log::info('Queueing messages for delivery', [
+        Log::info('Queueing WhatsApp messages for delivery via WaSender', [
             'user_id' => Auth::id(),
-            'recipient_count' => $userCount,
-            'sources' => $sources
+            'recipient_count' => $userCount
         ]);
 
-        // If it's a large batch (more than 100), use bulk processing
-        if ($userCount > 100) {
-            foreach ($sources as $source) {
-                ProcessBulkMessages::dispatch(
-                    $users instanceof \Illuminate\Support\Collection ? $users->toArray() : $users,
-                    $message,
-                    Auth::id(),
-                    $source,
-                    50 // Batch size
-                )->delay(now()->addSeconds(5));
-            }
-        } else {
-            // For smaller batches, queue individual messages
-            $delay = 0;
-            foreach ($users as $user) {
-                $user = (object) $user;
-                $phoneNumber = validate_phone_number($user->guest_phone);
+        // Get user's WhatsApp instance
+        $waSenderService = new WaSenderService();
+        $instance = $waSenderService->getUserInstance(Auth::id());
+        
+        if (!$instance) {
+            Log::error('No active WhatsApp instance found for user', ['user_id' => Auth::id()]);
+            return;
+        }
+
+        // Queue individual messages with staggered delays
+        $delay = 0;
+        foreach ($users as $user) {
+            $user = (object) $user;
+            $phoneNumber = validate_phone_number($user->guest_phone);
+            
+            if (is_array($phoneNumber)) {
+                $cleanPhone = $phoneNumber[1];
+                $personalizedMessage = $this->personalizeMessage($message, $user);
                 
-                if (is_array($phoneNumber)) {
-                    $chatId = $phoneNumber[1];
-                    $personalizedMessage = $this->personalizeMessage($message, $user);
-                    
-                    foreach ($sources as $source) {
-                        SendWhatsAppMessage::dispatch(
-                            $personalizedMessage,
-                            $chatId,
-                            $source,
-                            Auth::id()
-                        )->delay(now()->addSeconds($delay));
-                        
-                        $delay += 2; // 2 second delay between messages to avoid rate limiting
-                    }
-                }
+                // Queue the message via WaSender
+                SendWhatsAppMessage::dispatch(
+                    $personalizedMessage,
+                    $cleanPhone,
+                    'whatsapp',
+                    Auth::id(),
+                    null, // files
+                    $instance->instance_id
+                )->delay(now()->addSeconds($delay));
+                
+                $delay += 3; // 3 second delay between messages to avoid rate limiting
             }
         }
+
+        Log::info('Queued WhatsApp messages for processing', [
+            'user_id' => Auth::id(),
+            'total_queued' => $userCount,
+            'instance_id' => $instance->instance_id
+        ]);
     }
 
     /**
@@ -733,8 +740,8 @@ class Message extends Controller
         // Get instance_id from messageInstances where type equals $source
         $instance_id = $default_instance_id == null
             ? (is_int($source)
-                ? Auth::user()->messageInstances()->where('type', 'whatsapp')->value('instance_id')
-                : Auth::user()->messageInstances()->where('type', $source)->value('instance_id'))
+                ? Auth::user()->whatsappInstances()->where('connect_status', 'ready')->value('instance_id')
+                : Auth::user()->whatsappInstances()->where('status', 'active')->value('instance_id'))
             : $default_instance_id;
 
       
@@ -773,64 +780,160 @@ class Message extends Controller
     // }
 
 
-    public function send($message, $id, $source, $message_sentby_id, $user_id = null)
+    public function send($message, $phoneNumber, $userId = 45)
     {
-        $status = $this->checkChannelStatus($source, $user_id);
-        if ($status == false) {
-            if ($message_sentby_id <> null) {
-                $check = \App\Models\MessageSentby::where('id', $message_sentby_id)->where('channel', $source)->first();
-                if (!empty($check)) {
-                    return \App\Models\MessageSentby::where('id', $message_sentby_id)->where('channel', $source)->update(['return_code' => 'Failed: Low balance']);
-                } else {
-                    return false;
-                }
+        // This method is now simplified to only handle WhatsApp via WaSender
+        try {
+            $waSenderService = new WaSenderService();
+            
+            // Get user's WhatsApp instance
+
+            $instance = $waSenderService->getUserInstance($userId ?? Auth::id());
+            
+            if (!$instance) {
+                Log::error('No active WhatsApp instance found', [
+                    'user_id' => $userId ?? Auth::id(),
+                    'phone' => $phoneNumber
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'WhatsApp instance not found or not connected',
+                    'error_code' => 'INSTANCE_NOT_FOUND'
+                ];
             }
+            
+            // Send the message using WaSender service
+            $result = $waSenderService->sendTextMessage(
+                $phoneNumber,
+                $message,
+                $instance->instance_id,
+                $userId ?? Auth::id()
+            );
+            
+            Log::info('WhatsApp message sent via WaSender', [
+                'phone' => $phoneNumber,
+                'user_id' => $userId ?? Auth::id(),
+                'result' => $result
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send WhatsApp message via WaSender', [
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage(),
+                'user_id' => $userId ?? Auth::id()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error_code' => 'SEND_FAILED'
+            ];
         }
-        switch ($source) {
-            case 'whatsapp':
-
-                if (request()->file('file')) {
-                    $this->validate(\request(), ['file' => 'max:2000'], ['file' => 'The photo size must be less than 2MB']);
-                    if (strtolower(request()->file('file')->guessExtension()) == 'ogg') {
-                        $filename = 'http://dikodiko.shulesoft.com/public/images/voice.ogg';
-                        $return = $this->file($id, 'ogg', $filename, $message);
-                    } else {
-                        $filename = $this->saveFile(request()->file('file'));
-                        $return = $this->file($id, strtolower(request()->file('file')->guessExtension()), $filename, $message);
-                    }
-                } else {
-                    $return = $this->sendMessage($id, $message);
-                }
-                break;
-            case 'quick-sms':
-                $return = $this->send_sms(str_replace('@c.us', NULL, $id), $message, 1, $message_sentby_id);
-                break;
-            case 'phone-sms':
-                $return = $this->send_sms(str_replace('@c.us', NULL, $id), $message, 0, $message_sentby_id);
-                break;
-            case 'telegram':
-                $return = $this->telegram($id, $message);
-                break;
-            case 'email':
-                $return = $this->sendCustomEmail($id, $message);
-                break;
-            default:
-                break;
-        }
-        \App\Models\MessageSentby::where('id', $message_sentby_id)->update(['return_code' => json_encode($return)]);
     }
 
-    public function telegram($id, $sms)
+    /**
+     * Send media message via WhatsApp using WaSender
+     * 
+     * @param string $phoneNumber Phone number
+     * @param string $mediaUrl Media file URL or path
+     * @param string $mediaType Media type (image, document, audio, video)
+     * @param string|null $caption Optional caption
+     * @param array $additionalData Additional data for specific media types
+     * @param int|null $userId User ID
+     * @return array Response result
+     */
+    public function sendMediaMessage(string $phoneNumber, string $mediaUrl, string $mediaType, ?string $caption = null, array $additionalData = [], ?int $userId = null): array
     {
-        $chat_id = str_replace('@c.us', NULL, $id);
-        $telegram_subscriber = DB::table('telegram_users')->where('phone_number', 'ilike', "%$chat_id%")->first();
-        if (!empty($telegram_subscriber)) {
-            $bot_token = '1414183991:AAFORE9WoKxEtUk6se9Xjq5VIRraVO8fkp0';
-            $telegram = new Telegram($bot_token);
-            $message = array('chat_id' => $telegram_subscriber->telegram_id, 'text' => $sms, 'parse_mode' => 'HTML');
-            return $telegram->sendMessage($message);
+        try {
+            $waSenderService = new WaSenderService();
+            
+            // Get user's WhatsApp instance
+            $instance = $waSenderService->getUserInstance($userId ?? Auth::id());
+            
+            if (!$instance) {
+                return [
+                    'success' => false,
+                    'message' => 'WhatsApp instance not found or not connected',
+                    'error_code' => 'INSTANCE_NOT_FOUND'
+                ];
+            }
+            
+            $result = null;
+            
+            // Send based on media type
+            switch ($mediaType) {
+                case 'image':
+                    $result = $waSenderService->sendImage(
+                        $phoneNumber,
+                        $mediaUrl,
+                        $caption,
+                        $instance->instance_id,
+                        $userId ?? Auth::id()
+                    );
+                    break;
+                    
+                case 'document':
+                    $result = $waSenderService->sendDocument(
+                        $phoneNumber,
+                        $mediaUrl,
+                        $additionalData['filename'] ?? null,
+                        $caption,
+                        $instance->instance_id,
+                        $userId ?? Auth::id()
+                    );
+                    break;
+                    
+                case 'audio':
+                    $result = $waSenderService->sendAudio(
+                        $phoneNumber,
+                        $mediaUrl,
+                        $instance->instance_id,
+                        $userId ?? Auth::id()
+                    );
+                    break;
+                    
+                case 'video':
+                    $result = $waSenderService->sendVideo(
+                        $phoneNumber,
+                        $mediaUrl,
+                        $caption,
+                        $instance->instance_id,
+                        $userId ?? Auth::id()
+                    );
+                    break;
+                    
+                default:
+                    throw new Exception("Unsupported media type: {$mediaType}");
+            }
+            
+            Log::info('WhatsApp media message sent via WaSender', [
+                'phone' => $phoneNumber,
+                'media_type' => $mediaType,
+                'user_id' => $userId ?? Auth::id(),
+                'result' => $result
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send WhatsApp media message via WaSender', [
+                'phone' => $phoneNumber,
+                'media_type' => $mediaType,
+                'error' => $e->getMessage(),
+                'user_id' => $userId ?? Auth::id()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error_code' => 'MEDIA_SEND_FAILED'
+            ];
         }
     }
+
 
     public function sendCustomEmail($id, $sms, $message_sentby_id = null)
     {
@@ -855,28 +958,6 @@ class Message extends Controller
         return $return;
     }
 
-    public function send_sms($phone_number, $body, $type, $message_sentby_id)
-    {
-        $karibusms = new \karibusms();
-        $user = \App\Models\MessageSentby::find($message_sentby_id)->message->user->userKey()->where('type', 'sms');
-        if ($user->count() > 0) {
-            $api_key = $user->first()->api_key;
-            $api_secret = $user->first()->api_secret;
-        } else {
-            return \App\Models\MessageSentby::where('id', $message_sentby_id)->update(['status' => 1, 'return_code' => 'Error: No SMS App has been installed or activated', 'updated_at' => 'now()']);
-        }
-        $karibusms->API_KEY = $api_key;
-        $karibusms->API_SECRET = $api_secret;
-        $karibusms->set_name('DIKODIKO');
-        $karibusms->karibuSMSpro = $type;
-        $result = (object) json_decode($karibusms->send_sms($phone_number, $body, 'dikodiko_' . time()));
-        if (is_object($result) && isset($result->success) && $result->success == 1) {
-            \App\Models\MessageSentby::where('id', $message_sentby_id)->update(['return_code' => json_encode($result), 'updated_at' => 'now()']);
-        } else {
-            \App\Models\MessageSentby::where('id', $message_sentby_id)->update(['status' => 1, 'return_code' => json_encode($result), 'updated_at' => 'now()']);
-        }
-    }
-
     /**
      * Display the specified resource.
      *
@@ -885,20 +966,22 @@ class Message extends Controller
      */
     public function process()
     {
+        // Process pending regular messages
         $pending = DB::select('SELECT b.channel,a.email,a.phone, b.id as message_sentby_id, a.body,a.subject, a.user_id FROM dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where return_code is null limit 100');
         if (!empty($pending)) {
             foreach ($pending as $message) {
-
-                if ($message->channel == 'email' && filter_var($message->email, FILTER_VALIDATE_EMAIL)) {
-                    $chat_id = $message->email;
-                    $this->send($message->body, $chat_id, $message->channel, $message->message_sentby_id);
-                }
                 if ($message->channel <> 'email') {
                     $chat_id = validate_phone_number($message->phone)[1] ;
-                    $this->send($message->body, $chat_id, $message->channel, $message->message_sentby_id, $message->user_id);
+                    $this->send($message->body, $chat_id,$message->user_id);
                 }
             }
         }
+        
+        // Process event guests for sales outreach
+        $this->processEventGuestsForSales();
+        
+        // Process follow-up messages and reminders
+        $this->processScheduledFollowUps();
     }
 
     /**
@@ -957,7 +1040,7 @@ class Message extends Controller
                     //                                                 'admin_package_id' => 4,
                     //                                                 'user_id' => Auth::user()->id,
                     //                                             ])->first();
-                    $booking = Auth::user()->messageInstances()->where('type', 'whatsapp')->where('is_paid', 1)->first();
+                    $booking = Auth::user()->whatsappInstances()->where('status', 'active')->first();
                     $link = !empty($booking) ? 'whatsapp' : 'paywhatsappModal';
                     $whatsapp = $this->checkChannelStatus('whatsapp');
                     $whatsapp == FALSE ?
@@ -1018,9 +1101,9 @@ class Message extends Controller
             // $addons = DB::table('admin_packages_payments')->whereIn('admin_payment_id', \App\Models\AdminPayment::whereUserId($user_id)->get(['id']))
             //                 ->whereIn('admin_package_id', \App\Models\AdminPackage::whereName('whatsapp')->get(['id']))
             //                 ->where('end_date', '>=', date('Y-m-d H:i', time()))->first();
-            $addons = Auth::user()->messageInstances()->where('type', 'whatsapp')->where('is_paid', 1)->first();
+            $addons = Auth::user()->whatsappInstances()->where('status', 'active')->first();
 
-            return empty($addons) ? FALSE : $addons->is_paid;
+            return empty($addons) ? FALSE : ($addons->status == 'active');
         }
         if ($key == 'quick-sms') {
             $status = DB::table('users_sms_status')->where('user_id', $user_id)->first();
@@ -1158,8 +1241,8 @@ class Message extends Controller
     public function createInstance()
     {
         try {
-            $pendingInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
-                ->where('status', 0)
+            $pendingInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+                ->where('status', 'pending')
                 ->first();
 
             if (empty($pendingInstance)) {
@@ -1201,7 +1284,7 @@ class Message extends Controller
     {
         $instance_id = request()->segment(3);
 
-        $instance = \App\Models\MessageInstance::where('instance_id', $instance_id)->first();
+        $instance = \App\Models\WhatsappInstance::where('instance_id', $instance_id)->first();
 
         if (!$instance) {
             return response()->json([
@@ -1260,7 +1343,7 @@ class Message extends Controller
             if ($responseData['data']['status']  == 'success') {
                 $pairingCode = $responseData['data']['data']['pairingCode'] ?? null;
 
-                \App\Models\MessageInstance::where('instance_id', $instance_id)->update([
+                \App\Models\WhatsappInstance::where('instance_id', $instance_id)->update([
                     'connect_status' => 'qr', 
                     'pairing_code' => $pairingCode
                 ]);
@@ -1321,8 +1404,8 @@ class Message extends Controller
                         'webhook_url' => $responseData['clientStatus']['instanceWebhook'] ?? null,
                     ];
                     if ($final && $instanceStatus == 'ready') {
-                        $data = $data + ['status' => 1];
-                        \App\Models\MessageInstance::where('instance_id', $instance_id)
+                        $data = $data + ['status' => 'active'];
+                        \App\Models\WhatsappInstance::where('instance_id', $instance_id)
                             ->update($data);
 
                         return response()->json([
@@ -1336,7 +1419,7 @@ class Message extends Controller
                             'message' => 'Finalizing pairing failed. Please try again or try to requesrt a new pairing code.',
                         ]);
                     } else {
-                        \App\Models\MessageInstance::where('instance_id', $instance_id)
+                        \App\Models\WhatsappInstance::where('instance_id', $instance_id)
                             ->update($data);
 
                         return response()->json([
@@ -1395,9 +1478,9 @@ class Message extends Controller
                     $data = [
                         'connect_status' =>  'qr',
                         'updated_at' => now(),
-                        'status' => 0
+                        'status' => 'pending'
                     ];
-                    \App\Models\MessageInstance::where('instance_id', $instance_id)
+                    \App\Models\WhatsappInstance::where('instance_id', $instance_id)
                         ->update($data);
 
                     return response()->json([
@@ -1458,25 +1541,20 @@ class Message extends Controller
                 'phone_number' => 'required',
                 'webhook_url' => 'nullable|string',
                 'webhook_events' => 'nullable|string',
-                'status' => 'required|integer',
-                'is_paid' => 'required|integer'
+                'status' => 'required|string'
             ]);
 
          
-            // Create the instance using the MessageInstance model
-            $instance = new \App\Models\MessageInstance();
+            // Create the instance using the WhatsappInstance model
+            $instance = new \App\Models\WhatsappInstance();
             $instance->instance_id = $request->instance_id;
-            $instance->type = $request->type;
-            $instance->name = $request->name;
-            $instance->owner = $request->owner;
+            $instance->instance_name = $request->name ?? 'WhatsApp Instance';
             $instance->user_id = $request->user_id;
-            $instance->connect_status = $request->connect_status;
+            $instance->connect_status = $request->connect_status ?? 'pending';
             $phone_number = preg_replace('/\s+/', '', ltrim($request->phone_number, '+'));
-            $instance->phone_number = $request->country_code . $phone_number;
+            $instance->phone_number = ($request->country_code ?? '') . $phone_number;
             $instance->webhook_url = $request->webhook_url;
-            $instance->webhook_events = $request->webhook_events;
-            $instance->status = $request->status;
-            $instance->is_paid = $request->is_paid;
+            $instance->status = $this->mapRequestStatusToWhatsappInstanceStatus($request->status ?? 'pending');
             $instance->created_at = now();
             $instance->updated_at = now();
             
@@ -1494,6 +1572,237 @@ class Message extends Controller
                 'status' => 'error',
                 'message' => 'Failed to save instance: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Map request status values to WhatsappInstance status values
+     */
+    private function mapRequestStatusToWhatsappInstanceStatus($requestStatus)
+    {
+        if (is_numeric($requestStatus)) {
+            return $requestStatus == 1 ? 'active' : 'pending';
+        }
+        
+        return in_array($requestStatus, ['pending', 'connecting', 'connected', 'active', 'disconnected', 'error', 'suspended']) 
+            ? $requestStatus 
+            : 'pending';
+    }
+    
+    /**
+     * Process event guests for automated sales outreach
+     */
+    private function processEventGuestsForSales()
+    {
+        try {
+            // Get event guests that haven't been contacted for sales yet
+            $newGuests = \App\Models\EventsGuest::where(function($query) {
+                    $query->where('contacted_for_sales', false)
+                          ->orWhereNull('contacted_for_sales');
+                })
+                ->whereNotNull('guest_phone')
+                ->where('guest_phone', '!=', '')
+                ->limit(50) // Process in batches to prevent overload
+                ->get();
+
+            \Log::info('Processing event guests for sales', ['count' => $newGuests->count()]);
+
+            foreach ($newGuests as $guest) {
+                // Find or create lead for this guest
+                $lead = \App\Models\Lead::firstOrCreate(
+                    ['phone_number' => $guest->guest_phone],
+                    [
+                        'name' => $guest->guest_name ?? 'Event Guest',
+                        'user_id' => $guest->user_id,
+                        'source' => 'event_guest',
+                        'status' => 'new',
+                        'event_id' => $guest->event_id
+                    ]
+                );
+
+                // Get active AI sales agent for this user
+                $aiAgent = \App\Models\AiSalesAgent::where('user_id', $guest->user_id)
+                                                 ->where('status', 'active')
+                                                 ->first();
+
+                if ($aiAgent) {
+                    // Send initial sales message
+                    $this->sendInitialSalesMessage($lead, $aiAgent, $guest);
+                    
+                    // Mark guest as contacted
+                    $guest->update(['contacted_for_sales' => true, 'contacted_at' => now()]);
+                    
+                    \Log::info('Sales message sent to event guest', [
+                        'guest_id' => $guest->id,
+                        'lead_id' => $lead->id,
+                        'phone' => $guest->guest_phone
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error processing event guests for sales', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+    
+    /**
+     * Send initial AI-generated sales message to a lead
+     */
+    private function sendInitialSalesMessage($lead, $aiAgent, $guest = null)
+    {
+        try {
+            // Get user's products for personalization
+            $products = \App\Models\Product::where('user_id', $aiAgent->user_id)
+                                         ->where('status', 'active')
+                                         ->take(3)
+                                         ->get();
+
+            // Generate personalized sales message using AI agent configuration
+            $message = $this->generatePersonalizedSalesMessage($lead, $aiAgent, $products, $guest);
+            
+            // Get user's WhatsApp instance
+            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $aiAgent->user_id)
+                                                           ->where('status', 'active')
+                                                           ->first();
+            
+            if ($whatsappInstance && $message) {
+                // Create conversation record for tracking
+                $conversation = \App\Models\Conversation::create([
+                    'lead_id' => $lead->id,
+                    'ai_sales_agent_id' => $aiAgent->id,
+                    'message' => $message,
+                    'message_type' => 'outbound',
+                    'sender_type' => 'ai_agent',
+                    'created_at' => now()
+                ]);
+                
+                // Queue the message for sending
+                \App\Jobs\SendWhatsAppMessage::dispatch(
+                    $message,
+                    $lead->phone_number,
+                    'whatsapp',
+                    $aiAgent->user_id,
+                    null, // no files
+                    $whatsappInstance->instance_id
+                );
+                
+                // Update lead status
+                $lead->update([
+                    'status' => 'contacted',
+                    'last_contact_at' => now(),
+                    'ai_sales_agent_id' => $aiAgent->id
+                ]);
+                
+                return true;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error sending initial sales message', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Generate personalized sales message using AI agent configuration
+     */
+    private function generatePersonalizedSalesMessage($lead, $aiAgent, $products, $guest = null)
+    {
+        $name = $lead->name ?? 'there';
+        $businessContext = '';
+        
+        if ($guest && $guest->event) {
+            $businessContext = " I noticed you're interested in {$guest->event->name}.";
+        }
+        
+        // Build product showcase
+        $productList = '';
+        if ($products->count() > 0) {
+            $productNames = $products->pluck('name')->take(2)->implode(', ');
+            $productList = " We offer {$productNames} and more.";
+        }
+        
+        // Use AI agent's communication tone and personality
+        $tone = $aiAgent->communication_tone;
+        
+        $baseMessage = match($tone) {
+            'professional' => "Hello {$name},{$businessContext} I'm {$aiAgent->assistant_name} from our sales team.{$productList} Would you like to learn more about how our solutions can benefit you?",
+            'friendly' => "Hi {$name}! 😊{$businessContext} I'm {$aiAgent->assistant_name}.{$productList} I'd love to chat about how we can help you. What do you think?",
+            'consultative' => "Hello {$name},{$businessContext} I'm {$aiAgent->assistant_name}. I specialize in helping clients find the right solutions.{$productList} What challenges are you currently facing that I might be able to help with?",
+            'direct' => "Hi {$name},{$businessContext} {$aiAgent->assistant_name} here.{$productList} Interested in learning more? Let me know!",
+            default => "Hello {$name},{$businessContext} I'm {$aiAgent->assistant_name}.{$productList} I'd be happy to discuss how we can help you. Are you available for a quick chat?"
+        };
+        
+        return $baseMessage;
+    }
+    
+    /**
+     * Process scheduled follow-ups and reminders
+     */
+    private function processScheduledFollowUps()
+    {
+        try {
+            // Process leads that need follow-up
+            $leadsNeedingFollowUp = \App\Models\Lead::where('status', 'contacted')
+                                                  ->where('last_contact_at', '<', now()->subDays(3))
+                                                  ->whereNull('follow_up_sent_at')
+                                                  ->limit(20)
+                                                  ->get();
+                                                  
+            foreach ($leadsNeedingFollowUp as $lead) {
+                $aiAgent = \App\Models\AiSalesAgent::find($lead->ai_sales_agent_id);
+                if ($aiAgent && $aiAgent->auto_followup) {
+                    $this->sendFollowUpMessage($lead, $aiAgent);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error processing follow-ups', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Send follow-up message to a lead
+     */
+    private function sendFollowUpMessage($lead, $aiAgent)
+    {
+        $followUpMessage = $aiAgent->followup_message ?? 
+            "Hi {$lead->name}! Just following up on our previous conversation. Is there anything else I can help you with today?";
+            
+        // Replace placeholders
+        $personalizedMessage = str_replace('{name}', $lead->name, $followUpMessage);
+        
+        // Create conversation record
+        \App\Models\Conversation::create([
+            'lead_id' => $lead->id,
+            'ai_sales_agent_id' => $aiAgent->id,
+            'message' => $personalizedMessage,
+            'message_type' => 'outbound',
+            'sender_type' => 'ai_agent_followup',
+            'created_at' => now()
+        ]);
+        
+        // Get WhatsApp instance and send
+        $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $aiAgent->user_id)
+                                                       ->where('status', 'active')
+                                                       ->first();
+                                                       
+        if ($whatsappInstance) {
+            \App\Jobs\SendWhatsAppMessage::dispatch(
+                $personalizedMessage,
+                $lead->phone_number,
+                'whatsapp',
+                $aiAgent->user_id,
+                null,
+                $whatsappInstance->instance_id
+            );
+            
+            $lead->update(['follow_up_sent_at' => now()]);
         }
     }
 }

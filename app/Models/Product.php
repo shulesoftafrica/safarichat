@@ -18,7 +18,11 @@ class Product extends Model
         'ai_description', 'base_price', 'max_discount_percentage', 'target_industry',
         'key_features', 'common_objections', 'sales_cycle_days', 'requires_demo',
         'has_trial', 'trial_days', 'setup_fee', 'pricing_model', 'billing_period',
-        'upsell_products', 'min_stock_alert'
+        'upsell_products', 'min_stock_alert',
+        // Service-specific fields
+        'product_type', 'service_delivery_type', 'service_duration_days',
+        'service_deliverables', 'requires_consultation', 'pricing_type',
+        'hourly_rate', 'service_tiers', 'prerequisites'
     ];
 
     protected $casts = [
@@ -37,7 +41,14 @@ class Product extends Model
         'has_trial' => 'boolean',
         'trial_days' => 'integer',
         'sales_cycle_days' => 'integer',
-        'min_stock_alert' => 'integer'
+        'min_stock_alert' => 'integer',
+        // Service-specific casts
+        'service_deliverables' => 'array',
+        'service_tiers' => 'array',
+        'prerequisites' => 'array',
+        'hourly_rate' => 'decimal:2',
+        'requires_consultation' => 'boolean',
+        'service_duration_days' => 'integer'
     ];
 
     /**
@@ -81,10 +92,14 @@ class Product extends Model
     }
 
     /**
-     * Get stock status
+     * Get stock status (updated to handle services)
      */
     public function getStockStatusAttribute()
     {
+        if ($this->isService()) {
+            return 'available'; // Services don't have stock
+        }
+        
         if ($this->quantity === null) {
             return 'unlimited';
         }
@@ -126,11 +141,15 @@ class Product extends Model
     }
 
     /**
-     * Get stock status text
+     * Get stock status text (updated to handle services)
      */
     public function getStockStatusTextAttribute()
     {
-        $status = $this->getStockStatusAttribute();
+        if ($this->isService()) {
+            return 'Available';
+        }
+        
+        $status = $this->stock_status;
         
         switch ($status) {
             case 'unlimited':
@@ -244,7 +263,10 @@ class Product extends Model
 
     public function getImageFile()
     {
-        return str_replace(['\\', '/'], DIRECTORY_SEPARATOR, storage_path('app/public/' . $this->image_path));
+        if ($this->image_path) {
+            return asset('storage/' . $this->image_path);
+        }
+        return asset('images/default-product.png');
     }
 
     // AI Sales Agent Methods
@@ -341,5 +363,162 @@ class Product extends Model
         return static::whereIn('id', $this->upsell_products)
                      ->active()
                      ->get();
+    }
+
+    // === NEW SERVICE & RAG METHODS ===
+
+    /**
+     * Get all attachments for this product
+     */
+    public function attachments()
+    {
+        return $this->hasMany(ProductAttachment::class)->orderBy('display_order');
+    }
+
+    /**
+     * Get document vectors for RAG
+     */
+    public function documentVectors()
+    {
+        return $this->hasMany(DocumentVector::class);
+    }
+
+    /**
+     * Check if this is a service (non-tangible)
+     */
+    public function isService(): bool
+    {
+        return $this->product_type === 'service';
+    }
+
+    /**
+     * Check if this is a tangible product
+     */
+    public function isTangible(): bool
+    {
+        return $this->product_type === 'tangible';
+    }
+
+    /**
+     * Get attachments by type
+     */
+    public function getAttachmentsByType(string $type)
+    {
+        return $this->attachments()->where('attachment_type', $type)->get();
+    }
+
+    /**
+     * Check if product should track inventory
+     */
+    public function tracksInventory(): bool
+    {
+        return $this->isTangible() && $this->quantity !== null;
+    }
+
+    /**
+     * Get AI-optimized context for services
+     */
+    public function getAiServiceContext(): ?string
+    {
+        if (!$this->isService()) {
+            return null;
+        }
+
+        $context = "Service Details:\n";
+        $context .= "- Type: " . ucfirst($this->service_delivery_type ?? 'Not specified') . "\n";
+        
+        if ($this->service_duration_days) {
+            $context .= "- Typical Duration: {$this->service_duration_days} days\n";
+        }
+        
+        if ($this->service_deliverables) {
+            $context .= "- Deliverables: " . implode(', ', $this->service_deliverables) . "\n";
+        }
+        
+        if ($this->requires_consultation) {
+            $context .= "- Consultation Required: Yes (schedule before engagement)\n";
+        }
+        
+        if ($this->pricing_type) {
+            $context .= "- Pricing: " . ucfirst($this->pricing_type);
+            if ($this->hourly_rate) {
+                $context .= " (\${$this->hourly_rate}/hour)";
+            }
+            $context .= "\n";
+        }
+        
+        // Available resources
+        $attachments = $this->attachments()->where('is_public', true)->processed()->get();
+        if ($attachments->count() > 0) {
+            $context .= "- Available Resources: ";
+            $context .= $attachments->pluck('title')->implode(', ') . "\n";
+        }
+        
+        return $context;
+    }
+
+    /**
+     * Scope for services only
+     */
+    public function scopeServices($query)
+    {
+        return $query->where('product_type', 'service');
+    }
+
+    /**
+     * Scope for tangible products only
+     */
+    public function scopeTangible($query)
+    {
+        return $query->where('product_type', 'tangible');
+    }
+
+    /**
+     * Get formatted pricing for services
+     */
+    public function getFormattedPricingAttribute(): string
+    {
+        if ($this->isService() && $this->pricing_type) {
+            switch ($this->pricing_type) {
+                case 'hourly':
+                    return $this->hourly_rate ? "$" . number_format($this->hourly_rate, 2) . "/hour" : "Hourly rate";
+                case 'daily':
+                    return "Daily rate";
+                case 'project':
+                    return "Project-based: $" . number_format($this->retail_price, 2);
+                case 'subscription':
+                    return "Subscription: $" . number_format($this->retail_price, 2);
+                case 'one-time':
+                    return "One-time: $" . number_format($this->retail_price, 2);
+                default:
+                    return "$" . number_format($this->retail_price, 2);
+            }
+        }
+        
+        return "$" . number_format($this->retail_price, 2);
+    }
+
+    /**
+     * Check if product has RAG-processed documents
+     */
+    public function hasRAGDocuments(): bool
+    {
+        return $this->attachments()->processed()->exists();
+    }
+
+    /**
+     * Get count of processed documents
+     */
+    public function getProcessedDocumentsCountAttribute(): int
+    {
+        return $this->attachments()->processed()->count();
+    }
+
+    /**
+     * Get total vector count for this product
+     */
+    public function getTotalVectorCountAttribute(): int
+    {
+        return $this->documentVectors()->count();
     }
 }

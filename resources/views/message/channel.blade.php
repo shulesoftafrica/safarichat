@@ -150,12 +150,12 @@
                                     <td>{{ $instance->message_balance ?? 0 }}</td>
                                 @endif
                                 <td>
-                                    @if($instance->type === 'whatsapp')
-                                        @if($instance->is_paid == 0)
-                                            <span class="badge badge-warning">{{ __('waiting_for_payment') }}</span>
-                                        @elseif($instance->status == 1 && $instance->is_paid == 1)
-                                            <span class="badge badge-success">{{ __('approved_&_running') }}</span>
-                                        @elseif($instance->connect_status != 'qr' && $instance->is_paid == 1)
+                                    {{-- WhatsApp instances don't have type field, they are all WhatsApp --}}
+                                        @if($instance->status === 'pending')
+                                            <span class="badge badge-warning">{{ __('pending_setup') }}</span>
+                                        @elseif($instance->status === 'active')
+                                            <span class="badge badge-success">{{ __('active_&_running') }}</span>
+                                        @elseif($instance->connect_status != 'ready')
  @if((int)$instance->instance_id == 0)
                                         @php
                                             app('\App\Http\Controllers\Message')->createInstance();
@@ -241,23 +241,16 @@ function getPairingCode(instanceId, modalId) {
 </script>
 @endif
                                         <!-- <span class="badge badge-danger">{{ __('reconnecting') }}</span> -->
-                                        @elseif($instance->connect_status == 'qr' && $instance->is_paid == 1)
+                                        @elseif($instance->connect_status == 'ready')
                                             <span class="badge badge-success">{{ __('connected') }}</span>
                                         @else
                                           
                                             <span class="badge badge-secondary">{{ __('pending_approval') }}</span>
                                         @endif
-                                    @else
-                                        @if($instance->status)
-                                            <span class="badge badge-success">{{ __('approved') }}</span>
-                                        @else
-                                            <span class="badge badge-secondary">{{ __('pending_approval') }}</span>
-                                        @endif
-                                    @endif
                                 </td>
                                 <td>
-                                    @if($instance->type === 'whatsapp')
-                                        @if($instance->is_paid == 0)
+                                    {{-- All instances are WhatsApp instances now --}}
+                                        @if($instance->status === 'pending')
 
  
                                             @if(empty($booking))
@@ -299,18 +292,9 @@ function getPairingCode(instanceId, modalId) {
                                             </div>
                                         @endif
                                   @endif
-                                @if($instance->is_paid == 1)
-                                    @if($instance->type === 'bulksms')
-                                        <button 
-                                            class="btn btn-info btn-sm" 
-                                            data-toggle="modal" 
-                                            data-target="#addbulksms">
-                                            {{ __('buy_message') }}
-                                        </button>
-
-                                        <!-- Buy Bulk SMS Modal -->
-
-                                    @elseif($instance->type === 'whatsapp')
+                                @if($instance->status === 'active')
+                                    {{-- All instances are WhatsApp instances now --}}
+                                        <!-- WhatsApp instance actions -->
 
                                     <!-- here we will enable this later after seing more sms are getting sent than normal -->
                                         <!-- <button 
@@ -359,7 +343,7 @@ function getPairingCode(instanceId, modalId) {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">{{ __('no_message_instances_found.') }}</td>
+                                <td colspan="7" class="text-center">{{ __("no_whatsapp_instances_found.") }}</td>
                             </tr>
                         @endforelse
                         </tbody>

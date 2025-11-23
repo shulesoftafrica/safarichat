@@ -9,73 +9,6 @@ use Illuminate\Support\Facades\Log;
 
 class Api extends Controller {
 
-    public function whatsapp() {
-        //get the JSON body from the instance
-        $json = file_get_contents('php://input');
-        $decoded = json_decode($json, true);
-        DB::table('whatsapp_logs')->insert(['content' => json_encode($decoded)]);
-        //write parsed JSON-body to the file for debugging
-//        ob_start();
-//        var_dump($decoded);
-//        $input = ob_get_contents();
-//        ob_end_clean();
-//        file_put_contents('input_requests.log', $input . PHP_EOL, FILE_APPEND);
-
-        if (isset($decoded['messages'])) {
-            //check every new message
-            foreach ($decoded['messages'] as $message) {
-                //delete excess spaces and split the message on spaces. The first word in the message is a command, other words are parameters
-                $text = explode(' ', trim($message['body']));
-                //current message shouldn't be send from your bot, because it calls recursion
-                if (!$message['fromMe']) {
-                    //check what command contains the first word and call the function
-                    // switch (mb_strtolower($text[0], 'UTF-8')) {
-                    if (preg_match('/login/i', mb_strtolower($text[0], 'UTF-8'))) {
-                        // $this->welcome($message['chatId'], false);
-                        $this->authUser($message['chatId'], mb_strtolower($text[0], 'UTF-8'));
-                    } else {
-                        $bot_message = $this->getWhatsAppBotMessage(mb_strtolower($text[0], 'UTF-8'));
-                        $this->sendTextMessage($message['chatId'], $bot_message, 1);
-                    }
-//                        case 'chatId': {
-//                                $this->showchatId($message['chatId']);
-//                                break;
-//                            }
-//                        case 'time': {
-//                                $this->time($message['chatId']);
-//                                break;
-//                            }
-//                        case 'me': {
-//                                $this->me($message['chatId'], $message['senderName']);
-//                                break;
-//                            }
-//                        case 'file': {
-//                                $this->file($message['chatId'], $text[1]);
-//                                break;
-//                            }
-//                        case 'ptt': {
-//                                $this->ptt($message['chatId']);
-//                                break;
-//                            }
-//                        case 'geo': {
-//                                $this->geo($message['chatId']);
-//                                break;
-//                            }
-//                        case 'group': {
-//                                $this->group($message['author']);
-//                                break;
-//                            }
-//                    default: {
-//                        //  $this->welcome($message['chatId'], true);
-//                        $bot_message = $this->bot->createMessage(mb_strtolower($text[0], 'UTF-8'), $message['chatId']);
-//                        $this->sendTextMessage($message['chatId'], $bot_message['text']);
-//                        break;
-//                    }
-                }
-                //  }
-            }
-        }
-    }
 
     public function otp(){
         // Sanitize phone number to only allow digits
@@ -151,84 +84,8 @@ class Api extends Controller {
         }
      }
 
-    public function getWhatsAppBotMessage($id) {
-        $content = DB::table('whatsapp_bot_contents')->where('number', (int) $id)->first();
-        if (!empty($content)) {
-            $check_group = DB::table('whatsapp_bot_contents')->where('number', '<>', (int) $id)->where('group_id', $id)->first();
-            if (!empty($check_group)) {
-                $reply = '';
-                $reply .= $content->content;
-                $contents = DB::table('whatsapp_bot_contents')->where('number', '<>', (int) $id)->where('group_id', $id)->orderBy('number', 'ASC')->get();
-
-                $reply .= chr(10);
-                if (count($contents) > 0) {
-                    $reply .= chr(10);
-                    $reply .= 'Type the number below to proceed.' . chr(10);
-                    $reply .= chr(10);
-                    foreach ($contents as $menu) {
-                        $reply .= $menu->number . ' .  ' . $menu->menu . chr(10);
-                    }
-                    $reply .= chr(10);
-                    return $reply;
-                } else {
-                    return $content->content;
-                }
-            } else {
-                return $content->content;
-            }
-        } else {
-            $reply = 'Invalid Number is Supplied.';
-            $reply .= chr(10);
-            $reply .= chr(10);
-            $reply = 'Do you need any help, just click the number below to proceed.' . chr(10);
-            $reply .= chr(10);
-            $menus = DB::table('whatsapp_bot_contents')->where('parent', 1)->orderBy('number', 'asc')->limit(5)->get();
-            foreach ($menus as $menu) {
-                $reply .= $menu->number . ' .  ' . $menu->menu . chr(10);
-            }
-            $reply .= chr(10);
-            return $reply;
-        }
-    }
-
-    /**
-     * Description:
-     * This method will be updated later to allow two things
-     * 
-     *  1. The same login credentials for a number exists in all schemas
-     *  2. Authenticate if message real come from ShuleSoft web to prevent illigal testing
-     * @param type $chat_id
-     * @param type $schema_message
-     */
-    public function authUser($chat_id, $schema_message = null) {
-        $phone = str_replace('@c.us', NULL, $chat_id);
-
-        if (preg_match('/[0-9]/', $phone) && is_array(validate_phone_number($phone))) {
-            $user = DB::table('users')->where('phone', 'ilike', "%{$phone}%")->first();
-            if (!empty($user)) {
-
-                $reply = 'Thank you ' . $user->name . '.' . chr(10);
-                $reply .= chr(10);
-                $reply .= 'Your Email - ' . $user->email . chr(10);
-                $reply .= 'Your Password - ' . $this->createPassword($user) . chr(10);
-                $reply .= chr(10);
-
-                $reply .= chr(10);
-                $reply .= 'Use this infomation to login at  https://dikodiko.co.tz/ and kindly change this password after login' . chr(10);
-                $reply .= chr(10) . 'For more help call us ';
-
-                $message = array('chat_id' => $chat_id, 'text' => $reply . $this->main_menu, 'parse_mode' => 'HTML');
-            } else {
-                $reply = 'Your WhatSapp phone number does not exist in DikoDiko Account. Open www.dikodiko.co.tz and create your account.' . chr(10);
-                $message = array('chat_id' => $chat_id, 'text' => $reply . $this->main_menu, 'parse_mode' => 'HTML');
-            }
-        } else {
-            $reply = 'Your account does not have a valid phone number, kindly contact  us ' . chr(10);
-            $message = array('chat_id' => $chat_id, 'text' => $reply . $this->main_menu, 'parse_mode' => 'HTML');
-        }
-        $this->sendTextMessage($chat_id, $message['text'], 1);
-    }
-
+  
+  
     public function createPassword($users) {
         $pass = rand(1, 999) . substr(str_shuffle('abcdefghkmnp'), 0, 3);
         $password = bcrypt($pass);
@@ -237,26 +94,6 @@ class Api extends Controller {
         return $pass;
     }
 
-    public function pushEmailsToSend() {
-        $pending = DB::select("SELECT b.channel,a.email,a.phone as phone_number, b.id||'_dikodiko' as sms_id, b.id as message_sentby_id,"
-                        . " a.body as message,a.subject, 'DIKODIKO' as name, case when b.channel='quick-sms' then 1 else 0 end as karibusmspro, "
-                        . "(select api_key from dikodiko.users_keys where user_id=a.user_id and type=b.channel), (select api_secret from dikodiko.users_keys where user_id=a.user_id "
-                        . " and type=b.channel) FROM dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where return_code is null and channel in ('email','quick-sms') limit 50");
-        $object = [];
-        if (!empty($pending)) {
-            foreach ($pending as $message) {
-                if ($message->channel == 'email' && filter_var($message->email, FILTER_VALIDATE_EMAIL)) {
-                    $chat_id = $message->email;
-
-                    (new \App\Http\Controllers\Message())->sendCustomEmail($chat_id, $message->body, $message->message_sentby_id);
-                } else {
-                    array_push($object, $message);
-                    \App\Models\MessageSentby::where('id', $message->message_sentby_id)->update(['status' => 1, 'return_code' => 'pushed to be sent', 'updated_at' => 'now()']);
-                }
-            }
-        }
-        return $object;
-    }
 
     private function resendNonDelivered($user_id) {
         $pending = DB::select("SELECT a.phone, b.id, a.body FROM "
@@ -272,29 +109,6 @@ class Api extends Controller {
         return json_encode(['messages' => $object]);
     }
 
-    public function pushPhoneSMS() {
-        $code = request()->segment(3);
-        $verify = DB::table('users_keys')->where('api_key', trim($code))->where('type', 'phone-sms')->first();
-        $object = [];
-        if (!empty($verify)) {
-            $pending = DB::select("SELECT a.phone, b.id, a.body FROM dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where user_id=" . $verify->user_id . " and"
-                            . " return_code is null and channel in ('phone-sms') limit 5");
-            if (!empty($pending)) {
-                foreach ($pending as $message) {
-                    array_push($object, (array) $message);
-                    \App\Models\MessageSentby::where('id', $message->id)->update(['status' => 1, 'return_code' => 'pushed to be sent', 'updated_at' => 'now()']);
-                }
-                DB::table('users_keys')->where('api_key', trim($code))->update(['last_active' => 'now()']);
-            } else {
-                //wait for 3sec then check empty non delivered
-                sleep(3);
-                return $this->resendNonDelivered($verify->user_id);
-            }
-        } else {
-            array_push($object, ['phone' => '0714825469', 'body' => 'Invalid Code supplied', 'id' => 1, 'code' => $code]);
-        }
-        return json_encode(['messages' => $object]);
-    }
 
     public function aunthenticateMobile() {
         $code = request()->segment(3);
@@ -366,7 +180,6 @@ class Api extends Controller {
                 . ' Your payment with reference number ' . $valid->token . ' has been accepted successfully.';
 
         $chat_id = $book->user->phone . '@c.us';
-        $this->send_email($book->user->email, $subject, $message);
         $this->sendTextMessage($chat_id, $message, 1);
         return true;
     }

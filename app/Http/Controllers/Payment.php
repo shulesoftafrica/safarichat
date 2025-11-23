@@ -364,7 +364,8 @@ class Payment extends Controller {
             return response()->json(['status' => 'success','message' => 'Payment has been reflected successfully']);
         }
         $this->notifyAdmin("Client " . Auth::user()->name . " with phone " . Auth::user()->phone . " has requested for payment verification for transaction id: " . $transaction_id. "kindly check the payment gateway or Bank statement for more details");
-        return response()->json(['status' => 'fail', 'message' => 'Error: Payment not yet reflected, kindly wait within 10 minutes']);}
+        return response()->json(['status' => 'fail', 'message' => 'Error: Payment not yet reflected, kindly wait within 10 minutes']);
+    }
 
     public function cancelPayment() {
 
@@ -379,84 +380,10 @@ class Payment extends Controller {
         return redirect()->back()->with('success', 'success');
     }
 
-    public function card() {
-        $payment_id = request()->segment(3);
-        $id = request()->segment(4);
-        if ($id == 'printall') {
-            $this->data['payment'] = \App\Models\Payment::find($payment_id);
-            return view('certificate.printall', $this->data);
-        } else {
-            return $this->createCard($payment_id);
-        }
 
-        // return view('payment.card', $this->data);
-    }
+   
 
-    function createCard($id) {
-
-        $pdf = new \setasign\Fpdi\Fpdi('L');
-
-        // add a page
-        $pdf->AddPage();
-
-        // set the source file to doc1.pdf and import a page
-        //$file_name = request('type') == 100 ? '2019_certificate.pdf' : '2018_certificate.pdf';
-        $file_name = 'card.pdf';
-        $pdf->setSourceFile("storage/uploads/" . $file_name);
-        $tplIdx = $pdf->importPage(1);
-        // use the imported page and place it at point 5,1 with a width of 283 mm, 200mm height
-        $pdf->useTemplate($tplIdx, 5, 1, 283, 210);
-        // set the source file to doc2.pdf and import a page
-        $this->getName($id);
-        $user_name = 'storage/uploads/mycard' . $id . '.pdf';
-        if (!file_exists($user_name)) {
-            $handle = fopen($user_name, '+r');
-            fclose($handle);
-        }
-
-        $pdf->setSourceFile($user_name);
-        $tplIdx = $pdf->importPage(1);
-        // use the imported page and place it at point 95,98 with a width of 210 mm
-        $pdf->useTemplate($tplIdx, 90, 94, 210, 90);
-
-        $pdf->Output();
-    }
-
-    function getName($id) {
-
-        $payment = \App\Models\Payment::find($id);
-        return PDF::loadHTML('<h1 style="font-size:120px">' . $payment->eventsGuest->guest_name . '</h1>')
-                        ->setPaper('a4', 'landscape')
-                        ->setOptions(['dpi' => 250, 'defaultFont' => 'sans-serif'])
-                        ->setWarnings(false)
-                        ->save('storage/app/new_myfile' . $id . '.pdf');
-    }
-
-    /**
-     * 
-     * @param type $payment_id
-     * @access : Via kernel background operation
-     */
-    function sendCertificates() {
-        $users = User::whereNull('role_id')->whereIn('user_type_id', [7, 9])->get();
-        foreach ($users as $user) {
-            if ($user->userType->id == 9 && $user->payment()->count() == 0) {
-                continue;
-            }
-            // $att = $user->attendance()->first(); commented for 2019 only
-            //if (count($att) == 1) {
-
-            $id = $user->id;
-            $content = 'Please Click the link below to download/print your certificate'
-                    . '<br/>'
-                    . '<br/>'
-                    . '<a href="https://engineersday.co.tz/certificate/' . $id . '?type=100&auth=' . encrypt($id) . '" style="display: inline-block; margin-bottom: 0; font-weight: 40px; text-align: center;
-    vertical-align: middle; cursor: pointer; background-image: none; border: 1px solid transparent; white-space: nowrap; padding: 12px 24px; font-size: 14px; line-height: 1.428571429; border-radius: 4px;color: #fff; background-color: #5cb85c; border-color: #4cae4c;">Event Certificate</a>';
-            $this->send_email($user->email, 'AED 2019- Certificate of Attendance', $content);
-            /// }
-        }
-        return redirect()->back()->with('success', 'Success');
-    }
+ 
 
     public function createDiscount() {
         $phone = request('phone');

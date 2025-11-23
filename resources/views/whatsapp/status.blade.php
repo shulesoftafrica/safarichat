@@ -118,14 +118,14 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 style="margin: 0; color: #333;">WhatsApp Instance Status</h2>
-                    <p style="margin: 0.5rem 0 0 0; color: #666;">Monitor your WhatsApp connections and WAAPI integration</p>
+                    <p style="margin: 0.5rem 0 0 0; color: #666;">Monitor your WhatsApp connections and WaSender integration</p>
                 </div>
                 <div>
                     <button class="btn-test" onclick="refreshInstances()">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
-                    <button class="btn-test" onclick="testWaapiConnection()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-plug"></i> Test WAAPI
+                    <button class="btn-test" onclick="testWaSenderConnection()" style="margin-left: 0.5rem;">
+                        <i class="fas fa-plug"></i> Test WaSender
                     </button>
                 </div>
             </div>
@@ -197,7 +197,7 @@ $(document).ready(function() {
 
 function loadInstances() {
     $.ajax({
-        url: '{{ url("api/waapi/user-instances") }}',
+        url: '{{ url("api/WaSender/user-instances") }}',
         method: 'GET',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -288,22 +288,22 @@ function refreshInstances() {
     loadInstances();
 }
 
-function testWaapiConnection() {
+function testWaSenderConnection() {
     $.ajax({
-        url: '{{ url("api/waapi/test-connection") }}',
+        url: '{{ url("api/WaSender/test-connection") }}',
         method: 'GET',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
         success: function(response) {
             if (response.success) {
-                alert('WAAPI connection successful!');
+                alert('WaSender connection successful!');
             } else {
-                alert('WAAPI connection failed: ' + response.message);
+                alert('WaSender connection failed: ' + response.message);
             }
         },
         error: function(xhr, status, error) {
-            alert('WAAPI connection error: ' + error);
+            alert('WaSender connection error: ' + error);
         }
     });
 }
@@ -321,7 +321,7 @@ $('#test-message-form').on('submit', function(e) {
     }
     
     $.ajax({
-        url: '{{ url("api/waapi/send-test-message") }}',
+        url: '{{ url("api/WaSender/send-test-message") }}',
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',

@@ -217,6 +217,49 @@
     font-size: 0.875rem;
 }
 
+.auth-method-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.auth-option {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.auth-option:hover {
+    border-color: #25D366;
+    background: #f8fff9;
+}
+
+.auth-option.selected {
+    border-color: #25D366;
+    background: #f8fff9;
+}
+
+.auth-option i {
+    font-size: 2rem;
+    color: #25D366;
+    margin-bottom: 0.5rem;
+}
+
+.auth-option h5 {
+    margin: 0.5rem 0;
+    color: #333;
+}
+
+.auth-option p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
 .btn-secondary {
     background: #6c757d;
     color: white;
@@ -269,15 +312,34 @@
         <div class="setup-content">
             <!-- Phone Input Section -->
             <div class="setup-section active" id="phone-input-section">
-                <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Enter Your Phone Number</h4>
+                <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Choose Authentication Method</h4>
                 
                 <div class="alert-info">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Quick Setup</strong><br>
-                    Enter your phone number to generate a QR code for WhatsApp connection.
+                    <strong>Two Options Available</strong><br>
+                    Choose your preferred method to connect WhatsApp.
+                </div>
+
+                <!-- Authentication Method Selection -->
+                <div class="form-group">
+                    <label class="form-label">Authentication Method</label>
+                    <div class="auth-method-selector">
+                        <div class="auth-option" data-method="qr">
+                            <i class="fas fa-qrcode"></i>
+                            <h5>QR Code</h5>
+                            <p>Scan with your phone</p>
+                        </div>
+                        <div class="auth-option" data-method="phone">
+                            <i class="fas fa-sms"></i>
+                            <h5>Phone Code</h5>
+                            <p>Receive verification code</p>
+                        </div>
+                    </div>
                 </div>
 
                 <form id="whatsapp-form">
+                    <input type="hidden" id="auth_method" name="auth_method" value="qr">
+                    
                     <div class="form-group">
                         <label class="form-label">Phone Number</label>
                         <div class="input-group">
@@ -302,7 +364,7 @@
                     <button type="submit" class="btn-whatsapp" id="generate-qr-btn">
                         <span class="spinner d-none" id="btn-spinner"></span>
                         <span id="btn-text">Generate QR Code</span>
-                        <i class="fas fa-qrcode ml-2"></i>
+                        <i class="fas fa-qrcode ml-2" id="btn-icon"></i>
                     </button>
                 </form>
             </div>
@@ -332,6 +394,46 @@
                         <strong>Waiting for scan...</strong><br>
                         <small>Please scan the QR code with your WhatsApp app</small>
                     </div>
+                </div>
+            </div>
+
+            <!-- Phone Code Section -->
+            <div class="setup-section" id="phone-code-section">
+                <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Enter Verification Code</h4>
+                
+                <div class="alert-info">
+                    <i class="fas fa-sms"></i>
+                    <strong>Code Sent!</strong><br>
+                    We sent a verification code to your WhatsApp number. Enter it below.
+                </div>
+
+                <form id="verify-code-form">
+                    <div class="form-group">
+                        <label class="form-label">Verification Code</label>
+                        <input
+                            id="verification_code"
+                            name="verification_code"
+                            type="text"
+                            class="form-control"
+                            placeholder="Enter 6-digit code"
+                            maxlength="6"
+                            autocomplete="off"
+                            required
+                        >
+                        <small class="text-muted">Enter the code you received on WhatsApp</small>
+                    </div>
+
+                    <button type="submit" class="btn-whatsapp" id="verify-code-btn">
+                        <span class="spinner d-none" id="verify-spinner"></span>
+                        <span id="verify-text">Verify Code</span>
+                        <i class="fas fa-check ml-2"></i>
+                    </button>
+                </form>
+
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn-secondary" onclick="showSection('phone-input-section')">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
                 </div>
             </div>
 
@@ -463,92 +565,209 @@
         }
     };
 
-    $(document).ready(function() {
-        initializePhoneValidation();
+    let currentSessionId = null;
+    let statusCheckInterval = null;
 
-        // Handle form submission
-        $('#whatsapp-form').on('submit', async function(e) {
-            e.preventDefault();
+    function showSection(sectionId) {
+        $('.setup-section').removeClass('active');
+        $('#' + sectionId).addClass('active');
+    }
+
+    function showError(message) {
+        showSection('error-section');
+        $('#error-message').text(message);
+    }
+
+    async function generateSession() {
+        const generateBtn = $('#generate-qr-btn');
+        const phoneNumber = $('#phone_number').val();
+        const authMethod = $('#auth_method').val();
+
+        if (!phoneNumber) {
+            alert('Please enter your phone number');
+            return;
+        }
+
+        generateBtn.prop('disabled', true);
+        $('#btn-spinner').removeClass('d-none');
+        
+        try {
+            const response = await fetch('{{ route("wasender.create-session") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    phone_number: phoneNumber,
+                    auth_method: authMethod
+                })
+            });
             
-            const phoneNumber = $('#phone_number').val();
-            const btnSpinner = $('#btn-spinner');
-            const btnText = $('#btn-text');
-            const generateBtn = $('#generate-qr-btn');
+            const data = await response.json();
             
-            btnSpinner.removeClass('d-none');
-            btnText.text('Generating...');
-            generateBtn.prop('disabled', true);
+            console.log('QR Generation Response:', data);
+            console.log('QR Code data:', data.qr_code ? data.qr_code.substring(0, 100) + '...' : 'No QR code');
             
+            if (data.success) {
+                currentSessionId = data.session_id;
+                
+                if (data.auth_method === 'qr') {
+                    showSection('qr-code-section');
+
+                    // Handle QR code - either base64 or URL
+                    let qrCodeData = data.qr_code;
+                    console.log('Received QR Code data type:', typeof qrCodeData);
+                    
+                    const qrImage = $('#qr-code-image');
+                    
+                    // Check if it's base64 encoded (starts with data:image/ or is just base64 string)
+                    if (qrCodeData && (qrCodeData.startsWith('data:image/') || qrCodeData.length > 500)) {
+                        // It's base64 data
+                        let qrSrc = qrCodeData.startsWith('data:image/') ? qrCodeData : 'data:image/png;base64,' + qrCodeData;
+                        qrImage.attr('src', qrSrc);
+                        console.log('QR code set as base64 data');
+                    } else if (qrCodeData && qrCodeData.startsWith('http')) {
+                        // It's a URL
+                        qrImage.on('error', function() {
+                            console.error('Failed to load QR code image from URL:', qrCodeData);
+                            $(this).attr('alt', 'QR Code failed to load');
+                            $('.qr-code-display').html('<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>QR Code failed to load. Please try again.</div>');
+                        });
+                        
+                        qrImage.on('load', function() {
+                            console.log('QR code image loaded successfully from URL:', qrCodeData);
+                        });
+                        
+                        const cacheBuster = '?t=' + Date.now();
+                        qrImage.attr('src', qrCodeData + cacheBuster);
+                    } else {
+                        console.error('Invalid QR code data format:', qrCodeData);
+                        $('.qr-code-display').html('<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>Invalid QR code format. Please try again.</div>');
+                    }
+                    
+                    checkSessionStatus(data.session_id);
+                } else {
+                    showSection('phone-code-section');
+                    $('#verification_code').focus();
+                }
+            } else {
+                alert('Error: ' + data.message);
+                generateBtn.prop('disabled', false);
+                $('#btn-spinner').addClass('d-none');
+            }
+        } catch (error) {
+            alert('Connection error. Please try again.');
+            generateBtn.prop('disabled', false);
+            $('#btn-spinner').addClass('d-none');
+        }
+    }
+
+    async function verifyCode() {
+        const verifyBtn = $('#verify-code-btn');
+        const code = $('#verification_code').val();
+
+        if (!code) {
+            alert('Please enter the verification code');
+            return;
+        }
+
+        verifyBtn.prop('disabled', true);
+        $('#verify-spinner').removeClass('d-none');
+        
+        try {
+            const response = await fetch('{{ route("wasender.verify-code") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    session_id: currentSessionId,
+                    code: code
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showSection('success-section');
+            } else {
+                alert('Error: ' + data.message);
+                verifyBtn.prop('disabled', false);
+                $('#verify-spinner').addClass('d-none');
+            }
+        } catch (error) {
+            alert('Connection error. Please try again.');
+            verifyBtn.prop('disabled', false);
+            $('#verify-spinner').addClass('d-none');
+        }
+    }
+
+    async function checkSessionStatus(sessionId) {
+        // Clear any existing interval
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+        }
+
+        statusCheckInterval = setInterval(async () => {
             try {
-                const response = await fetch('{{ url("api/whatsapp/create-session") }}', {
-                    method: 'POST',
+                const response = await fetch(`{{ url("wasender/session-status") }}/${sessionId}`, {
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ phone_number: phoneNumber })
+                    }
                 });
                 
                 const data = await response.json();
                 
-                if (data.success) {
-                    showSection('qr-code-section');
-                    $('#qr-code-image').attr('src', data.qr_code);
-                    
-                    // Poll for session status
-                    checkSessionStatus(data.session_id);
-                } else {
-                    showError(data.message || 'Failed to generate QR code');
+                if (data.success && data.status === 'connected') {
+                    clearInterval(statusCheckInterval);
+                    showSection('success-section');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                showError('Network error. Please try again.');
-            } finally {
-                btnSpinner.addClass('d-none');
-                btnText.text('Generate QR Code');
-                generateBtn.prop('disabled', false);
+                console.error('Status check failed:', error);
+            }
+        }, 3000); // Check every 3 seconds
+    }
+
+    $(document).ready(function() {
+        initializePhoneValidation();
+
+        // Authentication method selection
+        $('.auth-option').click(function() {
+            $('.auth-option').removeClass('selected');
+            $(this).addClass('selected');
+            
+            const method = $(this).data('method');
+            $('#auth_method').val(method);
+            
+            // Update button text and icon
+            if (method === 'qr') {
+                $('#btn-text').text('Generate QR Code');
+                $('#btn-icon').removeClass('fa-sms').addClass('fa-qrcode');
+            } else {
+                $('#btn-text').text('Send Code');
+                $('#btn-icon').removeClass('fa-qrcode').addClass('fa-sms');
             }
         });
 
-        async function checkSessionStatus(sessionId) {
-            const interval = setInterval(async () => {
-                try {
-                    const response = await fetch(`{{ url("api/whatsapp/session-status") }}/${sessionId}`, {
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.status === 'connected') {
-                        clearInterval(interval);
-                        showSection('success-section');
-                    } else if (data.status === 'failed') {
-                        clearInterval(interval);
-                        showError('Connection failed. Please try again.');
-                    }
-                } catch (error) {
-                    clearInterval(interval);
-                    showError('Error checking status.');
-                }
-            }, 3000);
-        }
+        // Set default selection
+        $('.auth-option[data-method="qr"]').addClass('selected');
 
-        function showSection(sectionId) {
-            $('.setup-section').removeClass('active');
-            $(`#${sectionId}`).addClass('active');
-        }
+        // Handle form submission
+        $('#whatsapp-form').submit(function(e) {
+            e.preventDefault();
+            generateSession();
+        });
 
-        function showError(message) {
-            showSection('error-section');
-            $('#error-message').text(message);
-        }
+        // Handle code verification
+        $('#verify-code-form').submit(function(e) {
+            e.preventDefault();
+            verifyCode();
+        });
 
         // Make functions globally available
         window.showSection = showSection;
         window.showError = showError;
     });
 </script>
-
-@endsection

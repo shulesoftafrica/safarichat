@@ -361,7 +361,7 @@
                         <label class="form-label">Webhook URL (Optional)</label>
                         <input type="url" id="webhook-url" name="webhook_url" class="form-control" 
                                placeholder="https://yourwebsite.com/webhook" 
-                               value="{{ url('api/waapi-webhook') }}">
+                               value="{{ url('api/WaSender-webhook') }}">
                         <small class="text-muted">URL to receive incoming messages and status updates</small>
                     </div>
 
@@ -446,14 +446,14 @@
                 <div style="background: #f8f9fa; border-radius: 15px; padding: 1.5rem; margin: 1rem 0;">
                     <h6 style="margin-bottom: 1rem; color: #333;">Connection Details:</h6>
                     <div id="debug-info">
-                        <p><strong>WAAPI Token:</strong> <span id="debug-token">Loading...</span></p>
+                        <p><strong>WaSender Token:</strong> <span id="debug-token">Loading...</span></p>
                         <p><strong>Instance ID:</strong> <span id="debug-instance-id">Not created</span></p>
                         <p><strong>Current Step:</strong> <span id="debug-current-step">1</span></p>
                         <p><strong>Last API Response:</strong> <pre id="debug-last-response" style="background: white; padding: 0.5rem; border-radius: 5px; font-size: 0.8rem;">None</pre></p>
                     </div>
                     
                     <div style="margin-top: 1rem;">
-                        <button class="btn btn-info btn-sm" onclick="testWaapiConnection()">Test WAAPI Connection</button>
+                        <button class="btn btn-info btn-sm" onclick="testWaSenderConnection()">Test WaSender Connection</button>
                         <button class="btn btn-warning btn-sm" onclick="showDebugPanel()" style="margin-left: 0.5rem;">Show Debug</button>
                     </div>
                 </div>
@@ -469,49 +469,49 @@ $(document).ready(function() {
     let instanceId = null;
     let statusCheckInterval = null;
     
-    // WAAPI Configuration
-    const WAAPI_BASE_URL = 'https://waapi.app/api/v1';
-    const WAAPI_TOKEN = '{{ config("app.waapi_token", "ftXEQe1S8hncxJVzHRrc3JqB9eHqUmG6WIctlMPy8435fd42") }}'; // Add this to your .env file
+    // WaSender Configuration
+    const WaSender_BASE_URL = 'https://WaSender.app/api/v1';
+    const WaSender_TOKEN = '{{ config("app.WaSender_token", "ftXEQe1S8hncxJVzHRrc3JqB9eHqUmG6WIctlMPy8435fd42") }}'; // Add this to your .env file
     
     // Debug functions
     window.showDebugPanel = function() {
-        $('#debug-token').text(WAAPI_TOKEN ? (WAAPI_TOKEN.substring(0, 10) + '...') : 'Not set');
+        $('#debug-token').text(WaSender_TOKEN ? (WaSender_TOKEN.substring(0, 10) + '...') : 'Not set');
         $('#debug-instance-id').text(instanceId || 'Not created');
         $('#debug-current-step').text(currentStep);
         $('.setup-step').removeClass('active');
         $('#debug-panel').addClass('active');
     };
     
-    window.testWaapiConnection = function() {
-        console.log('Testing WAAPI connection...');
+    window.testWaSenderConnection = function() {
+        console.log('Testing WaSender connection...');
         $('#debug-last-response').text('Testing connection...');
         
         // Test basic connection first
         $.ajax({
-            url: WAAPI_BASE_URL + '/instances',
+            url: WaSender_BASE_URL + '/instances',
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + WAAPI_TOKEN
+                'Authorization': 'Bearer ' + WaSender_TOKEN
             },
             success: function(response) {
-                console.log('WAAPI instances list:', response);
+                console.log('WaSender instances list:', response);
                 $('#debug-last-response').text('✅ Connection successful! Instances: ' + JSON.stringify(response, null, 2));
                 
                 // If we have an instance ID, test its endpoints
                 if (instanceId) {
                     testInstanceEndpoints();
                 } else {
-                    alert('WAAPI connection successful! Check debug panel for details.');
+                    alert('WaSender connection successful! Check debug panel for details.');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('WAAPI connection failed:', xhr);
+                console.error('WaSender connection failed:', xhr);
                 $('#debug-last-response').text('❌ Connection failed: ' + JSON.stringify({
                     status: xhr.status,
                     statusText: xhr.statusText,
                     responseText: xhr.responseText
                 }, null, 2));
-                alert('WAAPI connection failed! Check debug panel for details.');
+                alert('WaSender connection failed! Check debug panel for details.');
             }
         });
     };
@@ -531,10 +531,10 @@ $(document).ready(function() {
         
         endpoints.forEach(function(endpoint) {
             $.ajax({
-                url: WAAPI_BASE_URL + endpoint,
+                url: WaSender_BASE_URL + endpoint,
                 method: 'GET',
                 headers: {
-                    'Authorization': 'Bearer ' + WAAPI_TOKEN
+                    'Authorization': 'Bearer ' + WaSender_TOKEN
                 },
                 success: function(response) {
                     results[endpoint] = { status: '✅ Success', data: response };
@@ -618,12 +618,12 @@ $(document).ready(function() {
         
         $(this).prop('disabled', true).html('<div class="spinner"></div> Creating instance...');
         
-        // Create instance via WAAPI - Updated API call
+        // Create instance via WaSender - Updated API call
         $.ajax({
-            url: WAAPI_BASE_URL + '/instances',
+            url: WaSender_BASE_URL + '/instances',
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + WAAPI_TOKEN,
+                'Authorization': 'Bearer ' + WaSender_TOKEN,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
@@ -685,7 +685,7 @@ $(document).ready(function() {
                 
                 let errorMessage = 'Failed to create WhatsApp instance.';
                 if (xhr.status === 401) {
-                    errorMessage = 'Authentication failed. Please check your WAAPI token.';
+                    errorMessage = 'Authentication failed. Please check your WaSender token.';
                 } else if (xhr.status === 429) {
                     errorMessage = 'Rate limit exceeded. Please try again later.';
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -739,7 +739,7 @@ $(document).ready(function() {
                     responseText: xhr.responseText,
                     error: error
                 });
-                // Continue anyway since the instance was created in WAAPI
+                // Continue anyway since the instance was created in WaSender
             }
         });
     }
@@ -1041,10 +1041,10 @@ $(document).ready(function() {
     function checkInstanceStatus(attempts, maxAttempts, statusPoller) {
         // First try the client status endpoint
         $.ajax({
-            url: WAAPI_BASE_URL + '/instances/' + instanceId + '/client/status',
+            url: WaSender_BASE_URL + '/instances/' + instanceId + '/client/status',
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + WAAPI_TOKEN
+                'Authorization': 'Bearer ' + WaSender_TOKEN
             },
             success: function(response) {
                 console.log('Client status check:', response);
@@ -1055,10 +1055,10 @@ $(document).ready(function() {
                 
                 // Try alternative endpoint
                 $.ajax({
-                    url: WAAPI_BASE_URL + '/instances/' + instanceId,
+                    url: WaSender_BASE_URL + '/instances/' + instanceId,
                     method: 'GET',
                     headers: {
-                        'Authorization': 'Bearer ' + WAAPI_TOKEN
+                        'Authorization': 'Bearer ' + WaSender_TOKEN
                     },
                     success: function(response) {
                         console.log('Instance info check:', response);
@@ -1090,7 +1090,7 @@ $(document).ready(function() {
         let status = null;
         let instanceStatus = null;
         
-        // Handle different response structures - prioritize the WAAPI clientStatus structure
+        // Handle different response structures - prioritize the WaSender clientStatus structure
         if (response.clientStatus) {
             status = response.clientStatus.status;
             instanceStatus = response.clientStatus.instanceStatus;
@@ -1150,10 +1150,10 @@ $(document).ready(function() {
         
         // Try the client action endpoint first
         $.ajax({
-            url: WAAPI_BASE_URL + '/instances/' + instanceId + '/client/action/get-qr',
+            url: WaSender_BASE_URL + '/instances/' + instanceId + '/client/action/get-qr',
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + WAAPI_TOKEN,
+                'Authorization': 'Bearer ' + WaSender_TOKEN,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({}),
@@ -1166,10 +1166,10 @@ $(document).ready(function() {
                 
                 // Try alternative endpoint 1: request-pairing-code
                 $.ajax({
-                    url: WAAPI_BASE_URL + '/instances/' + instanceId + '/client/action/request-pairing-code',
+                    url: WaSender_BASE_URL + '/instances/' + instanceId + '/client/action/request-pairing-code',
                     method: 'POST',
                     headers: {
-                        'Authorization': 'Bearer ' + WAAPI_TOKEN,
+                        'Authorization': 'Bearer ' + WaSender_TOKEN,
                         'Content-Type': 'application/json'
                     },
                     data: JSON.stringify({}),
@@ -1194,7 +1194,7 @@ $(document).ready(function() {
         
         console.log('Parsing QR response:', response);
         
-        // Check the WAAPI response structure: response.qrCode.data.qr_code
+        // Check the WaSender response structure: response.qrCode.data.qr_code
         if (response.qrCode && response.qrCode.data && response.qrCode.data.qr_code) {
             qrCode = response.qrCode.data.qr_code;
         } else if (response.qrCode && response.qrCode.data && response.qrCode.data.qr) {
@@ -1237,13 +1237,13 @@ $(document).ready(function() {
             }
             
             const endpoint = qrEndpoints[endpointIndex];
-            console.log('Trying QR endpoint:', WAAPI_BASE_URL + endpoint);
+            console.log('Trying QR endpoint:', WaSender_BASE_URL + endpoint);
             
             $.ajax({
-                url: WAAPI_BASE_URL + endpoint,
+                url: WaSender_BASE_URL + endpoint,
                 method: 'GET',
                 headers: {
-                    'Authorization': 'Bearer ' + WAAPI_TOKEN
+                    'Authorization': 'Bearer ' + WaSender_TOKEN
                 },
                 success: function(response) {
                     console.log('QR fetch response from', endpoint, ':', response);

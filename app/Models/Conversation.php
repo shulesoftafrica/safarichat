@@ -11,9 +11,13 @@ class Conversation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'lead_id', 'product_id', 'message_type', 'message_content', 'conversation_state',
-        'ai_metadata', 'followup_attempt_at', 'context_data', 'is_active',
-        'sentiment_score', 'language_detected'
+        'lead_id', 'ai_sales_agent_id', 'product_id', 'message', 'message_type', 'sender_type',
+        'message_content', 'conversation_state', 'ai_metadata', 'followup_attempt_at', 
+        'context_data', 'is_active', 'sentiment_score', 'language_detected',
+        // New RAG fields
+        'rag_sources', 'rag_enhanced', 'customer_message', 'ai_response',
+        'sentiment', 'confidence_score', 'tokens_used', 'state', 'summary',
+        'ai_actions', 'conversation_context'
     ];
 
     protected $casts = [
@@ -21,7 +25,14 @@ class Conversation extends Model
         'context_data' => 'array',
         'followup_attempt_at' => 'datetime',
         'sentiment_score' => 'decimal:2',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        // RAG field casts
+        'rag_sources' => 'array',
+        'rag_enhanced' => 'boolean',
+        'confidence_score' => 'decimal:4',
+        'tokens_used' => 'integer',
+        'ai_actions' => 'array',
+        'conversation_context' => 'array'
     ];
 
     // Message type constants
@@ -43,6 +54,11 @@ class Conversation extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function aiSalesAgent()
+    {
+        return $this->belongsTo(AiSalesAgent::class);
     }
 
     public function product()

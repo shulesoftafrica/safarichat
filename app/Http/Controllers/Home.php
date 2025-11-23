@@ -30,6 +30,31 @@ class Home extends Controller
     );
     private $URL = 'http://51.91.251.252:8081/api';
 
+    public function testMessage(){
+        $wasender = new \App\Services\WaSenderService();
+                
+                try {
+                    $result = $wasender->sendTextMessage(
+                        '255714825469', // Phone number in international format
+                        'Hello! This is a test message from DikoDiko Safari Chat.', // Message content
+                        null, // Instance ID (will use default from config)
+                        Auth::id() // User ID for tracking
+                    );
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Test message sent successfully',
+                        'data' => $result
+                    ]);
+                    
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to send test message',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+    }
     /**
      * Show the application dashboard.
      *
@@ -39,17 +64,19 @@ class Home extends Controller
     {
 
           // Check if user has no active whatsapp instance
-            $hasWhatsappInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
-            ->where('type', 'whatsapp')
-            ->where('status', 1)
-            ->exists();
+            // $hasWhatsappInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
+            // ->where('type', 'whatsapp')
+            // ->where('status', 1)
+            // ->exists();
 
-            if (!$hasWhatsappInstance) {
-                  $this->data['ward'] = Auth::user()->business;
-                $this->data['event'] = [];
+            // if (!$hasWhatsappInstance) {
+            //       $this->data['ward'] = Auth::user()->business;
+            //     $this->data['event'] = [];
            
-                return view('auth.business.wasender', $this->data);
-            }
+            //     return view('auth.business.wasender', $this->data);
+            // }
+
+         
         $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
    
      
@@ -249,13 +276,12 @@ class Home extends Controller
             'user_id' => Auth::user()->id,
             'event_id' => $event->id
         ]);
-        $message_instances = \App\Models\MessageInstance::firstOrCreate([
-            'name' => Auth::user()->name,
-            'nida' => Auth::user()->id,
+        $whatsapp_instance = \App\Models\WhatsappInstance::firstOrCreate([
             'user_id' => Auth::id(),
             'phone_number' => Auth::user()->phone,
-            'status' => 0,
-            'type' => 'whatsapp'
+        ], [
+            'instance_name' => Auth::user()->name,
+            'status' => 'pending'
         ]);
         if (in_array((int) $event->event_type_id, [1, 3])) {
             //register partner account and send notifications to the partners
@@ -273,13 +299,11 @@ class Home extends Controller
                 'event_id' => $event->id
             ]);
 
-            $instance = \App\Models\MessageInstance::create([
-                'name' => Auth::user()->name,
-                'nida' => Auth::user()->id,
+            $instance = \App\Models\WhatsappInstance::create([
+                'instance_name' => Auth::user()->name,
                 'user_id' => Auth::id(),
                 'phone_number' => Auth::user()->phone,
-                'status' => 0,
-                'type' => 'whatsapp'
+                'status' => 'pending'
             ]);
         }
         return redirect()->back()->with('success', 'success');

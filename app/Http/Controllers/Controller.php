@@ -6,18 +6,17 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
+use Maatwebsite\Excel\Facades\Excel;
 use DB;
 use Auth;
 use Illuminate\Http\File;
 use Illuminate\Support\Facades\Storage;
-use \App\Http\Controllers\Traits\Notify;
 
 class Controller extends BaseController {
 
     use AuthorizesRequests,
         DispatchesJobs,
-        ValidatesRequests,
-        Notify;
+        ValidatesRequests;
 
     public $data;
     var $APIurl = '';
@@ -47,28 +46,6 @@ class Controller extends BaseController {
         }
     }
 
-    public function sendSms() {
-        
-    }
-
-    public function send_email($email, $subject, $message) {
-        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            try {
-
-                $link = 'https://dikodiko.africa';
-                $data = ['content' => $message, 'link' => $link, 'photo' => '', 'sitename' => 'dikodiko', 'name' => ''];
-                $message = (object) ['sitename' => 'dikodiko', 'email' => $email, 'subject' => $subject];
-                $return = \Mail::send('email.default', $data, function ($m) use ($message) {
-                            $m->from('noreply@shulesoft.com', $message->sitename);
-                            $m->to($message->email)->subject($message->subject);
-                        });
-            } catch (\Exception $e) {
-                $return = $e->getMessage();
-            }
-        }
-
-        return $this;
-    }
 
     public function createPassword($users) {
         $pass = rand(1, 999) . substr(str_shuffle('abcdefghkmnp'), 0, 3);
@@ -95,13 +72,7 @@ class Controller extends BaseController {
         );
     }
     
-public function notifySystemAdmin($message) {
-    $adminContacts = ['admin@example.com', 'admin2@example.com']; // Replace with actual admin contacts
-    foreach ($adminContacts as $contact) {
-        // You can use a mail service or any other notification service to send the message
-        mail($contact, 'System Notification', $message);
-    }
-}
+
 
     //sends Id of the current chat. it is called when the bot gets the command "chatId"
     //@param $chatId [string] [required] - the ID of chat where we send a message
@@ -189,17 +160,9 @@ public function notifySystemAdmin($message) {
         $this->sendRequest('group', $data);
     }
 
-    public function sendTextMessage($chatId, $text, $source = null,$instance_id = null) {
-       
-         $action= app(\App\Http\Controllers\Message::class)->storeMessage($text, $chatId, $source,$instance_id);
-        $action = DB::table('messages')->insert([
-            'body' => $text,
-            'user_id' => Auth::check() ? Auth::user()->id : 1,
-            'created_at' => now(),
-            'status' => 0,
-            'phone' => $chatId,
-           // 'type' => $source == 'whatsapp' ? 4 : 2,
-        ]);
+    public function sendTextMessage($chatId, $text, $source = null,$instance_id = null) {      
+    
+        $action=  (new Message())->send($text, $chatId);
          
          if($action){
             return response()->json(['status' => 'success', 'message' => 'Message saved successfully']);
@@ -280,54 +243,59 @@ public function notifySystemAdmin($message) {
 
     public function uploadExcel($sheet_name = null) {
         try {
-            $folder = "storage/uploads/";
-            if (!is_dir($folder)) {
-                mkdir($folder, 0777, true);
-            }
             $file = request()->file('file');
-            $name = time() . rand(4343, 3243434) . '.' . $file->guessClientExtension();
-            $move = $file->move($folder, $name);
-            $path = $folder . $name;
-            if (!$move) {
-                die('upload Error');
-            } else {
-                $objPHPExcel = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            
+            if (!$file) {
+                $this->resp->success = FALSE;
+                $this->resp->msg = 'No file uploaded';
+                return json_encode($this->resp);
             }
-        } catch (Exception $e) {
-            $this->resp->success = FALSE;
-            $this->resp->msg = 'Error Uploading file';
-            echo json_encode($this->resp);
-        }
-        $sheets = $objPHPExcel->getSheetNames();
 
-        if ($sheet_name == null) {
-            unlink($path);
-            return $this->getDataBySheet($objPHPExcel, 0);
-        } else {
-            $data = [];
-            foreach ($sheets as $key => $value) {
-                $data[$value] = [];
+            // Use Laravel Excel to read the file directly without saving
+            $data = Excel::toArray([], $file);
+            
+            if (empty($data)) {
+                $this->resp->success = FALSE;
+                $this->resp->msg = 'Empty Excel file or invalid format';
+                return json_encode($this->resp);
             }
-            foreach ($sheets as $key => $value) {
-                $excel_data = $this->getDataBySheet($objPHPExcel, $key);
-                count($excel_data) > 0 ? array_push($data[$value], $excel_data) : '';
+
+            if ($sheet_name == null) {
+                // Return first sheet data
+                return $this->formatExcelData($data[0]);
+            } else {
+                // Return all sheets data with sheet names as keys
+                $formatted_data = [];
+                foreach ($data as $index => $sheet_data) {
+                    $sheet_key = $sheet_name . '_' . $index; // Since we don't have actual sheet names
+                    $formatted_data[$sheet_key] = [$this->formatExcelData($sheet_data)];
+                }
+                return $formatted_data;
             }
-            return $data;
+        } catch (\Exception $e) {
+            $this->resp->success = FALSE;
+            $this->resp->msg = 'Error processing Excel file: ' . $e->getMessage();
+            return json_encode($this->resp);
         }
     }
 
-    public function getDataBySheet($objPHPExcel, $sheet_id) {
-        $sheet = $objPHPExcel->getSheet($sheet_id);
-        $highestRow = $sheet->getHighestRow();
-        $highestColumn = $sheet->getHighestColumn();
-        $headings = $sheet->rangeToArray('A1:' . $highestColumn . 1, NULL, TRUE, FALSE);
-        $data = array();
-        for ($row = 2; $row <= $highestRow; $row++) {
-            //  Read a row of data into an array
-            $rowData = $sheet->rangeToArray('A' . $row . ':' . $highestColumn . $row, NULL, TRUE, FALSE);
-            $rowData[0] = array_combine($headings[0], $rowData[0]);
-            $data = array_merge_recursive($data, $rowData);
+    private function formatExcelData($sheet_data) {
+        if (empty($sheet_data) || count($sheet_data) < 2) {
+            return [];
         }
+        
+        // First row contains headers
+        $headers = $sheet_data[0];
+        $data = [];
+        
+        // Process remaining rows
+        for ($i = 1; $i < count($sheet_data); $i++) {
+            $row = $sheet_data[$i];
+            // Combine headers with row data
+            $formatted_row = array_combine($headers, $row);
+            $data[] = $formatted_row;
+        }
+        
         return $data;
     }
 
@@ -338,5 +306,6 @@ public function notifySystemAdmin($message) {
         }
     }
 
+    
   
 }

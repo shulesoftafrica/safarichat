@@ -96,9 +96,16 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-info">
-                                                        {{ $agent->getUserTypeName() }}
-                                                    </span>
+                                                    @php
+                                                        $userTypes = $agent->getTargetUserTypeNames();
+                                                    @endphp
+                                                    @if(!empty($userTypes))
+                                                        @foreach($userTypes as $userType)
+                                                            <span class="badge bg-info me-1">{{ $userType }}</span>
+                                                        @endforeach
+                                                    @else
+                                                        <span class="badge bg-secondary">All Users</span>
+                                                    @endif
                                                 </td>
                                                 <td>
                                                     <strong>{{ ucfirst($agent->primary_language ?? 'English') }}</strong>

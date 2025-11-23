@@ -96,11 +96,24 @@ class AiSalesAgent extends Model
     }
 
     /**
+     * Get conversations associated with this agent
+     */
+    public function conversations()
+    {
+        return $this->hasMany(Conversation::class);
+    }
+
+    /**
      * Get the target user types for this agent
+     * Note: target_user_types is stored as JSON field, not a separate table
      */
     public function targetUserTypes()
     {
-        return $this->belongsToMany(UserType::class, 'target_user_types', 'ai_sales_agent_id', 'user_type_id');
+        if (!$this->target_user_types || !is_array($this->target_user_types)) {
+            return collect([]);
+        }
+        
+        return UserType::whereIn('id', $this->target_user_types)->get();
     }
 
     /**
@@ -155,11 +168,19 @@ class AiSalesAgent extends Model
      */
     public function getTargetUserTypeNames()
     {
-        if (!$this->target_user_types) {
+        if (!$this->target_user_types || !is_array($this->target_user_types) || empty($this->target_user_types)) {
             return [];
         }
 
-        return UserType::whereIn('id', $this->target_user_types)->pluck('name')->toArray();
+        try {
+            return UserType::whereIn('id', $this->target_user_types)->pluck('name')->toArray();
+        } catch (\Exception $e) {
+            \Log::error('Error getting target user type names: ' . $e->getMessage(), [
+                'agent_id' => $this->id,
+                'target_user_types' => $this->target_user_types
+            ]);
+            return [];
+        }
     }
 
     /**

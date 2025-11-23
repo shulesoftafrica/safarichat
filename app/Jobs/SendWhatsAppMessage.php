@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\Message;
 use App\Models\MessageSentby;
 use App\Models\OutgoingMessage;
-use App\Http\Controllers\Message as MessageController;
+use App\Services\WaSenderService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -63,7 +63,7 @@ class SendWhatsAppMessage implements ShouldQueue
      *
      * @return void
      */
-    public function handle()
+    public function handle(WaSenderService $waSenderService)
     {
         try {
             Log::info('Processing WhatsApp message job', [
@@ -72,39 +72,26 @@ class SendWhatsAppMessage implements ShouldQueue
                 'source' => $this->source
             ]);
 
-            // Store message in database first
-            $message = $this->storeMessage();
-            
-            if (!$message) {
-                throw new Exception('Failed to store message in database');
-            }
+            // Send the message using WaSenderService
+            $result = $waSenderService->sendTextMessage(
+                $this->phoneNumber,
+                $this->messageData,
+                $this->instanceId,
+                $this->userId
+            );
 
-            // Create outgoing message record for tracking
-            $outgoingMessage = $this->createOutgoingMessage($message);
-
-            // Send the actual message
-            $result = $this->sendMessage($message, $outgoingMessage);
-
-            // Update message status based on result
-            $this->updateMessageStatus($message, $outgoingMessage, $result);
-
-            Log::info('WhatsApp message sent successfully', [
-                'message_id' => $message->id,
+            Log::info('WhatsApp message sent successfully via WaSender', [
                 'phone' => $this->phoneNumber,
+                'message_id' => $result['message_id'] ?? null,
                 'result' => $result
             ]);
 
         } catch (Exception $e) {
-            Log::error('Failed to send WhatsApp message', [
+            Log::error('Failed to send WhatsApp message via WaSender', [
                 'phone' => $this->phoneNumber,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            // Update failed message status if message was created
-            if (isset($message)) {
-                $this->updateFailedMessageStatus($message, $e->getMessage());
-            }
 
             // Re-throw to trigger retry mechanism
             throw $e;
@@ -112,153 +99,22 @@ class SendWhatsAppMessage implements ShouldQueue
     }
 
     /**
-     * Store message in database
+     * Handle a job failure.
+     *
+     * @param  \Throwable  $exception
+     * @return void
      */
-    private function storeMessage()
+    public function failed(\Throwable $exception)
     {
-        return DB::transaction(function () {
-            $message = Message::create([
-                'body' => $this->messageData,
-                'user_id' => $this->userId ?? 1,
-                'type' => $this->source === 'whatsapp' ? 2 : 1,
-                'phone' => str_replace('@c.us', '', $this->phoneNumber),
-                'status' => 'pending'
-            ]);
-
-            // Create message sent by record
-            MessageSentby::create([
-                'message_id' => $message->id,
-                'channel' => $this->source,
-                'status' => 0,
-                'return_code' => null
-            ]);
-
-            return $message;
-        });
-    }
-
-    /**
-     * Create outgoing message record for detailed tracking
-     */
-    private function createOutgoingMessage($message)
-    {
-        return OutgoingMessage::create([
-            'message_id' => $message->id,
+        Log::error('WhatsApp message job failed permanently', [
+            'phone' => $this->phoneNumber,
             'user_id' => $this->userId,
-            'phone_number' => str_replace('@c.us', '', $this->phoneNumber),
-            'message' => $this->messageData,
-            'message_type' => $this->files ? 'media' : 'text',
-            'status' => 'pending',
-            'instance_id' => $this->instanceId,
-            'scheduled_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
-    }
-
-    /**
-     * Send the actual message using WhatsApp API
-     */
-    private function sendMessage($message, $outgoingMessage)
-    {
-        $messageController = new MessageController();
-        
-        // Prepare the phone number with @c.us suffix if needed
-        $chatId = $this->phoneNumber;
-        if (!str_contains($chatId, '@c.us')) {
-            $chatId = $chatId . '@c.us';
-        }
-
-        // Get message sent by record
-        $messageSentby = MessageSentby::where('message_id', $message->id)
-            ->where('channel', $this->source)
-            ->first();
-
-        if (!$messageSentby) {
-            throw new Exception('MessageSentby record not found');
-        }
-
-        // Call the send method from MessageController
-        return $messageController->send(
-            $this->messageData,
-            $chatId,
-            $this->source,
-            $messageSentby->id,
-            $this->userId
-        );
-    }
-
-    /**
-     * Update message status after successful send
-     */
-    private function updateMessageStatus($message, $outgoingMessage, $result)
-    {
-        $status = 'sent';
-        $deliveryStatus = 'delivered';
-
-        // Parse result to determine actual status
-        if (is_array($result) || is_object($result)) {
-            $resultArray = is_object($result) ? (array) $result : $result;
-            
-            if (isset($resultArray['success']) && !$resultArray['success']) {
-                $status = 'failed';
-                $deliveryStatus = 'failed';
-            }
-        }
-
-        // Update message
-        $message->update([
-            'status' => $status,
-            'sent_at' => now()
+            'error' => $exception->getMessage(),
+            'attempts' => $this->attempts()
         ]);
 
-        // Update outgoing message
-        $outgoingMessage->update([
-            'status' => $deliveryStatus,
-            'sent_at' => now(),
-            'delivery_status' => $deliveryStatus,
-            'api_response' => json_encode($result)
-        ]);
-
-        // Update message sent by
-        MessageSentby::where('message_id', $message->id)
-            ->where('channel', $this->source)
-            ->update([
-                'status' => $status === 'sent' ? 1 : 0,
-                'return_code' => json_encode($result),
-                'updated_at' => now()
-            ]);
-    }
-
-    /**
-     * Update message status for failed attempts
-     */
-    private function updateFailedMessageStatus($message, $error)
-    {
-        // Update message
-        $message->update([
-            'status' => 'failed',
-            'error_message' => $error
-        ]);
-
-        // Update outgoing message if exists
-        $outgoingMessage = OutgoingMessage::where('message_id', $message->id)->first();
-        if ($outgoingMessage) {
-            $outgoingMessage->update([
-                'status' => 'failed',
-                'delivery_status' => 'failed',
-                'error_message' => $error
-            ]);
-        }
-
-        // Update message sent by
-        MessageSentby::where('message_id', $message->id)
-            ->where('channel', $this->source)
-            ->update([
-                'status' => 0,
-                'return_code' => json_encode(['error' => $error]),
-                'updated_at' => now()
-            ]);
+        // Send notification to admin about permanent failure
+        // You can implement admin notification here
     }
 
     /**
@@ -281,30 +137,11 @@ class SendWhatsAppMessage implements ShouldQueue
     }
 
     /**
-     * Handle a job failure.
-     *
-     * @param  \Throwable  $exception
-     * @return void
-     */
-    public function failed(\Throwable $exception)
-    {
-        Log::error('WhatsApp message job failed permanently', [
-            'phone' => $this->phoneNumber,
-            'user_id' => $this->userId,
-            'error' => $exception->getMessage(),
-            'attempts' => $this->attempts
-        ]);
-
-        // Send notification to admin about permanent failure
-        // You can implement admin notification here
-    }
-
-    /**
      * Calculate the number of seconds to wait before retrying the job.
      *
-     * @return int
+     * @return array
      */
-    public function backoff()
+    public function backoff(): array
     {
         return [30, 60, 180]; // Retry after 30s, 1min, 3mins
     }

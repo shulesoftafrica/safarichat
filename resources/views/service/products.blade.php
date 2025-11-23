@@ -184,24 +184,47 @@
                     @csrf
                     <input type="hidden" id="productId" name="id">
                     
-                    <!-- Product Basic Information -->
+                    <!-- Product Type and Basic Information -->
                     <div class="form-section">
                         <h6 class="section-title">
                             <i class="fas fa-info-circle"></i>
-                            Basic Information
+                            Product Type & Basic Information
                         </h6>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Product Type *</label>
+                                <div class="product-type-selector">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_tangible" value="tangible" required>
+                                        <label class="form-check-label" for="type_tangible">
+                                            <i class="fas fa-box"></i> Tangible Product
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_service" value="service" required>
+                                        <label class="form-check-label" for="type_service">
+                                            <i class="fas fa-cogs"></i> Service
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    <label class="form-label">Product Name *</label>
+                                    <label class="form-label" id="nameLabel">Product Name *</label>
                                     <input type="text" class="form-control" name="name" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Description *</label>
                                     <textarea class="form-control" name="description" rows="3" required></textarea>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Minimal Description</label>
+                                    <textarea class="form-control" name="minimal_description" rows="2" placeholder="Brief description for quick reference"></textarea>
+                                </div>
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" id="skuField">
                                         <div class="mb-3">
                                             <label class="form-label">SKU *</label>
                                             <input type="text" class="form-control" name="sku" required>
@@ -223,25 +246,136 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="imageUploadSection">
                                 <!-- Product Image Upload -->
                                 <div class="mb-3">
-                                    <label class="form-label">Product Image</label>
-                                    <input type="file" class="form-control" id="productImageInput" name="image" accept="image/*">
-                                    <small class="text-muted">Max 5MB, JPG/PNG only</small>
+                                    <label class="form-label">Product Images</label>
+                                    <input type="file" class="form-control" id="productImageInput" name="images[]" accept="image/*" multiple>
+                                    <small class="text-muted">Max 5MB each, JPG/PNG only. Multiple images allowed.</small>
                                 </div>
                                 <div id="imagePreview" style="display: none;">
-                                    <img id="previewImg" class="img-thumbnail" style="max-width: 200px;">
-                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeImagePreview()">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
+                                    <!-- Image previews will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service-Specific Fields -->
+                    <div class="form-section service-fields" style="display: none;">
+                        <h6 class="section-title">
+                            <i class="fas fa-cogs"></i>
+                            Service Configuration
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Delivery Type</label>
+                                    <select class="form-select" name="service_delivery_type">
+                                        <option value="">Select delivery type</option>
+                                        <option value="digital">Digital</option>
+                                        <option value="physical">Physical</option>
+                                        <option value="hybrid">Hybrid</option>
+                                        <option value="consultation">Consultation</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Duration (Days)</label>
+                                    <input type="number" class="form-control" name="service_duration_days" min="1" placeholder="e.g., 30, 365">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Pricing Type *</label>
+                                    <select class="form-select" name="pricing_type" required>
+                                        <option value="">Select pricing type</option>
+                                        <option value="one_time">One-time Payment</option>
+                                        <option value="monthly">Monthly Subscription</option>
+                                        <option value="yearly">Yearly Subscription</option>
+                                        <option value="per_hour">Per Hour</option>
+                                        <option value="per_project">Per Project</option>
+                                        <option value="tiered">Tiered Pricing</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Hourly Rate (TSH)</label>
+                                    <input type="number" class="form-control" name="hourly_rate" step="0.01" min="0" placeholder="For hourly services">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Service Tiers Section -->
+                        <div class="service-tiers-section" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Service Pricing Tiers</label>
+                                <div id="serviceTiersContainer">
+                                    <div class="tier-item mb-3 p-3 border rounded">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Tier Name</label>
+                                                <input type="text" class="form-control" name="tier_names[]" placeholder="e.g., Basic, Standard, Premium">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Price (TSH)</label>
+                                                <input type="number" class="form-control" name="tier_prices[]" step="0.01" min="0">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Description</label>
+                                                <input type="text" class="form-control" name="tier_descriptions[]" placeholder="e.g., Up to 200 users">
+                                            </div>
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button type="button" class="btn btn-outline-success" onclick="addServiceTier()">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Define different pricing tiers for your service (e.g., TSH 70,000 for 200 users, TSH 95,000 for 500 users)</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Deliverables</label>
+                                    <textarea class="form-control" name="service_deliverables" rows="3" placeholder="What will be delivered to the customer (JSON format or plain text)"></textarea>
+                                    <small class="text-muted">Describe what the customer will receive</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Tiers</label>
+                                    <textarea class="form-control" name="service_tiers" rows="2" placeholder="Basic, Standard, Premium tiers (JSON format)"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Prerequisites</label>
+                                    <textarea class="form-control" name="prerequisites" rows="2" placeholder="Requirements before service delivery"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="requires_consultation" value="1" id="requires_consultation">
+                                    <label class="form-check-label" for="requires_consultation">
+                                        Requires Initial Consultation
+                                    </label>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Pricing Information -->
-                    <div class="form-section">
+                    <div class="form-section" id="pricingInventorySection">
                         <h6 class="section-title">
                             <i class="fas fa-dollar-sign"></i>
                             Pricing & Inventory
@@ -267,14 +401,20 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Min Negotiable Price (TSH)</label>
+                                    <input type="number" class="form-control" name="min_negotiable_price" step="0.01" min="0" placeholder="Lowest acceptable price">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Stock Quantity</label>
                                     <input type="number" class="form-control" name="quantity" min="0" placeholder="Leave empty for unlimited">
                                     <small class="text-muted">Leave empty for unlimited stock</small>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Status *</label>
                                     <select class="form-select" name="status" required>
@@ -288,7 +428,7 @@
                     </div>
 
                     <!-- Product Tags -->
-                    <div class="form-section">
+                    <div class="form-section" id="productTagsSection">
                         <h6 class="section-title">
                             <i class="fas fa-tags"></i>
                             Product Tags
@@ -317,25 +457,95 @@
                         </div>
                     </div>
 
-                    <!-- Product Attachment -->
+                    <!-- RAG Document Management -->
                     <div class="form-section">
                         <h6 class="section-title">
-                            <i class="fas fa-paperclip"></i>
-                            Additional Files
+                            <i class="fas fa-brain"></i>
+                            RAG Document Management
+                            <span class="badge bg-info ms-2">AI-Enhanced</span>
+                        </h6>
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>RAG Enhancement:</strong> Upload documents to enhance AI responses with product-specific knowledge. Supports PDF, Word, and text files.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Product Documentation</label>
+                            <input type="file" class="form-control" id="ragDocuments" name="rag_documents[]" multiple accept=".pdf,.doc,.docx,.txt,.md">
+                            <small class="text-muted">Max 10MB per file. Supports: PDF, Word, Text, Markdown. Multiple files allowed.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Document Type</label>
+                                    <select class="form-select" name="attachment_type">
+                                        <option value="documentation">Product Documentation</option>
+                                        <option value="manual">User Manual</option>
+                                        <option value="specification">Technical Specifications</option>
+                                        <option value="brochure">Marketing Brochure</option>
+                                        <option value="faq">FAQ Document</option>
+                                        <option value="tutorial">Tutorial/Guide</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" name="enable_rag_processing" value="1" id="enable_rag_processing" checked>
+                                    <label class="form-check-label" for="enable_rag_processing">
+                                        <i class="fas fa-robot"></i> Enable AI Document Processing
+                                    </label>
+                                    <small class="form-text text-muted d-block">Process documents for AI-enhanced customer responses</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="ragDocumentPreviews" class="mt-3">
+                            <!-- Document previews will appear here -->
+                        </div>
+                    </div>
+
+                    <!-- AI Configuration -->
+                    <div class="form-section" id="aiSalesConfigSection">
+                        <h6 class="section-title">
+                            <i class="fas fa-robot"></i>
+                            AI Sales Configuration
+                            <span class="badge bg-success ms-2">Smart Selling</span>
                         </h6>
                         <div class="mb-3">
-                            <label class="form-label">Product Brochure/Manual (PDF)</label>
-                            <input type="file" class="form-control" id="productAttachmentInput" name="attachment" accept=".pdf">
-                            <small class="text-muted">Max 10MB, PDF only</small>
+                            <label class="form-label">AI Sales Prompt</label>
+                            <textarea class="form-control" name="ai_prompt" rows="4" placeholder="Describe how AI should present this product to customers...">
+You are a knowledgeable sales assistant for [PRODUCT_NAME]. Highlight the key benefits, answer customer questions, and guide them towards making a purchase. Be helpful, professional, and persuasive while addressing their specific needs.</textarea>
+                            <small class="text-muted">This prompt will guide AI responses for sales conversations about this product</small>
                         </div>
-                        <div id="attachmentPreview" style="display: none;">
-                            <div class="alert alert-info">
-                                <i class="fas fa-file-pdf text-danger"></i>
-                                <span id="attachmentName"></span>
-                                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeAttachmentPreview()">
-                                    <i class="fas fa-times"></i> Remove
-                                </button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ai_enabled" value="1" id="ai_enabled" checked>
+                                    <label class="form-check-label" for="ai_enabled">
+                                        <i class="fas fa-magic"></i> Enable AI Sales Assistant
+                                    </label>
+                                    <small class="form-text text-muted d-block">Allow AI to handle customer inquiries about this product</small>
+                                </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="auto_rag_enhancement" value="1" id="auto_rag_enhancement" checked>
+                                    <label class="form-check-label" for="auto_rag_enhancement">
+                                        <i class="fas fa-brain"></i> Auto RAG Enhancement
+                                    </label>
+                                    <small class="form-text text-muted d-block">Automatically enhance AI responses with document knowledge</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Key Selling Points</label>
+                            <div id="sellingPointsContainer">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point">
+                                    <button type="button" class="btn btn-outline-success" onclick="addSellingPoint()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Add key selling points that AI will emphasize during sales conversations</small>
                         </div>
                     </div>
 
@@ -367,7 +577,7 @@
 
 <!-- View Product Modal -->
 <div class="modal fade" id="viewProductModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -603,11 +813,160 @@
         gap: 1rem;
     }
     
-    .faq-item {
-        background: white;
+    .product-type-selector {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
         padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .product-type-selector .form-check-label {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e2e8f0;
         border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .product-type-selector .form-check-input:checked + .form-check-label {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        border-color: #6366f1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    
+    .service-fields {
+        border: 2px dashed #10b981;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+    
+    .service-fields .section-title {
+        color: #059669;
+    }
+    
+    .rag-preview-item {
+        background: white;
         border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: between;
+    }
+    
+    .rag-preview-item .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-grow: 1;
+    }
+    
+    .rag-preview-item .file-icon {
+        font-size: 1.5rem;
+    }
+    
+    .selling-point-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .ai-config-badge {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    
+    .rag-badge {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    
+    .form-section.ai-enhanced {
+        border: 2px solid #3b82f6;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    }
+    
+    .form-section.ai-enhanced .section-title {
+        color: #1d4ed8;
+    }
+    
+    .processing-indicator {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #e2e8f0;
+        border-top: 2px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .document-item {
+        transition: all 0.3s ease;
+    }
+    
+    .document-item:hover {
+        background: #e8f4ff !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .document-item .file-icon {
+        transition: all 0.3s ease;
+    }
+    
+    .document-item:hover .file-icon {
+        transform: scale(1.1);
+    }
+    
+    #productDetailsContent .card {
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    #productDetailsContent .card-header {
+        font-weight: 600;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    #productDetailsContent img {
+        border: 3px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+    
+    #productDetailsContent img:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .faq-item {
+        transition: all 0.2s ease;
+    }
+    
+    .faq-item:hover {
+        background: #f8fafc !important;
+        transform: translateX(5px);
     }
     
     @media (max-width: 768px) {
@@ -624,6 +983,10 @@
         .table-responsive {
             font-size: 0.875rem;
         }
+        
+        #productDetailsContent .row {
+            flex-direction: column-reverse;
+        }
     }
 </style>
 
@@ -633,64 +996,408 @@
 <script>
 // Global variables
 let currentProductId = null;
+let uploadedDocuments = [];
+let sellingPointsCount = 1;
+
+// Product type management
+function toggleProductTypeFields() {
+    const productType = document.querySelector('input[name="product_type"]:checked')?.value;
+    const serviceFields = document.querySelector('.service-fields');
+    const imageUploadSection = document.getElementById('imageUploadSection');
+    const skuField = document.getElementById('skuField');
+    const productTagsSection = document.getElementById('productTagsSection');
+    const pricingInventorySection = document.getElementById('pricingInventorySection');
+    const aiSalesConfigSection = document.getElementById('aiSalesConfigSection');
+    const nameLabel = document.getElementById('nameLabel');
+    const serviceTiersSection = document.querySelector('.service-tiers-section');
+    
+    // Get fields that need dynamic required management
+    const retailPriceField = document.querySelector('[name="retail_price"]');
+    const wholesalePriceField = document.querySelector('[name="wholesale_price"]');
+    const statusField = document.querySelector('[name="status"]');
+    const skuInput = document.querySelector('[name="sku"]');
+    
+    if (productType === 'service') {
+        // Show service fields
+        serviceFields.style.display = 'block';
+        
+        // Hide sections not applicable to services
+        if (imageUploadSection) imageUploadSection.style.display = 'none';
+        if (pricingInventorySection) pricingInventorySection.style.display = 'none';
+        if (aiSalesConfigSection) aiSalesConfigSection.style.display = 'none';
+        if (productTagsSection) productTagsSection.style.display = 'none';
+        
+        // Hide SKU field for services
+        if (skuField) {
+            skuField.style.display = 'none';
+            if (skuInput) skuInput.removeAttribute('required');
+        }
+        
+        // Remove required from hidden pricing fields
+        if (retailPriceField) retailPriceField.removeAttribute('required');
+        if (wholesalePriceField) wholesalePriceField.removeAttribute('required');
+        if (statusField) statusField.removeAttribute('required');
+        
+        // Change label to "Service Name"
+        if (nameLabel) nameLabel.textContent = 'Service Name *';
+        
+        // Make service fields required
+        serviceFields.querySelectorAll('select, input').forEach(field => {
+            if (field.name === 'service_delivery_type' || field.name === 'pricing_type') {
+                field.setAttribute('required', 'required');
+            }
+        });
+    } else {
+        // Hide service fields
+        serviceFields.style.display = 'none';
+        
+        // Show sections applicable to products
+        if (imageUploadSection) imageUploadSection.style.display = 'block';
+        if (pricingInventorySection) pricingInventorySection.style.display = 'block';
+        if (aiSalesConfigSection) aiSalesConfigSection.style.display = 'block';
+        if (productTagsSection) productTagsSection.style.display = 'block';
+        
+        // Show SKU field for products
+        if (skuField) {
+            skuField.style.display = 'block';
+            if (skuInput) skuInput.setAttribute('required', 'required');
+        }
+        
+        // Add required back to pricing fields for products
+        if (retailPriceField) retailPriceField.setAttribute('required', 'required');
+        if (wholesalePriceField) wholesalePriceField.setAttribute('required', 'required');
+        if (statusField) statusField.setAttribute('required', 'required');
+        
+        // Change label to "Product Name"
+        if (nameLabel) nameLabel.textContent = 'Product Name *';
+        
+        // Hide service tiers section
+        if (serviceTiersSection) serviceTiersSection.style.display = 'none';
+        
+        // Remove required from service fields
+        serviceFields.querySelectorAll('select, input').forEach(field => {
+            field.removeAttribute('required');
+        });
+    }
+}
+
+// Pricing type management for services
+function togglePricingFields() {
+    const pricingType = document.querySelector('[name="pricing_type"]')?.value;
+    const serviceTiersSection = document.querySelector('.service-tiers-section');
+    
+    if (pricingType === 'tiered') {
+        serviceTiersSection.style.display = 'block';
+    } else {
+        serviceTiersSection.style.display = 'none';
+    }
+}
+
+// Service tiers management
+let serviceTierCount = 1;
+
+function addServiceTier() {
+    serviceTierCount++;
+    const container = document.getElementById('serviceTiersContainer');
+    const tierHtml = `
+        <div class="tier-item mb-3 p-3 border rounded">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Tier Name</label>
+                    <input type="text" class="form-control" name="tier_names[]" placeholder="e.g., Basic, Standard, Premium">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Price (TSH)</label>
+                    <input type="number" class="form-control" name="tier_prices[]" step="0.01" min="0">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control" name="tier_descriptions[]" placeholder="e.g., Up to 200 users">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-danger" onclick="removeServiceTier(this)">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', tierHtml);
+}
+
+function removeServiceTier(button) {
+    if (document.querySelectorAll('.tier-item').length > 1) {
+        button.closest('.tier-item').remove();
+    } else {
+        alert('At least one tier is required for tiered pricing.');
+    }
+}
+
+// Document upload management
+let documentUploadTypes = {};
+
+function addDocumentUpload() {
+    const selector = document.getElementById('documentTypeSelector');
+    const selectedType = selector.value;
+    
+    if (!selectedType) return;
+    
+    // Check if this document type already exists
+    if (documentUploadTypes[selectedType]) {
+        alert('This document type is already added. You can upload multiple files to the existing section.');
+        selector.value = '';
+        return;
+    }
+    
+    const container = document.getElementById('documentUploadContainer');
+    const typeName = selector.options[selector.selectedIndex].text;
+    
+    const uploadSectionHtml = `
+        <div class="document-type-section mb-4 p-3 border rounded" data-type="${selectedType}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">
+                    <i class="fas fa-file-alt text-primary"></i>
+                    ${typeName}
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocumentType('${selectedType}')">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            </div>
+            <div class="mb-2">
+                <input type="file" class="form-control" name="documents_${selectedType}[]" multiple accept=".pdf,.doc,.docx,.txt,.md" onchange="handleDocumentUpload(this, '${selectedType}')">
+                <small class="text-muted">Max 10MB per file. Supports: PDF, Word, Text, Markdown. Multiple files allowed.</small>
+            </div>
+            <div class="document-previews-${selectedType}">
+                <!-- File previews will appear here -->
+            </div>
+            <input type="hidden" name="document_types[]" value="${selectedType}">
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', uploadSectionHtml);
+    documentUploadTypes[selectedType] = true;
+    selector.value = '';
+}
+
+function removeDocumentType(type) {
+    const section = document.querySelector(`.document-type-section[data-type="${type}"]`);
+    if (section) {
+        section.remove();
+        delete documentUploadTypes[type];
+    }
+}
+
+function handleDocumentUpload(input, documentType) {
+    const files = Array.from(input.files);
+    const previewContainer = document.querySelector(`.document-previews-${documentType}`);
+    
+    files.forEach((file, index) => {
+        if (validateRagDocument(file)) {
+            const preview = createDocumentPreview(file, `${documentType}_${index}`, documentType);
+            previewContainer.appendChild(preview);
+        }
+    });
+}
+
+// Selling points management
+function addSellingPoint() {
+    sellingPointsCount++;
+    const container = document.getElementById('sellingPointsContainer');
+    const newPoint = document.createElement('div');
+    newPoint.className = 'input-group mb-2 selling-point-item';
+    newPoint.innerHTML = `
+        <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point">
+        <button type="button" class="btn btn-outline-danger" onclick="removeSellingPoint(this)">
+            <i class="fas fa-minus"></i>
+        </button>
+    `;
+    container.appendChild(newPoint);
+}
+
+function removeSellingPoint(button) {
+    button.closest('.selling-point-item').remove();
+}
+
+// RAG document management
+function handleRagDocuments(input) {
+    const files = Array.from(input.files);
+    const previewContainer = document.getElementById('ragDocumentPreviews');
+    
+    files.forEach((file, index) => {
+        // Validate file
+        if (!validateRagDocument(file)) {
+            return;
+        }
+        
+        // Create preview
+        const preview = createDocumentPreview(file, index);
+        previewContainer.appendChild(preview);
+        
+        // Store file reference
+        uploadedDocuments.push({
+            file: file,
+            index: index,
+            processed: false
+        });
+    });
+}
+
+function validateRagDocument(file) {
+    // Check file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+        return false;
+    }
+    
+    // Check file type
+    const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'text/markdown'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert(`File "${file.name}" is not a supported format. Please use PDF, Word, Text, or Markdown files.`);
+        return false;
+    }
+    
+    return true;
+}
+
+function createDocumentPreview(file, index) {
+    const preview = document.createElement('div');
+    preview.className = 'rag-preview-item';
+    preview.id = `rag-preview-${index}`;
+    
+    const icon = getFileIcon(file.type);
+    const fileSize = formatFileSize(file.size);
+    
+    preview.innerHTML = `
+        <div class="file-info">
+            <div class="file-icon ${getFileIconClass(file.type)}">
+                <i class="${icon}"></i>
+            </div>
+            <div class="file-details">
+                <div class="file-name">${file.name}</div>
+                <div class="file-meta text-muted">${fileSize} • Ready for processing</div>
+            </div>
+        </div>
+        <div class="file-actions">
+            <span class="badge bg-info me-2">AI Ready</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocumentPreview(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    return preview;
+}
+
+function getFileIcon(mimeType) {
+    switch (mimeType) {
+        case 'application/pdf':
+            return 'fas fa-file-pdf';
+        case 'application/msword':
+        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            return 'fas fa-file-word';
+        case 'text/plain':
+        case 'text/markdown':
+            return 'fas fa-file-alt';
+        default:
+            return 'fas fa-file';
+    }
+}
+
+function getFileIconClass(mimeType) {
+    switch (mimeType) {
+        case 'application/pdf':
+            return 'text-danger';
+        case 'application/msword':
+        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            return 'text-primary';
+        case 'text/plain':
+        case 'text/markdown':
+            return 'text-success';
+        default:
+            return 'text-muted';
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function removeDocumentPreview(buttonOrIndex, fileId) {
+    // Handle both old index-based calls and new button-based calls
+    if (typeof buttonOrIndex === 'number') {
+        // Legacy index-based removal
+        const preview = document.getElementById(`rag-preview-${buttonOrIndex}`);
+        if (preview) {
+            preview.remove();
+        }
+        
+        // Remove from uploaded documents array
+        uploadedDocuments = uploadedDocuments.filter(doc => doc.index !== buttonOrIndex);
+    } else if (buttonOrIndex && buttonOrIndex.closest) {
+        // New button-based removal
+        buttonOrIndex.closest('.document-preview-item').remove();
+    }
+}
 
 // Image and attachment preview functions
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Image preview functionality
+    // Image preview functionality for multiple images
     const imageInput = document.getElementById('productImageInput');
-    const attachmentInput = document.getElementById('productAttachmentInput');
     
     if (imageInput) {
         imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                // Validate file size (5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image file size must be less than 5MB');
-                    this.value = '';
-                    return;
-                }
+            const files = Array.from(e.target.files);
+            const previewContainer = document.getElementById('imagePreview');
+            previewContainer.innerHTML = ''; // Clear previous previews
+            
+            if (files.length > 0) {
+                previewContainer.style.display = 'block';
                 
-                // Validate file type
-                if (!file.type.startsWith('image/')) {
-                    alert('Please select a valid image file');
-                    this.value = '';
-                    return;
-                }
-                
-                // Show preview
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewImg').src = e.target.result;
-                    document.getElementById('imagePreview').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-    
-    if (attachmentInput) {
-        attachmentInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                // Validate file size (10MB)
-                if (file.size > 10 * 1024 * 1024) {
-                    alert('PDF file size must be less than 10MB');
-                    this.value = '';
-                    return;
-                }
-                
-                // Validate file type
-                if (file.type !== 'application/pdf') {
-                    alert('Please select a PDF file only');
-                    this.value = '';
-                    return;
-                }
-                
-                // Show preview
-                document.getElementById('attachmentName').textContent = file.name;
-                document.getElementById('attachmentPreview').style.display = 'block';
+                files.forEach((file, index) => {
+                    // Validate file size (5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert(`Image "${file.name}" is too large. Maximum size is 5MB.`);
+                        return;
+                    }
+                    
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert(`"${file.name}" is not a valid image file.`);
+                        return;
+                    }
+                    
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'image-preview-item mb-2 d-inline-block me-2';
+                        previewDiv.innerHTML = `
+                            <div class="position-relative">
+                                <img src="${e.target.result}" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" onclick="removeImagePreview(this)" style="margin: 2px;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <small class="d-block text-center text-muted">${file.name}</small>
+                        `;
+                        previewContainer.appendChild(previewDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                previewContainer.style.display = 'none';
             }
         });
     }
@@ -729,9 +1436,27 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear FAQ container
             document.getElementById('faqContainer').innerHTML = '';
             
+            // Clear selling points (keep one)
+            const sellingPointsContainer = document.getElementById('sellingPointsContainer');
+            sellingPointsContainer.innerHTML = `
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point">
+                    <button type="button" class="btn btn-outline-success" onclick="addSellingPoint()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            `;
+            sellingPointsCount = 1;
+            
+            // Clear RAG document previews
+            document.getElementById('ragDocumentPreviews').innerHTML = '';
+            uploadedDocuments = [];
+            
+            // Reset product type fields
+            document.querySelector('.service-fields').style.display = 'none';
+            
             // Clear previews
             removeImagePreview();
-            removeAttachmentPreview();
             
             // Add one FAQ by default for new products
             if (!currentProductId) {
@@ -753,24 +1478,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function removeImagePreview() {
-    const imageInput = document.getElementById('productImageInput');
-    const imagePreview = document.getElementById('imagePreview');
-    const previewImg = document.getElementById('previewImg');
-    
-    if (imageInput) imageInput.value = '';
-    if (imagePreview) imagePreview.style.display = 'none';
-    if (previewImg) previewImg.src = '';
-}
-
-function removeAttachmentPreview() {
-    const attachmentInput = document.getElementById('productAttachmentInput');
-    const attachmentPreview = document.getElementById('attachmentPreview');
-    const attachmentName = document.getElementById('attachmentName');
-    
-    if (attachmentInput) attachmentInput.value = '';
-    if (attachmentPreview) attachmentPreview.style.display = 'none';
-    if (attachmentName) attachmentName.textContent = '';
+function removeImagePreview(button) {
+    // Remove specific image preview
+    if (button) {
+        button.closest('.image-preview-item').remove();
+        
+        // Check if any previews remain
+        const previewContainer = document.getElementById('imagePreview');
+        if (previewContainer && previewContainer.children.length === 0) {
+            previewContainer.style.display = 'none';
+            // Clear the file input
+            const imageInput = document.getElementById('productImageInput');
+            if (imageInput) imageInput.value = '';
+        }
+    } else {
+        // Remove all image previews
+        const imageInput = document.getElementById('productImageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        if (imageInput) imageInput.value = '';
+        if (imagePreview) {
+            imagePreview.style.display = 'none';
+            imagePreview.innerHTML = '';
+        }
+    }
 }
 
 // Enhanced form validation
@@ -778,11 +1509,23 @@ function validateForm() {
     const form = document.getElementById('addProductForm');
     if (!form) return false;
     
-    const requiredFields = form.querySelectorAll('[required]');
+    // Get product type
+    const productType = document.querySelector('input[name="product_type"]:checked');
+    if (!productType) {
+        alert('Please select a product type (Tangible Product or Service)');
+        return false;
+    }
+    
     let isValid = true;
     
+    // Check required fields that are currently visible and required
+    const requiredFields = form.querySelectorAll('[required]');
     requiredFields.forEach(field => {
-        if (!field.value.trim()) {
+        // Only validate if the field is visible (parent section is not hidden)
+        const fieldContainer = field.closest('.form-section, .service-fields, #skuField');
+        const isFieldVisible = fieldContainer ? window.getComputedStyle(fieldContainer).display !== 'none' : true;
+        
+        if (isFieldVisible && !field.value.trim()) {
             field.classList.add('is-invalid');
             isValid = false;
         } else {
@@ -790,12 +1533,62 @@ function validateForm() {
         }
     });
     
-    // Validate prices
-    const retailPrice = parseFloat(document.querySelector('[name="retail_price"]').value);
-    const wholesalePrice = parseFloat(document.querySelector('[name="wholesale_price"]').value);
+    // Validate service-specific fields if service is selected
+    if (productType.value === 'service') {
+        const serviceDeliveryType = document.querySelector('[name="service_delivery_type"]');
+        const pricingType = document.querySelector('[name="pricing_type"]');
+        
+        if (serviceDeliveryType && !serviceDeliveryType.value) {
+            serviceDeliveryType.classList.add('is-invalid');
+            alert('Please select a service delivery type');
+            isValid = false;
+        }
+        
+        if (pricingType && !pricingType.value) {
+            pricingType.classList.add('is-invalid');
+            alert('Please select a pricing type for the service');
+            isValid = false;
+        }
+        
+        // For services, validate service tier pricing if tiered is selected
+        if (pricingType && pricingType.value === 'tiered') {
+            const tierNames = document.querySelectorAll('[name="tier_names[]"]');
+            const tierPrices = document.querySelectorAll('[name="tier_prices[]"]');
+            
+            if (tierNames.length === 0 || tierPrices.length === 0) {
+                alert('Please add at least one service tier for tiered pricing');
+                isValid = false;
+            }
+        }
+    } else {
+        // Validate product-specific fields for tangible products
+        const retailPriceField = document.querySelector('[name="retail_price"]');
+        const wholesalePriceField = document.querySelector('[name="wholesale_price"]');
+        
+        if (retailPriceField && wholesalePriceField) {
+            const retailPrice = parseFloat(retailPriceField.value);
+            const wholesalePrice = parseFloat(wholesalePriceField.value);
+            const minNegotiablePriceField = document.querySelector('[name="min_negotiable_price"]');
+            const minNegotiablePrice = minNegotiablePriceField ? parseFloat(minNegotiablePriceField.value) : 0;
+            
+            if (retailPrice && wholesalePrice && wholesalePrice >= retailPrice) {
+                alert('Wholesale price must be less than retail price');
+                isValid = false;
+            }
+            
+            if (minNegotiablePrice && wholesalePrice && minNegotiablePrice >= wholesalePrice) {
+                alert('Minimum negotiable price must be less than wholesale price');
+                isValid = false;
+            }
+        }
+    }
     
-    if (wholesalePrice >= retailPrice) {
-        alert('Wholesale price must be less than retail price');
+    // Validate selling points (at least one) - applies to both products and services
+    const sellingPoints = document.querySelectorAll('[name="selling_points[]"]');
+    const hasSellingPoint = Array.from(sellingPoints).some(point => point.value.trim());
+    
+    if (!hasSellingPoint) {
+        alert('Please add at least one key selling point');
         isValid = false;
     }
     
@@ -885,10 +1678,54 @@ function saveProduct() {
     const formData = new FormData(form);
     const productId = document.getElementById('productId').value;
     
+    // Process selling points as JSON
+    const sellingPoints = Array.from(document.querySelectorAll('[name="selling_points[]"]'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+    
+    formData.delete('selling_points[]');
+    formData.append('selling_points', JSON.stringify(sellingPoints));
+    
+    // Process service deliverables and tiers as JSON if they contain structured data
+    const serviceDeliverables = document.querySelector('[name="service_deliverables"]')?.value;
+    const serviceTiers = document.querySelector('[name="service_tiers"]')?.value;
+    
+    if (serviceDeliverables) {
+        try {
+            // Try to parse as JSON, if it fails, treat as plain text
+            JSON.parse(serviceDeliverables);
+        } catch (e) {
+            // Convert plain text to simple array
+            const deliverablesList = serviceDeliverables.split('\n').filter(item => item.trim());
+            formData.set('service_deliverables', JSON.stringify(deliverablesList));
+        }
+    }
+    
+    if (serviceTiers) {
+        try {
+            JSON.parse(serviceTiers);
+        } catch (e) {
+            // Convert plain text to simple array
+            const tiersList = serviceTiers.split('\n').filter(item => item.trim());
+            formData.set('service_tiers', JSON.stringify(tiersList));
+        }
+    }
+    
+    // Add RAG processing flag
+    const enableRagProcessing = document.getElementById('enable_rag_processing')?.checked;
+    formData.append('enable_rag_processing', enableRagProcessing ? '1' : '0');
+    
+    // Add AI configuration
+    const aiEnabled = document.getElementById('ai_enabled')?.checked;
+    const autoRagEnhancement = document.getElementById('auto_rag_enhancement')?.checked;
+    
+    formData.append('ai_enabled', aiEnabled ? '1' : '0');
+    formData.append('auto_rag_enhancement', autoRagEnhancement ? '1' : '0');
+    
     // Show loading state
     const saveButton = document.querySelector('#addProductModal .btn-primary');
     const originalText = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Product & Processing Documents...';
     saveButton.disabled = true;
     
     // Determine if this is an update or create
@@ -915,13 +1752,18 @@ function saveProduct() {
             const modal = bootstrap.Modal.getInstance(modalElem);
             modal.hide();
             
-            // Show success message
-            showNotification('Product saved successfully!', 'success');
+            // Show success message with RAG processing info
+            let message = productId ? 'Product updated successfully!' : 'Product created successfully!';
+            if (uploadedDocuments.length > 0) {
+                message += ` ${uploadedDocuments.length} document(s) are being processed for AI enhancement.`;
+            }
+            
+            showNotification(message, 'success');
             
             // Reload the page to show updated data
             setTimeout(() => {
                 window.location.reload();
-            }, 1000);
+            }, 2000);
         } else {
             showNotification(data.message || 'Error saving product', 'error');
         }
@@ -1089,23 +1931,106 @@ function populateEditForm(product) {
     const saveButton = document.querySelector('#addProductModal .btn-primary');
     saveButton.innerHTML = '<i class="fas fa-save"></i> Update Product';
     
-    // Populate form fields
+    // Populate basic fields
     document.getElementById('productId').value = product.id;
     document.querySelector('[name="name"]').value = product.name || '';
     document.querySelector('[name="description"]').value = product.description || '';
+    document.querySelector('[name="ai_description"]').value = product.ai_description || '';
+    document.querySelector('[name="minimal_description"]').value = product.minimal_description || '';
     document.querySelector('[name="sku"]').value = product.sku || '';
     document.querySelector('[name="category"]').value = product.category || '';
+    
+    // Populate product type
+    if (product.product_type) {
+        const productTypeRadio = document.querySelector(`[name="product_type"][value="${product.product_type}"]`);
+        if (productTypeRadio) {
+            productTypeRadio.checked = true;
+            toggleProductTypeFields();
+        }
+    }
+    
+    // Populate service fields
+    if (product.product_type === 'service') {
+        document.querySelector('[name="service_delivery_type"]').value = product.service_delivery_type || '';
+        document.querySelector('[name="service_duration_days"]').value = product.service_duration_days || '';
+        document.querySelector('[name="pricing_type"]').value = product.pricing_type || '';
+        document.querySelector('[name="hourly_rate"]').value = product.hourly_rate || '';
+        document.querySelector('[name="service_deliverables"]').value = product.service_deliverables || '';
+        document.querySelector('[name="service_tiers"]').value = product.service_tiers || '';
+        document.querySelector('[name="prerequisites"]').value = product.prerequisites || '';
+        
+        const requiresConsultation = document.querySelector('[name="requires_consultation"]');
+        if (requiresConsultation) {
+            requiresConsultation.checked = product.requires_consultation;
+        }
+    }
+    
+    // Populate pricing fields
     document.querySelector('[name="retail_price"]').value = product.retail_price || '';
     document.querySelector('[name="wholesale_price"]').value = product.wholesale_price || '';
+    document.querySelector('[name="min_negotiable_price"]').value = product.min_negotiable_price || '';
     document.querySelector('[name="max_discount"]').value = product.max_discount || 0;
     document.querySelector('[name="quantity"]').value = product.quantity || '';
+    document.querySelector('[name="low_stock_threshold"]').value = product.low_stock_threshold || 10;
+    document.querySelector('[name="conversion_rate"]').value = product.conversion_rate || 0;
     document.querySelector('[name="status"]').value = product.status || 'active';
+    
+    // Populate AI fields
+    document.querySelector('[name="ai_prompt"]').value = product.ai_prompt || '';
+    
+    const aiEnabled = document.getElementById('ai_enabled');
+    if (aiEnabled) {
+        aiEnabled.checked = product.ai_enabled;
+    }
+    
+    const autoRagEnhancement = document.getElementById('auto_rag_enhancement');
+    if (autoRagEnhancement) {
+        autoRagEnhancement.checked = product.auto_rag_enhancement !== false;
+    }
+    
+    const enableRagProcessing = document.getElementById('enable_rag_processing');
+    if (enableRagProcessing) {
+        enableRagProcessing.checked = product.enable_rag_processing !== false;
+    }
     
     // Populate tags
     const tagCheckboxes = document.querySelectorAll('[name="tags[]"]');
     tagCheckboxes.forEach(checkbox => {
         checkbox.checked = product.tags && product.tags.includes(checkbox.value);
     });
+    
+    // Populate selling points
+    const sellingPointsContainer = document.getElementById('sellingPointsContainer');
+    sellingPointsContainer.innerHTML = '';
+    
+    let sellingPoints = [];
+    if (product.selling_points) {
+        try {
+            sellingPoints = typeof product.selling_points === 'string' 
+                ? JSON.parse(product.selling_points) 
+                : product.selling_points;
+        } catch (e) {
+            sellingPoints = [product.selling_points];
+        }
+    }
+    
+    if (sellingPoints.length === 0) {
+        sellingPoints = [''];
+    }
+    
+    sellingPoints.forEach((point, index) => {
+        const pointHtml = `
+            <div class="input-group mb-2 selling-point-item">
+                <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point" value="${point || ''}">
+                <button type="button" class="btn btn-outline-${index === 0 ? 'success' : 'danger'}" onclick="${index === 0 ? 'addSellingPoint()' : 'removeSellingPoint(this)'}">
+                    <i class="fas fa-${index === 0 ? 'plus' : 'minus'}"></i>
+                </button>
+            </div>
+        `;
+        sellingPointsContainer.insertAdjacentHTML('beforeend', pointHtml);
+    });
+    
+    sellingPointsCount = sellingPoints.length;
     
     // Populate FAQs
     const faqContainer = document.getElementById('faqContainer');
@@ -1119,7 +2044,112 @@ function populateEditForm(product) {
             lastFaqItem.querySelector('[name$="[question]"]').value = faq.question || '';
             lastFaqItem.querySelector('[name$="[answer]"]').value = faq.answer || '';
         });
+    } else {
+        addFAQ(); // Add one FAQ by default
     }
+    
+    // Handle existing attachments/documents
+    if (product.attachments && product.attachments.length > 0) {
+        const ragDocumentPreviews = document.getElementById('ragDocumentPreviews');
+        ragDocumentPreviews.innerHTML = '';
+        
+        product.attachments.forEach((attachment, index) => {
+            const existingPreview = document.createElement('div');
+            existingPreview.className = 'rag-preview-item existing-document';
+            existingPreview.innerHTML = `
+                <div class="file-info">
+                    <div class="file-icon ${getFileIconClass(attachment.mime_type)}">
+                        <i class="${getFileIcon(attachment.mime_type)}"></i>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name">${attachment.file_name}</div>
+                        <div class="file-meta text-muted">
+                            ${formatFileSize(attachment.file_size)} • 
+                            <span class="badge bg-${attachment.processing_status === 'completed' ? 'success' : attachment.processing_status === 'processing' ? 'warning' : 'secondary'}">
+                                ${attachment.processing_status || 'pending'}
+                            </span>
+                            ${attachment.vector_count ? ` • ${attachment.vector_count} vectors` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="${attachment.file_path}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="fas fa-download"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="reprocessDocument(${attachment.id})" title="Reprocess for RAG">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExistingDocument(${attachment.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            ragDocumentPreviews.appendChild(existingPreview);
+        });
+    }
+}
+
+// Additional helper functions for document management
+function reprocessDocument(attachmentId) {
+    if (!confirm('Reprocess this document for RAG enhancement?')) {
+        return;
+    }
+    
+    fetch(`/api/products/attachments/${attachmentId}/reprocess`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Document reprocessing started!', 'success');
+            // Update status indicator
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message || 'Error reprocessing document', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error reprocessing document', 'error');
+    });
+}
+
+function removeExistingDocument(attachmentId) {
+    if (!confirm('Delete this document permanently?')) {
+        return;
+    }
+    
+    fetch(`/api/products/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Document deleted successfully!', 'success');
+            // Remove from UI
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message || 'Error deleting document', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error deleting document', 'error');
+    });
 }
 
 function displayProductDetails(product) {
@@ -1130,45 +2160,194 @@ function displayProductDetails(product) {
     
     const faqsHtml = product.faqs && product.faqs.length > 0
         ? product.faqs.map(faq => `
-            <div class="faq-item mb-2">
-                <strong>Q: ${faq.question}</strong><br>
-                <span class="text-muted">A: ${faq.answer}</span>
+            <div class="faq-item mb-2 p-2 bg-light rounded">
+                <strong><i class="fas fa-question-circle text-primary"></i> Q: ${faq.question}</strong><br>
+                <span class="text-muted ms-3"><i class="fas fa-arrow-right text-success"></i> A: ${faq.answer}</span>
             </div>
         `).join('')
         : '<span class="text-muted">No FAQs available</span>';
     
+    // Build documents HTML
+    const documentsHtml = product.attachments && product.attachments.length > 0
+        ? product.attachments.map(doc => {
+            const icon = getFileIcon(doc.mime_type);
+            const iconClass = getFileIconClass(doc.mime_type);
+            const statusBadge = doc.processing_status === 'completed' ? 'success' : 
+                              doc.processing_status === 'processing' ? 'warning' : 
+                              doc.processing_status === 'failed' ? 'danger' : 'secondary';
+            const fileSize = formatFileSize(doc.file_size);
+            
+            return `
+                <div class="document-item p-3 mb-2 bg-light rounded border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon ${iconClass} me-3" style="font-size: 2rem;">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">${doc.file_name}</div>
+                                <small class="text-muted">
+                                    ${fileSize} • ${doc.attachment_type || 'Document'}
+                                    ${doc.vector_count ? ` • ${doc.vector_count} AI vectors` : ''}
+                                </small>
+                                <div class="mt-1">
+                                    <span class="badge bg-${statusBadge}">${doc.processing_status || 'pending'}</span>
+                                    ${doc.processed_at ? `<small class="text-muted ms-2">Processed: ${new Date(doc.processed_at).toLocaleDateString()}</small>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/storage/${doc.file_path}" target="_blank" class="btn btn-sm btn-outline-primary" title="Download">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : '<div class="text-muted text-center p-3 bg-light rounded"><i class="fas fa-folder-open"></i> No documents uploaded</div>';
+    
+    // Build selling points HTML
+    let sellingPointsHtml = '';
+    if (product.selling_points) {
+        try {
+            const points = typeof product.selling_points === 'string' 
+                ? JSON.parse(product.selling_points) 
+                : product.selling_points;
+            
+            if (points && points.length > 0) {
+                sellingPointsHtml = points.map(point => 
+                    `<li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>${point}</li>`
+                ).join('');
+            }
+        } catch (e) {
+            sellingPointsHtml = '<li class="text-muted">No selling points available</li>';
+        }
+    } else {
+        sellingPointsHtml = '<li class="text-muted">No selling points available</li>';
+    }
+    
+    // Build service info HTML if applicable
+    const serviceInfoHtml = product.product_type === 'service' ? `
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-cogs"></i> Service Information
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Delivery Type:</strong> ${product.service_delivery_type || 'N/A'}<br>
+                        <strong>Duration:</strong> ${product.service_duration_days ? product.service_duration_days + ' days' : 'N/A'}<br>
+                        <strong>Pricing Type:</strong> ${product.pricing_type || 'N/A'}<br>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Hourly Rate:</strong> ${product.hourly_rate ? '$' + product.hourly_rate : 'N/A'}<br>
+                        <strong>Consultation Required:</strong> ${product.requires_consultation ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-secondary">No</span>'}<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+    
     content.innerHTML = `
         <div class="row">
             <div class="col-md-8">
-                <h5>${product.name}</h5>
-                <p class="text-muted">${product.description}</p>
+                <div class="mb-3">
+                    <h4 class="mb-2">${product.name}</h4>
+                    <span class="badge bg-${product.product_type === 'service' ? 'success' : 'primary'} me-2">
+                        <i class="fas fa-${product.product_type === 'service' ? 'cogs' : 'box'}"></i>
+                        ${product.product_type === 'service' ? 'Service' : 'Product'}
+                    </span>
+                    <span class="badge bg-${product.status === 'active' ? 'success' : 'secondary'}">
+                        ${product.status}
+                    </span>
+                </div>
                 
-                <div class="row mb-3">
-                    <div class="col-sm-6">
-                        <strong>SKU:</strong> ${product.sku}<br>
-                        <strong>Category:</strong> ${product.category}<br>
-                        <strong>Status:</strong> <span class="badge bg-${product.status === 'active' ? 'success' : 'secondary'}">${product.status}</span>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p class="text-muted">${product.description || 'No description available'}</p>
+                </div>
+                
+                ${product.ai_description ? `
+                    <div class="mb-3">
+                        <strong><i class="fas fa-robot text-primary"></i> AI Description:</strong>
+                        <p class="text-muted">${product.ai_description}</p>
                     </div>
-                    <div class="col-sm-6">
-                        <strong>Retail Price:</strong> $${product.retail_price}<br>
-                        <strong>Wholesale Price:</strong> $${product.wholesale_price}<br>
-                        <strong>Stock:</strong> ${product.quantity || 'Unlimited'}
+                ` : ''}
+                
+                ${serviceInfoHtml}
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <i class="fas fa-dollar-sign"></i> Pricing Information
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>SKU:</strong> ${product.sku || 'N/A'}<br>
+                                <strong>Category:</strong> ${product.category || 'N/A'}<br>
+                                <strong>Retail Price:</strong> <span class="text-success fw-bold">$${product.retail_price || '0.00'}</span><br>
+                                <strong>Wholesale Price:</strong> <span class="text-primary">$${product.wholesale_price || '0.00'}</span><br>
+                            </div>
+                            <div class="col-sm-6">
+                                ${product.min_negotiable_price ? `<strong>Min Negotiable:</strong> $${product.min_negotiable_price}<br>` : ''}
+                                <strong>Max Discount:</strong> ${product.max_discount || 0}%<br>
+                                <strong>Stock:</strong> ${product.quantity || 'Unlimited'}<br>
+                                ${product.low_stock_threshold ? `<strong>Low Stock Alert:</strong> ${product.low_stock_threshold}<br>` : ''}
+                                ${product.conversion_rate ? `<strong>Conversion Rate:</strong> ${product.conversion_rate}%<br>` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
-                    <strong>Tags:</strong><br>
+                    <strong><i class="fas fa-star text-warning"></i> Key Selling Points:</strong>
+                    <ul class="mt-2">
+                        ${sellingPointsHtml}
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <strong><i class="fas fa-tags"></i> Tags:</strong><br>
                     ${tagsHtml}
                 </div>
                 
                 <div class="mb-3">
-                    <strong>FAQs:</strong><br>
-                    ${faqsHtml}
+                    <strong><i class="fas fa-question-circle"></i> FAQs:</strong>
+                    <div class="mt-2">
+                        ${faqsHtml}
+                    </div>
                 </div>
             </div>
+            
             <div class="col-md-4">
-                ${product.image_url ? `<img src="${product.image_url}" class="img-fluid rounded">` : '<div class="text-center text-muted">No image available</div>'}
-                ${product.attachment_url ? `<a href="${product.attachment_url}" target="_blank" class="btn btn-outline-primary btn-sm mt-2"><i class="fas fa-file-pdf"></i> View Attachment</a>` : ''}
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <i class="fas fa-image"></i> Product Image
+                    </div>
+                    <div class="card-body text-center">
+                        ${product.image_url 
+                            ? `<img src="${product.image_url}" class="img-fluid rounded shadow-sm" alt="${product.name}" style="max-height: 300px;">` 
+                            : `<div class="text-muted p-5 bg-light rounded">
+                                <i class="fas fa-image fa-3x mb-3"></i><br>
+                                No image available
+                               </div>`
+                        }
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <i class="fas fa-file-alt"></i> Uploaded Documents
+                        ${product.attachments && product.attachments.length > 0 
+                            ? `<span class="badge bg-primary float-end">${product.attachments.length}</span>` 
+                            : ''
+                        }
+                    </div>
+                    <div class="card-body">
+                        ${documentsHtml}
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -1205,6 +2384,58 @@ function showNotification(message, type = 'info') {
             }
         });
     }, 5000);
+}
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default product type to tangible
+    const defaultType = document.getElementById('type_tangible');
+    if (defaultType) {
+        defaultType.checked = true;
+    }
+    
+    // Initialize product type fields
+    toggleProductTypeFields();
+    
+    // Add event listeners for product type change
+    document.querySelectorAll('input[name="product_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            toggleProductTypeFields();
+        });
+    });
+    
+    const pricingTypeSelect = document.querySelector('[name="pricing_type"]');
+    if (pricingTypeSelect) {
+        pricingTypeSelect.addEventListener('change', togglePricingFields);
+    }
+});
+
+// Create document preview element
+function createDocumentPreview(file, fileId, documentType) {
+    const preview = document.createElement('div');
+    preview.className = 'document-preview-item d-flex align-items-center mb-2 p-2 border rounded';
+    preview.innerHTML = `
+        <div class="me-3">
+            <i class="fas fa-file-alt text-primary fs-4"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="fw-bold">${file.name}</div>
+            <small class="text-muted">${formatFileSize(file.size)}</small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocumentPreview(this, '${fileId}')">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    return preview;
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 </script>

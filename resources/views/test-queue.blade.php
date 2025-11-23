@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Refresh queue statistics
 function refreshStats() {
-    fetch('/api/waapi/queue-stats', {
+    fetch('/api/wasender/queue-stats', {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
@@ -325,7 +325,7 @@ document.getElementById('testOutgoingForm').addEventListener('submit', function(
     
     addTestResult('info', 'Queuing outgoing message...');
     
-    fetch('/api/waapi/test-queue-message', {
+    fetch('/api/wasender/test-queue-message', {
         method: 'POST',
         body: formData,
         headers: {
@@ -355,7 +355,7 @@ document.getElementById('testIncomingForm').addEventListener('submit', function(
     
     addTestResult('info', 'Simulating incoming message...');
     
-    fetch('/api/waapi/test-incoming-message', {
+    fetch('/api/wasender/test-incoming-message', {
         method: 'POST',
         body: formData,
         headers: {
@@ -398,7 +398,7 @@ function addTestResult(type, message) {
 
 function clearFailedJobs() {
     if (confirm('Are you sure you want to clear all failed jobs?')) {
-        fetch('/api/waapi/clear-failed-jobs', {
+        fetch('/api/wasender/clear-failed-jobs', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -418,7 +418,7 @@ function clearFailedJobs() {
 
 function retryFailedJobs() {
     if (confirm('Are you sure you want to retry all failed jobs?')) {
-        fetch('/api/waapi/retry-failed-jobs', {
+        fetch('/api/wasender/retry-failed-jobs', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',

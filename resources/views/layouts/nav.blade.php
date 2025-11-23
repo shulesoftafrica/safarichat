@@ -1,6 +1,6 @@
 <?php ?>
 <!-- Add Font Awesome CDN for icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-dyZt6QpDqT1Q6Xo8XzYx+lNEwGDbVS9/6IKxhpcJn/qdNqxabWWMwBLT/gRghOAqxCLv7saEh1P1LzpTnt324g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <!-- leftbar-tab-menu -->
 <div class="leftbar-tab-menu">
     <div class="main-icon-menu">

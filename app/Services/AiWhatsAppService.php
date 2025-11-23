@@ -63,8 +63,8 @@ class AiWhatsAppService
             // Determine if this is product-specific conversation
             $product = $this->identifyProduct($message, $lead);
 
-            // Generate AI response
-            $aiResult = $this->openAiService->generateSalesResponse(
+            // Enhanced: Use RAG-augmented AI response
+            $aiResult = $this->openAiService->generateSalesResponseWithRAG(
                 $message->message_body,
                 $agent,
                 $lead,
@@ -80,13 +80,14 @@ class AiWhatsAppService
             // Process any actions from the AI response
             $actionResults = $this->processAiActions($aiResult['actions'], $agent, $lead, $product);
 
-            // Save conversation record
+            // Enhanced conversation save with RAG sources
             $conversation = $this->saveConversation(
                 $lead,
                 $message,
                 $aiResult,
                 $sentiment,
-                $product
+                $product,
+                $aiResult['rag_sources'] ?? []
             );
 
             // Update lead engagement
@@ -99,6 +100,8 @@ class AiWhatsAppService
                 'response' => $aiResult['response'],
                 'conversation_id' => $conversation->id,
                 'actions_taken' => $actionResults,
+                'rag_enhanced' => $aiResult['rag_used'] ?? false,
+                'sources_used' => count($aiResult['rag_sources'] ?? []),
                 'confidence' => $aiResult['confidence'],
                 'sentiment' => $sentiment['sentiment'],
                 'requires_human' => isset($aiResult['actions']['needs_escalation']),
@@ -433,14 +436,15 @@ class AiWhatsAppService
     }
 
     /**
-     * Save conversation record
+     * Save conversation record (enhanced with RAG sources)
      */
     private function saveConversation(
         Lead $lead,
         IncomingMessage $message,
         array $aiResult,
         array $sentiment,
-        ?Product $product
+        ?Product $product,
+        array $ragSources = []
     ): Conversation {
         return $lead->conversations()->create([
             'product_id' => $product?->id,
@@ -452,6 +456,14 @@ class AiWhatsAppService
             'state' => 'active',
             'summary' => $this->generateConversationSummary($message->message_body, $aiResult['response']),
             'ai_actions' => $aiResult['actions'] ?? [],
+            'rag_sources' => $ragSources, // Store RAG sources
+            'rag_enhanced' => $aiResult['rag_used'] ?? false,
+            'conversation_context' => [
+                'phone_number' => $message->phone_number,
+                'message_type' => $message->message_type ?? 'text',
+                'sources_count' => count($ragSources),
+                'processing_method' => 'rag_enhanced'
+            ]
         ]);
     }
 

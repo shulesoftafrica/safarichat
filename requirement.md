@@ -15,7 +15,7 @@ This document provides a complete implementation roadmap for building a high-eff
 
 **Current Stack Analysis:**
 - ✅ Laravel Framework (v8.12) - Already configured
-- ✅ WhatsApp Integration - Existing OfficialWhatsAppService 
+- ✅ WhatsApp Integration - Existing WaSender API Service 
 - ✅ Queue System - Laravel Horizon configured
 - ✅ Contact Management - Existing `events_guests` table
 - ✅ Product Catalog - Existing `products` table
@@ -1741,12 +1741,12 @@ class OpenAiService
 
 namespace App\Services;
 
-use App\Services\OfficialWhatsAppService;
+use App\Services\WaSender API Service;
 use App\Models\Lead;
 use App\Models\Conversation;
 use Illuminate\Support\Facades\Log;
 
-class AiWhatsAppService extends OfficialWhatsAppService
+class AiWhatsAppService integrates with WaSender API
 {
     /**
      * Send AI response to lead
@@ -1867,7 +1867,7 @@ class AiWhatsAppService extends OfficialWhatsAppService
 ### 3.3. WhatsApp Webhook Controller (NEW - Instant Processing)
 
 ```php
-// app/Http/Controllers/WhatsAppWebhookController.php
+// app/Http/Controllers/WaSender API.php
 <?php
 
 namespace App\Http\Controllers;
@@ -1884,7 +1884,7 @@ use App\Services\HandoffService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class WhatsAppWebhookController extends Controller
+class WaSender API extends Controller
 {
     protected $openAiService;
     protected $whatsappService;
@@ -2393,7 +2393,7 @@ class ConversationEngineCommand extends Command
         }
     }
 
-    // NOTE: New customer message processing is now handled instantly by WhatsAppWebhookController
+    // NOTE: New customer message processing is now handled by WaSender API integration
     // This method is kept for reference but not called in instant webhook architecture
     private function processNewReplies_DEPRECATED()
     {
@@ -3272,11 +3272,11 @@ class Kernel extends ConsoleKernel
 // routes/api.php - Add instant webhook processing routes
 Route::prefix('whatsapp')->group(function () {
     // Instant webhook processing for lead messages
-    Route::post('/webhook/instant', [WhatsAppWebhookController::class, 'handleIncomingMessage'])
+    Route::post('/webhook/instant', [WaSender API::class, 'handleIncomingMessage'])
           ->name('whatsapp.webhook.instant');
     
     // Webhook verification (if required by WhatsApp)
-    Route::get('/webhook/instant', [WhatsAppWebhookController::class, 'verifyWebhook'])
+    Route::get('/webhook/instant', [WaSender API::class, 'verifyWebhook'])
           ->name('whatsapp.webhook.verify');
     
     // Fallback webhook (existing system)
@@ -3358,7 +3358,7 @@ QUEUE_CONNECTION=database
 
 ### Phase 2: Webhook & AI Implementation (Week 2)
 1. **Instant Webhook Processing**
-   - Implement WhatsAppWebhookController for instant responses
+   - Implement WaSender API integration for instant responses
    - Create intelligent message prioritization system
    - Build business hours detection and scheduling
 
@@ -4014,7 +4014,7 @@ if ($aiResponse['discount_offered'] > $aiAgent->max_discount_allowed) {
 ## 14. Webhook vs Cron Architecture Summary
 
 ### 14.1. Instant Message Processing (NEW)
-- **Primary Path**: `WhatsAppWebhookController::handleIncomingMessage()` processes customer messages instantly
+- **Primary Path**: WaSender API processes customer messages instantly
 - **Business Hours**: Messages during 9 AM - 6 PM local time get immediate AI responses
 - **After Hours**: Messages queued for next business day processing
 - **Fallback**: Critical errors stored for cron processing as backup

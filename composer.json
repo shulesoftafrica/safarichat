@@ -10,6 +10,7 @@
     "require": {
         "php": "^7.3|^8.0",
         "barryvdh/laravel-dompdf": "^0.8.2",
+        "doctrine/dbal": "^3.10",
         "fideloper/proxy": "^4.4",
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
@@ -22,7 +23,8 @@
         "predis/predis": "^1.1",
         "sentry/sentry-laravel": "^2.14",
         "setasign/fpdf": "^1.8",
-        "setasign/fpdi": "^2.0"
+        "setasign/fpdi": "^2.0",
+        "spatie/pdf-to-text": "^1.54"
     },
     "require-dev": {
         "facade/ignition": "^2.5",
