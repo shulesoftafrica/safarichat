@@ -1044,16 +1044,13 @@ class WaSenderController extends Controller
                     
                 case 'qr':
                 case 'qr.update':
-                    return response()->json(['success' => true]);
-                    
+                    return response()->json(['success' => true]);       
                 case 'ready':
                 case 'connection.ready':
-                    return $this->handleConnectionReady($webhookData, $instance);
-                    
+                    return $this->handleConnectionReady($webhookData, $instance);          
                 case 'disconnected':
                 case 'connection.lost':
-                    return $this->handleDisconnection($webhookData, $instance);
-                    
+                    return $this->handleDisconnection($webhookData, $instance);             
                 default:
                     Log::info('Unhandled webhook event type', [
                         'event_type' => $eventType,
