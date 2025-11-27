@@ -347,7 +347,7 @@ class WebhookProcessorService
             $startTime = microtime(true);
             $timeout = 8; // 8 seconds max for instant processing
             
-            $result = $this->aiWhatsAppService->processIncomingMessage($message);
+            $result = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI($message);
             
             $processingTime = microtime(true) - $startTime;
             

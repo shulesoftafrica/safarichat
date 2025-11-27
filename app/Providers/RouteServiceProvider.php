@@ -58,6 +58,10 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        RateLimiter::for('webhooks', function (Request $request) {
+    // Set a high, generous limit for trusted webhook sources (e.g., 500 per minute)
+    return Limit::perMinute(500)->by($request->ip());
+});
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });

@@ -9,22 +9,25 @@ use App\Models\Conversation;
 use App\Models\EventsGuest;
 use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
+use App\Services\WaSenderService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 class AiWhatsAppService
 {
     private $openAiService;
+    private $waSenderService;
 
-    public function __construct(OpenAiService $openAiService)
+    public function __construct(OpenAiService $openAiService, WaSenderService $waSenderService)
     {
         $this->openAiService = $openAiService;
+        $this->waSenderService = $waSenderService;
     }
 
     /**
-     * Process incoming WhatsApp message with AI
+     * Process incoming WhatsApp message with AI sales agent
      */
-    public function processIncomingMessage(IncomingMessage $message): array
+    public function processIncomingWhatsAppMessageWithAI(IncomingMessage $message): array
     {
         try {
             DB::beginTransaction();
@@ -507,7 +510,7 @@ class AiWhatsAppService
     public function sendResponse(string $response, IncomingMessage $originalMessage): bool
     {
         try {
-            // This would integrate with your existing WhatsApp sending logic
+            // Create outgoing message record first
             $outgoingMessage = OutgoingMessage::create([
                 'user_id' => $originalMessage->user_id,
                 'instance_id' => $originalMessage->instance_id,
@@ -519,16 +522,49 @@ class AiWhatsAppService
                 'is_ai_generated' => true,
             ]);
 
-            // Here you would call your existing WhatsApp API service
-            // For now, just mark as sent
-            $outgoingMessage->update(['status' => 'sent']);
+            // Send via WaSender API
+            $result = $this->waSenderService->sendTextMessage(
+                $originalMessage->phone_number,
+                $response,
+                $originalMessage->instance_id,
+                $originalMessage->user_id
+            );
 
-            return true;
+            if ($result['success']) {
+                // Update outgoing message as sent
+                $outgoingMessage->update([
+                    'status' => 'sent',
+                    'message_id' => $result['message_id'] ?? null
+                ]);
+
+                Log::info('AI response sent successfully via WhatsApp', [
+                    'outgoing_message_id' => $outgoingMessage->id,
+                    'phone_number' => $originalMessage->phone_number,
+                    'message_id' => $result['message_id'] ?? null
+                ]);
+
+                return true;
+            } else {
+                // Update outgoing message as failed
+                $outgoingMessage->update([
+                    'status' => 'failed',
+                    'error_message' => $result['error'] ?? 'Unknown error'
+                ]);
+
+                Log::error('Failed to send AI response via WhatsApp', [
+                    'outgoing_message_id' => $outgoingMessage->id,
+                    'phone_number' => $originalMessage->phone_number,
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
+
+                return false;
+            }
 
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Error: ' . $e->getMessage(), [
                 'original_message_id' => $originalMessage->id,
                 'response' => substr($response, 0, 100),
+                'error_trace' => $e->getTraceAsString()
             ]);
 
             return false;

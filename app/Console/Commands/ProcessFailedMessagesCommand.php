@@ -58,7 +58,7 @@ class ProcessFailedMessagesCommand extends Command
                 $message->increment('processing_attempts');
 
                 // Process with AI
-                $result = $this->aiWhatsAppService->processIncomingMessage($message);
+                $result = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI($message);
 
                 if ($result['success']) {
                     // Send response if available

@@ -59,6 +59,10 @@ Route::prefix('documents')->group(function () {
     Route::get('/processing-status', [App\Http\Controllers\Api\ProductAttachmentController::class, 'getProcessingStatus']);
 });
 
+// OTP Authentication Routes
+Route::post('/otp', 'Api@otp');
+Route::post('/otp/verify', 'Api@otpverify');
+
 Route::post('/whatsapp', 'Api@whatsapp');
 Route::any('/message','Api@pushEmailsToSend');
 Route::any('/sms/{code}/{imei?}/{model?}', 'Api@pushPhoneSMS');
@@ -78,7 +82,7 @@ Route::post('/wasender/clear-failed-jobs', 'WaSenderController@clearFailedJobs')
 Route::post('/wasender/retry-failed-jobs', 'WaSenderController@retryFailedJobs');
 
 // WaSender Incoming Message Processing
-Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook');
+Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook')->middleware(['throttle:webhooks']);;
 
 // WaSender API endpoints for sending messages
 Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {

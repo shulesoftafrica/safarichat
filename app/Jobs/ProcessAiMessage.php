@@ -32,7 +32,7 @@ class ProcessAiMessage implements ShouldQueue
             $this->message->increment('processing_attempts');
 
             // Process the message with AI
-            $result = $aiWhatsAppService->processIncomingMessage($this->message);
+            $result = $aiWhatsAppService->processIncomingWhatsAppMessageWithAI($this->message);
 
             if ($result['success']) {
                 // Send response

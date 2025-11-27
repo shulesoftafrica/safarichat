@@ -70,7 +70,7 @@ class ProcessIncomingMessage implements ShouldQueue
             // Use the Api controller to process the message
             $apiController = new Api();
             $reflection = new \ReflectionClass($apiController);
-            $method = $reflection->getMethod('processSingleMessage');
+            $method = $reflection->getMethod('processSingleWebhookMessage');
             $method->setAccessible(true);
             
             // Process the message

@@ -809,7 +809,7 @@ class Api extends Controller {
     /**
      * Process incoming WhatsApp messages from WAAPI webhook
      */
-    public function processIncomingMessages(\Illuminate\Http\Request $request)
+    public function processIncomingWhatsAppWebhook(\Illuminate\Http\Request $request)
     {
         try {
             // Log the incoming webhook data
@@ -871,9 +871,9 @@ class Api extends Controller {
     }
 
     /**
-     * Process a single incoming message
+     * Process a single incoming WhatsApp webhook message
      */
-    private function processSingleMessage($whatsappInstance, $messageData)
+    private function processSingleWebhookMessage($whatsappInstance, $messageData)
     {
         try {
             // Extract message information
@@ -1274,7 +1274,7 @@ class Api extends Controller {
             $processedCount = 0;
             
             foreach ($messages as $messageData) {
-                $this->processSingleMessage($whatsappInstance, $messageData);
+                $this->processSingleWebhookMessage($whatsappInstance, $messageData);
                 $processedCount++;
             }
             

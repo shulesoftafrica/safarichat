@@ -9,9 +9,17 @@ use Illuminate\Support\Facades\Http;
 use App\Models\WhatsappInstance;
 use App\Models\AiSalesAgent;
 use App\Models\User;
+use App\Models\IncomingMessage;
+use App\Services\AiWhatsAppService;
 
 class WaSenderController extends Controller
 {
+    protected $aiWhatsAppService;
+
+    public function __construct(AiWhatsAppService $aiWhatsAppService)
+    {
+        $this->aiWhatsAppService = $aiWhatsAppService;
+    }
     /**
      * Show WA Sender setup page
      */
@@ -1056,7 +1064,8 @@ class WaSenderController extends Controller
                         'event_type' => $eventType,
                         'instance_id' => $instanceId
                     ]);
-                    return response()->json(['success' => true, 'message' => 'Event acknowledged']);
+                    //return response()->json(['success' => true, 'message' => 'Event acknowledged']);
+                    return response()->json(['status' => 'received','success'=>true], 200);
             }
 
         } catch (\Exception $e) {
@@ -1079,10 +1088,76 @@ class WaSenderController extends Controller
     private function handleIncomingMessage($webhookData, $instance)
     {
         try {
-            Log::info('Processing incoming message', [
+            Log::info('Processing incoming WhatsApp message with AI', [
                 'instance_id' => $instance->instance_id,
-                'message_type' => $webhookData['messageType'] ?? 'text'
+                'message_type' => $webhookData['messageType'] ?? 'text',
+                'from' => $webhookData['from'] ?? 'unknown'
             ]);
+
+            // Skip messages from self (bot messages)
+            if (isset($webhookData['fromMe']) && $webhookData['fromMe']) {
+                Log::info('Skipping message from self', ['instance_id' => $instance->instance_id]);
+                return response()->json(['success' => true, 'message' => 'Self message ignored']);
+            }
+
+            // Extract message data from webhook
+            $messageData = $this->extractMessageData($webhookData, $instance);
+            
+            if (!$messageData) {
+                Log::warning('Could not extract message data', [
+                    'instance_id' => $instance->instance_id,
+                    'webhook_data' => $webhookData
+                ]);
+                return response()->json(['success' => false, 'message' => 'Invalid message data']);
+            }
+
+            // Create IncomingMessage record
+            $incomingMessage = IncomingMessage::create($messageData);
+            
+            Log::info('Created incoming message record', [
+                'message_id' => $incomingMessage->id,
+                'phone_number' => $incomingMessage->phone_number,
+                'message_body' => substr($incomingMessage->message_body, 0, 100) . '...'
+            ]);
+
+            // Process message with AI sales agent
+            $aiResult = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI($incomingMessage);
+            
+            if ($aiResult['success']) {
+                // Send AI response back to customer
+                if (isset($aiResult['response']) && !empty($aiResult['response'])) {
+                    $sent = $this->aiWhatsAppService->sendResponse($aiResult['response'], $incomingMessage);
+                    
+                    if ($sent) {
+                        $incomingMessage->markAsReplied($aiResult['response']);
+                        Log::info('AI response sent successfully', [
+                            'message_id' => $incomingMessage->id,
+                            'phone_number' => $incomingMessage->phone_number,
+                            'agent_name' => $aiResult['agent_name'] ?? 'Unknown'
+                        ]);
+                    } else {
+                        Log::error('Failed to send AI response', [
+                            'message_id' => $incomingMessage->id,
+                            'phone_number' => $incomingMessage->phone_number
+                        ]);
+                    }
+                } else {
+                    // AI decided not to respond (e.g., outside business hours)
+                    $incomingMessage->markAsProcessed('No response - ' . ($aiResult['reason'] ?? 'Unknown'));
+                }
+            } else {
+                // AI processing failed
+                Log::error('AI processing failed', [
+                    'message_id' => $incomingMessage->id,
+                    'error' => $aiResult['error'] ?? 'Unknown error',
+                    'requires_human' => $aiResult['requires_human'] ?? false
+                ]);
+                
+                // Mark for human intervention if needed
+                if ($aiResult['requires_human'] ?? false) {
+                    $incomingMessage->update(['status' => 'needs_attention']);
+                }
+            }
 
             // Update message count if column exists
             try {
@@ -1094,18 +1169,22 @@ class WaSenderController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => 'Message processed successfully'
+                'message' => 'Message processed with AI successfully',
+                'ai_processed' => $aiResult['success'],
+                'response_sent' => isset($aiResult['response']) && !empty($aiResult['response']),
+                'conversation_id' => $aiResult['conversation_id'] ?? null
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to process incoming message', [
+            Log::error('Failed to process incoming message with AI', [
                 'instance_id' => $instance->instance_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process message'
+                'message' => 'Failed to process message with AI: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1157,5 +1236,135 @@ class WaSenderController extends Controller
         ]);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Extract message data from webhook payload
+     */
+    private function extractMessageData($webhookData, $instance)
+    {
+        try {
+            // Extract phone number from chat ID
+            $chatId = $webhookData['chatId'] ?? $webhookData['from'] ?? null;
+            if (!$chatId) {
+                Log::warning('No chatId or from field in webhook data');
+                return null;
+            }
+
+            // Clean phone number (remove @c.us or @g.us suffix)
+            $phoneNumber = str_replace(['@c.us', '@g.us'], '', $chatId);
+            $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+            
+            if (empty($phoneNumber)) {
+                Log::warning('Could not extract valid phone number from chatId', ['chatId' => $chatId]);
+                return null;
+            }
+
+            // Extract message body
+            $messageBody = $webhookData['body'] ?? $webhookData['message'] ?? $webhookData['text'] ?? '';
+            
+            // Handle quoted messages
+            if (isset($webhookData['quotedMsg'])) {
+                $messageBody = $webhookData['quotedMsg']['body'] ?? $messageBody;
+            }
+            
+            // Handle media messages with captions
+            if (isset($webhookData['caption'])) {
+                $messageBody = $webhookData['caption'];
+            }
+
+            if (empty(trim($messageBody))) {
+                Log::info('Empty message body, might be media-only message');
+                $messageBody = '[Media message]';
+            }
+
+            // Extract sender name
+            $senderName = $webhookData['senderName'] ?? 
+                         $webhookData['pushName'] ?? 
+                         $webhookData['name'] ?? 
+                         null;
+
+            // Determine message type
+            $messageType = $this->determineMessageType($webhookData);
+
+            // Extract media data if available
+            $mediaData = $this->extractMediaData($webhookData);
+
+            // Check if it's a group message
+            $isGroup = str_contains($chatId, '@g.us') || 
+                      ($webhookData['isGroup'] ?? false) === true;
+
+            // Extract timestamp
+            $timestamp = $webhookData['timestamp'] ?? time();
+            if (is_numeric($timestamp)) {
+                $timestamp = date('Y-m-d H:i:s', $timestamp);
+            }
+
+            return [
+                'user_id' => $instance->user_id,
+                'instance_id' => $instance->instance_id,
+                'message_id' => $webhookData['id'] ?? $webhookData['messageId'] ?? uniqid(),
+                'chat_id' => $chatId,
+                'phone_number' => $phoneNumber,
+                'sender_name' => $senderName,
+                'message_body' => trim($messageBody),
+                'message_type' => $messageType,
+                'media_data' => $mediaData,
+                'from_me' => $webhookData['fromMe'] ?? false,
+                'is_group' => $isGroup,
+                'message_timestamp' => $timestamp,
+                'status' => 'received',
+                'metadata' => $webhookData
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error extracting message data', [
+                'error' => $e->getMessage(),
+                'webhook_data' => $webhookData
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Determine message type from webhook data
+     */
+    private function determineMessageType($webhookData)
+    {
+        $type = $webhookData['type'] ?? $webhookData['messageType'] ?? 'text';
+        
+        // Map different webhook type formats
+        $typeMapping = [
+            'chat' => 'text',
+            'image' => 'image',
+            'video' => 'video',
+            'audio' => 'audio',
+            'document' => 'document',
+            'location' => 'location',
+            'contact' => 'contact',
+            'sticker' => 'sticker',
+        ];
+
+        return $typeMapping[$type] ?? 'other';
+    }
+
+    /**
+     * Extract media data if available
+     */
+    private function extractMediaData($webhookData)
+    {
+        $messageType = $this->determineMessageType($webhookData);
+        
+        if (!in_array($messageType, ['image', 'video', 'audio', 'document'])) {
+            return null;
+        }
+
+        return [
+            'url' => $webhookData['mediaUrl'] ?? $webhookData['url'] ?? null,
+            'filename' => $webhookData['filename'] ?? null,
+            'filesize' => $webhookData['filesize'] ?? null,
+            'mimetype' => $webhookData['mimetype'] ?? null,
+            'caption' => $webhookData['caption'] ?? null,
+        ];
     }
 }

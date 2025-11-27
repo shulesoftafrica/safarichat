@@ -6,6 +6,7 @@ use Illuminate\Http\Middleware\TrustHosts as Middleware;
 
 class TrustHosts extends Middleware
 {
+    protected $proxies = '*';
     /**
      * Get the host patterns that should be trusted.
      *
