@@ -1024,9 +1024,8 @@ class WaSenderController extends Controller
             Log::info('Received WaSender webhook', [
                 'instance_id' => $instanceId,
                 'event_type' => $webhookData['event'] ?? 'unknown',
-                'data_keys' => array_keys($webhookData)
+                'webhook_data' => $webhookData
             ]);
-
             // Find instance
             $instance = WhatsappInstance::where('instance_id', $instanceId)->first();
             
