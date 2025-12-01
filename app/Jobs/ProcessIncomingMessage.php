@@ -6,7 +6,7 @@ use App\Models\IncomingMessage;
 use App\Models\WhatsappInstance;
 use App\Models\Message;
 use App\Models\MessageSentby;
-use App\Http\Controllers\Api;
+use App\Http\Controllers\Setup;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,8 +67,8 @@ class ProcessIncomingMessage implements ShouldQueue
                 }
             }
 
-            // Use the Api controller to process the message
-            $apiController = new Api();
+            // Use the Setup controller to process the message
+            $apiController = new \App\Http\Controllers\Setup();
             $reflection = new \ReflectionClass($apiController);
             $method = $reflection->getMethod('processSingleWebhookMessage');
             $method->setAccessible(true);

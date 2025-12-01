@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
-class Api extends Controller {
+class Setup extends Controller {
 
 
     public function otp(){
@@ -1350,6 +1350,42 @@ class Api extends Controller {
             \Log::error('Error marking message as processed: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to update message'], 500);
         }
+    }
+
+    /**
+     * Reset password functionality
+     */
+    public function resetP()
+    {
+        // Implement password reset logic here
+        return response()->json(['message' => 'Password reset not implemented yet']);
+    }
+
+    /**
+     * WhatsApp webhook handler  
+     */
+    public function whatsapp()
+    {
+        // Implement WhatsApp webhook logic here
+        return response()->json(['message' => 'WhatsApp webhook not implemented yet']);
+    }
+
+    /**
+     * Push emails to send queue
+     */
+    public function pushEmailsToSend()
+    {
+        // Implement email sending logic here
+        return response()->json(['message' => 'Email sending not implemented yet']);
+    }
+
+    /**
+     * Push phone SMS messages
+     */
+    public function pushPhoneSMS($code, $imei = null, $model = null)
+    {
+        // Implement SMS sending logic here
+        return response()->json(['message' => 'SMS sending not implemented yet']);
     }
 
 }

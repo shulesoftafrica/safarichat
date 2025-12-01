@@ -527,7 +527,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ url('api/otp') }}" id="loginForm">
+        <form method="POST" action="{{ url('setup/otp') }}" id="loginForm">
             @csrf
             
             <div class="form-group">

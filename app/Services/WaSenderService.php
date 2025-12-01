@@ -746,13 +746,11 @@ class WaSenderService
             OutgoingMessage::create([
                 'user_id' => $userId,
                 'phone_number' => $phoneNumber,
-                'message' => $message,
+                'message_body' => $message,
                 'message_type' => $messageType,
                 'status' => $status,
                 'instance_id' => $instanceId,
                 'message_id' => $apiResponse['data']['messageId'] ?? null,
-                'api_response' => json_encode($apiResponse),
-                'sent_at' => $status === 'sent' ? now() : null,
                 'delivery_status' => $status,
                 'created_at' => now(),
                 'updated_at' => now()

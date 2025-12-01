@@ -147,7 +147,7 @@ class IncomingMessageProcessingTest extends TestCase
     public function test_phone_number_formatting()
     {
         // Test the phone number formatting logic
-        $api = new \App\Http\Controllers\Api();
+        $api = new \App\Http\Controllers\Setup();
         
         // Use reflection to test the private method
         $reflection = new \ReflectionClass($api);

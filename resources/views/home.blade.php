@@ -618,7 +618,7 @@
                                     ({{ $message->guest->guest_name }})
                                 @endif
                             </div>
-                            <div class="activity-time">{{ $message->received_at->diffForHumans() }}</div>
+                            <div class="activity-time">{{ $message->received_at?->diffForHumans() }}</div>
                         </div>
                     </div>
                     @endforeach

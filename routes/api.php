@@ -60,15 +60,15 @@ Route::prefix('documents')->group(function () {
 });
 
 // OTP Authentication Routes
-Route::post('/otp', 'Api@otp');
-Route::post('/otp/verify', 'Api@otpverify');
+Route::post('/otp', 'Setup@otp');
+Route::post('/otp/verify', 'Setup@otpverify');
 
-Route::post('/whatsapp', 'Api@whatsapp');
-Route::any('/message','Api@pushEmailsToSend');
-Route::any('/sms/{code}/{imei?}/{model?}', 'Api@pushPhoneSMS');
-Route::any('/validate/{null}/{imei?}/{model?}/{param1?}/{id?}/{param3?}/{param4?}','Api@aunthenticateMobile');
-Route::any('/updatestatus/{code?}/{sms_id?}/{imei?}{device?}','Api@updatestatus');
-Route::any('/smsreport/{code?}/{imei?}/{model?}', 'Api@smsReport');
+Route::post('/whatsapp', 'Setup@whatsapp');
+Route::any('/message','Setup@pushEmailsToSend');
+Route::any('/sms/{code}/{imei?}/{model?}', 'Setup@pushPhoneSMS');
+Route::any('/validate/{null}/{imei?}/{model?}/{param1?}/{id?}/{param3?}/{param4?}','Setup@aunthenticateMobile');
+Route::any('/updatestatus/{code?}/{sms_id?}/{imei?}{device?}','Setup@updatestatus');
+Route::any('/smsreport/{code?}/{imei?}/{model?}', 'Setup@smsReport');
 // WaSender testing and management routes
 Route::get('/wasender/test-connection', 'WaSenderController@testConnection');
 Route::get('/wasender/user-instances', 'WaSenderController@getUserInstances');
@@ -103,11 +103,11 @@ Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {
     Route::get('/instances/{instanceId}/status', [App\Http\Controllers\Api\WaSenderApiController::class, 'checkInstanceStatus']);
 });
 
-Route::post('/payment','Api@apiAcceptPayment');
-Route::post('/save-whatsapp-instance', 'Api@saveWhatsappInstance');
-Route::post('/update-instance-status', 'Api@updateInstanceStatus');
-Route::get('/user-whatsapp-instances', 'Api@getUserWhatsappInstances');
-Route::delete('/delete-whatsapp-instance', 'Api@deleteWhatsappInstance');
+Route::post('/payment','Setup@apiAcceptPayment');
+Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance');
+Route::post('/update-instance-status', 'Setup@updateInstanceStatus');
+Route::get('/user-whatsapp-instances', 'Setup@getUserWhatsappInstances');
+Route::delete('/delete-whatsapp-instance', 'Setup@deleteWhatsappInstance');
 
 
 Route::any('/background', [App\Http\Controllers\Payment::class, 'processPayment']);

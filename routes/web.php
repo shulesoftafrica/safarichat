@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
   | contains the "web" middleware group. Now create something great!
   |
  */
- 
+
 Route::get('lang/{lang}', function ($lang) {
   
     if (in_array($lang, ['en', 'sw'])) {
@@ -35,8 +35,8 @@ Route::get('/test-queue', function() {
     return view('test-queue');
 })->name('test.queue');
 Route::get('/privacy', function() { return view('auth.legal.privacy');});
-Route::get('/live/{event_id?}','Api@liveEvent');
-Route::post('/resetpassword/resetP','Api@resetP');
+Route::get('/live/{event_id?}','Setup@liveEvent');
+Route::post('/resetpassword/resetP','Setup@resetP');
 //Auth::routes();
 Auth::routes(['verify' => true]);
 
@@ -60,14 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/guest/bulkDelete', [App\Http\Controllers\Guest::class, 'bulkDelete'])->name('guest.bulkDelete');
 });
 
-if (createRoute() != NULL) {
-    $route = explode('@', createRoute());
-    $file = app_path() . DIRECTORY_SEPARATOR . 'Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . $route[0] . '.php';
 
-    if (file_exists($file)) {
-        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute());
-    }
-}
 Route::get('/home', [App\Http\Controllers\Home::class, 'index'])->name('home');
 Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index']);
 Route::get('/support', [App\Http\Controllers\Home::class, 'support'])->name('support');
@@ -142,8 +135,13 @@ Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function
 });
 
 
+if (createRoute() != NULL) {
+    $route = explode('@', createRoute());
+    $file = app_path() . DIRECTORY_SEPARATOR . 'Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . $route[0] . '.php';
 
-
-
+    if (file_exists($file)) {
+        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute());
+    }
+}
 
 

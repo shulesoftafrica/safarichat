@@ -17,7 +17,7 @@
         <!-- CSRF Token -->
         <meta name="csrf-token" content="{{ csrf_token() }}">
          <script src="{{ asset(ROOT.'assets/js/jquery.min.js')}}"></script>
-        <title>{{ config('app.name', 'DikoDiko') }}</title>
+        <title>{{ config('app.name', 'SafariChat') }}</title>
 
         <!-- Scripts -->
         <!--<script src="{{ asset(ROOT.'js/app.js') }}" defer></script>-->

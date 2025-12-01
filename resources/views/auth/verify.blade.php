@@ -1,3 +1,7 @@
+@php
+    $errors = $errors ?? session()->get('errors', new \Illuminate\Support\ViewErrorBag);
+@endphp
+
 @extends('layouts.app')
 @section('content')
 
@@ -23,7 +27,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ url('api/otpverify') }}">
+                    <form method="POST" action="{{ url('setup/otpverify') }}">
                         @csrf
 
                         <div class="form-group mb-4">
