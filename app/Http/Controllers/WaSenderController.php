@@ -1042,7 +1042,7 @@ class WaSenderController extends Controller
             
             switch ($eventType) {
                 case 'message':
-                case 'message.received':
+                case 'messages.received':
                     return $this->handleIncomingMessage($webhookData, $instance);
                 
                 case 'status':
@@ -1154,7 +1154,7 @@ class WaSenderController extends Controller
                 
                 // Mark for human intervention if needed
                 if ($aiResult['requires_human'] ?? false) {
-                    $incomingMessage->update(['status' => 'needs_attention']);
+                    $incomingMessage->update(['status' => 'processed']);
                 }
             }
 
@@ -1243,33 +1243,84 @@ class WaSenderController extends Controller
     private function extractMessageData($webhookData, $instance)
     {
         try {
-            // Extract phone number from chat ID
-            $chatId = $webhookData['chatId'] ?? $webhookData['from'] ?? null;
+            // Handle different webhook payload structures
+            $messageData = null;
+            
+            // New webhook format with nested data.messages structure
+            if (isset($webhookData['data']['messages'])) {
+                $messageData = $webhookData['data']['messages'];
+            }
+            // Legacy format with direct message data
+            elseif (isset($webhookData['messages'])) {
+                $messageData = $webhookData['messages'];
+            }
+            // Direct message format
+            else {
+                $messageData = $webhookData;
+            }
+
+            // Extract phone number from remoteJid or key structure
+            $chatId = null;
+            $phoneNumber = null;
+            
+            if (isset($messageData['key']['remoteJid'])) {
+                $chatId = $messageData['key']['remoteJid'];
+                $phoneNumber = $messageData['key']['cleanedSenderPn'] ?? null;
+            } elseif (isset($messageData['remoteJid'])) {
+                $chatId = $messageData['remoteJid'];
+            } else {
+                $chatId = $messageData['chatId'] ?? $messageData['from'] ?? null;
+            }
+
             if (!$chatId) {
-                Log::warning('No chatId or from field in webhook data');
+                Log::warning('No chatId, remoteJid or from field in webhook data', [
+                    'webhook_keys' => array_keys($webhookData),
+                    'message_keys' => array_keys($messageData)
+                ]);
                 return null;
             }
 
-            // Clean phone number (remove @c.us or @g.us suffix)
-            $phoneNumber = str_replace(['@c.us', '@g.us'], '', $chatId);
-            $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+            // Clean phone number if not already provided
+            if (!$phoneNumber) {
+                $phoneNumber = str_replace(['@s.whatsapp.net', '@c.us', '@g.us'], '', $chatId);
+                $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+            }
             
             if (empty($phoneNumber)) {
-                Log::warning('Could not extract valid phone number from chatId', ['chatId' => $chatId]);
+                Log::warning('Could not extract valid phone number from chatId', [
+                    'chatId' => $chatId,
+                    'cleaned_phone' => $phoneNumber
+                ]);
                 return null;
             }
 
-            // Extract message body
-            $messageBody = $webhookData['body'] ?? $webhookData['message'] ?? $webhookData['text'] ?? '';
+            // Extract message body from different possible locations
+            $messageBody = '';
+            
+            // Check messageBody field first (direct field)
+            if (isset($messageData['messageBody']) && !empty($messageData['messageBody'])) {
+                $messageBody = $messageData['messageBody'];
+            }
+            // Check nested message.conversation
+            elseif (isset($messageData['message']['conversation'])) {
+                $messageBody = $messageData['message']['conversation'];
+            }
+            // Check other common fields
+            elseif (isset($messageData['body'])) {
+                $messageBody = $messageData['body'];
+            }
+            elseif (isset($messageData['text'])) {
+                $messageBody = $messageData['text'];
+            }
             
             // Handle quoted messages
-            if (isset($webhookData['quotedMsg'])) {
-                $messageBody = $webhookData['quotedMsg']['body'] ?? $messageBody;
+            if (isset($messageData['quotedMsg'])) {
+                $messageBody = $messageData['quotedMsg']['body'] ?? $messageBody;
             }
             
             // Handle media messages with captions
-            if (isset($webhookData['caption'])) {
-                $messageBody = $webhookData['caption'];
+            if (isset($messageData['caption'])) {
+                $messageBody = $messageData['caption'];
             }
 
             if (empty(trim($messageBody))) {
@@ -1278,43 +1329,74 @@ class WaSenderController extends Controller
             }
 
             // Extract sender name
-            $senderName = $webhookData['senderName'] ?? 
-                         $webhookData['pushName'] ?? 
-                         $webhookData['name'] ?? 
+            $senderName = $messageData['pushName'] ?? 
+                         $messageData['senderName'] ?? 
+                         $messageData['name'] ?? 
                          null;
 
             // Determine message type
-            $messageType = $this->determineMessageType($webhookData);
+            $messageType = $this->determineMessageType($messageData);
 
             // Extract media data if available
-            $mediaData = $this->extractMediaData($webhookData);
+            $mediaData = $this->extractMediaData($messageData);
 
             // Check if it's a group message
             $isGroup = str_contains($chatId, '@g.us') || 
-                      ($webhookData['isGroup'] ?? false) === true;
+                      str_contains($chatId, '.g.') ||
+                      ($messageData['isGroup'] ?? false) === true;
 
-            // Extract timestamp
-            $timestamp = $webhookData['timestamp'] ?? time();
+            // Extract timestamp - handle both unix timestamp and milliseconds
+            $timestamp = $webhookData['timestamp'] ?? 
+                        $messageData['messageTimestamp'] ?? 
+                        $messageData['timestamp'] ?? 
+                        time();
+            
+            // Convert milliseconds to seconds if needed
+            if ($timestamp > 9999999999) {
+                $timestamp = intval($timestamp / 1000);
+            }
+            
             if (is_numeric($timestamp)) {
                 $timestamp = date('Y-m-d H:i:s', $timestamp);
             }
 
-            return [
+            // Extract message ID
+            $messageId = $messageData['id'] ?? 
+                        $messageData['key']['id'] ?? 
+                        $messageData['messageId'] ?? 
+                        uniqid();
+
+            // Check if message is from self
+            $fromMe = $messageData['key']['fromMe'] ?? 
+                     $messageData['fromMe'] ?? 
+                     false;
+
+            $extractedData = [
                 'user_id' => $instance->user_id,
                 'instance_id' => $instance->instance_id,
-                'message_id' => $webhookData['id'] ?? $webhookData['messageId'] ?? uniqid(),
+                'message_id' => $messageId,
                 'chat_id' => $chatId,
                 'phone_number' => $phoneNumber,
                 'sender_name' => $senderName,
                 'message_body' => trim($messageBody),
                 'message_type' => $messageType,
                 'media_data' => $mediaData,
-                'from_me' => $webhookData['fromMe'] ?? false,
+                'from_me' => $fromMe,
                 'is_group' => $isGroup,
                 'message_timestamp' => $timestamp,
                 'status' => 'received',
                 'metadata' => $webhookData
             ];
+
+            Log::info('Successfully extracted message data', [
+                'message_id' => $messageId,
+                'phone_number' => $phoneNumber,
+                'message_body' => substr($messageBody, 0, 50) . '...',
+                'from_me' => $fromMe,
+                'chat_id' => $chatId
+            ]);
+
+            return $extractedData;
 
         } catch (\Exception $e) {
             Log::error('Error extracting message data', [
@@ -1328,9 +1410,41 @@ class WaSenderController extends Controller
     /**
      * Determine message type from webhook data
      */
-    private function determineMessageType($webhookData)
+    private function determineMessageType($messageData)
     {
-        $type = $webhookData['type'] ?? $webhookData['messageType'] ?? 'text';
+        // Check if there's a nested message object with specific message types
+        if (isset($messageData['message'])) {
+            $message = $messageData['message'];
+            
+            // Check for specific message types in the nested message object
+            if (isset($message['conversation'])) {
+                return 'text';
+            }
+            if (isset($message['imageMessage'])) {
+                return 'image';
+            }
+            if (isset($message['videoMessage'])) {
+                return 'video';
+            }
+            if (isset($message['audioMessage']) || isset($message['pttMessage'])) {
+                return 'audio';
+            }
+            if (isset($message['documentMessage'])) {
+                return 'document';
+            }
+            if (isset($message['locationMessage'])) {
+                return 'location';
+            }
+            if (isset($message['contactMessage'])) {
+                return 'contact';
+            }
+            if (isset($message['stickerMessage'])) {
+                return 'sticker';
+            }
+        }
+        
+        // Fallback to legacy type detection
+        $type = $messageData['type'] ?? $messageData['messageType'] ?? 'text';
         
         // Map different webhook type formats
         $typeMapping = [
@@ -1344,26 +1458,91 @@ class WaSenderController extends Controller
             'sticker' => 'sticker',
         ];
 
-        return $typeMapping[$type] ?? 'other';
+        return $typeMapping[$type] ?? 'text';
     }
 
     /**
      * Extract media data if available
      */
-    private function extractMediaData($webhookData)
+    private function extractMediaData($messageData)
     {
-        $messageType = $this->determineMessageType($webhookData);
+        $messageType = $this->determineMessageType($messageData);
         
         if (!in_array($messageType, ['image', 'video', 'audio', 'document'])) {
             return null;
         }
 
-        return [
-            'url' => $webhookData['mediaUrl'] ?? $webhookData['url'] ?? null,
-            'filename' => $webhookData['filename'] ?? null,
-            'filesize' => $webhookData['filesize'] ?? null,
-            'mimetype' => $webhookData['mimetype'] ?? null,
-            'caption' => $webhookData['caption'] ?? null,
-        ];
+        $mediaData = [];
+        
+        // Check nested message object for media information
+        if (isset($messageData['message'])) {
+            $message = $messageData['message'];
+            
+            // Extract media data based on message type
+            switch ($messageType) {
+                case 'image':
+                    if (isset($message['imageMessage'])) {
+                        $mediaData = [
+                            'url' => $message['imageMessage']['url'] ?? null,
+                            'filename' => $message['imageMessage']['fileName'] ?? null,
+                            'filesize' => $message['imageMessage']['fileLength'] ?? null,
+                            'mimetype' => $message['imageMessage']['mimetype'] ?? 'image/jpeg',
+                            'caption' => $message['imageMessage']['caption'] ?? null,
+                        ];
+                    }
+                    break;
+                    
+                case 'video':
+                    if (isset($message['videoMessage'])) {
+                        $mediaData = [
+                            'url' => $message['videoMessage']['url'] ?? null,
+                            'filename' => $message['videoMessage']['fileName'] ?? null,
+                            'filesize' => $message['videoMessage']['fileLength'] ?? null,
+                            'mimetype' => $message['videoMessage']['mimetype'] ?? 'video/mp4',
+                            'caption' => $message['videoMessage']['caption'] ?? null,
+                        ];
+                    }
+                    break;
+                    
+                case 'audio':
+                    $audioMsg = $message['audioMessage'] ?? $message['pttMessage'] ?? null;
+                    if ($audioMsg) {
+                        $mediaData = [
+                            'url' => $audioMsg['url'] ?? null,
+                            'filename' => $audioMsg['fileName'] ?? null,
+                            'filesize' => $audioMsg['fileLength'] ?? null,
+                            'mimetype' => $audioMsg['mimetype'] ?? 'audio/ogg',
+                            'caption' => null,
+                        ];
+                    }
+                    break;
+                    
+                case 'document':
+                    if (isset($message['documentMessage'])) {
+                        $mediaData = [
+                            'url' => $message['documentMessage']['url'] ?? null,
+                            'filename' => $message['documentMessage']['fileName'] ?? null,
+                            'filesize' => $message['documentMessage']['fileLength'] ?? null,
+                            'mimetype' => $message['documentMessage']['mimetype'] ?? 'application/octet-stream',
+                            'caption' => $message['documentMessage']['caption'] ?? null,
+                        ];
+                    }
+                    break;
+            }
+        }
+        
+        // Fallback to legacy format
+        if (empty($mediaData)) {
+            $mediaData = [
+                'url' => $messageData['mediaUrl'] ?? $messageData['url'] ?? null,
+                'filename' => $messageData['filename'] ?? null,
+                'filesize' => $messageData['filesize'] ?? null,
+                'mimetype' => $messageData['mimetype'] ?? null,
+                'caption' => $messageData['caption'] ?? null,
+            ];
+        }
+
+        // Return null if no media data found
+        return array_filter($mediaData) ? $mediaData : null;
     }
 }

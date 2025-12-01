@@ -28,7 +28,7 @@ class Conversation extends Model
         'is_active' => 'boolean',
         // RAG field casts
         'rag_sources' => 'array',
-        'rag_enhanced' => 'boolean',
+        'rag_enhanced' => 'integer', // Temporarily changed from boolean to integer
         'confidence_score' => 'decimal:4',
         'tokens_used' => 'integer',
         'ai_actions' => 'array',

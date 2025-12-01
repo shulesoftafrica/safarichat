@@ -135,26 +135,40 @@ class AiWhatsAppService
     private function findOrCreateLead(IncomingMessage $message): Lead
     {
         // First check if there's an existing EventsGuest
-        $eventsGuest = EventsGuest::where('phone_number', $message->phone_number)->first();
+        $eventsGuest = EventsGuest::where('guest_phone', $message->phone_number)->first();
+
+        // Create EventsGuest if it doesn't exist
+        if (!$eventsGuest) {
+            $firstEvent = \App\Models\Event::where('user_id', $message->user_id)->first();
+            
+            $eventsGuest = EventsGuest::create([
+                'event_id' => $firstEvent?->id,
+                'guest_phone' => $message->phone_number,
+                'guest_name' => $message->sender_name ?? 'Unknown',
+                'source' => 'whatsapp',
+                'status' => 'pending',
+            ]);
+        }
 
         // Look for existing lead
-        $lead = Lead::where('phone_number', $message->phone_number)->first();
+        $lead = Lead::where('events_guest_id', $eventsGuest->id)->first();
 
         if (!$lead) {
             $lead = Lead::create([
-                'phone_number' => $message->phone_number,
-                'name' => $message->sender_name,
-                'events_guest_id' => $eventsGuest?->id,
-                'source' => 'whatsapp',
-                'status' => Lead::STATUS_NEW,
-                'first_contact_at' => now(),
-                'last_activity_at' => now(),
+            'events_guest_id' => $eventsGuest->id,
+            'ai_sales_agent_id' => AiSalesAgent::where('user_id', $message->user_id)->first()?->id,
+            'source' => 'whatsapp',
+            'status' => Lead::STATUS_NEW,
+            'last_interaction_at' => now(),
+            'conversion_probability' => 0,
+            'lead_score' => 0,
+            'is_churned' => false,
+            'win_back_attempts' => 0,
             ]);
         } else {
-            // Update last activity and name if available
+            // Update last activity
             $lead->update([
                 'last_activity_at' => now(),
-                'name' => $lead->name ?: $message->sender_name,
             ]);
         }
 
@@ -208,7 +222,7 @@ class AiWhatsAppService
     {
         // Check target user types if lead has events_guest
         if ($lead->eventsGuest && $agent->target_user_types) {
-            $targetTypes = json_decode($agent->target_user_types, true);
+            $targetTypes = $agent->target_user_types;
             if (!empty($targetTypes) && !in_array($lead->eventsGuest->user_type_id, $targetTypes)) {
                 return false;
             }
@@ -299,7 +313,7 @@ class AiWhatsAppService
                 $lead->leadProducts()->firstOrCreate(
                     ['product_id' => $product->id],
                     [
-                        'status' => 'interested',
+                        'status' => 'INTERESTED',
                         'interest_level' => 'medium',
                         'source' => 'message_mention',
                     ]
@@ -310,13 +324,13 @@ class AiWhatsAppService
 
             // Check tags for more matches
             if ($product->tags) {
-                $tags = json_decode($product->tags, true);
+                $tags = $product->tags;
                 foreach ($tags as $tag) {
                     if (strpos($messageBody, strtolower($tag)) !== false) {
                         $lead->leadProducts()->firstOrCreate(
                             ['product_id' => $product->id],
                             [
-                                'status' => 'interested',
+                                'status' => 'INTERESTED',
                                 'interest_level' => 'low',
                                 'source' => 'tag_mention',
                             ]
@@ -449,8 +463,37 @@ class AiWhatsAppService
         ?Product $product,
         array $ragSources = []
     ): Conversation {
-        return $lead->conversations()->create([
+        // Ensure array fields are properly formatted
+        $aiActions = $aiResult['actions'] ?? [];
+        if (!is_array($aiActions)) {
+            $aiActions = [];
+        }
+        
+        $ragSourcesArray = $ragSources;
+        if (!is_array($ragSourcesArray)) {
+            $ragSourcesArray = [];
+        }
+        
+        $ragEnhanced = $aiResult['rag_used'] ?? false;
+        if (!is_bool($ragEnhanced)) {
+            $ragEnhanced = (bool) $ragEnhanced;
+        }
+        
+        // Ensure conversation_context is properly formatted as an array
+        $conversationContext = [
+            'phone_number' => $message->phone_number,
+            'message_type' => $message->message_type ?? 'text',
+            'sources_count' => count($ragSourcesArray),
+            'processing_method' => 'rag_enhanced'
+        ];
+        
+        // Debug logging to identify the array literal issue
+        $conversationData = [
+            'lead_id' => $lead->id, // Explicitly set lead_id first to avoid auto-assignment issues
             'product_id' => $product?->id,
+            'message_content' => $message->message_body, // Required field - customer's message
+            'sender_type' => 'customer', // Required field - who sent the message
+            'message_type' => Conversation::TYPE_CUSTOMER, // Use constant instead of 'text'
             'customer_message' => $message->message_body,
             'ai_response' => $aiResult['response'],
             'sentiment' => $sentiment['sentiment'],
@@ -458,16 +501,25 @@ class AiWhatsAppService
             'tokens_used' => $aiResult['tokens_used'] ?? 0,
             'state' => 'active',
             'summary' => $this->generateConversationSummary($message->message_body, $aiResult['response']),
-            'ai_actions' => $aiResult['actions'] ?? [],
-            'rag_sources' => $ragSources, // Store RAG sources
-            'rag_enhanced' => $aiResult['rag_used'] ?? false,
-            'conversation_context' => [
-                'phone_number' => $message->phone_number,
-                'message_type' => $message->message_type ?? 'text',
-                'sources_count' => count($ragSources),
-                'processing_method' => 'rag_enhanced'
-            ]
+            'ai_actions' => $aiActions,
+            'rag_sources' => $ragSourcesArray,
+            'rag_enhanced' => $ragEnhanced ? 1 : 0, // Convert boolean to integer for PostgreSQL
+            'conversation_context' => $conversationContext
+        ];
+        
+        // Log the data types before database insertion
+        Log::info('Conversation data types before insertion', [
+            'ai_actions_type' => gettype($conversationData['ai_actions']),
+            'ai_actions_is_array' => is_array($conversationData['ai_actions']),
+            'rag_sources_type' => gettype($conversationData['rag_sources']),
+            'rag_sources_is_array' => is_array($conversationData['rag_sources']),
+            'rag_enhanced_type' => gettype($conversationData['rag_enhanced']),
+            'rag_enhanced_value' => $conversationData['rag_enhanced'],
+            'conversation_context_type' => gettype($conversationData['conversation_context']),
+            'conversation_context_is_array' => is_array($conversationData['conversation_context']),
         ]);
+        
+        return $lead->conversations()->create($conversationData);
     }
 
     /**
