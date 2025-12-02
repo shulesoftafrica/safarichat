@@ -124,19 +124,19 @@ class WaSenderService
 
         try {
             $payload = [
-                'phone' => $cleanPhone,
-                'media_url' => $this->getFullMediaUrl($imageUrl),
+                'to' => '+' . $cleanPhone,
+                'image_url' => $this->getFullMediaUrl($imageUrl),
             ];
 
             if ($caption) {
-                $payload['caption'] = $caption;
+                $payload['text'] = $caption; // Use text field for caption
             }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
-            ])->post("{$this->baseUrl}/instances/{$instanceId}/messages/image", $payload);
+            ])->post("https://wasenderapi.com/api/send-message", $payload);
 
             $result = $response->json();
 
@@ -191,24 +191,27 @@ class WaSenderService
         ]);
 
         try {
+            // Convert local file path to accessible URL
+            $mediaUrl = $this->getFullMediaUrl($documentUrl);
+            
             $payload = [
-                'phone' => $cleanPhone,
-                'media_url' => $this->getFullMediaUrl($documentUrl),
+                'to' => '+' . $cleanPhone,
+                'document_url' => $mediaUrl,
             ];
-
+            
+            if ($caption) {
+                $payload['text'] = $caption; // Use text field for caption
+            }
+            
             if ($filename) {
                 $payload['filename'] = $filename;
             }
-
-            if ($caption) {
-                $payload['caption'] = $caption;
-            }
-
+            
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
-            ])->post("{$this->baseUrl}/instances/{$instanceId}/messages/document", $payload);
+            ])->post("https://wasenderapi.com/api/send-message", $payload);
 
             $result = $response->json();
 
@@ -265,9 +268,9 @@ class WaSenderService
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
-            ])->post("{$this->baseUrl}/instances/{$instanceId}/messages/audio", [
-                'phone' => $cleanPhone,
-                'media_url' => $this->getFullMediaUrl($audioUrl),
+            ])->post("https://wasenderapi.com/api/send-message", [
+                'to' => '+' . $cleanPhone,
+                'audio_url' => $this->getFullMediaUrl($audioUrl),
             ]);
 
             $result = $response->json();
@@ -323,19 +326,19 @@ class WaSenderService
 
         try {
             $payload = [
-                'phone' => $cleanPhone,
-                'media_url' => $this->getFullMediaUrl($videoUrl),
+                'to' => '+' . $cleanPhone,
+                'video_url' => $this->getFullMediaUrl($videoUrl),
             ];
 
             if ($caption) {
-                $payload['caption'] = $caption;
+                $payload['text'] = $caption; // Use text field for caption
             }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
-            ])->post("{$this->baseUrl}/instances/{$instanceId}/messages/video", $payload);
+            ])->post("https://wasenderapi.com/api/send-message", $payload);
 
             $result = $response->json();
 
@@ -714,8 +717,26 @@ class WaSenderService
             return $mediaPath;
         }
 
-        // If it's a storage path, generate URL
-        if (Storage::exists($mediaPath)) {
+        // If it's a full local path containing storage/app/public/, extract the relative path
+        $normalizedPath = str_replace('\\', '/', $mediaPath);
+        
+        if (str_contains($normalizedPath, 'storage/app/public/')) {
+            // Extract the path after 'storage/app/public/'
+            $pos = strpos($normalizedPath, 'storage/app/public/');
+            if ($pos !== false) {
+                $storagePath = substr($normalizedPath, $pos + strlen('storage/app/public/'));
+                // Use url() instead of asset() to get absolute URL
+                return url('storage/' . $storagePath);
+            }
+        }
+
+        // If it's a storage path relative to storage/app/public, generate URL
+        if (Storage::disk('public')->exists($mediaPath)) {
+            return url('storage/' . $mediaPath);
+        }
+
+        // If it's already a storage path with 'public/' prefix
+        if (str_starts_with($mediaPath, 'public/')) {
             return Storage::url($mediaPath);
         }
 

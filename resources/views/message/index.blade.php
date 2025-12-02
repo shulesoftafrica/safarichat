@@ -1263,7 +1263,61 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
 
-        // Show loading state
+        // Append attached files to FormData for submission
+        if (attachedFiles.length > 0) {
+            e.preventDefault(); // Prevent normal form submission
+            
+            const formData = new FormData(this);
+            
+            // Add attached files to FormData
+            attachedFiles.forEach((file, index) => {
+                formData.append('files[]', file);
+            });
+            
+            // Show loading state
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            sendBtn.disabled = true;
+            floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            floatingSendBtn.disabled = true;
+            
+            // Add loading overlay
+            showLoadingOverlay();
+            
+            // Submit with fetch
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value
+                }
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    return response.text().then(text => {
+                        document.open();
+                        document.write(text);
+                        document.close();
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while sending the message. Please try again.');
+                // Reset loading state
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                sendBtn.disabled = false;
+                floatingSendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                floatingSendBtn.disabled = false;
+                document.getElementById('loading-overlay')?.remove();
+            });
+            
+            return false;
+        }
+
+        // Show loading state for normal submission (no files)
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         sendBtn.disabled = true;
         floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';

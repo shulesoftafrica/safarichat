@@ -160,7 +160,7 @@ class SendWhatsAppMediaMessage implements ShouldQueue
             'media_type' => $this->mediaType,
             'user_id' => $this->userId,
             'error' => $exception->getMessage(),
-            'attempts' => $this->attempts
+            'attempts' => $this->job ? $this->job->attempts() : 'unknown'
         ]);
     }
 

@@ -8,6 +8,7 @@ use \App\Models\Message as SMS;
 use \App\Models\EventsGuest;
 use \App\Models\OutgoingMessage;
 use \App\Jobs\SendWhatsAppMessage;
+use \App\Jobs\SendWhatsAppMediaMessage;
 use \App\Jobs\ProcessBulkMessages;
 use \App\Services\WaSenderService;
 use Illuminate\Support\Arr;
@@ -527,6 +528,58 @@ class Message extends Controller
         }
 
 
+        // Handle file attachments
+        $attachments = [];
+        if ($request->hasFile('files')) {
+            $uploadedFiles = $request->file('files');
+            
+            // Ensure we handle both single file and array of files
+            if (!is_array($uploadedFiles)) {
+                $uploadedFiles = [$uploadedFiles];
+            }
+
+            foreach ($uploadedFiles as $file) {
+                if ($file && $file->isValid()) {
+                    // Validate file size (16MB limit for WhatsApp)
+                    if ($file->getSize() > 16 * 1024 * 1024) {
+                        return redirect()->back()->withErrors(['files' => "File {$file->getClientOriginalName()} is too large. Maximum 16MB allowed."]);
+                    }
+
+                    // Validate file type
+                    $allowedMimes = [
+                        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                        'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
+                        'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg',
+                        'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'text/plain', 'text/csv'
+                    ];
+
+                    if (!in_array($file->getMimeType(), $allowedMimes)) {
+                        return redirect()->back()->withErrors(['files' => "File type {$file->getMimeType()} is not supported."]);
+                    }
+
+                    // Store the file
+                    $filePath = $file->store('attachments/' . date('Y/m'), 'public');
+                    
+                    // Ensure the directory exists
+                    $fullPath = storage_path('app/public/' . $filePath);
+                    if (!file_exists($fullPath)) {
+                        Log::error('File was not stored properly', ['path' => $fullPath]);
+                        return redirect()->back()->withErrors(['files' => "Failed to store file {$file->getClientOriginalName()}."]);
+                    }
+                    
+                    $attachments[] = [
+                        'path' => $filePath,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                        'filename' => $file->getClientOriginalName()
+                    ];
+                }
+            }
+        }
+
         $event_id = Auth::user()->event->id;
         // Determine recipients based on criteria from the form
         if ($criteria == 1) {
@@ -614,16 +667,25 @@ class Message extends Controller
             $users = $this->getUserByCriteria($criteria, $event_id, $request);
         }
         
-        // Use queue system for message processing
-        $this->queueMessages($users, $request->message, $request->source);
+        // Use queue system for message processing with attachments
+        $this->queueMessages($users, $request->message, $request->source, $attachments);
         
-        return redirect()->back()->with('success', 'Messages queued for delivery successfully! You will receive notifications as they are processed.');
+        $messageCount = is_array($users) ? count($users) : (isset($users) && method_exists($users, 'count') ? $users->count() : 0);
+        $attachmentCount = count($attachments);
+        
+        $successMessage = "Messages queued for delivery successfully to {$messageCount} recipients!";
+        if ($attachmentCount > 0) {
+            $successMessage .= " Including {$attachmentCount} attachment(s).";
+        }
+        $successMessage .= " You will receive notifications as they are processed.";
+        
+        return redirect()->back()->with('success', $successMessage);
     }
 
     /**
      * Queue messages for processing via WaSender
      */
-    private function queueMessages($users, $message, $sources)
+    private function queueMessages($users, $message, $sources, $attachments = [])
     {
         // Only handle WhatsApp now, ignore other sources
         if (!in_array('whatsapp', $sources)) {
@@ -641,7 +703,8 @@ class Message extends Controller
         
         Log::info('Queueing WhatsApp messages for delivery via WaSender', [
             'user_id' => Auth::id(),
-            'recipient_count' => $userCount
+            'recipient_count' => $userCount,
+            'has_attachments' => !empty($attachments)
         ]);
 
         // Get user's WhatsApp instance
@@ -663,15 +726,23 @@ class Message extends Controller
                 $cleanPhone = $phoneNumber[1];
                 $personalizedMessage = $this->personalizeMessage($message, $user);
                 
-                // Queue the message via WaSender
-                SendWhatsAppMessage::dispatch(
-                    $personalizedMessage,
-                    $cleanPhone,
-                    'whatsapp',
-                    Auth::id(),
-                    null, // files
-                    $instance->instance_id
-                )->delay(now()->addSeconds($delay));
+                // If there are attachments, send them first, then the text message
+                if (!empty($attachments)) {
+                    foreach ($attachments as $attachment) {
+                        $this->queueMediaMessage($cleanPhone, $attachment, $personalizedMessage, $delay, $instance);
+                        $delay += 3; // Delay between each media message
+                    }
+                } else {
+                    // Queue the text message via WaSender
+                    SendWhatsAppMessage::dispatch(
+                        $personalizedMessage,
+                        $cleanPhone,
+                        'whatsapp',
+                        Auth::id(),
+                        null, // files
+                        $instance->instance_id
+                    )->delay(now()->addSeconds($delay));
+                }
                 
                 $delay += 3; // 3 second delay between messages to avoid rate limiting
             }
@@ -680,8 +751,54 @@ class Message extends Controller
         Log::info('Queued WhatsApp messages for processing', [
             'user_id' => Auth::id(),
             'total_queued' => $userCount,
-            'instance_id' => $instance->instance_id
+            'instance_id' => $instance->instance_id,
+            'attachment_count' => count($attachments)
         ]);
+    }
+
+    /**
+     * Queue media message for processing
+     */
+    private function queueMediaMessage($phoneNumber, $attachment, $caption, $delay, $instance)
+    {
+        // Determine media type based on file extension/mime type
+        $mimeType = $attachment['mime_type'];
+        $mediaType = $this->getMediaType($mimeType);
+        $filePath = storage_path('app/public/' . $attachment['path']); // Convert to full path
+        
+        // Queue media message with appropriate delay
+        SendWhatsAppMediaMessage::dispatch(
+            $phoneNumber,
+            $filePath,
+            $mediaType,
+            $caption,
+            Auth::id(),
+            $instance->instance_id,
+            ['filename' => $attachment['filename']]
+        )->delay(now()->addSeconds($delay));
+        
+        Log::info('Queued WhatsApp media message', [
+            'phone' => $phoneNumber,
+            'media_type' => $mediaType,
+            'file_path' => $filePath,
+            'delay' => $delay
+        ]);
+    }
+
+    /**
+     * Determine media type from MIME type
+     */
+    private function getMediaType($mimeType)
+    {
+        if (strpos($mimeType, 'image/') === 0) {
+            return 'image';
+        } elseif (strpos($mimeType, 'video/') === 0) {
+            return 'video';
+        } elseif (strpos($mimeType, 'audio/') === 0) {
+            return 'audio';
+        } else {
+            return 'document';
+        }
     }
 
     /**

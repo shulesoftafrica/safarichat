@@ -43,6 +43,8 @@ Auth::routes(['verify' => true]);
 
 
 Route::get('/message/channel', [App\Http\Controllers\Message::class, 'channel'])->name('message.channel');
+Route::get('/message', [App\Http\Controllers\Message::class, 'index'])->name('message.index');
+Route::post('/message/store', [App\Http\Controllers\Message::class, 'store'])->name('message.store');
 Route::post('/messages/buy', [App\Http\Controllers\Message::class, 'buy'])->name('messages.buy');
 Route::get('/message/report', [App\Http\Controllers\Message::class, 'report'])->name('message.report');
 Route::any('/support', [App\Http\Controllers\Home::class, 'support'])->name('support');
