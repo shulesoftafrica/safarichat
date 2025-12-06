@@ -909,7 +909,7 @@ class WaSenderService
         $countryCodeDigits = ltrim($countryCode, '+'); // Get country code without +
         
      
-        // If phone number starts with +, remove it
+        // If phone number starts with +, remove it for processing
         if (str_starts_with($cleaned, '+')) {
             $cleaned = ltrim($cleaned, '+');
         }
@@ -926,6 +926,9 @@ class WaSenderService
         else {
             $whatsappJid = $countryCodeDigits . $cleaned;
         }
+        
+        // Always add the + sign at the beginning
+        $whatsappJid = '+' . $whatsappJid;
         
         Log::debug('Phone number formatted to WhatsApp JID', [
             'original' => $originalPhone,
