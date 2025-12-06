@@ -1,0 +1,137 @@
+{
+    "summary": {
+        "total": 21,
+        "passed": 21,
+        "failed": 0,
+        "success_rate": 100
+    },
+    "results": [
+        {
+            "test": "database_connection",
+            "success": true,
+            "message": "Database connection successful",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "table_structure",
+            "success": true,
+            "message": "All required columns present in outgoing_messages",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "data_insertion",
+            "success": true,
+            "message": "Sample message created with ID: 31",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "model_methods",
+            "success": true,
+            "message": "OutgoingMessage methods working. Stats: {\"total\":7,\"sent\":0,\"delivered\":0,\"failed\":0,\"pending\":0,\"success_rate\":0}",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "whatsapp_instance_scope",
+            "success": true,
+            "message": "Found 1 active WhatsApp instances",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "events_guest_method",
+            "success": true,
+            "message": "EventsGuest creation working. ID: 372",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "events_guest_count",
+            "success": true,
+            "message": "EventsGuest model accessible. Total records: 8",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "service_instantiation",
+            "success": true,
+            "message": "UnifiedNotificationService created successfully",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "service_config",
+            "success": true,
+            "message": "Notification configuration loaded",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "service_methods",
+            "success": true,
+            "message": "Service methods are available",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "token_generation",
+            "success": true,
+            "message": "API token generated successfully",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "endpoint_POST \/notifications",
+            "success": true,
+            "message": "Endpoint accessible",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "endpoint_GET \/notifications",
+            "success": true,
+            "message": "Endpoint accessible",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "endpoint_GET \/notifications\/stats\/summary",
+            "success": true,
+            "message": "Endpoint accessible",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "session_POST \/wasender\/sessions\/create",
+            "success": true,
+            "message": "Session endpoint accessible",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "session_GET \/wasender\/sessions",
+            "success": true,
+            "message": "Session endpoint accessible",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "workflow_step1",
+            "success": true,
+            "message": "Notification record created: ID 33",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "workflow_step2",
+            "success": true,
+            "message": "Notification status updated to processing",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "workflow_step3",
+            "success": true,
+            "message": "Status and external_id updated successfully",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "workflow_step3",
+            "success": true,
+            "message": "API response simulation completed",
+            "timestamp": "2025-12-05 09:48:13"
+        },
+        {
+            "test": "workflow_complete",
+            "success": true,
+            "message": "Complete workflow test successful",
+            "timestamp": "2025-12-05 09:48:13"
+        }
+    ],
+    "generated_at": "2025-12-05T06:48:13.665822Z"
+}

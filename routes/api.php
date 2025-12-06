@@ -127,3 +127,46 @@ Route::middleware('auth:web')->prefix('whatsapp')->group(function () {
     Route::get('/web/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances']);
     Route::post('/web/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance']);
 });
+
+// Unified Notification API (Sanctum authenticated) - Phase 4 Implementation
+Route::middleware(['auth:sanctum', 'notification.api'])->prefix('notifications')->group(function () {
+    // Main notification endpoints following unified API spec
+    Route::post('/send', [App\Http\Controllers\Api\NotificationController::class, 'send'])
+        ->name('notifications.send');
+    Route::post('/bulk/send', [App\Http\Controllers\Api\NotificationController::class, 'bulkSend'])
+        ->name('notifications.bulk');
+    Route::get('/{id}', [App\Http\Controllers\Api\NotificationController::class, 'show'])
+        ->name('notifications.show');
+    Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index'])
+        ->name('notifications.index');
+    
+    // Optional: Additional endpoints for enhanced functionality
+    Route::get('/{id}/status', [App\Http\Controllers\Api\NotificationController::class, 'status'])
+        ->name('notifications.status');
+    Route::patch('/{id}', [App\Http\Controllers\Api\NotificationController::class, 'update'])
+        ->name('notifications.update');
+    Route::delete('/{id}', [App\Http\Controllers\Api\NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+    Route::get('/stats/summary', [App\Http\Controllers\Api\NotificationController::class, 'summary'])
+        ->name('notifications.summary');
+});
+
+// WaSender Session Management - Phase 4 Implementation
+Route::middleware(['auth:sanctum', 'notification.api'])->prefix('wasender/sessions')->group(function () {
+    Route::post('/create', [App\Http\Controllers\WaSenderController::class, 'createSession'])
+        ->name('wasender.sessions.create');
+    Route::get('/', [App\Http\Controllers\WaSenderController::class, 'getSessions'])
+        ->name('wasender.sessions.index');
+    Route::get('/{id}', [App\Http\Controllers\WaSenderController::class, 'getSession'])
+        ->name('wasender.sessions.show');
+    Route::post('/{id}/connect', [App\Http\Controllers\WaSenderController::class, 'connectSession'])
+        ->name('wasender.sessions.connect');
+    Route::get('/{id}/status', [App\Http\Controllers\WaSenderController::class, 'getSessionStatus'])
+        ->name('wasender.sessions.status');
+    Route::get('/{id}/qrcode', [App\Http\Controllers\WaSenderController::class, 'getQRCode'])
+        ->name('wasender.sessions.qr');
+    Route::put('/{id}', [App\Http\Controllers\WaSenderController::class, 'updateSession'])
+        ->name('wasender.sessions.update');
+    Route::delete('/{id}', [App\Http\Controllers\WaSenderController::class, 'deleteSession'])
+        ->name('wasender.sessions.destroy');
+});

@@ -118,6 +118,54 @@ Route::get('/whatsapp/status', function() {
 Route::get('/whatsapp/incoming-messages', [App\Http\Controllers\Guest::class, 'incomingMessages'])
     ->middleware('auth')->name('whatsapp.incoming-messages');
 
+// Unified Notification API Test Interface
+Route::get('/unified-notification-test', function() {
+    return view('unified-notification-test');
+})->middleware('auth')->name('unified.notification.test');
+
+// Event ID Fix Test Route
+Route::get('/test-event-fix', function() {
+    try {
+        // Get the authenticated user
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Please log in to run this test'], 401);
+        }
+        
+        // Try to create a test contact using the fixed service
+        $contactData = [
+            'phone' => '+254700000' . rand(100, 999),
+            'name' => 'Event ID Fix Test',
+            'user_id' => $user->id
+        ];
+        
+        // Use the UserResolutionService to create a contact
+        $contact = \App\Services\UserResolutionService::resolveOrCreateContact($contactData);
+        
+        if ($contact && $contact->event_id) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Contact created successfully! Event ID issue is fixed.',
+                'data' => [
+                    'contact_id' => $contact->id,
+                    'event_id' => $contact->event_id,
+                    'phone' => $contact->guest_phone,
+                    'name' => $contact->guest_name,
+                    'user_id' => $user->id
+                ]
+            ]);
+        } else {
+            return response()->json(['error' => 'Failed to create contact'], 500);
+        }
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'error' => 'Exception occurred: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->middleware('auth')->name('test.event.fix');
+
 // WA Sender QR Code Integration
 Route::get('/wasender', [App\Http\Controllers\WaSenderController::class, 'index'])
     ->middleware('auth')->name('wasender.index');

@@ -1,0 +1,77 @@
+{
+    "summary": {
+        "total": 11,
+        "passed": 7,
+        "failed": 4,
+        "success_rate": 63.64
+    },
+    "results": [
+        {
+            "test": "database_connection",
+            "success": true,
+            "message": "Database connection successful",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "table_structure",
+            "success": false,
+            "message": "Missing columns: metadata, priority, provider, external_id",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "data_insertion",
+            "success": true,
+            "message": "Sample message created with ID: 18",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "model_functionality",
+            "success": false,
+            "message": "Model error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"contact_name\" of relation \"outgoing_messages\" does not exist\nLINE 1: insert into \"outgoing_messages\" (\"user_id\", \"contact_name\", ...\n                                                    ^ (Connection: pgsql, SQL: insert into \"outgoing_messages\" (\"user_id\", \"contact_name\", \"phone\", \"message\", \"metadata\", \"priority\", \"provider\", \"external_id\", \"updated_at\", \"created_at\") values (1, Model Test User, +254700000001, Testing model functionality, {\"source\":\"api_test\"}, high, unified_api, model_test_1764916987, 2025-12-05 09:43:07, 2025-12-05 09:43:07) returning \"id\")",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "service_instantiation",
+            "success": true,
+            "message": "UnifiedNotificationService created successfully",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "service_config",
+            "success": true,
+            "message": "Notification configuration loaded",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "service_methods",
+            "success": true,
+            "message": "Service methods are available",
+            "timestamp": "2025-12-05 09:43:07"
+        },
+        {
+            "test": "api_endpoints",
+            "success": false,
+            "message": "API endpoint error: Call to undefined method App\\Models\\User::createToken()",
+            "timestamp": "2025-12-05 09:43:08"
+        },
+        {
+            "test": "workflow_step1",
+            "success": true,
+            "message": "Notification record created: ID 19",
+            "timestamp": "2025-12-05 09:43:08"
+        },
+        {
+            "test": "workflow_step2",
+            "success": true,
+            "message": "Notification status updated to processing",
+            "timestamp": "2025-12-05 09:43:08"
+        },
+        {
+            "test": "notification_workflow",
+            "success": false,
+            "message": "Workflow error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"waapi_response\" of relation \"outgoing_messages\" does not exist\nLINE 1: update \"outgoing_messages\" set \"status\" = $1, \"waapi_respons...\n                                                      ^ (Connection: pgsql, SQL: update \"outgoing_messages\" set \"status\" = sent, \"waapi_response\" = {\"external_id\":\"ext_19\",\"status\":\"sent\",\"sent_at\":\"2025-12-05 09:43:08\"}, \"sent_at\" = 2025-12-05 09:43:08, \"updated_at\" = 2025-12-05 09:43:08 where \"id\" = 19)",
+            "timestamp": "2025-12-05 09:43:08"
+        }
+    ],
+    "generated_at": "2025-12-05T06:43:08.387025Z"
+}

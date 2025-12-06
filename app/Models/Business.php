@@ -45,7 +45,7 @@ class Business extends Model
     public function businessServices()
     {
         // This assumes there is a 'business_services' table with a 'business_id' foreign key.
-        return $this->hasMany('App\Models\BusinessService', 'business_id')->dd();
+        return $this->hasMany('App\Models\BusinessService', 'business_id');
     }
   
     /**

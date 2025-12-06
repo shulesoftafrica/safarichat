@@ -456,6 +456,12 @@ class Message extends Controller
 
     public function getUserByCriteria($criteria, $event_id, $request = null, $sub_category = null)
     {
+        Log::info('getUserByCriteria called', [
+            'criteria' => $criteria,
+            'event_id' => $event_id,
+            'sub_category' => $sub_category,
+            'request_custom_numbers' => $request ? $request->input('custom_numbers') : null
+        ]);
         
         switch ($criteria) {
             case 1:
@@ -486,23 +492,37 @@ class Message extends Controller
 
             case 6:
                 //Input Numbers
-                $phones = explode(',', strip_tags(request('custom_numbers')));
+                $customNumbers = $request ? $request->input('custom_numbers') : request('custom_numbers');
+                $phones = explode(',', strip_tags($customNumbers));
                 $obj = [];
                 foreach ($phones as $phone) {
-                    $build = ['guest_phone' => $phone, 'guest_email' => '', 'guest_name' => '', 'guest_pledge' => '', 'custom' => 1];
-                    array_push($obj, $build);
+                    $phone = trim($phone); // Remove whitespace
+                    if (!empty($phone)) { // Only add non-empty phones
+                        $build = ['guest_phone' => $phone, 'guest_email' => '', 'guest_name' => '', 'guest_pledge' => '', 'custom' => 1];
+                        array_push($obj, $build);
+                    }
                 }
-                $users = (object) $obj;
+                $users = $obj; // Return array directly instead of casting to object
                 break;
             default:
                 break;
         }
 
         if ($criteria == 6) {
-            $users = $users;
+            $users = $users; // Already an array for custom numbers
         } else {
             $users = $sub_category <> null && (int) $sub_category > 0 && (int) $criteria <> 6 ? $users->where('event_guest_category_id', $sub_category)->get() : $users->get();
         }
+        
+        // Debug logging
+        $userCount = is_array($users) ? count($users) : (isset($users) && method_exists($users, 'count') ? $users->count() : 0);
+        Log::info('getUserByCriteria result', [
+            'criteria' => $criteria,
+            'user_count' => $userCount,
+            'users_type' => gettype($users),
+            'users' => $userCount > 0 && $userCount <= 3 ? $users : 'truncated'
+        ]);
+        
         return $users;
     }
 
@@ -581,6 +601,16 @@ class Message extends Controller
         }
 
         $event_id = Auth::user()->event->id;
+        
+        // Debug logging
+        Log::info('Message store processing', [
+            'criteria' => $criteria,
+            'event_id' => $event_id,
+            'user_id' => Auth::id(),
+            'request_data' => $request->all(),
+            'sources' => $request->source ?? []
+        ]);
+        
         // Determine recipients based on criteria from the form
         if ($criteria == 1) {
             // All Contacts
@@ -667,6 +697,7 @@ class Message extends Controller
             $users = $this->getUserByCriteria($criteria, $event_id, $request);
         }
         
+     
         // Use queue system for message processing with attachments
         $this->queueMessages($users, $request->message, $request->source, $attachments);
         
@@ -693,6 +724,16 @@ class Message extends Controller
             return;
         }
 
+        // Debug logging
+        Log::info('queueMessages called with data', [
+            'users_type' => gettype($users),
+            'users_is_array' => is_array($users),
+            'users_is_collection' => $users instanceof \Illuminate\Support\Collection,
+            'users_value' => $users,
+            'sources' => $sources,
+            'message' => substr($message, 0, 100) // First 100 chars
+        ]);
+
         if (is_array($users)) {
             $userCount = count($users);
         } elseif ($users instanceof \Illuminate\Support\Collection) {
@@ -710,7 +751,7 @@ class Message extends Controller
         // Get user's WhatsApp instance
         $waSenderService = new WaSenderService();
         $instance = $waSenderService->getUserInstance(Auth::id());
-        
+       
         if (!$instance) {
             Log::error('No active WhatsApp instance found for user', ['user_id' => Auth::id()]);
             return;
@@ -720,10 +761,12 @@ class Message extends Controller
         $delay = 0;
         foreach ($users as $user) {
             $user = (object) $user;
+
             $phoneNumber = validate_phone_number($user->guest_phone);
-            
+           
             if (is_array($phoneNumber)) {
                 $cleanPhone = $phoneNumber[1];
+               
                 $personalizedMessage = $this->personalizeMessage($message, $user);
                 
                 // If there are attachments, send them first, then the text message

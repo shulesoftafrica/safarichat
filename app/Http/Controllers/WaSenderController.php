@@ -156,8 +156,9 @@ class WaSenderController extends Controller
     
     /**
      * Create new WhatsApp session following wasenderapi.com workflow
+     * Legacy method - keeping for backward compatibility
      */
-    public function createSession(Request $request)
+    public function createSessionLegacy(Request $request)
     {
         try {
             // Step 1: Validate phone number format
@@ -1544,5 +1545,303 @@ class WaSenderController extends Controller
 
         // Return null if no media data found
         return array_filter($mediaData) ? $mediaData : null;
+    }
+
+    // ===== UNIFIED NOTIFICATION API METHODS =====
+
+    /**
+     * Create WaSender session via unified API
+     */
+    public function createSession(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'schema_name' => 'required|string',
+            'name' => 'required|string|max:100',
+            'phone_number' => 'required|string|regex:/^\+?[1-9]\d{1,14}$/',
+            'account_protection' => 'sometimes|boolean',
+            'log_messages' => 'sometimes|boolean',
+            'read_incoming_messages' => 'sometimes|boolean',
+            'webhook_url' => 'sometimes|url',
+            'webhook_enabled' => 'sometimes|boolean',
+            'webhook_events' => 'sometimes|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            $result = $unifiedService->createSession($request->all());
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('Unified session creation failed', [
+                'error' => $e->getMessage(),
+                'data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all WaSender sessions via unified API
+     */
+    public function getSessions(Request $request)
+    {
+        try {
+            $user = $this->resolveUser($request->get('schema_name'));
+            $instances = WhatsappInstance::forUser($user->id)
+                ->where('platform', 'wasender')
+                ->get();
+
+            $sessionsData = $instances->map(function ($instance) {
+                return [
+                    'id' => $instance->id,
+                    'schema_name' => $instance->user->uuid ?? $instance->user_id,
+                    'wasender_session_id' => $instance->instance_id,
+                    'name' => $instance->instance_name,
+                    'phone_number' => $instance->phone_number,
+                    'status' => $instance->status,
+                    'created_at' => $instance->created_at->toISOString(),
+                    'updated_at' => $instance->updated_at->toISOString(),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $sessionsData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve sessions',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get single WaSender session via unified API
+     */
+    public function getSession($id)
+    {
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $instance->id,
+                    'schema_name' => $instance->user->uuid ?? $instance->user_id,
+                    'wasender_session_id' => $instance->instance_id,
+                    'name' => $instance->instance_name,
+                    'phone_number' => $instance->phone_number,
+                    'status' => $instance->status,
+                    'account_protection' => $instance->metadata['account_protection'] ?? true,
+                    'log_messages' => $instance->metadata['log_messages'] ?? true,
+                    'read_incoming_messages' => $instance->metadata['read_incoming_messages'] ?? false,
+                    'webhook_url' => $instance->webhook_url,
+                    'webhook_enabled' => !empty($instance->webhook_url),
+                    'webhook_events' => $instance->metadata['webhook_events'] ?? [],
+                    'created_at' => $instance->created_at->toISOString(),
+                    'updated_at' => $instance->updated_at->toISOString(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Session not found',
+                'message' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Connect WaSender session via unified API
+     */
+    public function connectSession($id)
+    {
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            
+            $result = $unifiedService->connectSession($instance->instance_id);
+            
+            if ($result['success'] ?? false) {
+                $instance->updateFromApiResponse($result);
+            }
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to connect session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get WaSender session status via unified API
+     */
+    public function getSessionStatus($id)
+    {
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            
+            $result = $unifiedService->getSessionStatus($instance->instance_id);
+            
+            if ($result['success'] ?? false) {
+                $instance->updateFromApiResponse($result);
+            }
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get session status',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get WaSender session QR code via unified API
+     */
+    public function getQRCode($id)
+    {
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            
+            $result = $unifiedService->getQRCode($instance->instance_id);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get QR code',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update WaSender session via unified API
+     */
+    public function updateSession(Request $request, $id)
+    {
+        $validator = \Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:100',
+            'phone_number' => 'sometimes|string|regex:/^\+?[1-9]\d{1,14}$/',
+            'webhook_url' => 'sometimes|url',
+            'webhook_enabled' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            
+            // Update local instance
+            $updateData = array_filter($request->only([
+                'name' => 'instance_name',
+                'phone_number' => 'phone_number',
+                'webhook_url' => 'webhook_url',
+            ]));
+
+            if ($updateData) {
+                $instance->update($updateData);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'WhatsApp session updated successfully',
+                'data' => [
+                    'id' => $instance->id,
+                    'schema_name' => $instance->user->uuid ?? $instance->user_id,
+                    'name' => $instance->instance_name,
+                    'phone_number' => $instance->phone_number,
+                    'webhook_enabled' => !empty($instance->webhook_url),
+                    'updated_at' => $instance->fresh()->updated_at->toISOString(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete WaSender session via unified API
+     */
+    public function deleteSession($id)
+    {
+        try {
+            $instance = WhatsappInstance::findOrFail($id);
+            $deletedWasenderId = $instance->instance_id;
+            $deletedLocalId = $instance->id;
+            
+            $instance->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'WhatsApp session deleted successfully',
+                'data' => [
+                    'deleted_local_id' => $deletedLocalId,
+                    'deleted_wasender_id' => $deletedWasenderId,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Resolve user from schema name
+     */
+    protected function resolveUser($schemaName)
+    {
+        if (!$schemaName) {
+            throw new \Exception('Schema name is required');
+        }
+
+        // Try UUID first
+        $user = User::where('uuid', $schemaName)->first();
+        
+        if (!$user && is_numeric($schemaName)) {
+            // Try direct ID
+            $user = User::find($schemaName);
+        }
+
+        if (!$user) {
+            throw new \Exception("User not found for schema: {$schemaName}");
+        }
+
+        return $user;
     }
 }
