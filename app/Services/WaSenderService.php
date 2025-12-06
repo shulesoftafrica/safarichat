@@ -906,31 +906,26 @@ class WaSenderService
         
         // Get the authenticated user's country code
         $countryCode = Auth::check() ? Auth::user()->country_code : '+255'; // Default to Tanzania if not authenticated
+        $countryCodeDigits = ltrim($countryCode, '+'); // Get country code without +
         
      
-        // If phone number starts with +, return as is
-        if (str_starts_with($phoneNumber, '+')) {
-            $whatsappJid = ltrim($cleaned, '+');
-            
-            Log::debug('Phone number formatted to WhatsApp JID', [
-            'original' => $originalPhone,
-            'formatted' => $whatsappJid
-            ]);
-            
-            return $whatsappJid;
+        // If phone number starts with +, remove it
+        if (str_starts_with($cleaned, '+')) {
+            $cleaned = ltrim($cleaned, '+');
         }
         
-        // If starts with 0, remove it and add country code
+        // If starts with 0, remove it and add country code digits
         if (str_starts_with($cleaned, '0')) {
-            $cleaned = $countryCode . substr($cleaned, 1);
+            $whatsappJid = $countryCodeDigits . substr($cleaned, 1);
         }
-        // If doesn't start with country code, add it
-        elseif (!str_starts_with($cleaned, $countryCode)) {
-            $cleaned = $countryCode . $cleaned;
+        // If already starts with country code digits, use as is
+        elseif (str_starts_with($cleaned, $countryCodeDigits)) {
+            $whatsappJid = $cleaned;
         }
-        
-        // Return as WhatsApp JID format
-        $whatsappJid = $cleaned;
+        // Otherwise, add country code digits
+        else {
+            $whatsappJid = $countryCodeDigits . $cleaned;
+        }
         
         Log::debug('Phone number formatted to WhatsApp JID', [
             'original' => $originalPhone,
