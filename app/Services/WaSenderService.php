@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Exception;
 use Auth;
 /**
@@ -211,11 +213,79 @@ class WaSenderService
      */
     public function sendImage(string $phoneNumber, string $imageUrl, ?string $caption = null, ?string $instanceId = null, ?int $userId = null): array
     {
-        return $this->sendMessage($phoneNumber, $caption ?? 'Image attachment', [
-            'type' => 'media',
-            'attachment_path' => $imageUrl,
-            'attachment_type' => 'image/jpeg'
-        ], $instanceId, $userId);
+        try {
+            $cleanPhone = $this->formatPhoneNumber($phoneNumber);
+            
+            // Get user's WhatsApp instance and API key
+            $apiKey = $this->getUserApiKey($userId, $instanceId);
+            if (!$apiKey) {
+                throw new Exception('No active WhatsApp instance found for user');
+            }
+            
+            Log::info('Sending image via WaSender API', [
+                'phone' => $cleanPhone,
+                'image_path' => $imageUrl,
+                'user_id' => $userId
+            ]);
+            
+            // Step 1: Upload the image to WaSender
+            $uploadedUrl = $this->uploadMediaToWaSender($imageUrl, $apiKey);
+            
+            if (!$uploadedUrl) {
+                throw new Exception('Failed to upload image to WaSender');
+            }
+            
+            Log::info('Image uploaded to WaSender', [
+                'phone' => $cleanPhone,
+                'uploaded_url' => $uploadedUrl
+            ]);
+            
+            // Step 2: Send the image message using WaSender API directly
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post('https://www.wasenderapi.com/api/send-message', [
+                'to' => $cleanPhone,
+                'text' => $caption ?? 'Image attachment',
+                'imageUrl' => $uploadedUrl
+            ]);
+            
+            $result = $response->json() ?? [];
+            
+            if ($response->successful() && isset($result['success']) && $result['success']) {
+                Log::info('Image message sent successfully via WaSender', [
+                    'phone' => $cleanPhone,
+                    'message_id' => $result['data']['msgId'] ?? null
+                ]);
+                
+                // Log the message
+                $this->logOutgoingMessage($cleanPhone, $caption ?? 'Image attachment', 'image', $result, $userId, $instanceId);
+                
+                return [
+                    'success' => true,
+                    'message_id' => $result['data']['msgId'] ?? null,
+                    'jid' => $result['data']['jid'] ?? null,
+                    'status' => $result['data']['status'] ?? 'sent',
+                    'data' => $result['data'] ?? []
+                ];
+            }
+            
+            throw new Exception($result['message'] ?? 'Failed to send image message');
+            
+        } catch (Exception $e) {
+            Log::error('Failed to send image via WaSender', [
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage()
+            ]);
+            
+            $this->logOutgoingMessage($phoneNumber, $caption ?? 'Image attachment', 'image', [
+                'success' => false,
+                'error' => $e->getMessage()
+            ], $userId, $instanceId, 'failed');
+            
+            throw $e;
+        }
     }
 
     /**
@@ -223,12 +293,80 @@ class WaSenderService
      */
     public function sendDocument(string $phoneNumber, string $documentUrl, ?string $filename = null, ?string $caption = null, ?string $instanceId = null, ?int $userId = null): array
     {
-        return $this->sendMessage($phoneNumber, $caption ?? 'Document attachment', [
-            'type' => 'media',
-            'attachment_path' => $documentUrl,
-            'attachment_type' => 'application/pdf',
-            'attachment_name' => $filename
-        ], $instanceId, $userId);
+        try {
+            $cleanPhone = $this->formatPhoneNumber($phoneNumber);
+            
+            // Get user's WhatsApp instance and API key
+            $apiKey = $this->getUserApiKey($userId, $instanceId);
+            if (!$apiKey) {
+                throw new Exception('No active WhatsApp instance found for user');
+            }
+            
+            Log::info('Sending document via WaSender API', [
+                'phone' => $cleanPhone,
+                'document_path' => $documentUrl,
+                'filename' => $filename,
+                'user_id' => $userId
+            ]);
+            
+            // Step 1: Upload the document to WaSender
+            $uploadedUrl = $this->uploadMediaToWaSender($documentUrl, $apiKey);
+            
+            if (!$uploadedUrl) {
+                throw new Exception('Failed to upload document to WaSender');
+            }
+            
+            Log::info('Document uploaded to WaSender', [
+                'phone' => $cleanPhone,
+                'uploaded_url' => $uploadedUrl
+            ]);
+            
+            // Step 2: Send the document message using WaSender API directly
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post('https://www.wasenderapi.com/api/send-message', [
+                'to' => $cleanPhone,
+                'text' => $caption ?? 'Document attachment',
+                'documentUrl' => $uploadedUrl
+            ]);
+            
+            $result = $response->json() ?? [];
+            
+            if ($response->successful() && isset($result['success']) && $result['success']) {
+                Log::info('Document message sent successfully via WaSender', [
+                    'phone' => $cleanPhone,
+                    'message_id' => $result['data']['msgId'] ?? null
+                ]);
+                
+                // Log the message
+                $this->logOutgoingMessage($cleanPhone, $caption ?? 'Document attachment', 'document', $result, $userId, $instanceId);
+                
+                return [
+                    'success' => true,
+                    'message_id' => $result['data']['msgId'] ?? null,
+                    'jid' => $result['data']['jid'] ?? null,
+                    'status' => $result['data']['status'] ?? 'sent',
+                    'data' => $result['data'] ?? []
+                ];
+            }
+            
+            throw new Exception($result['message'] ?? 'Failed to send document message');
+            
+        } catch (Exception $e) {
+            Log::error('Failed to send document via WaSender', [
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage()
+            ]);
+            
+            $this->logOutgoingMessage($phoneNumber, $caption ?? 'Document attachment', 'document', [
+                'success' => false,
+                'error' => $e->getMessage()
+            ], $userId, $instanceId, 'failed');
+            
+            throw $e;
+        }
     }
 
     /**
@@ -436,6 +574,51 @@ class WaSenderService
     }
 
     /**
+     * Get user's WaSender API key from WhatsApp instance
+     * 
+     * @param int|null $userId User ID
+     * @param string|null $instanceId Optional instance ID
+     * @return string|null API key or null if not found
+     */
+    protected function getUserApiKey(?int $userId, ?string $instanceId = null): ?string
+    {
+        // If userId is provided, get their instance
+        if ($userId) {
+            $instance = $this->getUserInstance($userId);
+            if ($instance && $instance->api_key) {
+                return $instance->api_key;
+            }
+        }
+        
+        // If instanceId is provided, try to find by instance_id
+        if ($instanceId) {
+            $instance = WhatsappInstance::where('instance_id', $instanceId)
+                ->where('status', 'connected')
+                ->where('connect_status', 'ready')
+                ->first();
+            if ($instance && $instance->api_key) {
+                return $instance->api_key;
+            }
+        }
+        
+        // If authenticated user exists but no userId provided, use auth user
+        if (!$userId && Auth::check()) {
+            $instance = $this->getUserInstance(Auth::id());
+            if ($instance && $instance->api_key) {
+                return $instance->api_key;
+            }
+        }
+        
+        Log::warning('No WaSender API key found', [
+            'user_id' => $userId,
+            'instance_id' => $instanceId,
+            'auth_user_id' => Auth::check() ? Auth::id() : null
+        ]);
+        
+        return null;
+    }
+
+    /**
      * Send bulk WhatsApp messages via unified notification API
      * 
      * @param array $messages Array of messages [['to' => '', 'message' => ''], ...]
@@ -581,6 +764,127 @@ class WaSenderService
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Upload media file to WaSender API
+     * 
+     * @param string $filePath File path (local or URL)
+     * @param string $apiKey WaSender API key
+     * @return string|null Uploaded file URL
+     */
+    protected function uploadMediaToWaSender(string $filePath, string $apiKey): ?string
+    {
+        try {
+            $fullPath = $this->getFullFilePath($filePath);
+            
+            if (!file_exists($fullPath)) {
+                Log::error('File not found for WaSender upload', ['path' => $filePath]);
+                return null;
+            }
+            
+            $fileSize = filesize($fullPath);
+            $mimeType = mime_content_type($fullPath);
+            
+            Log::info('Uploading file to WaSender', [
+                'file' => basename($fullPath),
+                'size' => $fileSize,
+                'mime' => $mimeType
+            ]);
+            
+            // For large files (> 10MB), use binary upload method
+            if ($fileSize > 10 * 1024 * 1024) {
+                return $this->uploadMediaBinary($fullPath, $mimeType, $apiKey);
+            }
+            
+            // For smaller files, use base64 method
+            return $this->uploadMediaBase64($fullPath, $mimeType, $apiKey);
+            
+        } catch (Exception $e) {
+            Log::error('Failed to upload media to WaSender', [
+                'file' => $filePath,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+    
+    /**
+     * Upload media using base64 method
+     * 
+     * @param string $filePath Full file path
+     * @param string $mimeType MIME type
+     * @param string $apiKey WaSender API key
+     * @return string|null Uploaded file URL
+     */
+    protected function uploadMediaBase64(string $filePath, string $mimeType, string $apiKey): ?string
+    {
+        try {
+            $fileContent = file_get_contents($filePath);
+            $base64Content = base64_encode($fileContent);
+            $dataUrl = "data:$mimeType;base64,$base64Content";
+            
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json'
+            ])->post('https://www.wasenderapi.com/api/upload', [
+                'base64' => $dataUrl
+            ]);
+            
+            $result = $response->json() ?? [];
+            
+            if ($result['success'] ?? false) {
+                Log::info('Media uploaded via base64', ['url' => $result['publicUrl']]);
+                return $result['publicUrl'];
+            }
+            
+            Log::error('Base64 upload failed', ['result' => $result]);
+            return null;
+            
+        } catch (Exception $e) {
+            Log::error('Base64 upload exception', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+    
+    /**
+     * Upload media using binary method (for large files)
+     * 
+     * @param string $filePath Full file path
+     * @param string $mimeType MIME type
+     * @param string $apiKey WaSender API key
+     * @return string|null Uploaded file URL
+     */
+    protected function uploadMediaBinary(string $filePath, string $mimeType, string $apiKey): ?string
+    {
+        try {
+            $client = new Client();
+            
+            $response = $client->post('https://www.wasenderapi.com/api/upload', [
+                'headers' => [
+                    'Authorization' => "Bearer {$apiKey}",
+                    'Content-Type' => $mimeType
+                ],
+                'body' => fopen($filePath, 'r')
+            ]);
+            
+            $result = json_decode($response->getBody(), true);
+            
+            if ($result['success'] ?? false) {
+                Log::info('Media uploaded via binary', ['url' => $result['publicUrl']]);
+                return $result['publicUrl'];
+            }
+            
+            Log::error('Binary upload failed', ['result' => $result]);
+            return null;
+            
+        } catch (RequestException $e) {
+            Log::error('Binary upload exception', [
+                'error' => $e->getMessage(),
+                'response' => $e->hasResponse() ? $e->getResponse()->getBody()->getContents() : null
+            ]);
+            return null;
         }
     }
 
