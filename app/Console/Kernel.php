@@ -17,6 +17,11 @@ class Kernel extends ConsoleKernel {
     protected $commands = [
         Commands\ProcessFailedMessagesCommand::class,
         Commands\ManageAgentsCommand::class,
+        Commands\DailyOutreachCommand::class,
+        Commands\ConversationEngineCommand::class,
+        Commands\WinBackOutreachCommand::class,
+        Commands\NoReplyChaseCommand::class,
+        Commands\SlaMonitorCommand::class,
     ];
     public $emails;
 
@@ -238,6 +243,44 @@ class Kernel extends ConsoleKernel {
         $schedule->call(function () {
             $this->processScheduledFollowups();
         })->everyMinute();
+
+        // === New AI Sales Agent Commands ===
+        
+        // Daily outreach campaign - twice daily (9 AM and 2 PM)
+        $schedule->command('ai-agent:daily-outreach --limit=50')
+            ->twiceDaily(9, 14)
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/daily-outreach.log'));
+
+        // Process conversation queue every 5 minutes
+        $schedule->command('ai-agent:process-conversations --limit=100 --timeout=30')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/conversation-engine.log'));
+
+        // Win-back campaigns - weekly on Wednesdays at 10 AM
+        $schedule->command('ai-agent:win-back --limit=30 --days-inactive=30')
+            ->weeklyOn(3, '10:00') // Wednesday
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/win-back.log'));
+
+        // No-reply chase follow-ups - daily at 11 AM and 4 PM
+        $schedule->command('ai-agent:chase-no-reply --limit=50 --hours=48 --max-chases=3')
+            ->twiceDaily(11, 16)
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/chase-no-reply.log'));
+
+        // SLA monitoring - every 15 minutes during business hours
+        $schedule->command('ai-agent:sla-monitor --alert-threshold=15 --escalation-threshold=60')
+            ->everyFifteenMinutes()
+            ->between('07:00', '20:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/sla-monitor.log'));
     }
 
     /**

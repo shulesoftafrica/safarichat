@@ -26,7 +26,34 @@ Route::get('lang/{lang}', function ($lang) {
 Route::get('/terms-and-conditions', function() {
     return view('auth.termsandconditions');
 });
-Route::get('/', [App\Http\Controllers\Home::class, 'index']);
+
+// Corporate page route
+Route::get('/corporate', function() {
+    return view('corporate.index');
+})->name('corporate');
+
+// Landing Page Routes with Multi-language Support
+Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
+Route::get('/roi-calculator', function() { return view('landing.roi-calculator'); })->name('landing.roi-calculator');
+Route::get('/{locale}', [App\Http\Controllers\LandingController::class, 'index'])
+    ->where('locale', 'en|es|pt-br|hi|ar|fr')
+    ->name('landing.locale');
+
+// Landing Page API Routes
+Route::post('/demo-chat', [App\Http\Controllers\LandingController::class, 'demoChat'])->name('landing.demo-chat');
+Route::post('/calculate-roi', [App\Http\Controllers\LandingController::class, 'calculateROI'])->name('landing.calculate-roi');
+Route::get('/api/pricing/{currency}', [App\Http\Controllers\LandingController::class, 'getPricing'])->name('landing.pricing');
+Route::post('/contact-submit', [App\Http\Controllers\LandingController::class, 'contactSubmit'])->name('landing.contact');
+
+// Additional API endpoints
+Route::get('/api/currency-rates', [App\Http\Controllers\Api\LandingApiController::class, 'getCurrencyRates']);
+Route::get('/api/language/{locale}', [App\Http\Controllers\Api\LandingApiController::class, 'getLanguageContent']);
+Route::post('/api/calculate-volume', [App\Http\Controllers\Api\LandingApiController::class, 'calculateMessageVolume']);
+Route::get('/api/demo-templates', [App\Http\Controllers\Api\LandingApiController::class, 'getDemoTemplates']);
+Route::post('/api/track-interaction', [App\Http\Controllers\Api\LandingApiController::class, 'trackInteraction']);
+
+// Original routes (keeping for existing functionality)
+Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard');
 Route::get('/terms', function() { return view('auth.legal.terms_of_service');});
 Route::get('/terms/use', function() { return view('auth.legal.terms_of_use');});
 
