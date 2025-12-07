@@ -2606,52 +2606,6 @@
             </div>
         </section>
 
-        <!-- Industries Section -->
-        <section class="industries-section">
-            <h2 class="section-title">Industries Where I Excel</h2>
-            <p style="font-size: 1.2rem; color: var(--gray-600); max-width: 700px; margin: 0 auto 40px; text-align: center;">
-                I've specialized in diverse sectors, adapting my approach to each industry's unique needs.
-            </p>
-            
-            <div class="industries-grid">
-                <div class="industry-card">
-                    <div class="industry-icon">🏦</div>
-                    <h3 class="industry-title">Financial Services</h3>
-                    <p class="industry-desc">I've helped banks automate loan applications and customer onboarding with proven compliance.</p>
-                </div>
-                
-                <div class="industry-card">
-                    <div class="industry-icon">🎓</div>
-                    <h3 class="industry-title">Education</h3>
-                    <p class="industry-desc">I handle student inquiries, course enrollment, and parent communications expertly across institutions.</p>
-                </div>
-                
-                <div class="industry-card">
-                    <div class="industry-icon">🛒</div>
-                    <h3 class="industry-title">E-commerce</h3>
-                    <p class="industry-desc">I recommend products, support orders, and recover abandoned purchases with personalized follow-ups.</p>
-                </div>
-                
-                <div class="industry-card">
-                    <div class="industry-icon">💼</div>
-                    <h3 class="industry-title">Professional Services</h3>
-                    <p class="industry-desc">I book appointments, schedule consultations, and manage follow-ups flawlessly for service businesses.</p>
-                </div>
-                
-                <div class="industry-card">
-                    <div class="industry-icon">🏥</div>
-                    <h3 class="industry-title">Healthcare</h3>
-                    <p class="industry-desc">I handle patient inquiries, appointment scheduling, and follow-up care communications professionally.</p>
-                </div>
-                
-                <div class="industry-card">
-                    <div class="industry-icon">🏠</div>
-                    <h3 class="industry-title">Real Estate</h3>
-                    <p class="industry-desc">I qualify prospects, schedule viewings, and nurture leads through complex purchase decisions.</p>
-                </div>
-            </div>
-        </section>
-
         <!-- Pricing Section -->
         <section class="pricing-section">
             <h2 class="section-title">Simple, Transparent Pricing</h2>
@@ -3667,8 +3621,6 @@
                 howSolve: "How I Solve Them for You",
                 coreSkills: "My Core Sales Skills",
                 coreSkillsDesc: "I bring the expertise of a senior sales professional with the consistency of AI automation.",
-                industriesTitle: "Industries Where I Excel",
-                industriesDesc: "I've specialized in diverse sectors, adapting my approach to each industry's unique needs.",
                 pricingTitle: "Simple, Transparent Pricing",
                 pricingDesc: "Only pay for the AI messages you use. Higher plans include more AI sales messages at a lower cost per message.",
                 pricingNote: "SafariChat helps you close deals — every AI message is a real sales interaction that moves your customers toward buying.",
@@ -3691,7 +3643,6 @@
                 trackRecordDesc: "Ve por qué las empresas están eligiendo IA sobre los equipos de ventas tradicionales",
                 challengesToGrowth: "De Desafíos al Crecimiento",
                 coreSkills: "Mis Habilidades Principales de Ventas",
-                industriesTitle: "Industrias Donde Sobresalgo",
                 pricingTitle: "Precios Simples y Transparentes",
                 testimonialsTitle: "Lo Que Mis Clientes Dicen Sobre Trabajar Conmigo",
                 loginTitle: "Conoce a Tu Nuevo Representante de Ventas IA",
@@ -3712,7 +3663,6 @@
                 trackRecordDesc: "Veja por que as empresas estão escolhendo IA ao invés de equipes de vendas tradicionais",
                 challengesToGrowth: "De Desafios ao Crescimento",
                 coreSkills: "Minhas Habilidades Principais de Vendas",
-                industriesTitle: "Indústrias Onde Me Destaco",
                 pricingTitle: "Preços Simples e Transparentes",
                 testimonialsTitle: "O Que Meus Clientes Dizem Sobre Trabalhar Comigo",
                 loginTitle: "Conheça Seu Novo Representante de Vendas IA",
@@ -3733,7 +3683,6 @@
                 trackRecordDesc: "देखें कि व्यवसाय पारंपरिक सेल्स टीमों के बजाय AI क्यों चुन रहे हैं",
                 challengesToGrowth: "चुनौतियों से विकास तक",
                 coreSkills: "मेरे मुख्य सेल्स कौशल",
-                industriesTitle: "उद्योग जहां मैं उत्कृष्ट हूं",
                 pricingTitle: "सरल, पारदर्शी मूल्य निर्धारण",
                 testimonialsTitle: "मेरे क्लाइंट मेरे साथ काम के बारे में क्या कहते हैं",
                 loginTitle: "अपने नए AI सेल्स रेप से मिलें",
@@ -3754,7 +3703,6 @@
                 trackRecordDesc: "انظر لماذا تختار الشركات الذكاء الاصطناعي بدلاً من فرق المبيعات التقليدية",
                 challengesToGrowth: "من التحديات إلى النمو",
                 coreSkills: "مهارات المبيعات الأساسية",
-                industriesTitle: "الصناعات التي أتفوق فيها",
                 pricingTitle: "تسعير بسيط وشفاف",
                 testimonialsTitle: "ما يقوله عملائي عن العمل معي",
                 loginTitle: "التقِ بممثل المبيعات الذكي الجديد",
@@ -3775,7 +3723,6 @@
                 trackRecordDesc: "Voyez pourquoi les entreprises choisissent l'IA plutôt que les équipes de vente traditionnelles",
                 challengesToGrowth: "Des Défis à la Croissance",
                 coreSkills: "Mes Compétences Principales de Vente",
-                industriesTitle: "Industries Où J'Excelle",
                 pricingTitle: "Tarification Simple et Transparente",
                 testimonialsTitle: "Ce Que Mes Clients Disent de Moi",
                 loginTitle: "Rencontrez Votre Nouveau Agent IA",
@@ -3796,7 +3743,6 @@
                 trackRecordDesc: "Ona kwa nini biashara zinachagua AI badala ya timu za mauzo za jadi",
                 challengesToGrowth: "Kutoka Changamoto hadi Ukuzi",
                 coreSkills: "Ujuzi wangu wa Kimsingi wa Mauzo",
-                industriesTitle: "Sekta Ambazo Ninafanya Vizuri",
                 pricingTitle: "Bei Rahisi na ya Uwazi",
                 testimonialsTitle: "Kile Wateja wangu Wanasema kuhusu Kufanya Kazi Nami",
                 loginTitle: "Kutana na Mwakilishi wako Mpya wa AI",
@@ -3879,7 +3825,6 @@
                 t.trackRecordTitle,
                 t.challengesToGrowth,
                 t.coreSkills,
-                t.industriesTitle,
                 t.pricingTitle,
                 t.testimonialsTitle
             ];
