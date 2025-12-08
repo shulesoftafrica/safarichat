@@ -7,7 +7,7 @@ use App\Services\UserResolutionService;
 
 /**
  * @property int $id
- * @property int $event_id
+ * @property int $business_id
  * @property string $guest_name
  * @property string $guest_email
  * @property string $guest_email_verified_at
@@ -16,7 +16,7 @@ use App\Services\UserResolutionService;
  * @property float $guest_pledge
  * @property string $created_at
  * @property string $updated_at
- * @property Event $event
+ * @property Business $business
  * @property Message[] $messages
  * @property Payment[] $payments
  */
@@ -25,14 +25,14 @@ class EventsGuest extends Model
     /**
      * @var array
      */
-    protected $fillable = ['event_id', 'user_id', 'guest_name', 'guest_email', 'guest_email_verified_at', 'guest_phone', 'event_guest_category_id', 'guest_pledge', 'contacted_for_sales', 'contacted_at', 'created_at', 'updated_at','code'];
+    protected $fillable = ['business_id', 'user_id', 'guest_name', 'guest_email', 'guest_email_verified_at', 'guest_phone', 'event_guest_category_id', 'guest_pledge', 'contacted_for_sales', 'contacted_at', 'created_at', 'updated_at','code'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function event()
+    public function business()
     {
-        return $this->belongsTo('App\Models\Event');
+        return $this->belongsTo('App\Models\Business');
     }
 
     /**
@@ -89,16 +89,16 @@ class EventsGuest extends Model
      */
     public static function findOrCreateForNotification($userId, $phoneNumber, $name = null)
     {
-        // Get user's event
-        $userEvent = \App\Models\UsersEvent::where('user_id', $userId)->first();
+        // Get user's business
+        $userBusiness = \App\Models\Business::where('user_id', $userId)->first();
         
-        if (!$userEvent) {
-            throw new \Exception("No event found for user ID: {$userId}");
+        if (!$userBusiness) {
+            throw new \Exception("No business found for user ID: {$userId}");
         }
 
         // Find or create guest
         return self::firstOrCreate([
-            'event_id' => $userEvent->event_id,
+            'business_id' => $userBusiness->id,
             'guest_phone' => $phoneNumber,
         ], [
             'guest_name' => $name ?: 'Auto-created from API',
@@ -110,7 +110,7 @@ class EventsGuest extends Model
     /**
      * Enhanced auto-creation with UserResolutionService integration
      */
-    public static function findOrCreateWithResolution(array $contactData, ?int $eventId = null): self
+    public static function findOrCreateWithResolution(array $contactData, ?int $businessId = null): self
     {
         // Use UserResolutionService for intelligent contact resolution
         $userResolutionService = new \App\Services\UserResolutionService();
@@ -122,13 +122,13 @@ class EventsGuest extends Model
             'name' => $contactData['name'] ?? ''
         ]);
 
-        if ($existingContact && ($eventId === null || $existingContact->event_id === $eventId)) {
+        if ($existingContact && ($businessId === null || $existingContact->business_id === $businessId)) {
             return $existingContact;
         }
 
-        // Determine event_id if not provided
-        if ($eventId === null) {
-            $eventId = self::resolveEventForContact($contactData);
+        // Determine business_id if not provided
+        if ($businessId === null) {
+            $businessId = self::resolveBusinessForContact($contactData);
         }
 
         // Normalize phone number
@@ -136,7 +136,7 @@ class EventsGuest extends Model
         
         // Create new contact with enhanced data
         return self::create([
-            'event_id' => $eventId,
+            'business_id' => $businessId,
             'guest_name' => $contactData['name'] ?? self::generateNameFromContact($contactData),
             'guest_phone' => $normalizedPhone,
             'guest_email' => $contactData['email'] ?? null,
@@ -149,29 +149,29 @@ class EventsGuest extends Model
     }
 
     /**
-     * Resolve event for contact based on context
+     * Resolve business for contact based on context
      */
-    private static function resolveEventForContact(array $contactData): int
+    private static function resolveBusinessForContact(array $contactData): int
     {
-        // If user_id provided, use their active event
+        // If user_id provided, use their business
         if (!empty($contactData['user_id'])) {
-            $userEvent = \App\Models\UsersEvent::where('user_id', $contactData['user_id'])->first();
-            if ($userEvent) {
-                return $userEvent->event_id;
+            $userBusiness = \App\Models\Business::where('user_id', $contactData['user_id'])->first();
+            if ($userBusiness) {
+                return $userBusiness->id;
             }
         }
 
-        // Use current authenticated user's event
+        // Use current authenticated user's business
         if (auth()->check()) {
-            $userEvent = \App\Models\UsersEvent::where('user_id', auth()->id())->first();
-            if ($userEvent) {
-                return $userEvent->event_id;
+            $userBusiness = \App\Models\Business::where('user_id', auth()->id())->first();
+            if ($userBusiness) {
+                return $userBusiness->id;
             }
         }
 
-        // Default to the most recent event
-        $recentEvent = \App\Models\Event::latest()->first();
-        return $recentEvent ? $recentEvent->id : 1; // Fallback to event ID 1
+        // Default to the most recent business
+        $recentBusiness = \App\Models\Business::latest()->first();
+        return $recentBusiness ? $recentBusiness->id : 1; // Fallback to business ID 1
     }
 
     /**
@@ -194,17 +194,17 @@ class EventsGuest extends Model
     /**
      * Bulk create or update contacts with relationship optimization
      */
-    public static function bulkCreateOrUpdate(array $contactsData, int $eventId): array
+    public static function bulkCreateOrUpdate(array $contactsData, int $businessId): array
     {
         $results = ['created' => 0, 'updated' => 0, 'errors' => []];
         
         foreach ($contactsData as $index => $contactData) {
             try {
-                // Add event_id to contact data
-                $contactData['event_id'] = $eventId;
+                // Add business_id to contact data
+                $contactData['business_id'] = $businessId;
                 
                 // Find existing contact
-                $existing = self::where('event_id', $eventId)
+                $existing = self::where('business_id', $businessId)
                     ->where('guest_phone', $contactData['phone'] ?? '')
                     ->first();
 
@@ -220,7 +220,7 @@ class EventsGuest extends Model
                     $results['updated']++;
                 } else {
                     // Create new contact
-                    self::findOrCreateWithResolution($contactData, $eventId);
+                    self::findOrCreateWithResolution($contactData, $businessId);
                     $results['created']++;
                 }
             } catch (\Exception $e) {
@@ -344,11 +344,11 @@ class EventsGuest extends Model
     }
 
     /**
-     * Scope to get guests for specific event
+     * Scope to get guests for specific business
      */
-    public function scopeForEvent($query, $eventId)
+    public function scopeForBusiness($query, $businessId)
     {
-        return $query->where('event_id', $eventId);
+        return $query->where('business_id', $businessId);
     }
 
     /**

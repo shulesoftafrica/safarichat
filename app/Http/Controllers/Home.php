@@ -77,29 +77,26 @@ class Home extends Controller
             // }
 
          
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+        $userBusiness = Auth::user()->business;
    
      
-        if (!$user_events) {
-            // Create a dummy event
-            $event = \App\Models\Event::create([
-                'name' => 'Default Event',
-                'event_type_id' => 1,
-                'date' => now(),
-                'district_id' => 1
-            ]);
-            $user_events = \App\Models\UsersEvent::create([
+        if (!$userBusiness) {
+            // Create a default business if none exists
+            $userBusiness = \App\Models\Business::create([
                 'user_id' => Auth::user()->id,
-                'event_id' => $event->id
+                'name' => Auth::user()->name . ' Business',
+                'address' => 'Default Address',
+                'descriptions' => 'Default Business Description',
+                'ward_id' => 1
             ]);
         }
-        $event_id = $user_events->event_id;
+        $business_id = $userBusiness->id;
 
         // WhatsApp-based metrics using the new tables
         $user_id = Auth::id();
         
         // Total WhatsApp contacts (guests)
-        $this->data['guests'] = EventsGuest::whereEventId($event_id)->count();
+        $this->data['guests'] = EventsGuest::where('business_id', $business_id)->count();
         
         // Active conversations (users who have received/sent messages in last 30 days)
         $this->data['active_conversations'] = \App\Models\IncomingMessage::where('user_id', $user_id)
@@ -141,15 +138,15 @@ class Home extends Controller
                     count(*) as sum, 
                     extract(month from created_at)||'-'||extract(year from created_at) as month_date 
                 FROM events_guests 
-                WHERE event_id = ? 
+                WHERE business_id = ? 
                 GROUP BY month_date 
                 ORDER BY month_date ASC
-            ", [$event_id]);
+            ", [$business_id]);
         }
 
-        // Budget and expenses remain the same
-        $this->data['total_budget'] = Budget::where('event_id', $event_id)->sum('initial_price');
-        $this->data['total_expenses'] = BudgetPayment::whereIn('budget_id', Budget::where('event_id', $event_id)->get(['id']))->sum('amount');
+        // Budget and expenses updated for business
+        $this->data['total_budget'] = Budget::where('business_id', $business_id)->sum('initial_price');
+        $this->data['total_expenses'] = BudgetPayment::whereIn('budget_id', Budget::where('business_id', $business_id)->get(['id']))->sum('amount');
 
         // Recent activity data for WhatsApp
         $this->data['recent_messages'] = \App\Models\IncomingMessage::where('user_id', $user_id)
@@ -312,9 +309,19 @@ class Home extends Controller
     public function settings()
     {
 
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $this->data['event'] = $user_events->event;
-        $this->data['user_accounts'] = \App\Models\UsersEvent::whereEventId($user_events->event_id)->get();
+        $userBusiness = Auth::user()->business;
+        if (!$userBusiness) {
+            // Create a default business if none exists
+            $userBusiness = \App\Models\Business::create([
+                'user_id' => Auth::user()->id,
+                'name' => Auth::user()->name . ' Business',
+                'address' => 'Default Address',
+                'descriptions' => 'Default Business Description',
+                'ward_id' => 1
+            ]);
+        }
+        $this->data['business'] = $userBusiness;
+        $this->data['user_accounts'] = [Auth::user()]; // Just show current user for now
         if ($_POST) {
             $table = request('table');
             switch ($table) {
@@ -324,13 +331,13 @@ class Home extends Controller
                     break;
                 case 'event_guest_category':
                     if ((int) request('edit') > 0) {
-                        \App\Models\EventGuestCategory::whereId(request('edit'))->whereEventId($user_events->event_id)->update(['name' => request('name')]);
+                        \App\Models\EventGuestCategory::whereId(request('edit'))->where('business_id', $userBusiness->id)->update(['name' => request('name')]);
                     } else {
-                        \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'event_id' => $user_events->event_id]);
+                        \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $userBusiness->id]);
                     }
                     break;
-                case 'event':
-                    \App\Models\Event::findOrFail($user_events->event_id)->update(request()->all());
+                case 'business':
+                    \App\Models\Business::findOrFail($userBusiness->id)->update(request()->all());
                     break;
                 default:
                     break;
@@ -338,7 +345,7 @@ class Home extends Controller
             return redirect()->back()->with('success', 'success');
         }
 
-        $this->data['categories'] = \App\Models\EventGuestCategory::whereEventId($user_events->event_id)->get();
+        $this->data['categories'] = \App\Models\EventGuestCategory::where('business_id', $userBusiness->id)->get();
         return view('auth.settings', $this->data);
     }
 

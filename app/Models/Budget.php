@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
- * @property int $event_id
+ * @property int $business_id
  * @property int $business_service_id
  * @property float $initial_price
  * @property float $actual_price
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $updated_at
  * @property string $deleted_at
  * @property float $paid_amount
- * @property UsersEvent $usersEvent
+ * @property Business $business
  * @property BusinessService $businessService
  * @property BudgetPayment[] $budgetPayments
  */
@@ -23,14 +23,14 @@ class Budget extends Model
     /**
      * @var array
      */
-    protected $fillable = ['event_id', 'business_service_id', 'initial_price', 'actual_price', 'created_at', 'updated_at', 'deleted_at', 'paid_amount','approved','quantity', 'service_id'];
+    protected $fillable = ['business_id', 'business_service_id', 'initial_price', 'actual_price', 'created_at', 'updated_at', 'deleted_at', 'paid_amount','approved','quantity', 'service_id'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function event()
+    public function business()
     {
-        return $this->belongsTo('App\Models\Event');
+        return $this->belongsTo('App\Models\Business');
     }
 
     /**

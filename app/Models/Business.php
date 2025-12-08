@@ -47,6 +47,30 @@ class Business extends Model
         // This assumes there is a 'business_services' table with a 'business_id' foreign key.
         return $this->hasMany('App\Models\BusinessService', 'business_id');
     }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function businessGuests()
+    {
+        return $this->hasMany('App\Models\EventsGuest', 'business_id');
+    }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function guestCategories()
+    {
+        return $this->hasMany('App\Models\EventGuestCategory', 'business_id');
+    }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function budgets()
+    {
+        return $this->hasMany('App\Models\Budget', 'business_id');
+    }
   
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

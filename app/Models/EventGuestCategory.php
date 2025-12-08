@@ -6,24 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
- * @property int $event_id
+ * @property int $business_id
  * @property string $name
  * @property string $created_at
  * @property string $updated_at
- * @property Event $event
+ * @property Business $business
  */
 class EventGuestCategory extends Model
 {
     /**
      * @var array
      */
-    protected $fillable = ['event_id', 'name', 'created_at', 'updated_at'];
+    protected $fillable = ['business_id', 'name', 'created_at', 'updated_at'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function event()
+    public function business()
     {
-        return $this->belongsTo('App\Models\Event');
+        return $this->belongsTo('App\Models\Business');
     }
 }

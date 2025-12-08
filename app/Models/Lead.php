@@ -39,6 +39,7 @@ class Lead extends Model
     const STATUS_NEW = 'NEW';
     const STATUS_OUTREACHED = 'OUTREACHED';
     const STATUS_REPLIED = 'REPLIED';
+    const STATUS_ENGAGED = 'ENGAGED';
     const STATUS_QUALIFIED = 'QUALIFIED';
     const STATUS_PITCHED = 'PITCHED';
     const STATUS_DEMO_SCHEDULED = 'DEMO_SCHEDULED';
@@ -48,6 +49,9 @@ class Lead extends Model
     const STATUS_LOST = 'LOST';
     const STATUS_HANDED_OFF = 'HANDED_OFF';
     const STATUS_DO_NOT_CONTACT = 'DO_NOT_CONTACT';
+    const STATUS_NEEDS_ATTENTION = 'NEEDS_ATTENTION';
+    const STATUS_CONVERTED = 'CONVERTED';
+    const STATUS_CHURNED = 'CHURNED';
 
     // Relationships
     public function contact()

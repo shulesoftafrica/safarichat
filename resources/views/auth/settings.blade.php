@@ -32,8 +32,8 @@
                         <div class="col-sm-3">
                             <div class="nav flex-column nav-pills text-center" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                                 <a class="nav-link waves-effect waves-light active" id="v-pills-home-tab" data-toggle="pill" href="#v-pills-home" role="tab" aria-controls="v-pills-home" aria-selected="true">User Accounts</a>
-                                <!-- <a class="nav-link waves-effect waves-light" id="v-pills-profile-tab" data-toggle="pill" href="#v-pills-profile" role="tab" aria-controls="v-pills-profile" aria-selected="false">Events Settings</a> -->
                                 <a class="nav-link waves-effect waves-light " id="v-pills-settings-tab" data-toggle="pill" href="#v-pills-settings" role="tab" aria-controls="v-pills-settings" aria-selected="false">Customer Category</a>
+                                <a class="nav-link waves-effect waves-light " id="v-pills-business-tab" data-toggle="pill" href="#v-pills-business" role="tab" aria-controls="v-pills-business" aria-selected="false">Business Settings</a>
                             </div>
                         </div>
                         <div class="col-sm-9">
@@ -89,117 +89,45 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab">
-                                    <form class="form-parsley"  novalidate="" action="{{url('home/settings/null')}}" method="post">
+                                    <h4 class="mt-0 header-title">Business Settings</h4>
+                                    <p class="text-muted mb-3">Configure your business information and preferences.</p>
+                                    <p>Business settings are now managed through the dedicated Business Profile section.</p>
+                                </div>
+                                <div class="tab-pane fade" id="v-pills-business" role="tabpanel" aria-labelledby="v-pills-business-tab">
+                                    <form class="form-parsley"  novalidate="" action="{{url('home/settings')}}" method="post">
                                         <div class="form-group">
-                                            <label>Event Type</label>
-
-                                            <?php
-                                            $event_types = \App\Models\EventsType::all();
-                                            ?>
-
-                                            <?php
-                                            $array_ = array();
-                                            foreach ($event_types as $event_type) {
-                                                $array_[$event_type->id] = $event_type->name;
-                                            }
-                                            echo form_dropdown("event_type_id", $array_, old("event_type_id", $event->event_type_id), "id='event_type_id'  onchange='setCriteria(this.value)' style='width:100% !important' class='form-control select2'   @error('event_type_id') is-invalid @enderror");
-                                            ?>
-                                            @error('event_type_id')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
-                                            @enderror
-                                        </div><!--end form-group-->
-
-                                        <div class="form-group">
-                                            <label>Event Date</label>
-                                            <input type="date" id="date" class="form-control  @error('date') is-invalid @enderror"  name="date" required="" value="<?= date('Y-m-d', strtotime($event->date)) ?>" placeholder="Event Date">
-                                            @error('date')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
-                                            @enderror
-                                        </div><!--end form-group-->
-                                        <div id="partner_wedding" style="display: none">
-                                            <div class="form-group">
-                                                <label>Partner's Name</label>
-                                                <div>
-                                                    <input type="text" class="form-control  @error('partner_name') is-invalid @enderror" id="partner_name" parsley-type="name" name="partner_name" placeholder="Enter a valid Name">
-                                                    @error('partner_name')
-                                                    <span class="invalid-feedback" role="alert">
-                                                        <strong>{{ $message }}</strong>
-                                                    </span>
-                                                    @enderror
-                                                </div>
-                                            </div><!--end form-group-->
-
-                                            <div class="form-group">
-                                                <label>Partner's Phone Number</label>
-                                                <input parsley-type="number" type="text" class="form-control   @error('partner_phone') is-invalid @enderror" name="partner_phone" placeholder="Phone Number">
-                                                @error('partner_phone')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                                @enderror
-                                            </div><!--end form-group-->
+                                            <label>Business Name</label>
+                                            <input type="text" class="form-control" name="name" value="{{ $business->name ?? '' }}" placeholder="Business Name">
                                         </div>
+                                        
                                         <div class="form-group">
-                                            <label>Location</label>
-                                            <?php
-                                            $districts = \App\Models\District::all();
-                                            ?>
-
-                                            <?php
-                                            $array = array();
-                                            foreach ($districts as $district) {
-                                                $array[$district->id] = $district->name . ' - ' . $district->region->name;
-                                            }
-                                            echo form_dropdown("district_id", $array, old("district_id", $event->district_id), "id='district_id'  style='width:100% !important' class='form-control select2'   @error('district_id') is-invalid @enderror");
-                                            ?>
-                                            @error('district_id')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
-                                            @enderror
-                                        </div><!--end form-group-->
+                                            <label>Business Email</label>
+                                            <input type="email" class="form-control" name="email" value="{{ $business->email ?? '' }}" placeholder="Business Email">
+                                        </div>
+                                        
                                         <div class="form-group">
-                                            <label>Event Name</label>
-                                            <input parsley-type="text" type="text" class="form-control  @error('name') is-invalid @enderror" id="event_name" value="<?= $event->name ?>" required="" name="name" placeholder="Event Name">
-                                            @error('name')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
-                                            @enderror
-                                        </div><!--end form-group-->
-
+                                            <label>Business Phone</label>
+                                            <input type="text" class="form-control" name="phone" value="{{ $business->phone ?? '' }}" placeholder="Business Phone">
+                                        </div>
+                                        
                                         <div class="form-group">
-                                            <label>Event Live Url</label>
-                                            <input parsley-type="text" type="text" class="form-control  @error('url') is-invalid @enderror" id="url" value="<?= $event->url ?>" required="" name="url" placeholder="Event Live Url">
-                                            @error('url')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
-                                            @enderror
-                                            <span class="alert">To stream live, go to your youtube account, then click go live, create your event and specify time to start, then at the top of that youtube page, click share, a copy the url to paste in this input.
-                                                Once you have saved, download a mobile app named streamlab, then login to your account, and once the time start, click go live and stream your event</span>
-                                        </div><!--end form-group-->
+                                            <label>Business Description</label>
+                                            <textarea class="form-control" name="descriptions" rows="4" placeholder="Describe your business">{{ $business->descriptions ?? '' }}</textarea>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label>Website URL</label>
+                                            <input type="url" class="form-control" name="website" value="{{ $business->website ?? '' }}" placeholder="https://example.com">
+                                        </div>
 
                                         <div class="form-group mb-0">
                                             <button type="submit" class="btn btn-success waves-effect waves-light">
-                                                Save
+                                                Save Business Settings
                                             </button>
-                                            <input type="hidden" value="event" name="table"/>
-                                            <input type="hidden" value="<?= strlen($event->uid) < 4 ? time() : $event->uid ?>" name="uid"/>
+                                            <input type="hidden" value="business" name="table"/>
                                             <?= csrf_field() ?>
                                         </div>
                                     </form>
-
-                                    <br/>
-                                    <p>Generate Event Code for users to attend online. Do this only if you have added live url above</p>
-
-                                    <button id="code_event" class="btn btn-secondary" onclick="$.get('<?= url('home/sendEventCode/null') ?>', {}, function (data) {
-                                                alert(data)
-                                            })">Generate Event Code</button>
                                 </div>
                                 <div class="tab-pane fade " id="v-pills-settings" role="tabpanel" aria-labelledby="v-pills-settings-tab">
                                     <h4 class="mt-0 header-title">Customer Categories</h4>
@@ -224,11 +152,11 @@
                                                 <?php
                                                 $i = 1;
                                                 foreach ($categories as $category) {
-                                                    $total_guests = $category->event->eventsGuests()->where('event_guest_category_id', $category->id)->count();
+                                                    $total_guests = $category->business->businessGuests()->where('event_guest_category_id', $category->id)->count();
                                                     ?>
                                                     <tr>
                                                         <th scope="row"><?= $i ?></th>
-                                                        <th><?= $category->event->name ?></th>
+                                                        <th><?= $category->business->name ?? 'Business' ?></th>
                                                         <td><span id="category<?= $category->id ?>"><?= $category->name ?></span></td>
                                                         <th><?= $total_guests ?></th>
                                                         <td> 
