@@ -4,6 +4,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Api\ContactApiController;
+use App\Http\Controllers\Api\LeadApiController;
+use App\Http\Controllers\Api\LeadProductApiController;
+use App\Http\Controllers\Api\ConversationApiController;
+use App\Http\Controllers\Api\CrmSyncApiController;
+use App\Http\Controllers\Api\CrmImportController;
 
 /*
   |--------------------------------------------------------------------------
@@ -31,6 +36,99 @@ Route::middleware('auth:sanctum')->prefix('contacts')->name('api.contacts.')->gr
     
     // Contact status update
     Route::put('/{contact}/status', [ContactApiController::class, 'updateContactStatus'])->name('status.update');
+    
+    // Get leads for a specific contact
+    Route::get('/{contactId}/leads', [LeadApiController::class, 'getLeadsByContact'])->name('leads.index');
+});
+
+// Lead Management API Routes - Phase 1 CRM Integration
+Route::middleware('auth:sanctum')->prefix('leads')->name('api.leads.')->group(function () {
+    // Core CRUD operations
+    Route::post('/', [LeadApiController::class, 'store'])->name('store');
+    Route::get('/', [LeadApiController::class, 'index'])->name('index');
+    Route::get('/{id}', [LeadApiController::class, 'show'])->name('show');
+    
+    // Lead status management
+    Route::put('/{id}/status', [LeadApiController::class, 'updateStatus'])->name('status.update');
+    Route::post('/{id}/assign', [LeadApiController::class, 'assign'])->name('assign');
+    
+    // Lead timeline and activity
+    Route::get('/{id}/timeline', [LeadApiController::class, 'timeline'])->name('timeline');
+    
+    // Bulk operations
+    Route::post('/bulk-create', [LeadApiController::class, 'bulkCreate'])->name('bulk.create');
+    Route::put('/bulk-update', [LeadApiController::class, 'bulkUpdate'])->name('bulk.update');
+    
+    // Sales pipeline
+    Route::get('/pipeline', [LeadApiController::class, 'pipeline'])->name('pipeline');
+    
+    // Churn management
+    Route::post('/{id}/churn', [LeadApiController::class, 'markAsChurned'])->name('churn');
+    Route::post('/{id}/reactivate', [LeadApiController::class, 'reactivate'])->name('reactivate');
+    
+    // Product relationship management
+    Route::post('/{leadId}/products', [LeadProductApiController::class, 'addProducts'])->name('products.add');
+    Route::get('/{leadId}/products', [LeadProductApiController::class, 'getLeadProducts'])->name('products.index');
+    Route::put('/{leadId}/products/{productId}/status', [LeadProductApiController::class, 'updateProductStatus'])->name('products.status.update');
+    Route::delete('/{leadId}/products/{productId}', [LeadProductApiController::class, 'removeProduct'])->name('products.remove');
+    Route::put('/{leadId}/products/{productId}/primary', [LeadProductApiController::class, 'setPrimaryProduct'])->name('products.primary');
+});
+
+// Product-Lead Relationship API Routes
+Route::middleware('auth:sanctum')->prefix('products')->name('api.products.')->group(function () {
+    // Get all leads for a specific product
+    Route::get('/{productId}/leads', [LeadProductApiController::class, 'getLeadsByProduct'])->name('leads.index');
+});
+
+// Conversation Management API Routes - Phase 2 CRM Integration
+Route::middleware('auth:sanctum')->prefix('conversations')->name('api.conversations.')->group(function () {
+    // Core conversation operations
+    Route::post('/', [ConversationApiController::class, 'store'])->name('store');
+    Route::get('/{leadId}', [ConversationApiController::class, 'getConversationHistory'])->name('history');
+    Route::get('/single/{id}', [ConversationApiController::class, 'show'])->name('show');
+    Route::put('/{id}', [ConversationApiController::class, 'update'])->name('update');
+    
+    // Analytics and search
+    Route::get('/analytics/summary', [ConversationApiController::class, 'analytics'])->name('analytics');
+    Route::get('/search', [ConversationApiController::class, 'search'])->name('search');
+    
+    // Export functionality
+    Route::get('/{leadId}/export', [ConversationApiController::class, 'export'])->name('export');
+});
+
+// External CRM Sync API Routes - Phase 2 CRM Integration
+Route::middleware('auth:sanctum')->prefix('crm')->name('api.crm.')->group(function () {
+    // Bidirectional sync endpoints
+    Route::post('/sync/contacts', [CrmSyncApiController::class, 'syncContacts'])->name('sync.contacts');
+    Route::post('/sync/leads', [CrmSyncApiController::class, 'syncLeads'])->name('sync.leads');
+    Route::get('/sync/status', [CrmSyncApiController::class, 'getSyncStatus'])->name('sync.status');
+    
+    // Webhook handlers for external CRM updates
+    Route::post('/webhooks/updates', [CrmSyncApiController::class, 'handleWebhookUpdates'])->name('webhooks.updates');
+});
+
+// Conversation Management API Routes - Phase 2 CRM Integration
+Route::middleware('auth:sanctum')->prefix('conversations')->name('api.conversations.')->group(function () {
+    // Conversation CRUD
+    Route::post('/', [ConversationApiController::class, 'store'])->name('store');
+    Route::get('/{leadId}', [ConversationApiController::class, 'index'])->name('index');
+    Route::get('/detail/{id}', [ConversationApiController::class, 'show'])->name('show');
+    Route::put('/{id}', [ConversationApiController::class, 'update'])->name('update');
+    
+    // Analytics and search
+    Route::get('/analytics', [ConversationApiController::class, 'analytics'])->name('analytics');
+    Route::get('/search', [ConversationApiController::class, 'search'])->name('search');
+});
+
+// External CRM Sync API Routes - Phase 2 CRM Integration
+Route::middleware('auth:sanctum')->prefix('crm')->name('api.crm.')->group(function () {
+    // Bidirectional sync endpoints
+    Route::post('/sync/contacts', [CrmSyncApiController::class, 'syncContacts'])->name('sync.contacts');
+    Route::post('/sync/leads', [CrmSyncApiController::class, 'syncLeads'])->name('sync.leads');
+    Route::get('/sync/status', [CrmSyncApiController::class, 'getSyncStatus'])->name('sync.status');
+    
+    // Webhook for receiving updates from external CRM
+    Route::post('/webhooks/updates', [CrmSyncApiController::class, 'receiveUpdates'])->name('webhooks.updates');
 });
 
 
@@ -169,4 +267,16 @@ Route::middleware(['auth:sanctum', 'notification.api'])->prefix('wasender/sessio
         ->name('wasender.sessions.update');
     Route::delete('/{id}', [App\Http\Controllers\WaSenderController::class, 'deleteSession'])
         ->name('wasender.sessions.destroy');
+});
+
+// CRM Import API Routes - Simple import functionality for contacts and context
+Route::middleware('auth:sanctum')->prefix('crm/import')->name('api.crm.import.')->group(function () {
+    // Import contacts from external CRM
+    Route::post('/contacts', [CrmImportController::class, 'importContacts'])->name('contacts');
+    
+    // Import conversation context from external CRM
+    Route::post('/context', [CrmImportController::class, 'importContext'])->name('context');
+    
+    // Get imported contact with context (for verification)
+    Route::get('/contacts/{crm_id}/context', [CrmImportController::class, 'getContactContext'])->name('contact.context');
 });

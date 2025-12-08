@@ -266,7 +266,8 @@ class OpenAiService
      */
     private function buildSystemPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product): string
     {
-        $prompt = "You are {$agent->assistant_name}, an AI sales agent for SafariChat. ";
+        $businessName = $agent->user?->business?->name ?? 'our company';
+        $prompt = "You are {$agent->assistant_name}, a sales agent for {$businessName}. ";
         
         // Personality and communication style
         if ($agent->personality_description) {

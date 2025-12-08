@@ -164,7 +164,7 @@ class NoReplyChaseCommand extends Command
             $message = $this->generateChaseMessage($lead, $agent, $strategy, $chaseCount);
             
             if ($dryRun) {
-                $this->line("📝 Would send chase #{$chaseCount + 1} ({$strategy}): " . substr($message, 0, 100) . '...');
+                $this->line("📝 Would send chase #" . ($chaseCount + 1) . " ({$strategy}): " . substr($message, 0, 100) . '...');
                 return true;
             }
 

@@ -34,6 +34,9 @@ class LandingController extends Controller
         // Get localized content
         $content = $this->getLocalizedContent($currentLocale);
         
+        // Ensure content has all required sections with fallbacks
+        $content = $this->ensureContentFallbacks($content);
+        
         // Detect user's currency based on locale or IP
         $currency = $this->detectCurrency($request, $currentLocale);
         
@@ -365,5 +368,90 @@ class LandingController extends Controller
             'help' => "Je me spécialise dans les cycles de vente complets. Je travaille 24h/24 et 7j/7, parle plusieurs langues et ne manque jamais de suivi. J'augmente généralement les taux de conversion de 35%. Quel défi commercial spécifique avez-vous ?",
             'default' => "Excellente question ! En tant qu'Agent Commercial IA, je gère tout, de la qualification des prospects à la négociation des prix. Aimeriez-vous voir des exemples spécifiques de la façon dont j'ai aidé d'autres entreprises ?"
         ];
+    }
+
+    /**
+     * Ensure content has all required sections with fallbacks
+     */
+    private function ensureContentFallbacks($content)
+    {
+        // Set default values for all sections to prevent array access errors
+        $content = array_merge([
+            'meta' => [
+                'title' => 'AI Sales Agent - SafariChat',
+                'description' => 'Meet your AI Sales Agent that handles complete sales conversations',
+                'keywords' => 'AI sales agent, WhatsApp automation, sales automation'
+            ],
+            'navigation' => [
+                'features' => 'Features',
+                'pricing' => 'Pricing',
+                'login' => 'Login'
+            ],
+            'hero' => [
+                'title' => 'Hi, I\'m your new AI Sales Agent. I close deals 24/7 while you focus on growing your business.',
+                'subtitle' => 'I handle complete sales conversations, qualify your prospects, negotiate the best prices, and hand you ready-to-close deals.',
+                'cta_primary' => 'Meet Your New Sales Rep',
+                'cta_secondary' => 'See How Much I\'ll Earn You',
+                'trust_indicators' => 'I\'ve successfully closed deals for 500+ businesses globally. Available 24/7/365.'
+            ],
+            'track_record' => [
+                'title' => 'My Track Record',
+                'results' => 'I\'ve helped 500+ organizations increase sales'
+            ],
+            'problems_solutions' => [
+                'title' => 'Problems I Solve → Value I Deliver',
+                'problems_title' => 'Your Current Sales Challenges',
+                'solutions_title' => 'How I Solve Them Personally',
+                'problems' => [],
+                'solutions' => []
+            ],
+            'skills' => [
+                'title' => 'My Core Sales Skills'
+            ],
+            'demo' => [
+                'title' => 'See Me In Action',
+                'description' => 'Interactive chat where you can talk to me directly',
+                'welcome' => 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!'
+            ],
+            'contact_form' => [
+                'title' => 'How to Get Started Working With Me'
+            ],
+            'pricing' => [
+                'header' => 'Simple, transparent pricing — only pay for the AI messages you use.',
+                'subheader' => 'Choose a plan based on your monthly message volume. Higher plans include more AI sales messages at a lower cost per message.',
+                'footer_note' => 'SafariChat helps you close deals — every AI message is a real sales interaction that moves your customers toward buying.',
+                'starter_plan' => 'Starter Plan',
+                'pro_plan' => 'Pro Plan',
+                'enterprise_plan' => 'Enterprise Plan',
+                'per_month' => '/month',
+                'includes' => 'Includes',
+                'ai_messages' => 'AI messages',
+                'effective_rate' => 'Effective rate',
+                'per_message' => 'per message',
+                'get_started' => 'Get Started',
+                'perfect_for' => 'Perfect for',
+                'most_popular' => 'Most Popular',
+                'best_value' => 'Best Value',
+                'overage_rate' => 'Additional messages at'
+            ],
+            'industries' => [
+                'title' => 'Industries Where I Excel',
+                'financial' => 'I\'ve helped banks automate loan applications',
+                'education' => 'I handle student inquiries expertly',
+                'ecommerce' => 'I recommend products and recover sales',
+                'professional' => 'I book appointments flawlessly'
+            ],
+            'footer' => [
+                'tagline' => 'Your Personal AI Sales Professional',
+                'contact' => 'Contact',
+                'enterprise_sales' => 'Enterprise Sales',
+                'technical_docs' => 'Technical Documentation',
+                'api_documentation' => 'API Documentation',
+                'privacy_policy' => 'Privacy Policy',
+                'terms_of_service' => 'Terms of Service'
+            ]
+        ], $content);
+
+        return $content;
     }
 }

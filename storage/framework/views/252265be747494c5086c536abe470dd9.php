@@ -1,5 +1,5 @@
-@extends('layouts.app')
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -74,6 +74,32 @@
         box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
         outline: none;
         background: white;
+    }
+    
+    .form-control-modern.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+    
+    .form-control-modern.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+    
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #dc3545;
+    }
+    
+    .valid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #28a745;
     }
     
     .recipient-card {
@@ -483,8 +509,43 @@
         </div>
         
         <div class="compose-main">
-            <form class="compose-form" method="POST" action="{{ url('message/store') }}" enctype="multipart/form-data" id="messageForm">
-                @csrf
+            <!-- Error Display Section -->
+            <?php if($errors->any()): ?>
+                <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+                    <ul class="mb-0">
+                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <li><?php echo e($error); ?></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            <?php endif; ?>
+
+            <?php if(session('error')): ?>
+                <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo e(session('error')); ?>
+
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            <?php endif; ?>
+
+            <?php if(session('success')): ?>
+                <div class="alert alert-success alert-dismissible fade show m-4" role="alert">
+                    <i class="fas fa-check-circle"></i> <?php echo e(session('success')); ?>
+
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            <?php endif; ?>
+
+            <form class="compose-form" method="POST" action="<?php echo e(url('message/store')); ?>" enctype="multipart/form-data" id="messageForm">
+                <?php echo csrf_field(); ?>
                 
                 <!-- Hidden input to force WhatsApp only -->
                 <input type="hidden" name="source[]" value="whatsapp">
@@ -525,9 +586,20 @@
                                 <p class="recipient-desc">Enter specific phone numbers manually</p>
                             </div>
                         </div>
+
+                        <div class="col-md-6">
+                            <div class="recipient-card" data-value="7">
+                                <div class="recipient-icon" style="background: #fef9c3; color: #ca8a04;">
+                                    <i class="fas fa-file-excel"></i>
+                                </div>
+                                <h3 class="recipient-title">Upload Excel</h3>
+                                <p class="recipient-desc">Upload an Excel file with phone numbers</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <input type="hidden" name="criteria" id="criteriaInput" required>
+                    <div id="criteria-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
                 <!-- Category Selection (Hidden by default) -->
@@ -535,14 +607,32 @@
                     <label class="form-label">
                         <i class="fas fa-tag"></i> Select Customer Category
                     </label>
-                    <select class="form-control-modern" name="event_guest_category_id" id="categorySelect">
+                    <select class="form-control-modern <?php $__errorArgs = ['event_guest_category_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" name="event_guest_category_id" id="categorySelect">
                         <option value="">Choose a category...</option>
-                        @if(isset($guest_categories))
-                            @foreach ($guest_categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        @endif
+                        <?php if(isset($guest_categories)): ?>
+                            <?php $__currentLoopData = $guest_categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($category->id); ?>" <?php echo e(old('event_guest_category_id') == $category->id ? 'selected' : ''); ?>><?php echo e($category->name); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php endif; ?>
                     </select>
+                    <?php $__errorArgs = ['event_guest_category_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    <div id="category-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
                 <!-- Custom Numbers Input (Hidden by default) -->
@@ -550,13 +640,61 @@
                     <label class="form-label">
                         <i class="fas fa-phone"></i> Enter Phone Numbers
                     </label>
-                    <div class="contact-tags" id="contactTags">
+                    <div class="contact-tags <?php $__errorArgs = ['custom_numbers'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="contactTags">
                         <input type="text" class="contact-input" placeholder="Type phone numbers separated by comma or space..." id="contactInput">
                     </div>
-                    <input type="hidden" name="custom_numbers" id="customNumbersInput">
+                    <input type="hidden" name="custom_numbers" id="customNumbersInput" value="<?php echo e(old('custom_numbers')); ?>">
+                    <?php $__errorArgs = ['custom_numbers'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    <div id="custom-numbers-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-lightbulb"></i> 
-                        Enter numbers with country code (e.g., +255712345678) or just the number (712345678)
+                        Enter numbers with country code (e.g., +255712345678)
+                    </small>
+                </div>
+
+                <!-- Excel Upload Input (Hidden by default) -->
+                <div class="form-section" id="excelUploadSection" style="display: none;">
+                    <label class="form-label">
+                        <i class="fas fa-file-excel"></i> Upload Excel File
+                    </label>
+                    <input type="file" class="form-control-modern <?php $__errorArgs = ['excel_contacts'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" name="excel_contacts" id="excelContactsInput" accept=".xls,.xlsx,.csv">
+                    <?php $__errorArgs = ['excel_contacts'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    <div id="excel-validation-feedback" class="invalid-feedback" style="display: none;"></div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="fas fa-info-circle"></i>
+                        Upload an Excel file (.xls, .xlsx, .csv) with a column containing name (optional) as name, and phone number as phone (Mandatory).
                     </small>
                 </div>
 
@@ -578,30 +716,37 @@
                                 <div class="hashtag-name">#name</div>
                                 <div class="hashtag-desc">Customer's full name</div>
                             </div>
-                            <div class="hashtag-item" data-hashtag="#pledge">
-                                <div class="hashtag-name">#pledge</div>
-                                <div class="hashtag-desc">Pledge amount</div>
-                            </div>
-                            <div class="hashtag-item" data-hashtag="#paid_amount">
-                                <div class="hashtag-name">#paid_amount</div>
-                                <div class="hashtag-desc">Amount already paid</div>
-                            </div>
-                            <div class="hashtag-item" data-hashtag="#balance">
-                                <div class="hashtag-name">#balance</div>
-                                <div class="hashtag-desc">Remaining balance</div>
-                            </div>
                         </div>
                         
                         <!-- Message Input -->
                         <div class="message-input-area">
                             <textarea 
-                                class="message-input" 
-                                placeholder="Type your message here... Use # for hashtags"
+                                class="message-input <?php $__errorArgs = ['message'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                placeholder="Type your message here... Use #name for hashtag customer name"
                                 name="message" 
                                 id="messageInput"
                                 rows="1"
                                 required
-                            ></textarea>
+                            ><?php echo e(old('message')); ?></textarea>
+                            
+                            <?php $__errorArgs = ['message'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback position-absolute" style="bottom: -20px; left: 16px;"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            <div id="message-validation-feedback" class="invalid-feedback position-absolute" style="bottom: -20px; left: 16px; display: none;"></div>
                             
                             <div class="input-actions">
                                 <!-- File Upload -->
@@ -666,6 +811,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const criteriaInput = document.getElementById('criteriaInput');
     const categorySection = document.getElementById('categorySection');
     const customNumbersSection = document.getElementById('customNumbersSection');
+    const excelUploadSection = document.getElementById('excelUploadSection');
     const contactInput = document.getElementById('contactInput');
     const contactTags = document.getElementById('contactTags');
     const customNumbersInput = document.getElementById('customNumbersInput');
@@ -684,12 +830,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('fileInput');
     const cameraInput = document.getElementById('cameraInput');
     const audioInput = document.getElementById('audioInput');
+    const excelContactsInput = document.getElementById('excelContactsInput');
 
     // State
     let selectedCriteria = '';
     let contactNumbers = [];
     let attachedFiles = [];
     let hashtagIndex = -1;
+    let excelFileName = '';
 
     // Recipient Card Selection
     recipientCards.forEach(card => {
@@ -707,9 +855,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show/hide relevant sections
             categorySection.style.display = value === '2' ? 'block' : 'none';
             customNumbersSection.style.display = value === '6' ? 'block' : 'none';
+            excelUploadSection.style.display = value === '7' ? 'block' : 'none';
+            
+            // Clear validation errors when switching criteria
+            clearValidationErrors();
             
             updateRecipientCount();
         });
+    });
+
+    // Category Selection Validation
+    document.getElementById('categorySelect').addEventListener('change', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+            document.getElementById('category-validation-feedback').style.display = 'none';
+        }
+        updateRecipientCount();
     });
 
     // Custom Numbers Input
@@ -727,12 +888,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value && !contactNumbers.includes(value)) {
             // Validate phone number format
             const cleanNumber = value.replace(/\D/g, '');
-            if (cleanNumber.length >= 9) {
+            if (cleanNumber.length >= 9 && cleanNumber.length <= 15) {
                 contactNumbers.push(value);
                 createContactTag(value);
                 contactInput.value = '';
                 updateCustomNumbersInput();
                 updateRecipientCount();
+                
+                // Clear validation errors
+                document.getElementById('contactTags').classList.remove('is-invalid');
+                document.getElementById('custom-numbers-validation-feedback').style.display = 'none';
+            } else {
+                // Show validation error
+                showValidationError('custom-numbers', 'Invalid phone number format. Use country code (e.g., +255712345678)');
+                document.getElementById('contactTags').classList.add('is-invalid');
             }
         }
     }
@@ -765,8 +934,56 @@ document.addEventListener('DOMContentLoaded', function() {
         customNumbersInput.value = contactNumbers.join(',');
     }
 
+    // Excel Upload Handler
+    excelContactsInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Clear previous validation state
+            this.classList.remove('is-invalid');
+            document.getElementById('excel-validation-feedback').style.display = 'none';
+            
+            // Validate file type
+            const validTypes = ['.xls', '.xlsx', '.csv'];
+            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+            
+            if (!validTypes.includes(fileExtension)) {
+                showValidationError('excel', 'Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                this.classList.add('is-invalid');
+                this.value = '';
+                excelFileName = '';
+                updateRecipientCount();
+                return;
+            }
+            
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                showValidationError('excel', 'File size too large. Maximum 5MB allowed');
+                this.classList.add('is-invalid');
+                this.value = '';
+                excelFileName = '';
+                updateRecipientCount();
+                return;
+            }
+            
+            excelFileName = file.name;
+            updateRecipientCount();
+            
+            // Show file selected feedback
+            const fileLabel = this.parentElement.querySelector('.form-label');
+            const originalText = fileLabel.innerHTML;
+            fileLabel.innerHTML = `<i class="fas fa-file-excel text-success"></i> Selected: ${file.name}`;
+        } else {
+            excelFileName = '';
+            updateRecipientCount();
+        }
+    });
+
     // Message Input Auto-resize
     messageInput.addEventListener('input', function() {
+        // Clear validation errors
+        this.classList.remove('is-invalid');
+        document.getElementById('message-validation-feedback').style.display = 'none';
+        
         // Auto-resize
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
@@ -965,11 +1182,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let count = 0;
         
         if (selectedCriteria === '1') {
-            count = {{ $guests ?? 0 }}; // Total contacts from backend
+            count = <?php echo e($guests ?? 0); ?>; // Total contacts from backend
         } else if (selectedCriteria === '6') {
             count = contactNumbers.length;
         } else if (selectedCriteria === '2') {
             count = 'Selected category';
+        } else if (selectedCriteria === '7') {
+            count = excelFileName ? `Excel: ${excelFileName}` : 'Upload Excel file';
         }
         
         recipientCount.textContent = typeof count === 'number' ? `${count} recipients` : count;
@@ -977,22 +1196,263 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form Submission
     document.getElementById('messageForm').addEventListener('submit', function(e) {
+        // Clear previous validation states
+        clearValidationErrors();
+        
+        let isValid = true;
+        let errors = [];
+
+        // Validate recipient selection
         if (!selectedCriteria) {
-            e.preventDefault();
-            alert('Please select who you want to message');
-            return;
+            isValid = false;
+            errors.push('Please select who you want to message');
+            showValidationError('criteria', 'Please select a recipient type');
         }
-        
-        if (!messageInput.value.trim()) {
-            e.preventDefault();
-            alert('Please enter a message');
-            return;
+
+        // Validate category selection if needed
+        if (selectedCriteria === '2') {
+            const categorySelect = document.getElementById('categorySelect');
+            if (!categorySelect.value) {
+                isValid = false;
+                errors.push('Please select a customer category');
+                showValidationError('category', 'Please select a customer category');
+                categorySelect.classList.add('is-invalid');
+            }
         }
-        
-        // Show loading state
+
+        // Validate custom numbers if needed
+        if (selectedCriteria === '6') {
+            if (contactNumbers.length === 0) {
+                isValid = false;
+                errors.push('Please enter at least one phone number');
+                showValidationError('custom-numbers', 'Please enter at least one valid phone number');
+                document.getElementById('contactTags').classList.add('is-invalid');
+            } else {
+                // Validate phone number format
+                const invalidNumbers = contactNumbers.filter(number => {
+                    const cleanNumber = number.replace(/\D/g, '');
+                    return cleanNumber.length < 9 || cleanNumber.length > 15;
+                });
+                
+                if (invalidNumbers.length > 0) {
+                    isValid = false;
+                    errors.push(`Invalid phone numbers: ${invalidNumbers.join(', ')}`);
+                    showValidationError('custom-numbers', `Invalid phone numbers: ${invalidNumbers.join(', ')}`);
+                    document.getElementById('contactTags').classList.add('is-invalid');
+                }
+            }
+        }
+
+        // Validate Excel file if needed
+        if (selectedCriteria === '7') {
+            const excelFile = document.getElementById('excelContactsInput').files[0];
+            if (!excelFile) {
+                isValid = false;
+                errors.push('Please upload an Excel file');
+                showValidationError('excel', 'Please upload an Excel file');
+                document.getElementById('excelContactsInput').classList.add('is-invalid');
+            } else {
+                // Validate file type
+                const validExtensions = ['.xls', '.xlsx', '.csv'];
+                const fileExtension = excelFile.name.toLowerCase().substring(excelFile.name.lastIndexOf('.'));
+                if (!validExtensions.includes(fileExtension)) {
+                    isValid = false;
+                    errors.push('Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                    showValidationError('excel', 'Invalid file type. Only Excel files (.xls, .xlsx, .csv) are allowed');
+                    document.getElementById('excelContactsInput').classList.add('is-invalid');
+                }
+                
+                // Validate file size (5MB limit)
+                if (excelFile.size > 5 * 1024 * 1024) {
+                    isValid = false;
+                    errors.push('File size too large. Maximum 5MB allowed');
+                    showValidationError('excel', 'File size too large. Maximum 5MB allowed');
+                    document.getElementById('excelContactsInput').classList.add('is-invalid');
+                }
+            }
+        }
+
+        // Validate message content
+        const messageText = messageInput.value.trim();
+        if (!messageText && attachedFiles.length === 0) {
+            isValid = false;
+            errors.push('Please enter a message or attach files');
+            showValidationError('message', 'Please enter a message or attach files');
+            messageInput.classList.add('is-invalid');
+        }
+
+        // Validate message length
+        if (messageText.length > 1000) {
+            isValid = false;
+            errors.push('Message is too long. Maximum 1000 characters allowed');
+            showValidationError('message', 'Message is too long. Maximum 1000 characters allowed');
+            messageInput.classList.add('is-invalid');
+        }
+
+        // Validate attached files
+        if (attachedFiles.length > 0) {
+            const oversizedFiles = attachedFiles.filter(file => file.size > 16 * 1024 * 1024);
+            if (oversizedFiles.length > 0) {
+                isValid = false;
+                errors.push('Some attached files are too large. Maximum 16MB per file');
+                showValidationError('message', 'Some attached files are too large. Maximum 16MB per file');
+            }
+
+            if (attachedFiles.length > 10) {
+                isValid = false;
+                errors.push('Too many files attached. Maximum 10 files allowed');
+                showValidationError('message', 'Too many files attached. Maximum 10 files allowed');
+            }
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            
+            // Show error summary
+            showErrorSummary(errors);
+            
+            // Scroll to first error
+            const firstError = document.querySelector('.is-invalid');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
+            
+            return false;
+        }
+
+        // Append attached files to FormData for submission
+        if (attachedFiles.length > 0) {
+            e.preventDefault(); // Prevent normal form submission
+            
+            const formData = new FormData(this);
+            
+            // Add attached files to FormData
+            attachedFiles.forEach((file, index) => {
+                formData.append('files[]', file);
+            });
+            
+            // Show loading state
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            sendBtn.disabled = true;
+            floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            floatingSendBtn.disabled = true;
+            
+            // Add loading overlay
+            showLoadingOverlay();
+            
+            // Submit with fetch
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value
+                }
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    return response.text().then(text => {
+                        document.open();
+                        document.write(text);
+                        document.close();
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while sending the message. Please try again.');
+                // Reset loading state
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                sendBtn.disabled = false;
+                floatingSendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                floatingSendBtn.disabled = false;
+                document.getElementById('loading-overlay')?.remove();
+            });
+            
+            return false;
+        }
+
+        // Show loading state for normal submission (no files)
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         sendBtn.disabled = true;
+        floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        floatingSendBtn.disabled = true;
+
+        // Add loading overlay
+        showLoadingOverlay();
     });
+
+    function clearValidationErrors() {
+        // Remove validation classes
+        const invalidElements = document.querySelectorAll('.is-invalid');
+        invalidElements.forEach(element => {
+            element.classList.remove('is-invalid');
+        });
+
+        // Hide validation feedback
+        const feedbackElements = document.querySelectorAll('[id$="-validation-feedback"]');
+        feedbackElements.forEach(element => {
+            element.style.display = 'none';
+        });
+
+        // Hide error summary
+        const errorSummary = document.getElementById('error-summary');
+        if (errorSummary) {
+            errorSummary.remove();
+        }
+    }
+
+    function showValidationError(fieldType, message) {
+        const feedbackElement = document.getElementById(`${fieldType}-validation-feedback`);
+        if (feedbackElement) {
+            feedbackElement.textContent = message;
+            feedbackElement.style.display = 'block';
+        }
+    }
+
+    function showErrorSummary(errors) {
+        // Remove existing error summary
+        const existingErrorSummary = document.getElementById('error-summary');
+        if (existingErrorSummary) {
+            existingErrorSummary.remove();
+        }
+
+        // Create error summary
+        const errorSummary = document.createElement('div');
+        errorSummary.id = 'error-summary';
+        errorSummary.className = 'alert alert-danger alert-dismissible fade show';
+        errorSummary.innerHTML = `
+            <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+            <ul class="mb-0">
+                ${errors.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+            <button type="button" class="close" onclick="this.parentElement.remove()">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        `;
+
+        // Insert error summary at the top of the form
+        const composeForm = document.querySelector('.compose-form');
+        composeForm.insertBefore(errorSummary, composeForm.firstChild);
+    }
+
+    function showLoadingOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'loading-overlay';
+        overlay.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #25d366; margin-bottom: 15px;"></i>
+                    <h5>Sending Message...</h5>
+                    <p class="text-muted mb-0">Please wait while we process your request</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
 
     // Floating send button
     floatingSendBtn.addEventListener('click', function() {
@@ -1005,4 +1465,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\xampp\htdocs\safarichat\resources\views/message/index.blade.php ENDPATH**/ ?>

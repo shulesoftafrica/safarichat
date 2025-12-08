@@ -9,6 +9,18 @@ use Illuminate\Support\Facades\Log;
 
 class Setup extends Controller {
 
+    /**
+     * Show business login page
+     */
+    public function businessLogin() {
+        // Redirect to home if already authenticated
+        if (auth()->check()) {
+            return redirect('/home');
+        }
+        
+        return view('auth.login');
+    }
+
 
     public function otp(){
         // Sanitize phone number to only allow digits

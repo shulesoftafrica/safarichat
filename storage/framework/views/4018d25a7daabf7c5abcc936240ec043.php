@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="{{ $currentLocale }}">
+<html lang="<?php echo e($currentLocale); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     
     <!-- SEO Meta Tags -->
-    <title>{{ $content['meta']['title'] ?? 'AI Sales Agent - SafariChat' }}</title>
-    <meta name="description" content="{{ $content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations, qualifies prospects, and closes deals 24/7.' }}">
-    <meta name="keywords" content="{{ $content['meta']['keywords'] ?? 'AI sales agent, WhatsApp automation, sales automation, lead qualification' }}">
+    <title><?php echo e($content['meta']['title'] ?? 'AI Sales Agent - SafariChat'); ?></title>
+    <meta name="description" content="<?php echo e($content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations, qualifies prospects, and closes deals 24/7.'); ?>">
+    <meta name="keywords" content="<?php echo e($content['meta']['keywords'] ?? 'AI sales agent, WhatsApp automation, sales automation, lead qualification'); ?>">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="{{ $content['meta']['title'] ?? 'AI Sales Agent - SafariChat' }}">
-    <meta property="og:description" content="{{ $content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations' }}">
+    <meta property="og:title" content="<?php echo e($content['meta']['title'] ?? 'AI Sales Agent - SafariChat'); ?>">
+    <meta property="og:description" content="<?php echo e($content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations'); ?>">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:url" content="<?php echo e(request()->url()); ?>">
     
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -90,7 +90,7 @@
     </style>
     
     <!-- CSRF Token -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
 </head>
 <body class="font-inter bg-white">
     
@@ -106,8 +106,8 @@
                 
                 <!-- Navigation -->
                 <nav class="hidden md:flex space-x-8">
-                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors">{{ $content['navigation']['features'] ?? 'Features' }}</a>
-                    <a href="#pricing" class="text-gray-600 hover:text-primary transition-colors">{{ $content['navigation']['pricing'] ?? 'Pricing' }}</a>
+                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors"><?php echo e($content['navigation']['features'] ?? 'Features'); ?></a>
+                    <a href="#pricing" class="text-gray-600 hover:text-primary transition-colors"><?php echo e($content['navigation']['pricing'] ?? 'Pricing'); ?></a>
                     <a href="#demo" class="text-gray-600 hover:text-primary transition-colors">Demo</a>
                     <a href="#contact" class="text-gray-600 hover:text-primary transition-colors">Contact</a>
                 </nav>
@@ -116,18 +116,19 @@
                 <div class="flex items-center space-x-4">
                     <div class="relative">
                         <select id="languageSelector" class="appearance-none bg-white border border-gray-200 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                            <option value="en" {{ $currentLocale === 'en' ? 'selected' : '' }}>🇺🇸 EN</option>
-                            <option value="es" {{ $currentLocale === 'es' ? 'selected' : '' }}>🇪🇸 ES</option>
-                            <option value="pt-br" {{ $currentLocale === 'pt-br' ? 'selected' : '' }}>🇧🇷 PT</option>
-                            <option value="hi" {{ $currentLocale === 'hi' ? 'selected' : '' }}>🇮🇳 HI</option>
-                            <option value="ar" {{ $currentLocale === 'ar' ? 'selected' : '' }}>🇸🇦 AR</option>
-                            <option value="fr" {{ $currentLocale === 'fr' ? 'selected' : '' }}>🇫🇷 FR</option>
+                            <option value="en" <?php echo e($currentLocale === 'en' ? 'selected' : ''); ?>>🇺🇸 EN</option>
+                            <option value="es" <?php echo e($currentLocale === 'es' ? 'selected' : ''); ?>>🇪🇸 ES</option>
+                            <option value="pt-br" <?php echo e($currentLocale === 'pt-br' ? 'selected' : ''); ?>>🇧🇷 PT</option>
+                            <option value="hi" <?php echo e($currentLocale === 'hi' ? 'selected' : ''); ?>>🇮🇳 HI</option>
+                            <option value="ar" <?php echo e($currentLocale === 'ar' ? 'selected' : ''); ?>>🇸🇦 AR</option>
+                            <option value="fr" <?php echo e($currentLocale === 'fr' ? 'selected' : ''); ?>>🇫🇷 FR</option>
                         </select>
                     </div>
                     
                     <!-- Login Button -->
-                    <a href="{{ route('login') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
-                        {{ $content['navigation']['login'] ?? 'Login' }}
+                    <a href="<?php echo e(route('login')); ?>" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                        <?php echo e($content['navigation']['login'] ?? 'Login'); ?>
+
                     </a>
                 </div>
             </div>
@@ -139,25 +140,30 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center fade-in">
                 <h1 class="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                    {{ ($content['hero']['title'] ?? null) ?: 'Hi, I\'m your new AI Sales Agent. I close deals 24/7 while you focus on growing your business.' }}
+                    <?php echo e(($content['hero']['title'] ?? null) ?: 'Hi, I\'m your new AI Sales Agent. I close deals 24/7 while you focus on growing your business.'); ?>
+
                 </h1>
                 <p class="text-xl lg:text-2xl mb-8 opacity-90 max-w-4xl mx-auto leading-relaxed">
-                    {{ ($content['hero']['subtitle'] ?? null) ?: 'I handle complete sales conversations, qualify your prospects, negotiate the best prices, and hand you ready-to-close deals.' }}
+                    <?php echo e(($content['hero']['subtitle'] ?? null) ?: 'I handle complete sales conversations, qualify your prospects, negotiate the best prices, and hand you ready-to-close deals.'); ?>
+
                 </p>
                 
                 <!-- CTAs -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                     <button onclick="scrollToDemo()" class="bg-secondary text-dark px-8 py-4 rounded-lg font-semibold hover:bg-secondary/90 transition-colors text-lg">
-                        {{ ($content['hero']['cta_primary'] ?? null) ?: 'Meet Your New Sales Rep' }}
+                        <?php echo e(($content['hero']['cta_primary'] ?? null) ?: 'Meet Your New Sales Rep'); ?>
+
                     </button>
                     <button onclick="scrollToROI()" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition-colors text-lg">
-                        {{ ($content['hero']['cta_secondary'] ?? null) ?: 'See How Much I\'ll Earn You' }}
+                        <?php echo e(($content['hero']['cta_secondary'] ?? null) ?: 'See How Much I\'ll Earn You'); ?>
+
                     </button>
                 </div>
                 
                 <!-- Trust Indicators -->
                 <p class="text-sm opacity-80 max-w-3xl mx-auto">
-                    {{ ($content['hero']['trust_indicators'] ?? null) ?: 'I\'ve successfully closed deals for 500+ businesses globally. Available 24/7/365. Proven results guaranteed.' }}
+                    <?php echo e(($content['hero']['trust_indicators'] ?? null) ?: 'I\'ve successfully closed deals for 500+ businesses globally. Available 24/7/365. Proven results guaranteed.'); ?>
+
                 </p>
             </div>
         </div>
@@ -166,8 +172,8 @@
     <!-- Track Record Section -->
     <section class="py-16 bg-accent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl font-bold text-dark mb-4">{{ $content['track_record']['title'] ?? 'My Track Record' }}</h2>
-            <p class="text-xl text-gray-600 mb-12">{{ $content['track_record']['results'] ?? 'Proven results across industries' }}</p>
+            <h2 class="text-3xl font-bold text-dark mb-4"><?php echo e($content['track_record']['title'] ?? 'My Track Record'); ?></h2>
+            <p class="text-xl text-gray-600 mb-12"><?php echo e($content['track_record']['results'] ?? 'Proven results across industries'); ?></p>
             
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -190,32 +196,32 @@
     <!-- Problems & Solutions Section -->
     <section class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ $content['problems_solutions']['title'] ?? 'Problems I Solve → Value I Deliver' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16"><?php echo e($content['problems_solutions']['title'] ?? 'Problems I Solve → Value I Deliver'); ?></h2>
             
             <div class="grid lg:grid-cols-2 gap-12 items-start">
                 <!-- Problems -->
                 <div class="bg-red-50 rounded-lg p-8">
-                    <h3 class="text-2xl font-bold text-red-700 mb-6">{{ $content['problems_solutions']['problems_title'] ?? 'Your Current Sales Challenges' }}</h3>
+                    <h3 class="text-2xl font-bold text-red-700 mb-6"><?php echo e($content['problems_solutions']['problems_title'] ?? 'Your Current Sales Challenges'); ?></h3>
                     <ul class="space-y-4">
-                        @foreach($content['problems_solutions']['problems'] ?? [] as $problem)
+                        <?php $__currentLoopData = $content['problems_solutions']['problems'] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $problem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex items-start">
                             <span class="text-red-500 mr-3">❌</span>
-                            <span class="text-gray-700">{{ $problem }}</span>
+                            <span class="text-gray-700"><?php echo e($problem); ?></span>
                         </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
                 
                 <!-- Solutions -->
                 <div class="bg-green-50 rounded-lg p-8">
-                    <h3 class="text-2xl font-bold text-green-700 mb-6">{{ $content['problems_solutions']['solutions_title'] ?? 'How I Solve Them Personally' }}</h3>
+                    <h3 class="text-2xl font-bold text-green-700 mb-6"><?php echo e($content['problems_solutions']['solutions_title'] ?? 'How I Solve Them Personally'); ?></h3>
                     <ul class="space-y-4">
-                        @foreach($content['problems_solutions']['solutions'] ?? [] as $solution)
+                        <?php $__currentLoopData = $content['problems_solutions']['solutions'] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $solution): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex items-start">
                             <span class="text-green-500 mr-3">✅</span>
-                            <span class="text-gray-700">{{ $solution }}</span>
+                            <span class="text-gray-700"><?php echo e($solution); ?></span>
                         </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
             </div>
@@ -225,78 +231,83 @@
     <!-- Core Skills Section -->
     <section id="features" class="py-20 bg-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ ($content['skills']['title'] ?? null) ?: 'My Core Sales Skills' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16"><?php echo e(($content['skills']['title'] ?? null) ?: 'My Core Sales Skills'); ?></h2>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @if(isset($content['skills']['sales_conversations']) && is_array($content['skills']['sales_conversations']))
+                <?php if(isset($content['skills']['sales_conversations']) && is_array($content['skills']['sales_conversations'])): ?>
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['sales_conversations']['title'] ?? 'Sales Conversations' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4"><?php echo e($content['skills']['sales_conversations']['title'] ?? 'Sales Conversations'); ?></h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['sales_conversations']['points'] ?? []) as $point)
+                        <?php $__currentLoopData = ($content['skills']['sales_conversations']['points'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
-                            {{ $point }}
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
+                            <?php echo e($point); ?>
 
-                @if(isset($content['skills']['lead_management']) && is_array($content['skills']['lead_management']))
-                <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['lead_management']['title'] ?? 'Lead Management' }}</h3>
-                    <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['lead_management']['points'] ?? []) as $point)
-                        <li class="flex items-start">
-                            <span class="text-primary mr-2">•</span>
-                            {{ $point }}
                         </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
-                @endif
+                <?php endif; ?>
 
-                @if(isset($content['skills']['campaigns']) && is_array($content['skills']['campaigns']))
+                <?php if(isset($content['skills']['lead_management']) && is_array($content['skills']['lead_management'])): ?>
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['campaigns']['title'] ?? 'Campaign Management' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4"><?php echo e($content['skills']['lead_management']['title'] ?? 'Lead Management'); ?></h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['campaigns']['points'] ?? []) as $point)
+                        <?php $__currentLoopData = ($content['skills']['lead_management']['points'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
-                            {{ $point }}
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
+                            <?php echo e($point); ?>
 
-                @if(isset($content['skills']['collaboration']) && is_array($content['skills']['collaboration']))
-                <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['collaboration']['title'] ?? 'Team Collaboration' }}</h3>
-                    <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['collaboration']['points'] ?? []) as $point)
-                        <li class="flex items-start">
-                            <span class="text-primary mr-2">•</span>
-                            {{ $point }}
                         </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
-                @endif
+                <?php endif; ?>
 
-                @if(isset($content['skills']['whatsapp_management']) && is_array($content['skills']['whatsapp_management']))
+                <?php if(isset($content['skills']['campaigns']) && is_array($content['skills']['campaigns'])): ?>
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['whatsapp_management']['title'] ?? 'WhatsApp Management' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4"><?php echo e($content['skills']['campaigns']['title'] ?? 'Campaign Management'); ?></h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['whatsapp_management']['points'] ?? []) as $point)
+                        <?php $__currentLoopData = ($content['skills']['campaigns']['points'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
-                            {{ $point }}
+                            <?php echo e($point); ?>
+
                         </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
-                @endif
+                <?php endif; ?>
+
+                <?php if(isset($content['skills']['collaboration']) && is_array($content['skills']['collaboration'])): ?>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold text-primary mb-4"><?php echo e($content['skills']['collaboration']['title'] ?? 'Team Collaboration'); ?></h3>
+                    <ul class="space-y-2 text-gray-600">
+                        <?php $__currentLoopData = ($content['skills']['collaboration']['points'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li class="flex items-start">
+                            <span class="text-primary mr-2">•</span>
+                            <?php echo e($point); ?>
+
+                        </li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
+
+                <?php if(isset($content['skills']['whatsapp_management']) && is_array($content['skills']['whatsapp_management'])): ?>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold text-primary mb-4"><?php echo e($content['skills']['whatsapp_management']['title'] ?? 'WhatsApp Management'); ?></h3>
+                    <ul class="space-y-2 text-gray-600">
+                        <?php $__currentLoopData = ($content['skills']['whatsapp_management']['points'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li class="flex items-start">
+                            <span class="text-primary mr-2">•</span>
+                            <?php echo e($point); ?>
+
+                        </li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </section>
@@ -305,8 +316,8 @@
     <section id="demo" class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['demo']['title'] ?? null) ?: 'See Me In Action' }}</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ ($content['demo']['description'] ?? null) ?: 'Interactive chat where you can talk to me directly' }}</p>
+                <h2 class="text-4xl font-bold text-dark mb-4"><?php echo e(($content['demo']['title'] ?? null) ?: 'See Me In Action'); ?></h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto"><?php echo e(($content['demo']['description'] ?? null) ?: 'Interactive chat where you can talk to me directly'); ?></p>
             </div>
             
             <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
@@ -322,7 +333,8 @@
                 <!-- Chat Messages -->
                 <div id="chatMessages" class="h-96 overflow-y-auto p-4 bg-gray-50">
                     <div class="chat-bubble-ai">
-                        {{ ($content['demo']['welcome'] ?? null) ?: 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!' }}
+                        <?php echo e(($content['demo']['welcome'] ?? null) ?: 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!'); ?>
+
                     </div>
                 </div>
                 
@@ -360,7 +372,7 @@
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Average Deal Size ({{ $currency }})</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Average Deal Size (<?php echo e($currency); ?>)</label>
                             <input type="number" id="avgDealSize" value="1000" min="1"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
@@ -394,112 +406,36 @@
         </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section id="pricing" class="py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['pricing']['header'] ?? null) ?: 'Simple, transparent pricing — only pay for the AI messages you use.' }}</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ ($content['pricing']['subheader'] ?? null) ?: 'Choose a plan based on your monthly message volume. Higher plans include more AI sales messages at a lower cost per message.' }}</p>
-            </div>
-            
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Starter Plan -->
-                <div class="pricing-card bg-white rounded-lg p-8 border-2 border-gray-200 relative">
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['starter_plan'] ?? null) ?: 'Starter Plan' }}</h3>
-                    <div class="text-4xl font-bold text-primary mb-4">
-                        {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['starter']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
-                    </div>
-                   
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['starter']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <div class="text-sm text-gray-500 mb-6">
-                        {{ ($content['pricing']['effective_rate'] ?? null) ?: 'Effective rate' }}: {{ $pricingData['symbol'] }}{{ $pricingData['plans']['starter']['rate'] }} {{ ($content['pricing']['per_message'] ?? null) ?: 'per message' }}
-                    </div>
-                    
-                    <button class="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
-                    </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: Small businesses, startups</p>
-                </div>
-                
-                <!-- Pro Plan -->
-                <div class="pricing-card bg-white rounded-lg p-8 border-2 border-primary relative transform scale-105">
-                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span class="bg-secondary text-dark px-4 py-1 rounded-full text-sm font-semibold">{{ ($content['pricing']['most_popular'] ?? null) ?: 'Most Popular' }}</span>
-                    </div>
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['pro_plan'] ?? null) ?: 'Pro Plan' }}</h3>
-                    <div class="text-4xl font-bold text-primary mb-4">
-                        {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['pro']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
-                    </div>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ is_array($pricingData['plans']['pro']['messages']) ? number_format($pricingData['plans']['pro']['messages'][0] ?? 0) : number_format($pricingData['plans']['pro']['messages']) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['pro']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <div class="text-sm text-gray-500 mb-6">
-                    </div>
-                    <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
-                    </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: Growing businesses, schools</p>
-                </div>
-                
-                <!-- Enterprise Plan -->
-                <div class="pricing-card bg-white rounded-lg p-8 border-2 border-gray-200 relative">
-                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span class="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">{{ ($content['pricing']['best_value'] ?? null) ?: 'Best Value' }}</span>
-                    </div>
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['enterprise_plan'] ?? null) ?: 'Enterprise Plan' }}</h3>
-                    <div class="text-4xl font-bold text-primary mb-4">
-                        {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['enterprise']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
-                    </div>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ is_array($pricingData['plans']['enterprise']['messages']) ? number_format($pricingData['plans']['enterprise']['messages'][0] ?? 0) : number_format($pricingData['plans']['enterprise']['messages']) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['enterprise']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <div class="text-sm text-gray-500 mb-6">
-                    </div>
-                    <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
-                    </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: High-volume organizations</p>
-                </div>
-            </div>
-            
-            <p class="text-center text-gray-600 mt-8 max-w-3xl mx-auto">
-                {{ ($content['pricing']['footer_note'] ?? null) ?: 'SafariChat helps you close deals — every AI message is a real sales interaction that moves your customers toward buying.' }}
-            </p>
-            <p class="text-center text-sm text-gray-500 mt-4">
-                {{ ($content['pricing']['overage_rate'] ?? null) ?: 'Additional messages at' }} {{ $pricingData['symbol'] }}{{ $pricingData['plans']['overage_rate'] }} {{ ($content['pricing']['per_message'] ?? null) ?: 'per message' }}
-            </p>
-        </div>
-    </section>
+ 
 
     <!-- Industries Section -->
     <section class="py-20 bg-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ $content['industries']['title'] ?? 'Industries Where I Excel' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16"><?php echo e($content['industries']['title'] ?? 'Industries Where I Excel'); ?></h2>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🏦</div>
                     <h3 class="text-lg font-semibold mb-2">Financial Services</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['financial'] ?? 'I\'ve helped banks automate loan applications' }}</p>
+                    <p class="text-gray-600 text-sm"><?php echo e($content['industries']['financial'] ?? 'I\'ve helped banks automate loan applications'); ?></p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🎓</div>
                     <h3 class="text-lg font-semibold mb-2">Education</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['education'] ?? 'I handle student inquiries expertly' }}</p>
+                    <p class="text-gray-600 text-sm"><?php echo e($content['industries']['education'] ?? 'I handle student inquiries expertly'); ?></p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🛒</div>
                     <h3 class="text-lg font-semibold mb-2">E-commerce</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['ecommerce'] ?? 'I recommend products and recover sales' }}</p>
+                    <p class="text-gray-600 text-sm"><?php echo e($content['industries']['ecommerce'] ?? 'I recommend products and recover sales'); ?></p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">💼</div>
                     <h3 class="text-lg font-semibold mb-2">Professional Services</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['professional'] ?? 'I book appointments flawlessly' }}</p>
+                    <p class="text-gray-600 text-sm"><?php echo e($content['industries']['professional'] ?? 'I book appointments flawlessly'); ?></p>
                 </div>
             </div>
         </div>
@@ -509,7 +445,7 @@
     <section id="contact" class="py-20">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['contact_form']['title'] ?? null) ?: 'How to Get Started Working With Me' }}</h2>
+                <h2 class="text-4xl font-bold text-dark mb-4"><?php echo e(($content['contact_form']['title'] ?? null) ?: 'How to Get Started Working With Me'); ?></h2>
                 <p class="text-xl text-gray-600">Ready to hire your AI Sales Agent? Let's discuss your needs.</p>
             </div>
             
@@ -573,52 +509,53 @@
                     <div class="flex items-center mb-4">
                         <span class="text-xl font-bold text-secondary">SafariChat</span>
                     </div>
-                    <p class="text-gray-300 mb-4">{{ $content['footer']['tagline'] ?? 'Your Personal AI Sales Professional' }}</p>
+                    <p class="text-gray-300 mb-4"><?php echo e($content['footer']['tagline'] ?? 'Your Personal AI Sales Professional'); ?></p>
                 </div>
                 
                 <!-- Links -->
                 <div>
                     <h4 class="font-semibold mb-4">Company</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['contact'] ?? 'Contact' }}</a></li>
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['enterprise_sales'] ?? 'Enterprise Sales' }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['contact'] ?? 'Contact'); ?></a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['enterprise_sales'] ?? 'Enterprise Sales'); ?></a></li>
                     </ul>
                 </div>
                 
                 <div>
                     <h4 class="font-semibold mb-4">Resources</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['technical_docs'] ?? 'Technical Documentation' }}</a></li>
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['api_documentation'] ?? 'API Documentation' }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['technical_docs'] ?? 'Technical Documentation'); ?></a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['api_documentation'] ?? 'API Documentation'); ?></a></li>
                     </ul>
                 </div>
                 
                 <div>
                     <h4 class="font-semibold mb-4">Legal</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="/privacy" class="hover:text-secondary transition-colors">{{ $content['footer']['privacy_policy'] ?? 'Privacy Policy' }}</a></li>
-                        <li><a href="/terms" class="hover:text-secondary transition-colors">{{ $content['footer']['terms_of_service'] ?? 'Terms of Service' }}</a></li>
+                        <li><a href="/privacy" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['privacy_policy'] ?? 'Privacy Policy'); ?></a></li>
+                        <li><a href="/terms" class="hover:text-secondary transition-colors"><?php echo e($content['footer']['terms_of_service'] ?? 'Terms of Service'); ?></a></li>
                     </ul>
                 </div>
             </div>
             
             <!-- Compliance Badges -->
-            @if(isset($content['compliance']))
+            <?php if(isset($content['compliance'])): ?>
             <div class="border-t border-gray-700 pt-8 mb-8">
-                <h4 class="font-semibold mb-4">{{ $content['compliance']['title'] }}</h4>
+                <h4 class="font-semibold mb-4"><?php echo e($content['compliance']['title']); ?></h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    @foreach($content['compliance']['badges'] as $badge)
+                    <?php $__currentLoopData = $content['compliance']['badges']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $badge): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="bg-gray-700 rounded px-3 py-2 text-xs text-center">
-                        ✓ {{ $badge }}
+                        ✓ <?php echo e($badge); ?>
+
                     </div>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
             
             <!-- Copyright -->
             <div class="border-t border-gray-700 pt-8 text-center text-gray-400">
-                <p>&copy; {{ date('Y') }} SafariChat. All rights reserved.</p>
+                <p>&copy; <?php echo e(date('Y')); ?> SafariChat. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -727,8 +664,8 @@
             .then(response => response.json())
             .then(data => {
                 const results = data.results;
-                const currency = '{{ $currency }}';
-                const symbol = '{{ $pricingData["symbol"] }}';
+                const currency = '<?php echo e($currency); ?>';
+                const symbol = '<?php echo e($pricingData["symbol"]); ?>';
                 
                 document.getElementById('roiResults').innerHTML = `
                     <div class="space-y-4">
@@ -812,4 +749,4 @@
         });
     </script>
 </body>
-</html>
+</html><?php /**PATH C:\xampp\htdocs\safarichat\resources\views/landing/index.blade.php ENDPATH**/ ?>

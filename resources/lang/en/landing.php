@@ -139,6 +139,22 @@ return [
         'subheader' => 'Choose a plan based on your monthly message volume. Higher plans include more AI sales messages at a lower cost per message.',
         'footer_note' => 'SafariChat helps you close deals — every AI message is a real sales interaction that moves your customers toward buying.',
         
+        // Plan names
+        'starter_plan' => 'Starter Plan',
+        'pro_plan' => 'Pro Plan', 
+        'enterprise_plan' => 'Enterprise Plan',
+        
+        // Common text
+        'per_month' => '/month',
+        'includes' => 'Includes',
+        'ai_messages' => 'AI messages',
+        'effective_rate' => 'Effective rate',
+        'per_message' => 'per message',
+        'get_started' => 'Get Started',
+        'perfect_for' => 'Perfect for',
+        'most_popular' => 'Most Popular',
+        'best_value' => 'Best Value',
+        
         'includes' => [
             'fixed_price' => 'A fixed monthly subscription price',
             'fixed_messages' => 'A fixed number of AI-powered messages I\'ll handle per month',

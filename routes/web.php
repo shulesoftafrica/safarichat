@@ -32,14 +32,11 @@ Route::get('/corporate', function() {
     return view('corporate.index');
 })->name('corporate');
 
-// Landing Page Routes with Multi-language Support
-Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
+// Landing Page Routes with Multi-language Support  
+Route::get('/', [App\Http\Controllers\Setup::class, 'businessLogin'])->name('business.login');
 Route::get('/roi-calculator', function() { return view('landing.roi-calculator'); })->name('landing.roi-calculator');
-Route::get('/{locale}', [App\Http\Controllers\LandingController::class, 'index'])
-    ->where('locale', 'en|es|pt-br|hi|ar|fr')
-    ->name('landing.locale');
 
-// Landing Page API Routes
+// Demo and API routes (keeping functional ones)
 Route::post('/demo-chat', [App\Http\Controllers\LandingController::class, 'demoChat'])->name('landing.demo-chat');
 Route::post('/calculate-roi', [App\Http\Controllers\LandingController::class, 'calculateROI'])->name('landing.calculate-roi');
 Route::get('/api/pricing/{currency}', [App\Http\Controllers\LandingController::class, 'getPricing'])->name('landing.pricing');
