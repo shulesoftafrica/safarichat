@@ -40,20 +40,11 @@ CREATE INDEX idx_event_guest_categories_business_id ON event_guest_categories(bu
 ```
 
 #### budgets table
-```sql
--- Add business_id column
-ALTER TABLE budgets ADD COLUMN business_id INT;
-
--- Add foreign key constraint
-ALTER TABLE budgets ADD CONSTRAINT fk_budgets_business 
-    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE;
-
--- Create index for performance
-CREATE INDEX idx_budgets_business_id ON budgets(business_id);
-
--- Eventually drop event_id column (after data migration)
--- ALTER TABLE budgets DROP COLUMN event_id;
-```
+**REMOVED** - Budget tables have been completely removed as they were not being used.
+- Dropped `budgets` table
+- Dropped `budget_payments` table  
+- Removed Budget and BudgetPayment models
+- Updated references in controllers and views
 
 ### 2. Data Migration Scripts
 
@@ -106,22 +97,6 @@ SET business_id = (SELECT MIN(id) FROM businesses LIMIT 1)
 WHERE business_id IS NULL;
 ```
 
-#### Step 4: Migrate budgets data
-```sql
--- Update budgets with business_id
-UPDATE budgets bud
-JOIN events e ON bud.event_id = e.id
-JOIN users_events ue ON ue.event_id = e.id
-JOIN businesses b ON b.user_id = ue.user_id
-SET bud.business_id = b.id
-WHERE bud.business_id IS NULL;
-
--- Handle orphaned records
-UPDATE budgets 
-SET business_id = (SELECT MIN(id) FROM businesses LIMIT 1)
-WHERE business_id IS NULL;
-```
-
 ### 3. Verification Queries
 
 ```sql
@@ -132,10 +107,7 @@ SELECT 'events_guests' as table_name, COUNT(*) as total_records,
 FROM events_guests
 UNION ALL
 SELECT 'event_guest_categories', COUNT(*), COUNT(business_id), COUNT(*) - COUNT(business_id)
-FROM event_guest_categories
-UNION ALL
-SELECT 'budgets', COUNT(*), COUNT(business_id), COUNT(*) - COUNT(business_id)
-FROM budgets;
+FROM event_guest_categories;
 ```
 
 ### 4. Cleanup (Execute after verification)
@@ -156,9 +128,9 @@ ALTER TABLE budgets DROP COLUMN event_id;
 
 ### Models Updated
 - ✅ **EventsGuest**: Changed `event_id` to `business_id`, updated relationships and methods
-- ✅ **EventGuestCategory**: Changed `event_id` to `business_id`, updated relationships
-- ✅ **Budget**: Changed `event_id` to `business_id`, updated relationships
-- ✅ **Business**: Added new relationships for guests, categories, and budgets
+- ✅ **EventGuestCategory**: Changed `event_id` to `business_id`, updated relationships  
+- ✅ **Budget**: **REMOVED** - Budget functionality completely removed as unused
+- ✅ **Business**: Added new relationships for guests and categories
 
 ### Controllers Updated
 - ✅ **Home**: Updated dashboard logic to use business instead of events

@@ -1128,6 +1128,7 @@ class Message extends Controller
     {
         // Process pending regular messages
         $pending = DB::select('SELECT b.channel,a.email,a.phone, b.id as message_sentby_id, a.body,a.subject, a.user_id FROM dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where return_code is null limit 100');
+      
         if (!empty($pending)) {
             foreach ($pending as $message) {
                 if ($message->channel <> 'email') {
@@ -1768,24 +1769,29 @@ class Message extends Controller
             \Log::info('Processing event guests for sales', ['count' => $newGuests->count()]);
 
             foreach ($newGuests as $guest) {
-                // Find or create lead for this guest
-                $lead = \App\Models\Lead::firstOrCreate(
-                    ['phone_number' => $guest->guest_phone],
-                    [
-                        'name' => $guest->guest_name ?? 'Event Guest',
-                        'user_id' => $guest->user_id,
-                        'source' => 'event_guest',
-                        'status' => 'new',
-                        'event_id' => $guest->event_id
-                    ]
-                );
 
-                // Get active AI sales agent for this user
+                   // Get active AI sales agent for this user
                 $aiAgent = \App\Models\AiSalesAgent::where('user_id', $guest->user_id)
                                                  ->where('status', 'active')
                                                  ->first();
 
+
+      
+             
+
                 if ($aiAgent) {
+                              // Find or create lead for this guest
+                $lead = \App\Models\Lead::firstOrCreate(
+                    ['events_guest_id' => $guest->id],
+                    [
+                        'business_id' => $guest->business_id,
+                        'source' => 'event_guest',
+                        'status' => 'new',
+                        'ai_sales_agent_id'=>$aiAgent->id
+                    ]
+                );
+
+                
                     // Send initial sales message
                     $this->sendInitialSalesMessage($lead, $aiAgent, $guest);
                     

@@ -25,7 +25,7 @@ class EventsGuest extends Model
     /**
      * @var array
      */
-    protected $fillable = ['business_id', 'user_id', 'guest_name', 'guest_email', 'guest_email_verified_at', 'guest_phone', 'event_guest_category_id', 'guest_pledge', 'contacted_for_sales', 'contacted_at', 'created_at', 'updated_at','code'];
+    protected $fillable = ['business_id', 'guest_name', 'guest_email', 'guest_email_verified_at', 'guest_phone', 'event_guest_category_id', 'guest_pledge', 'contacted_for_sales', 'contacted_at', 'created_at', 'updated_at','code'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -142,7 +142,6 @@ class EventsGuest extends Model
             'guest_email' => $contactData['email'] ?? null,
             'event_guest_category_id' => $contactData['category_id'] ?? 1,
             'guest_pledge' => $contactData['pledge'] ?? 0,
-            'user_id' => $contactData['user_id'] ?? auth()->id(),
             'created_at' => now(),
             'updated_at' => now()
         ]);

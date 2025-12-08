@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use \App\Models\EventsGuest;
 use \App\Models\Payment;
-use \App\Models\Budget;
-use \App\Models\BudgetPayment;
 use \App\Models\User;
 use Auth;
 use DB;
@@ -144,10 +142,6 @@ class Home extends Controller
             ", [$business_id]);
         }
 
-        // Budget and expenses updated for business
-        $this->data['total_budget'] = Budget::where('business_id', $business_id)->sum('initial_price');
-        $this->data['total_expenses'] = BudgetPayment::whereIn('budget_id', Budget::where('business_id', $business_id)->get(['id']))->sum('amount');
-
         // Recent activity data for WhatsApp
         $this->data['recent_messages'] = \App\Models\IncomingMessage::where('user_id', $user_id)
             ->with('guest')
@@ -165,7 +159,6 @@ class Home extends Controller
         $this->data['guests'] = EventsGuest::count();
         $this->data['total_pledge'] = EventsGuest::sum('guest_pledge');
         $this->data['total_payments'] = Payment::sum('amount');
-        $this->data['total_Budget'] = Budget::sum('initial_price');
         exit;
         return view('auth.profile', $this->data);
     }

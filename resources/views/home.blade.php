@@ -663,70 +663,8 @@
         </div>
     </div>
 
-    <!-- Budget Overview -->
     <div class="row">
-        <div class="col-lg-6">
-            <div class="action-card">
-                <div class="action-header">
-                    <div class="action-icon" style="background: #fef3c7; color: #d97706;">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <h3 class="action-title">Monthly Budget Overview</h3>
-                </div>
-                
-                <div class="row">
-                    <div class="col-6">
-                        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">Total Budget</p>
-                        <h4 style="color: #1e293b; margin-bottom: 0;">
-                            @if($total_budget > 0)
-                                Tsh {{number_format($total_budget)}}
-                            @else
-                                Not Set
-                            @endif
-                        </h4>
-                    </div>
-                    <div class="col-6">
-                        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">Used This Month</p>
-                        <h4 style="color: #1e293b; margin-bottom: 0;">
-                            @if($total_expenses > 0)
-                                Tsh {{number_format($total_expenses)}}
-                            @else
-                                Tsh 0
-                            @endif
-                        </h4>
-                    </div>
-                </div>
-                
-                @php
-                    $usage_percent = ($total_budget > 0) ? round(($total_expenses / $total_budget) * 100, 1) : 0;
-                @endphp
-                
-                @if($total_budget > 0)
-                <div style="margin: 20px 0;">
-                    <div style="background: #f1f5f9; border-radius: 10px; height: 8px; overflow: hidden;">
-                        <div style="background: {{ $usage_percent > 80 ? '#dc2626' : ($usage_percent > 60 ? '#f59e0b' : '#25d366') }}; 
-                                    height: 100%; width: {{ min($usage_percent, 100) }}%; 
-                                    border-radius: 10px; transition: width 0.3s ease;"></div>
-                    </div>
-                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 8px; margin-bottom: 0;">
-                        {{$usage_percent}}% of budget used • {{100 - $usage_percent}}% remaining
-                    </p>
-                </div>
-                
-                @if($usage_percent < 50)
-                <div style="background: #dcfce7; color: #16a34a; padding: 12px; border-radius: 8px; font-size: 0.9rem;">
-                    <i class="fas fa-lightbulb"></i> You have plenty of budget left! Consider running more campaigns.
-                </div>
-                @endif
-                @else
-                <div style="background: #f8fafc; color: #64748b; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin: 20px 0;">
-                    <i class="fas fa-info-circle"></i> No budget set. Focus on sending messages to your {{ $guests }} contacts!
-                </div>
-                @endif
-            </div>
-        </div>
-        
-        <div class="col-lg-6">
+        <div class="col-lg-12">
             <div class="action-card">
                 <div class="action-header">
                     <div class="action-icon" style="background: #ecfdf5; color: #059669;">

@@ -3628,7 +3628,7 @@
                 loginTitle: "Meet Your New AI Sales Rep",
                 loginSubtitle: "Enter your WhatsApp number to start working with me",
                 whatsappNumber: "WhatsApp Number",
-                startWorking: "Start Working With Now",
+                startWorking: "Get Started Now",
                 termsAgreement: "By clicking Start, you agree to our",
                 termsConditions: "Terms and Conditions",
                 freeTrial: "3 Days Free Trial"

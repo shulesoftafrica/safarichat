@@ -621,17 +621,6 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Monthly Budget for Customer Communication</label>
-                        <select name="budget_range" class="form-control form-select">
-                            <option value="">Select budget range</option>
-                            <option value="0-25000">TSh 0 - 25,000</option>
-                            <option value="25000-50000">TSh 25,000 - 50,000</option>
-                            <option value="50000-100000">TSh 50,000 - 100,000</option>
-                            <option value="100000+">TSh 100,000+</option>
-                        </select>
-                    </div>
                 </div>
                 
                 <!-- Feature Preview based on selections -->
@@ -834,8 +823,7 @@ $(document).ready(function() {
             years_in_business: $('select[name="years_in_business"]').val(),
             current_channels: [],
             business_goals: [],
-            desired_features: [],
-            budget_range: $('select[name="budget_range"]').val()
+            desired_features: []
         };
         
         // Collect checkbox values

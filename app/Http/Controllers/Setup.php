@@ -499,7 +499,6 @@ class Setup extends Controller {
             'region' => $businessData['region'] ?? '',
             'customer_volume' => $businessData['customer_volume'] ?? '',
             'years_in_business' => $businessData['years_in_business'] ?? '',
-            'budget_range' => $businessData['budget_range'] ?? '',
             'password'=> bcrypt($data['phone']), // Use phone as password for simplicity
             'created_at' => now(),
             'updated_at' => now(),

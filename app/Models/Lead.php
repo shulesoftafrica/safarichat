@@ -11,7 +11,7 @@ class Lead extends Model
     use HasFactory;
 
     protected $fillable = [
-        'events_guest_id', 'ai_sales_agent_id', 'user_id', 'event_id', 'name', 'phone_number', 
+        'events_guest_id', 'ai_sales_agent_id', 'user_id', 'business_id', 'name', 'phone_number', 
         'email', 'source', 'status', 'last_interaction_at', 'last_contact_at', 'follow_up_sent_at',
         'notes', 'company_name', 'industry', 'is_churned', 'churn_date', 'churn_reason',
         'churn_notes', 'win_back_eligible_at', 'win_back_attempts', 'last_win_back_at',
@@ -57,6 +57,11 @@ class Lead extends Model
     public function contact()
     {
         return $this->belongsTo(EventsGuest::class, 'events_guest_id');
+    }
+
+    public function business()
+    {
+        return $this->belongsTo(Business::class, 'business_id');
     }
 
     public function aiSalesAgent()

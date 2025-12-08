@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $updated_at
  * @property Business $business
  * @property Service $service
- * @property Budget[] $budgets
  */
 class BusinessService extends Model
 {
@@ -36,14 +35,6 @@ class BusinessService extends Model
     public function service()
     {
         return $this->belongsTo('App\Models\Service');
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function budgets()
-    {
-        return $this->hasMany('App\Models\Budget');
     }
     
       /**

@@ -78,18 +78,15 @@ Based on the current project implementation and the existing `settings.blade.php
 ### Payment Gateway Configuration
 **Priority: HIGH**
 - **Payment Methods**:
-    - Mobile Money Integration (M-Pesa, Airtel Money, etc.)
-    - Bank Account Details
-    - Credit Card Processing Setup
-    - PayPal Integration
-    - Cryptocurrency Options
+    - User Account Number (Merchant ID)
+    - Credit Card Processing 
 
 - **Billing Information**:
     - Default Currency Settings
     - Tax Rate Configuration
     - Invoice Numbering Format
     - Payment Terms (Net 30, etc.)
-    - Late Payment Fees
+
 
 ### Subscription Management
 - **Plan Management**:

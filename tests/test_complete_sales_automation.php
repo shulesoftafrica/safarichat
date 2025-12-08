@@ -101,7 +101,7 @@ class CompleteSalesAutomationTest
             'name' => 'John Automation Test',
             'phone' => '0689353642', // Test Tanzanian number with leading zero
             'email' => 'john.test@automation.com',
-            'event_id' => 1, // Assume event exists
+            'business_id' => 1, // Assume business exists
             'user_id' => $this->testUserId,
             'contacted_for_sales' => false
         ]);

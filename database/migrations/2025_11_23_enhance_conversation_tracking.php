@@ -24,8 +24,8 @@ return new class extends Migration
             if (!Schema::hasColumn('leads', 'follow_up_sent_at')) {
                 $table->timestamp('follow_up_sent_at')->nullable()->after('last_contact_at');
             }
-            if (!Schema::hasColumn('leads', 'event_id')) {
-                $table->unsignedBigInteger('event_id')->nullable()->after('user_id');
+            if (!Schema::hasColumn('leads', 'business_id')) {
+                $table->unsignedBigInteger('business_id')->nullable()->after('user_id');
             }
         });
 
@@ -51,7 +51,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('leads', function (Blueprint $table) {
-            $table->dropColumn(['ai_sales_agent_id', 'last_contact_at', 'follow_up_sent_at', 'event_id']);
+            $table->dropColumn(['ai_sales_agent_id', 'last_contact_at', 'follow_up_sent_at', 'business_id']);
         });
 
         Schema::table('conversations', function (Blueprint $table) {

@@ -76,11 +76,11 @@ class DailyOutreachCommand extends Command
                         $sent = $this->processLeadOutreach($lead, $agent, $dryRun);
                         if ($sent) {
                             $totalSent++;
-                            $this->line("  ✅ Sent to: {$lead->name} ({$lead->phone_number})");
+                            $this->line("  ✅ Sent to: {$lead->name} ({$lead->contact->guest_phone})");
                         } else {
                             $this->error("  ❌ Failed to send to: {$lead->name}");
                         }
-
+                        
                         // Add small delay to avoid overwhelming the API
                         if (!$dryRun) {
                             sleep(2);

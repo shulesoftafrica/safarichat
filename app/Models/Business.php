@@ -67,6 +67,14 @@ class Business extends Model
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
+    public function leads()
+    {
+        return $this->hasMany('App\Models\Lead', 'business_id');
+    }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function budgets()
     {
         return $this->hasMany('App\Models\Budget', 'business_id');
