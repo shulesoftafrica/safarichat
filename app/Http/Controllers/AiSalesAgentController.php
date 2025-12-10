@@ -127,6 +127,15 @@ class AiSalesAgentController extends Controller
                 ], 403);
             }
             
+            // Log request data for debugging
+            Log::info('Request data before validation', [
+                'all_data' => $request->all(),
+                'target_audience' => $request->input('target_audience'),
+                'communication_tone' => $request->input('communication_tone'),
+                'primary_language' => $request->input('primary_language'),
+                'always_available' => $request->input('always_available')
+            ]);
+            
             $validatedData = $this->validateAgentData($request);
             
             Log::info('Agent found and data validated', [
@@ -168,6 +177,21 @@ class AiSalesAgentController extends Controller
                 'success' => false,
                 'message' => 'AI Sales Agent not found or you do not have permission to edit it.'
             ], 404);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            Log::error('AI Sales Agent validation failed', [
+                'agent_uuid' => isset($aiSalesAgent->uuid) ? $aiSalesAgent->uuid : 'unknown',
+                'user_id' => Auth::id(),
+                'errors' => $e->errors(),
+                'all_errors' => json_encode($e->errors())
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your input.',
+                'errors' => $e->errors()
+            ], 422);
             
         } catch (\Exception $e) {
             DB::rollBack();

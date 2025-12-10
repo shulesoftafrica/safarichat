@@ -141,29 +141,27 @@
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Industry *</label>
-                                    <select class="form-control" name="company_industry" required>
-                                        <option value="">Select your industry</option>
-                                        <option value="retail" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'retail' ? 'selected' : ''); ?>>Retail</option>
-                                        <option value="technology" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'technology' ? 'selected' : ''); ?>>Technology</option>
-                                        <option value="healthcare" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'healthcare' ? 'selected' : ''); ?>>Healthcare</option>
-                                        <option value="finance" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'finance' ? 'selected' : ''); ?>>Finance</option>
-                                        <option value="education" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'education' ? 'selected' : ''); ?>>Education</option>
-                                        <option value="real-estate" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'real-estate' ? 'selected' : ''); ?>>Real Estate</option>
-                                        <option value="automotive" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'automotive' ? 'selected' : ''); ?>>Automotive</option>
-                                        <option value="food-beverage" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'food-beverage' ? 'selected' : ''); ?>>Food & Beverage</option>
-                                        <option value="other" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'other' ? 'selected' : ''); ?>>Other</option>
+                                    <label class="form-label">Target Audience *</label>
+                                    <select class="form-control" name="target_audience" required>
+                                        <option value="">Select target audience</option>
+                                        <option value="small-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'small-businesses' ? 'selected' : ''); ?>>Small Businesses (1-10 employees)</option>
+                                        <option value="medium-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'medium-businesses' ? 'selected' : ''); ?>>Medium Businesses (11-50 employees)</option>
+                                        <option value="enterprises" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'enterprises' ? 'selected' : ''); ?>>Large Enterprises (50+ employees)</option>
+                                        <option value="individuals" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'individuals' ? 'selected' : ''); ?>>Individual Customers</option>
+                                        <option value="mixed" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'mixed' ? 'selected' : ''); ?>>Mixed (All types)</option>
                                     </select>
+                                    <small class="form-hint">Your assistant will be optimized to sell to these customer types</small>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label class="form-label">Primary Language *</label>
                                     <select class="form-control" name="primary_language" required>
-                                        <option value="english" <?php echo e(old('primary_language', $existingAgent->primary_language ?? 'english') == 'english' ? 'selected' : ''); ?>>English</option>
-                                        <option value="swahili" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'swahili' ? 'selected' : ''); ?>>Swahili</option>
-                                        <option value="french" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'french' ? 'selected' : ''); ?>>French</option>
-                                        <option value="spanish" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'spanish' ? 'selected' : ''); ?>>Spanish</option>
+                                        <option value="en" <?php echo e(old('primary_language', $existingAgent->primary_language ?? 'en') == 'en' ? 'selected' : ''); ?>>English</option>
+                                        <option value="sw" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'sw' ? 'selected' : ''); ?>>Swahili</option>
+                                        <option value="fr" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'fr' ? 'selected' : ''); ?>>French</option>
+                                        <option value="ar" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'ar' ? 'selected' : ''); ?>>Arabic</option>
                                     </select>
+                                    <small class="form-hint">Main language for customer interactions</small>
                                 </div>
                             </div>
                         </div>
@@ -195,27 +193,27 @@
                                         </div>
                                     </label>
                                     <label class="tone-option">
-                                        <input type="radio" name="communication_tone" value="casual" 
-                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'casual' ? 'checked' : ''); ?> required>
+                                        <input type="radio" name="communication_tone" value="consultative" 
+                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'consultative' ? 'checked' : ''); ?> required>
                                         <div class="tone-card">
-                                            <i class="fas fa-comments"></i>
-                                            <h4>Casual</h4>
-                                            <p>Relaxed, informal communication</p>
+                                            <i class="fas fa-handshake"></i>
+                                            <h4>Consultative</h4>
+                                            <p>Advisory, asking thoughtful questions</p>
+                                        </div>
+                                    </label>
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="direct" 
+                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'direct' ? 'checked' : ''); ?> required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-bolt"></i>
+                                            <h4>Direct</h4>
+                                            <p>Clear, concise, to-the-point</p>
                                         </div>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div class="form-group">
-                                <label class="form-label">Target Audience</label>
-                                <select class="form-control" name="target_audience">
-                                    <option value="general-public" <?php echo e(old('target_audience', $existingAgent->target_audience ?? 'general-public') == 'general-public' ? 'selected' : ''); ?>>General Public</option>
-                                    <option value="business-customers" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'business-customers' ? 'selected' : ''); ?>>Business Customers</option>
-                                    <option value="young-adults" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'young-adults' ? 'selected' : ''); ?>>Young Adults</option>
-                                    <option value="professionals" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'professionals' ? 'selected' : ''); ?>>Professionals</option>
-                                </select>
-                                <small class="form-hint">This helps tailor the conversation style</small>
-                            </div>
+
                             
                             <div class="form-group">
                                 <label class="form-label">Products/Services Description</label>
@@ -371,238 +369,6 @@
                                 <i class="fas fa-rocket me-2"></i>
                                 Create AI Agent
                             </button>
-                        </div>
-                    </form>
-                            
-                            <!-- Step 1: Assistant Information -->
-                            <div class="step-content active" id="step-1">
-                                <div class="step-card">
-                                    <h4 class="step-title">
-                                        <i class="fas fa-robot text-primary"></i>
-                                        Step 1: Assistant Information
-                                    </h4>
-                                    <p class="step-description">Give your AI sales assistant a name and define its basic identity.</p>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Assistant Name *</label>
-                                        <input type="text" class="form-control" name="assistant_name" 
-                                               placeholder="e.g., Sarah, Alex, SalesBot Pro" 
-                                               value="<?php echo e(old('assistant_name', $existingAgent->assistant_name ?? '')); ?>"
-                                               required>
-                                        <small class="text-muted">Choose a friendly name that customers will interact with</small>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Target Audience *</label>
-                                        <select class="form-select" name="target_audience" required>
-                                            <option value="">Select target audience</option>
-                                            <option value="small-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'small-businesses' ? 'selected' : ''); ?>>Small Businesses (1-10 employees)</option>
-                                            <option value="medium-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'medium-businesses' ? 'selected' : ''); ?>>Medium Businesses (11-50 employees)</option>
-                                            <option value="enterprises" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'enterprises' ? 'selected' : ''); ?>>Large Enterprises (50+ employees)</option>
-                                            <option value="individuals" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'individuals' ? 'selected' : ''); ?>>Individual Customers</option>
-                                            <option value="mixed" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'mixed' ? 'selected' : ''); ?>>Mixed (All types)</option>
-                                        </select>
-                                        <small class="text-muted">Your assistant will be optimized to sell to these customer types</small>
-                                    </div>
-                                    
-                                    <!-- Hidden target user types field (auto-populated based on target audience) -->
-                                    <input type="hidden" name="target_user_types[]" value="1">
-                                    
-                                    <!-- Hidden timezone field -->
-                                    <input type="hidden" name="timezone" value="Africa/Nairobi">
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Communication Tone *</label>
-                                        <select class="form-select" name="communication_tone" required>
-                                            <option value="">Select communication style</option>
-                                            <option value="professional" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'professional' ? 'selected' : ''); ?>>Professional & Formal</option>
-                                            <option value="friendly" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'friendly' ? 'selected' : ''); ?>>Friendly & Casual</option>
-                                            <option value="consultative" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'consultative' ? 'selected' : ''); ?>>Consultative & Advisory</option>
-                                            <option value="direct" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'direct' ? 'selected' : ''); ?>>Direct & To-the-point</option>
-                                        </select>
-                                        <small class="text-muted">How your assistant will communicate with customers</small>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 2: Working Hours & Language -->
-                            <div class="step-content" id="step-2">
-                                <div class="step-card">
-                                    <h4 class="step-title">
-                                        <i class="fas fa-clock text-primary"></i>
-                                        Step 2: Working Hours & Language
-                                    </h4>
-                                    <p class="step-description">Set when your AI sales officer should be active and which language to use.</p>
-                                    
-                                    <div class="form-group">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="always_available" name="always_available" 
-                                                   <?php echo e(old('always_available', $existingAgent->always_available ?? true) ? 'checked' : ''); ?>>
-                                            <label class="form-check-label" for="always_available">
-                                                <strong>Available 24/7</strong>
-                                                <small class="d-block text-muted">AI will respond immediately at any time</small>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Primary Language *</label>
-                                        <select class="form-select" name="primary_language" required>
-                                            <option value="en" <?php echo e(old('primary_language', $existingAgent->primary_language ?? 'en') == 'en' ? 'selected' : ''); ?>>English</option>
-                                            <option value="sw" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'sw' ? 'selected' : ''); ?>>Swahili</option>
-                                            <option value="fr" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'fr' ? 'selected' : ''); ?>>French</option>
-                                            <option value="ar" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'ar' ? 'selected' : ''); ?>>Arabic</option>
-                                            <option value="pt" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'pt' ? 'selected' : ''); ?>>Portuguese</option>
-                                            <option value="am" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'am' ? 'selected' : ''); ?>>Amharic</option>
-                                        </select>
-                                        <small class="text-muted">Primary language for customer communication</small>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Out-of-Hours Message</label>
-                                        <textarea class="form-control" name="out_of_hours_message" rows="3" placeholder="Message to send when AI is not available..."><?php echo e(old('out_of_hours_message', $existingAgent->out_of_hours_message ?? 'Thank you for contacting us! Our AI assistant is currently offline. Our business hours are Monday-Friday, 8:00 AM - 6:00 PM EAT. We\'ll respond to your message as soon as we\'re back online.')); ?></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 3: Negotiation & Fallback -->
-                            <div class="step-content" id="step-3">
-                                <div class="step-card">
-                                    <h4 class="step-title">
-                                        <i class="fas fa-handshake text-primary"></i>
-                                        Step 3: Negotiation & Fallback
-                                    </h4>
-                                    <p class="step-description">Configure pricing negotiations and fallback contact information.</p>
-                                    
-                                    <div class="form-group">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="allow_negotiation" name="allow_negotiation" 
-                                                   <?php echo e(old('allow_negotiation', $existingAgent->allow_negotiation ?? true) ? 'checked' : ''); ?>>
-                                            <label class="form-check-label" for="allow_negotiation">
-                                                <strong>Allow AI to negotiate prices?</strong>
-                                                <small class="d-block text-muted">Enable price negotiations within defined limits</small>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div id="negotiation-settings">
-                                        <div class="form-group">
-                                            <label class="form-label">Maximum Discount Allowed *</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="max_discount_allowed" min="0" max="50" 
-                                                       value="<?php echo e(old('max_discount_allowed', $existingAgent->max_discount_allowed ?? 15)); ?>">
-                                                <span class="input-group-text">%</span>
-                                            </div>
-                                            <small class="text-muted">Maximum discount AI can offer</small>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Fallback Phone Number *</label>
-                                        <input type="tel" class="form-control" name="fallback_number" placeholder="+254700000000" 
-                                               value="<?php echo e(old('fallback_number', $existingAgent->fallback_number ?? '')); ?>"
-                                               required>
-                                        <small class="text-muted">Number to transfer customers when AI cannot help</small>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Fallback Person Name</label>
-                                        <input type="text" class="form-control" name="fallback_person" placeholder="e.g., John - Sales Manager"
-                                               value="<?php echo e(old('fallback_person', $existingAgent->fallback_person ?? '')); ?>">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 4: Terms & Review -->
-                            <div class="step-content" id="step-4">
-                                <div class="step-card">
-                                    <h4 class="step-title">
-                                        <i class="fas fa-file-contract text-primary"></i>
-                                        Step 4: Terms & Review
-                                    </h4>
-                                    <p class="step-description">Review your AI Sales Agent configuration and accept terms.</p>
-                                    
-                                    <div class="terms-section">
-                                        <div class="card bg-light">
-                                            <div class="card-body">
-                                                <h6 class="card-title">
-                                                    <i class="fas fa-info-circle text-info me-2"></i>
-                                                    AI Sales Agent Service Agreement
-                                                </h6>
-                                                <p class="card-text">
-                                                    By using our AI Sales Agent service, you agree to our terms of service, privacy policy, and acceptable use guidelines.
-                                                </p>
-                                                <div class="key-points mb-3">
-                                                    <h6>Key Points:</h6>
-                                                    <ul class="small">
-                                                        <li>Your data is protected and encrypted</li>
-                                                        <li>Service availability is 99.9% uptime target</li>
-                                                        <li>You can modify or cancel anytime</li>
-                                                        <li>Support is available during business hours</li>
-                                                        <li>Billing is monthly based on usage</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group mt-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="accepted_terms" name="accepted_terms" required>
-                                            <label class="form-check-label" for="accepted_terms">
-                                                <strong>I have read and accept the Terms & Conditions and Privacy Policy *</strong>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div id="configuration-summary" class="mt-4">
-                                        <h6>Configuration Summary:</h6>
-                                        <div class="configuration-summary">
-                                            <div class="summary-section">
-                                                <div class="summary-title">ðŸ¤– Assistant Information</div>
-                                                <div class="summary-value">Name: <span id="review-assistant-name">-</span></div>
-                                                <div class="summary-value">Target Audience: <span id="review-target-audience">-</span></div>
-                                                <div class="summary-value">Communication Tone: <span id="review-communication-tone">-</span></div>
-                                            </div>
-                                            <div class="summary-section">
-                                                <div class="summary-title">â° Working Hours & Language</div>
-                                                <div class="summary-value">Availability: <span id="review-availability">-</span></div>
-                                                <div class="summary-value">Primary Language: <span id="review-language">-</span></div>
-                                            </div>
-                                            <div class="summary-section">
-                                                <div class="summary-title">ðŸ¤ Negotiation & Fallback</div>
-                                                <div class="summary-value">Negotiation: <span id="review-negotiation">-</span></div>
-                                                <div class="summary-value">Fallback Number: <span id="review-fallback">-</span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group mt-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="confirm-settings" name="confirm-settings" required>
-                                            <label class="form-check-label" for="confirm-settings">
-                                                I confirm that all settings are correct and want to activate this AI sales officer configuration.
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Navigation Buttons -->
-                            <div class="wizard-navigation">
-                                <button class="btn btn-outline-secondary" id="prev-step" onclick="previousStep()" style="display: none;">
-                                    <i class="fas fa-arrow-left"></i>
-                                    Previous
-                                </button>
-                                <button class="btn btn-primary" id="next-step" onclick="nextStep()">
-                                    Next
-                                    <i class="fas fa-arrow-right"></i>
-                                </button>
-                                <button class="btn btn-success" id="save-config" onclick="finalSave()" style="display: none;">
-                                    <i class="fas fa-save"></i>
-                                    Save & Activate Configuration
-                                </button>
-                            </div>
                         </div>
                     </form>
                 </div>
@@ -2036,6 +1802,15 @@ function initializeJobDescription() {
 }
 
 function setupFormInteractions() {
+    // Intercept form submission
+    const form = document.getElementById('ai-agent-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitConfiguration();
+        });
+    }
+    
     // Always available toggle
     const alwaysAvailableToggle = document.getElementById('always_available');
     if (alwaysAvailableToggle) {
@@ -2185,6 +1960,75 @@ function populateReviewStep() {
 function generateSummary() {
     // Alias for populateReviewStep to maintain backwards compatibility
     populateReviewStep();
+}
+
+function submitConfiguration() {
+    const form = document.getElementById('ai-agent-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn?.innerHTML || 'Create AI Agent';
+    
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        submitBtn.disabled = true;
+    }
+    
+    // Submit the form via AJAX
+    const formData = new FormData(form);
+    
+    // Ensure all boolean fields have proper values (1 for true, 0 for false)
+    const booleanFields = [
+        'always_available',
+        'allow_negotiation', 
+        'accept_installments',
+        'stop_orders_low_stock',
+        'auto_followup',
+        'notify_on_deal'
+    ];
+    
+    booleanFields.forEach(fieldName => {
+        const checkbox = document.getElementById(fieldName) || document.querySelector(`input[name="${fieldName}"]`);
+        formData.set(fieldName, checkbox?.checked ? '1' : '0');
+    });
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('AI Sales Agent configured successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            // Show validation errors
+            if (data.errors) {
+                let errorMsg = 'Please fix the following errors:\n';
+                Object.keys(data.errors).forEach(field => {
+                    errorMsg += `\n• ${data.errors[field].join(', ')}`;
+                });
+                showNotification(errorMsg, 'error');
+            } else {
+                showNotification(data.message || 'Configuration failed', 'error');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error saving configuration. Please try again.', 'error');
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
 }
 
 function finalSave() {
