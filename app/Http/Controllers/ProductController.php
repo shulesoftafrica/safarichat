@@ -115,6 +115,14 @@ class ProductController extends Controller
                 $productData['attachment_original_name'] = $attachmentFile->getClientOriginalName();
             }
             
+            // Handle campaign attachment upload
+            if ($request->hasFile('campaign_attachment')) {
+                $campaignFile = $request->file('campaign_attachment');
+                $campaignFileName = time() . '_campaign_' . $campaignFile->getClientOriginalName();
+                $campaignPath = $campaignFile->storeAs('products/campaigns', $campaignFileName, 'public');
+                $productData['campaign_attachment_path'] = $campaignPath;
+            }
+            
             // Remove FAQ data from product data
             $faqQuestions = $productData['faq_questions'] ?? [];
             $faqAnswers = $productData['faq_answers'] ?? [];
@@ -122,6 +130,11 @@ class ProductController extends Controller
             
             // Create product
             $product = Product::create($productData);
+            
+            // Handle active campaign logic
+            if (!empty($productData['is_active_campaign'])) {
+                $product->setAsActiveCampaign();
+            }
             
             // Add FAQs if provided
             $this->saveFAQs($product, $faqQuestions, $faqAnswers);
@@ -210,6 +223,19 @@ class ProductController extends Controller
                 $productData['attachment_original_name'] = $attachmentFile->getClientOriginalName();
             }
             
+            // Handle campaign attachment upload
+            if ($request->hasFile('campaign_attachment')) {
+                // Delete old campaign attachment if exists
+                if ($product->campaign_attachment_path && Storage::disk('public')->exists($product->campaign_attachment_path)) {
+                    Storage::disk('public')->delete($product->campaign_attachment_path);
+                }
+                
+                $campaignFile = $request->file('campaign_attachment');
+                $campaignFileName = time() . '_campaign_' . $campaignFile->getClientOriginalName();
+                $campaignPath = $campaignFile->storeAs('products/campaigns', $campaignFileName, 'public');
+                $productData['campaign_attachment_path'] = $campaignPath;
+            }
+            
             // Remove FAQ data from product data
             $faqQuestions = $productData['faq_questions'] ?? [];
             $faqAnswers = $productData['faq_answers'] ?? [];
@@ -217,6 +243,13 @@ class ProductController extends Controller
             
             // Update product
             $product->update($productData);
+            
+            // Handle active campaign logic
+            if (!empty($productData['is_active_campaign'])) {
+                $product->setAsActiveCampaign();
+            } elseif (isset($productData['is_active_campaign']) && !$productData['is_active_campaign']) {
+                $product->deactivateCampaign();
+            }
             
             // Update FAQs
             $product->faqs()->delete(); // Remove existing FAQs

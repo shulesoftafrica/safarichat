@@ -23,7 +23,9 @@ class Product extends Model
         // Service-specific fields
         'product_type', 'service_delivery_type', 'service_duration_days',
         'service_deliverables', 'requires_consultation', 'pricing_type',
-        'hourly_rate', 'service_tiers', 'prerequisites'
+        'hourly_rate', 'service_tiers', 'prerequisites',
+        // Active Campaign fields
+        'is_active_campaign', 'campaign_hook_text', 'campaign_pain_point', 'campaign_attachment_path'
     ];
 
     protected $casts = [
@@ -49,7 +51,9 @@ class Product extends Model
         'prerequisites' => 'array',
         'hourly_rate' => 'decimal:2',
         'requires_consultation' => 'boolean',
-        'service_duration_days' => 'integer'
+        'service_duration_days' => 'integer',
+        // Active Campaign casts
+        'is_active_campaign' => 'boolean'
     ];
 
     // === RELATIONSHIPS ===
@@ -571,5 +575,84 @@ class Product extends Model
     public function getTotalVectorCountAttribute(): int
     {
         return $this->documentVectors()->count();
+    }
+
+    // === ACTIVE CAMPAIGN METHODS ===
+    
+    /**
+     * Get the active campaign product for a user
+     */
+    public static function getActiveCampaign($userId)
+    {
+        return self::where('user_id', $userId)
+                   ->where('is_active_campaign', true)
+                   ->first();
+    }
+
+    /**
+     * Set this product as the active campaign
+     * Automatically deactivates all other campaigns for the user
+     */
+    public function setAsActiveCampaign()
+    {
+        \DB::transaction(function () {
+            // Deactivate all other campaigns for this user
+            self::where('user_id', $this->user_id)
+                ->where('id', '!=', $this->id)
+                ->update(['is_active_campaign' => false]);
+            
+            // Activate this campaign
+            $this->is_active_campaign = true;
+            $this->save();
+        });
+    }
+
+    /**
+     * Deactivate this campaign
+     */
+    public function deactivateCampaign()
+    {
+        $this->is_active_campaign = false;
+        $this->save();
+    }
+
+    /**
+     * Check if product has complete campaign data
+     */
+    public function hasCompleteCampaignData(): bool
+    {
+        return !empty($this->campaign_hook_text) 
+            && !empty($this->campaign_pain_point);
+    }
+
+    /**
+     * Check if product has a campaign attachment
+     */
+    public function hasCampaignAttachment(): bool
+    {
+        return !empty($this->campaign_attachment_path) 
+            && file_exists(storage_path('app/public/' . $this->campaign_attachment_path));
+    }
+
+    /**
+     * Get the full path to the campaign attachment
+     */
+    public function getCampaignAttachmentFullPath(): ?string
+    {
+        if ($this->campaign_attachment_path) {
+            return storage_path('app/public/' . $this->campaign_attachment_path);
+        }
+        return null;
+    }
+
+    /**
+     * Get the public URL for the campaign attachment
+     */
+    public function getCampaignAttachmentUrl(): ?string
+    {
+        if ($this->campaign_attachment_path) {
+            return asset('storage/' . $this->campaign_attachment_path);
+        }
+        return null;
     }
 }

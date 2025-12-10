@@ -1866,8 +1866,126 @@ class Message extends Controller
     
     /**
      * Generate personalized sales message using AI agent configuration
+     * PHASE 3: Campaign-focused message generation
      */
     private function generatePersonalizedSalesMessage($lead, $aiAgent, $products, $guest = null)
+    {
+        // Get the SINGLE active campaign product
+        $activeCampaignProduct = \App\Models\Product::where('user_id', $aiAgent->user_id)
+                                                   ->where('is_active_campaign', true)
+                                                   ->first();
+        
+        // If no active campaign, fallback to general products message
+        if (!$activeCampaignProduct) {
+            return $this->generateGeneralSalesMessage($lead, $aiAgent, $products, $guest);
+        }
+        
+        // Get business credibility data
+        $business = $aiAgent->user->business;
+        $businessMission = $business ? ($business->mission ?? '') : '';
+        $credibilityStats = $business ? ($business->credibility_statistics ?? '') : '';
+        
+        $name = $lead->name ?? 'there';
+        $businessContext = '';
+        
+        if ($guest && $guest->business) {
+            $businessContext = " {$guest->business->name}";
+        }
+        
+        // PART 1: Context - Acknowledge user
+        $greeting = $this->getGreetingByTone($aiAgent->communication_tone, $name);
+        
+        // PART 2: Hook - Problem + Solution using campaign data
+        $painPoint = $activeCampaignProduct->campaign_pain_point;
+        $hookText = $activeCampaignProduct->campaign_hook_text;
+        $productName = $activeCampaignProduct->name;
+        
+        // Build hook based on tone
+        $hook = $this->buildCampaignHook($aiAgent->communication_tone, $painPoint, $productName, $hookText);
+        
+        // PART 3: CTA & Attachment Offer
+        $hasAttachment = !empty($activeCampaignProduct->campaign_attachment_path);
+        $cta = $this->buildCTA($aiAgent->communication_tone, $hasAttachment, $productName);
+        
+        // Combine the three parts
+        $baseMessage = "{$greeting} {$hook} {$cta}";
+        
+        // Add credibility if available (optional enhancement)
+        if ($credibilityStats) {
+            $credibilityLine = " ({$credibilityStats})";
+            $baseMessage = str_replace($cta, $credibilityLine . ' ' . $cta, $baseMessage);
+        }
+        
+        // Translate message based on AI agent's language preferences
+        $targetLanguage = $this->determineTargetLanguage($aiAgent, $lead);
+        
+        if ($targetLanguage && $targetLanguage !== 'en') {
+            $translatedMessage = $this->translateMessage($baseMessage, $targetLanguage, $aiAgent);
+            return $translatedMessage ?: $baseMessage;
+        }
+        
+        return $baseMessage;
+    }
+    
+    /**
+     * Generate greeting based on communication tone
+     */
+    private function getGreetingByTone($tone, $name)
+    {
+        return match($tone) {
+            'professional' => "Hello {$name},",
+            'friendly' => "Hi {$name}! 👋",
+            'consultative' => "Hello {$name},",
+            'direct' => "Hi {$name},",
+            default => "Hello {$name},"
+        };
+    }
+    
+    /**
+     * Build campaign hook using pain point and hook text
+     */
+    private function buildCampaignHook($tone, $painPoint, $productName, $hookText)
+    {
+        return match($tone) {
+            'professional' => "{$painPoint} Our {$productName} offers a solution: {$hookText}",
+            'friendly' => "{$painPoint} I've got great news! Our {$productName} can help: {$hookText}",
+            'consultative' => "{$painPoint} I'd like to introduce you to our {$productName} - {$hookText}",
+            'direct' => "{$painPoint} Solution: {$productName} - {$hookText}",
+            default => "{$painPoint} We have a solution with our {$productName}: {$hookText}"
+        };
+    }
+    
+    /**
+     * Build call-to-action with optional attachment offer
+     */
+    private function buildCTA($tone, $hasAttachment, $productName)
+    {
+        $baseQuestion = match($tone) {
+            'professional' => "Would you be interested in learning more?",
+            'friendly' => "What do you think? Want to know more?",
+            'consultative' => "Would you like to explore how this could work for you?",
+            'direct' => "Interested?",
+            default => "Would you like more information?"
+        };
+        
+        if ($hasAttachment) {
+            $attachmentOffer = match($tone) {
+                'professional' => " I can send you our detailed brochure with more information.",
+                'friendly' => " I can share our brochure with all the details! 📄",
+                'consultative' => " I have a comprehensive brochure I can share with you.",
+                'direct' => " I can send the brochure.",
+                default => " I have a brochure I can send you."
+            };
+            return $baseQuestion . $attachmentOffer;
+        }
+        
+        return $baseQuestion;
+    }
+    
+    /**
+     * Fallback method for when no active campaign exists
+     */
+    private function generateGeneralSalesMessage($lead, $aiAgent, $products, $guest = null)
     {
         $name = $lead->name ?? 'there';
         $businessContext = '';
@@ -1893,14 +2011,6 @@ class Message extends Controller
             'direct' => "Hi {$name},{$businessContext} {$aiAgent->assistant_name} here.{$productList} Interested in learning more? Let me know!",
             default => "Hello {$name},{$businessContext} I'm {$aiAgent->assistant_name}.{$productList} I'd be happy to discuss how we can help you. Are you available for a quick chat?"
         };
-        
-        // Translate message based on AI agent's language preferences
-        $targetLanguage = $this->determineTargetLanguage($aiAgent, $lead);
-        
-        if ($targetLanguage && $targetLanguage !== 'en') {
-            $translatedMessage = $this->translateMessage($baseMessage, $targetLanguage, $aiAgent);
-            return $translatedMessage ?: $baseMessage; // Fallback to English if translation fails
-        }
         
         return $baseMessage;
     }

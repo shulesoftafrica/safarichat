@@ -503,6 +503,52 @@
                         </div>
                     </div>
 
+                    <!-- Active Campaign Section -->
+                    <div class="form-section campaign-section" id="activeCampaignSection">
+                        <h6 class="section-title">
+                            <i class="fas fa-bullhorn"></i>
+                            Active Campaign Settings
+                            <span class="badge bg-warning ms-2">Exclusive</span>
+                        </h6>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> Only ONE product can be set as the active campaign at a time. Setting this product as active will automatically deactivate any other active campaign.
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active_campaign" value="1" id="is_active_campaign" onchange="toggleCampaignFields()">
+                                <label class="form-check-label fw-bold" for="is_active_campaign">
+                                    <i class="fas fa-star text-warning"></i> Set as Active Campaign
+                                </label>
+                                <small class="form-text text-muted d-block">Enable this to make AI sales agents promote this product exclusively</small>
+                            </div>
+                        </div>
+                        
+                        <div id="campaignFields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Campaign Hook Text <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control campaign-required" name="campaign_hook_text" maxlength="255" placeholder="e.g., Save 50% on inventory costs with automated tracking">
+                                <small class="text-muted">Concise, irresistible benefit (max 255 chars)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Campaign Pain Point <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control campaign-required" name="campaign_pain_point" maxlength="255" placeholder="e.g., Losing money due to poor inventory management?">
+                                <small class="text-muted">The core problem this product solves (max 255 chars)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Campaign Attachment <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control campaign-required" id="campaignAttachment" name="campaign_attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                <small class="text-muted">Brochure, flyer, or product sheet. Max 5MB. Formats: PDF, Word, JPG, PNG</small>
+                            </div>
+                            
+                            <div id="campaignAttachmentPreview" style="display: none;">
+                                <!-- Attachment preview will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- AI Configuration -->
                     <div class="form-section" id="aiSalesConfigSection">
                         <h6 class="section-title">
@@ -852,6 +898,20 @@ You are a knowledgeable sales assistant for [PRODUCT_NAME]. Highlight the key be
         color: #059669;
     }
     
+    .campaign-section {
+        border: 2px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+    
+    .campaign-section .section-title {
+        color: #d97706;
+    }
+    
+    .campaign-section .form-check-input:checked {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+    }
+    
     .rag-preview-item {
         background: white;
         border: 1px solid #e2e8f0;
@@ -1077,6 +1137,29 @@ function toggleProductTypeFields() {
         
         // Remove required from service fields
         serviceFields.querySelectorAll('select, input').forEach(field => {
+            field.removeAttribute('required');
+        });
+    }
+}
+
+// Campaign fields management
+function toggleCampaignFields() {
+    const isActiveCampaign = document.getElementById('is_active_campaign')?.checked;
+    const campaignFields = document.getElementById('campaignFields');
+    const campaignRequiredFields = document.querySelectorAll('.campaign-required');
+    
+    if (isActiveCampaign) {
+        campaignFields.style.display = 'block';
+        // Make campaign fields required
+        campaignRequiredFields.forEach(field => {
+            if (field.type !== 'file') {
+                field.setAttribute('required', 'required');
+            }
+        });
+    } else {
+        campaignFields.style.display = 'none';
+        // Remove required attribute from campaign fields
+        campaignRequiredFields.forEach(field => {
             field.removeAttribute('required');
         });
     }
@@ -1593,6 +1676,34 @@ function validateForm() {
         isValid = false;
     }
     
+    // Validate active campaign fields if campaign is enabled
+    const isActiveCampaign = document.getElementById('is_active_campaign')?.checked;
+    if (isActiveCampaign) {
+        const campaignHookText = document.querySelector('[name="campaign_hook_text"]');
+        const campaignPainPoint = document.querySelector('[name="campaign_pain_point"]');
+        const campaignAttachment = document.getElementById('campaignAttachment');
+        
+        if (!campaignHookText || !campaignHookText.value.trim()) {
+            alert('Campaign Hook Text is required when setting as active campaign');
+            if (campaignHookText) campaignHookText.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        if (!campaignPainPoint || !campaignPainPoint.value.trim()) {
+            alert('Campaign Pain Point is required when setting as active campaign');
+            if (campaignPainPoint) campaignPainPoint.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        // Check if editing existing product or creating new one
+        const productId = document.getElementById('productId')?.value;
+        if (!productId && campaignAttachment && !campaignAttachment.files.length) {
+            alert('Campaign Attachment is required when setting as active campaign');
+            if (campaignAttachment) campaignAttachment.classList.add('is-invalid');
+            isValid = false;
+        }
+    }
+    
     return isValid;
 }
 
@@ -2017,6 +2128,33 @@ function populateEditForm(product) {
     
     const statusField = document.querySelector('[name="status"]');
     if (statusField) statusField.value = product.status || 'active';
+    
+    // Populate Active Campaign fields
+    const isActiveCampaignField = document.getElementById('is_active_campaign');
+    if (isActiveCampaignField) {
+        isActiveCampaignField.checked = product.is_active_campaign || false;
+        toggleCampaignFields(); // Show/hide campaign fields based on checkbox
+    }
+    
+    const campaignHookTextField = document.querySelector('[name="campaign_hook_text"]');
+    if (campaignHookTextField) campaignHookTextField.value = product.campaign_hook_text || '';
+    
+    const campaignPainPointField = document.querySelector('[name="campaign_pain_point"]');
+    if (campaignPainPointField) campaignPainPointField.value = product.campaign_pain_point || '';
+    
+    // Show existing campaign attachment if present
+    if (product.campaign_attachment_path) {
+        const campaignAttachmentPreview = document.getElementById('campaignAttachmentPreview');
+        if (campaignAttachmentPreview) {
+            campaignAttachmentPreview.style.display = 'block';
+            campaignAttachmentPreview.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-file"></i> Current attachment: ${product.campaign_attachment_path.split('/').pop()}
+                    <small class="d-block text-muted">Upload a new file to replace the current attachment</small>
+                </div>
+            `;
+        }
+    }
     
     // Populate AI fields with null checks
     const aiPromptField = document.querySelector('[name="ai_prompt"]');

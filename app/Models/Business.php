@@ -21,7 +21,13 @@ class Business extends Model
     /**
      * @var array
      */
-    protected $fillable = ['user_id', 'ward_id', 'address', 'descriptions', 'created_at', 'updated_at','name','email','phone','website','instagram','facebook','linkedin','cover_page','twitter','legal_document','business_type_id'];
+    protected $fillable = [
+        'user_id', 'ward_id', 'address', 'descriptions', 'created_at', 'updated_at',
+        'name', 'email', 'phone', 'website', 'instagram', 'facebook', 'linkedin', 
+        'cover_page', 'twitter', 'legal_document', 'business_type_id',
+        // Company Credibility Kit fields
+        'mission', 'credibility_statistics'
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -86,5 +92,32 @@ class Business extends Model
      */
     public function service(){
         return $this->belongsTo('App\Models\Service');
+    }
+
+    // === CREDIBILITY KIT METHODS ===
+    
+    /**
+     * Check if business has complete credibility data
+     */
+    public function hasCompleteCredibilityKit(): bool
+    {
+        return !empty($this->mission) 
+            && !empty($this->credibility_statistics) 
+            && !empty($this->website);
+    }
+
+    /**
+     * Get formatted credibility data for AI prompts
+     */
+    public function getCredibilityDataForAI(): array
+    {
+        return [
+            'company_name' => $this->name ?? 'Our Company',
+            'mission' => $this->mission ?? '',
+            'credibility' => $this->credibility_statistics ?? '',
+            'website' => $this->website ?? '',
+            'contact_email' => $this->email ?? '',
+            'contact_phone' => $this->phone ?? ''
+        ];
     }
 }
