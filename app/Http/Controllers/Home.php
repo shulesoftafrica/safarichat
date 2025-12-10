@@ -34,7 +34,7 @@ class Home extends Controller
                 try {
                     $result = $wasender->sendTextMessage(
                         '255714825469', // Phone number in international format
-                        'Hello! This is a test message from DikoDiko Safari Chat.', // Message content
+                        'Hello! This is a test message from  SafariChat.', // Message content
                         null, // Instance ID (will use default from config)
                         Auth::id() // User ID for tracking
                     );
@@ -215,7 +215,7 @@ class Home extends Controller
             $sms = [
                 'body' => $body,
                 'name' => Auth::user()->name,
-                'subject' => 'DikoDiko Verification Code'
+                'subject' => 'SafariChat Verification Code'
             ];
             $message->sendCustomEmail(Auth::user()->email, (object) $sms);
             echo 'success';
@@ -276,10 +276,10 @@ class Home extends Controller
         if (in_array((int) $event->event_type_id, [1, 3])) {
             //register partner account and send notifications to the partners
             $phone = validate_phone_number(request('partner_phone'))[1];
-            $user_info = \App\Models\User::whereEmail(request('partner_name') . '@dikodiko.com')->wherePhone($phone)->first();
+            $user_info = \App\Models\User::whereEmail(request('partner_name') . '@safarichat.africa')->wherePhone($phone)->first();
             $user = empty($user_info) ? \App\Models\User::create([
                 'name' => request('partner_name'),
-                'email' => request('partner_name') . '@dikodiko.com',
+                'email' => request('partner_name') . '@safarichat.africa',
                 'password' => bcrypt(rand(45555, 999989)),
                 'phone' => $phone,
                 'event_type_id' > 1
@@ -314,7 +314,10 @@ class Home extends Controller
             ]);
         }
         $this->data['business'] = $userBusiness;
-        $this->data['user_accounts'] = [Auth::user()]; // Just show current user for now
+        // Create proper structure for user_accounts with user relationship
+        $this->data['user_accounts'] = collect([Auth::user()])->map(function($user) {
+            return (object)['user' => $user];
+        })->all();
         if ($_POST) {
             $table = request('table');
             switch ($table) {
@@ -324,7 +327,12 @@ class Home extends Controller
                     break;
                 case 'event_guest_category':
                     if ((int) request('edit') > 0) {
-                        \App\Models\EventGuestCategory::whereId(request('edit'))->where('business_id', $userBusiness->id)->update(['name' => request('name')]);
+                        \App\Models\EventGuestCategory::whereId(request('edit'))
+                            ->where(function($query) use ($userBusiness) {
+                                $query->where('business_id', $userBusiness->id)
+                                      ->orWhereNull('business_id');
+                            })
+                            ->update(['name' => request('name'), 'business_id' => $userBusiness->id]);
                     } else {
                         \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $userBusiness->id]);
                     }
@@ -338,7 +346,21 @@ class Home extends Controller
             return redirect()->back()->with('success', 'success');
         }
 
-        $this->data['categories'] = \App\Models\EventGuestCategory::where('business_id', $userBusiness->id)->get();
+        // Get categories for this business, including legacy null business_id records
+        $this->data['categories'] = \App\Models\EventGuestCategory::with('business')
+            ->where(function($query) use ($userBusiness) {
+                $query->where('business_id', $userBusiness->id)
+                      ->orWhereNull('business_id');
+            })->get();
+            
+        // Add subscription data for the settings page
+        $this->data['current_subscription'] = Auth::user()->activeSubscription;
+        $this->data['subscription_status'] = Auth::user()->subscription_status;
+        $this->data['available_credits'] = Auth::user()->available_credits;
+        $this->data['trial_ends_at'] = Auth::user()->trial_ends_at;
+        
+        // Add available packages for upgrade options
+        $this->data['packages'] = \App\Models\AdminPackage::where('is_addon', 0)->get();
         return view('auth.settings', $this->data);
     }
 
@@ -379,29 +401,7 @@ class Home extends Controller
         return redirect()->back()->with('success', 'success');
     }
 
-    public function sendEventCode()
-    {
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
-        $guests = \App\Models\EventsGuest::where('event_id', $event_id)->get();
-        foreach ($guests as $value) {
-            if (strlen($value->code) < 3) {
-                $verify_code = rand(192, 9999) . substr(str_shuffle('abcdefghkmnpqrst'), 0, 4);
-                $value->update(['code' => $verify_code]);
-            } else {
-                $verify_code = $value->code;
-            }
-            $message = 'Hello ' . $value->guest_name . ', unaweza shiriki ya ' . $user_events->event->name . ' LIVE (mubashara). Ingia kupitia hii link (www.dikodiko.co.tz/live),   Event Code yako ni ' . $verify_code;
-
-            $messages = \App\Models\Message::firstOrCreate([
-                'body' => $message,
-                'user_id' => Auth::user()->id,
-                'phone' => str_replace('@c.us', NULL, $value->guest_phone)
-            ]);
-            \App\Models\MessageSentby::create(['message_id' => $messages->id, 'channel' => 'phone-sms']);
-        }
-        echo "success";
-    }
+   
 
     public function createBusiness()
     {
@@ -416,103 +416,9 @@ class Home extends Controller
         return redirect()->back()->with('success', 'success');
     }
 
-    public function registerBusinessService()
-    {
+ 
 
-        $service_id = request('service_id');
-        $name = request('name');
-        $valid_phone = validate_phone_number(request('phone'));
-        $phone = $valid_phone[1];
-        $is_new = 0;
-        //check if business exists
-        $business = \App\Models\Business::where('phone', 'ilike', $phone)->first();
-        if (empty($business)) {
-            $business = \App\Models\Business::create([
-                'name' => $name,
-                'user_id' => Auth::user()->id,
-                'address' => request('address'),
-                'phone' => $phone,
-                'status' => 0
-            ]);
-            $is_new = 1;
-        }
-        $business_service = \App\Models\BusinessService::where('business_id', $business->id)->first();
-        if (empty($business_service)) {
-            $business_service = \App\Models\BusinessService::create([
-                'business_id' => $business->id,
-                'service_id' => $service_id,
-                'service_name' => $name
-            ]);
-        }
-        //now send messages to this busienss
-        if ($is_new == 1) {
-            $message = preg_match('/tanzania/i', $valid_phone[0]) ?
-                'Habari ' . $name . ''
-                . 'Biashara yako imesajiliwa kwenye program ya DikoDiko (www.dikodiko.co.tz) kama mtoa huduma ya  ' . $business_service->service->name . '. '
-                . ''
-                . 'Ili watu wengine wenye sherehe waweze kukufahamu, kamilisha usajili wako kwa kuingia www.dikodiko.co.tz kisha jisajili kama biashara (ni bure)'
-                . ''
-                . 'Ikiwa hutoi huduma hii na umesajiliwa kimakosa, tafadhali wasiliana na *' . Auth::user()->name . '*'
-                . ''
-                . 'Kama unataka kujua zaidi DikoDiko ni nini, basi wasiliana nasi kupitia *255734952586*'
-                . ''
-                . 'Asante' :
-                'Hello ' . $name . ''
-                . 'Your business has been registered in  DikoDiko (www.dikodiko.co.tz) as a business that provide  ' . $business_service->service->name . ' service. '
-                . ''
-                . 'For other event owners to know and see your business, kindly proceed and finish your registration via www.dikodiko.co.tz and register as a business ( Its Free)'
-                . ''
-                . 'If you do not provide such service and your number has been registered wrongly, kindly contact event owner via *' . Auth::user()->name . '*'
-                . ''
-                . 'If you want to learn more about DikoDiko kindly call us via whatsapp no:  *255734952586*'
-                . ''
-                . 'Thank you';
-
-            $chat_id = $phone . '@c.us';
-            $this->sendMessage($chat_id, $message, 1);
-            //create a discount
-            // $this->createBusinessDiscount($phone);
-        }
-        return redirect()->back()->with('success', 'success');
-    }
-
-    public function createBusinessDiscount($phone)
-    {
-        $valid_phone_number = validate_phone_number($phone);
-        if (empty($valid_phone_number)) {
-            die('<span class="alert alert-danger">Invalid Phone Number, kindly provide a valid number</span>');
-        }
-        $phone_number = $valid_phone_number[1];
-        $find_user = \App\Models\Business::where('phone', $phone_number)->where('status', 1)->first();
-        if (!empty($find_user)) {
-            die('<span class="alert alert-danger">This business already has an account in DikoDiko, discount will not be applied</span>');
-        }
-        $invited = \App\Models\DiscountRequest::where('phone', $phone_number)->where('type', 2)->first();
-        if (!empty($invited)) {
-            die('<span class="alert alert-danger">This user is already invited by other event owner,  discount will not be applied</span>');
-        }
-        \App\Models\DiscountRequest::create(['phone' => $phone_number, 'user_id' => Auth::user()->id, 'type' => 2]);
-        //send message
-        $message = preg_match('/tanzania/i', $valid_phone_number[0]) ?
-            'Habari,'
-            . 'Umealikwa na  *' . Auth::user()->name . '*  ujiunge  kwenye program ya DikoDiko (www.dikodiko.co.tz) ili uweze kupata wateja wengi zaidi wenye harusi na shughuli mbalimbali'
-            . ' '
-            . ''
-            . 'Ikiwa hutoi huduma hii na umesajiliwa kimakosa, tafadhali usifanye chochote au wasiliana na ' . Auth::user()->name . ' kwa ' . Auth::user()->phone
-            . ''
-            . 'Asante' :
-            'Hello '
-            . 'You have been invited by  *' . Auth::user()->name . '* to join DikoDiko (www.dikodiko.co.tz) to get  customers who have weddings and other similar events'
-            . ''
-            . 'If you do not provide any service for weddings or local events, kindly ignore this message or contact   *' . Auth::user()->name . '* with ' . Auth::user()->phone . ' '
-            . ''
-            . 'Thank you';
-
-        $chat_id = $phone_number . '@c.us';
-        $this->sendMessage($chat_id, $message, 'whatsapp');
-        die('<span class="alert alert-success">Success: Business invite have been sent successfully. You will get notified on the status</span>');
-    }
-
+   
     public function payments()
     {
 
@@ -526,7 +432,7 @@ class Home extends Controller
             $message = 'Hello ' . $user->name . chr(10) . chr(10) .
                 'Your payment of Tsh :' . request('amount') . chr(10) .
                 'with reference number  : *' . request('transaction_id') . '* ' . chr(10) . chr(10) .
-                'has been received successfully. You can now enjoy using DikoDiko to give your event a meaning you dream';
+                'has been received successfully. You can now enjoy using safarichat to give your event a meaning you dream';
             $chatId = $user->phone . '@c.us';
 
             $this->sendMessage($user->phone, $message, 'whatsapp');
@@ -594,7 +500,7 @@ class Home extends Controller
             'client_id' => $client->id,
             'date' => date('Y-m-d'),
             'created_at' => now(),
-            'addon_id' => 7, //default addon id for dikodiko
+            'addon_id' => 7, //default addon id for 
             'prefix' => $prefix,
         ];
 
@@ -621,7 +527,7 @@ class Home extends Controller
         //    'invoice_id' => $payment->id,
         //     'amount' => $payment->amount,
         //     'transaction_id' => $payment->reference,
-        //     'note' =>'dikodiko addon payment',
+        //     'note' =>'safarichat addon payment',
         //     'phone' => Auth::user()->phone,
         //     'created_at' => now(),
         //     'status' => 0,
@@ -653,7 +559,7 @@ class Home extends Controller
             $user = Auth::user();
    
             // Send message to the user
-            $userMessage = "Hello {$user->name},\n\nYour invoice has been created successfully. Reference Number: *{$reference}*.\nThank you for using DikoDiko.";
+            $userMessage = "Hello {$user->name},\n\nYour invoice has been created successfully. Reference Number: *{$reference}*.\nThank you for using Safarichat.";
             $this->sendMessage($user->phone, $userMessage, 'whatsapp');
 
             // Send message to admin

@@ -19,17 +19,34 @@ class Guest extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function index() {
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
+        $business_id = Auth::user()->business->id;
         if ($_POST) {
-
             (int) request('id') > 0 ? EventsGuest::find(request('id'))->update(request()->except('name', '_token', 'id')) : $this->store(request());
         }
         
-        // Get paginated guests data
-        $this->data['guests'] = EventsGuest::whereEventId($event_id)->limit(1000)->get();
-        $this->data['guest_categories'] = EventGuestCategory::where('event_id', $event_id)->get();
-        $this->data['total_guests'] = EventsGuest::whereEventId($event_id)->count();
+        // Get paginated guests data with handoff information
+        $this->data['guests'] = EventsGuest::with(['eventGuestCategory', 'assignedAgent'])
+            ->where('business_id', $business_id)
+            ->limit(1000)
+            ->get();
+        $this->data['guest_categories'] = EventGuestCategory::where('business_id', $business_id)->get();
+        $this->data['total_guests'] = EventsGuest::where('business_id', $business_id)->count();
+        
+        // Add handoff statistics
+        $this->data['handoff_stats'] = [
+            'ai_handled' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'ai')->count(),
+            'pending_handoff' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'pending_handoff')->count(),
+            'handed_off' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'handed_off')->count(),
+            'completed' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'completed')->count(),
+            'urgent_cases' => EventsGuest::where('business_id', $business_id)->where('priority_level', '<=', 2)->count()
+        ];
+        
+        // Get available agents for assignment
+        $this->data['available_agents'] = \App\Models\User::select('id', 'name', 'email')
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get();
+        
         return view('guest.index', $this->data);
     }
 
@@ -55,8 +72,8 @@ class Guest extends Controller {
             'guest_phone' => ['required', 'string', 'max:30', 'unique:events_guests', 'regex:/^[0-9]*$/'], // phone number validation, only numbers allowed
         ]);
         $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
-        $data=array_merge($request->all(), ['event_id' => $event_id]);
+        $business_id = Auth::user()->business->id;
+        $data=array_merge($request->all(), ['business_id' => $business_id]);
       
         EventsGuest::create($data);
         return redirect()->back()->with('success', 'success');
@@ -100,8 +117,7 @@ class Guest extends Controller {
         } else {
             $extension = strtolower($file->getClientOriginalExtension());
 
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events->event_id;
+            $business_id = Auth::user()->business->id;
 
             if (in_array($extension, ['xls', 'xlsx', 'csv'])) {
             // Handle Excel file
@@ -120,14 +136,14 @@ class Guest extends Controller {
                     continue;
                 }
                 $phone = validate_phone_number($user->phone)[1];
-                $category = \App\Models\EventGuestCategory::where('name', 'ilike', strtolower($user->category))->whereEventId($event_id)->first();
-                $category_id = !empty($category) ? $category->id : \App\Models\EventGuestCategory::firstOrCreate(['name' => ucfirst($user->category), 'event_id' => $event_id])->id;
+                $category = \App\Models\EventGuestCategory::where('name', 'ilike', strtolower($user->category))->where('business_id', $business_id)->first();
+                $category_id = !empty($category) ? $category->id : \App\Models\EventGuestCategory::firstOrCreate(['name' => ucfirst($user->category), 'business_id' => $business_id])->id;
 
                 //check available event guests
                 $check_guests = EventsGuest::where('guest_phone', $phone)->first();
 
                 $event = empty($check_guests) ? EventsGuest::create([
-                        'event_id' => $event_id,
+                        'business_id' => $business_id,
                         'guest_name' => $user->name,
                         'guest_email' => isset($user->email) ? $user->email : '',
                         'guest_phone' => $phone,
@@ -172,7 +188,7 @@ class Guest extends Controller {
                 $phoneStr = is_array($phone) ? (isset($phone[0]) ? $phone[0] : '') : $phone;
                 return validate_phone_number($phoneStr)[1] ?? null;
             }, $contacts));
-            $existingPhones = EventsGuest::where('event_id', $event_id)
+            $existingPhones = EventsGuest::where('business_id', $business_id)
                 ->whereIn('guest_phone', $contactPhones)
                 ->pluck('guest_phone')
                 ->toArray();
@@ -219,7 +235,7 @@ class Guest extends Controller {
                 $clean_phone = mb_convert_encoding($phone, 'UTF-8', 'UTF-8');
 
                 $guestsToInsert[] = [
-                    'event_id' => $event_id,
+                    'business_id' => $business_id,
                     'guest_name' => $clean_name,
                     'guest_email' => $clean_email,
                     'guest_phone' => $clean_phone,
@@ -302,11 +318,10 @@ class Guest extends Controller {
     public function destroy($id = null) {
         try {
             $id = $id ?: request()->segment(3);
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = Auth::user()->business->id;
             
             $guest = EventsGuest::where('id', $id)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->first();
                 
             if (!$guest) {
@@ -341,11 +356,11 @@ class Guest extends Controller {
     }
 
     public function addguestcategory() {
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+        $business_id = Auth::user()->business->id;
         if (strlen(request('name')) > 2) {
-            \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'event_id' => $user_events->event_id]);
+            \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $business_id]);
             $result = '<select class="form-control" name="event_guest_category_id" id="append_option">';
-            $guest_categories = \App\Models\EventGuestCategory::where('event_id', $user_events->event_id)->get();
+            $guest_categories = \App\Models\EventGuestCategory::where('business_id', $business_id)->get();
             foreach ($guest_categories as $category) {
                 $result .= ' <option value="' . $category->id . '">' . $category->name . '</option>';
             }
@@ -370,16 +385,7 @@ class Guest extends Controller {
 
             $imported_count = 0;
             $user_id = Auth::id();
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
-
-            if (!$event_id) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'No active event found for user',
-                    'imported_count' => 0
-                ]);
-            }
+            $business_id = Auth::user()->business->id;
 
             foreach ($contacts as $contact) {
                 try {
@@ -406,12 +412,12 @@ class Guest extends Controller {
                     'guest_phone' => '+' . $clean_phone,
                     'guest_email' => '',
                     'guest_pledge' => 0,
-                    'event_id' => $event_id,
+                    'business_id' => $business_id,
                     'event_guest_category_id' => 1, // Default category
                     'created_at' => now(),
                     'updated_at' => now()
-                ];                    // Check if contact already exists for this event
-                    $existing = \App\Models\EventsGuest::where('event_id', $event_id)
+                ];                    // Check if contact already exists for this business
+                    $existing = \App\Models\EventsGuest::where('business_id', $business_id)
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
@@ -461,16 +467,7 @@ class Guest extends Controller {
 
             $imported_count = 0;
             $user_id = Auth::id();
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
-
-            if (!$event_id) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'No active event found for user',
-                    'imported_count' => 0
-                ]);
-            }
+            $business_id = Auth::user()->business->id;
 
             foreach ($contacts as $contact) {
                 try {
@@ -560,12 +557,11 @@ class Guest extends Controller {
     public function getContactDetails($id)
     {
         try {
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = Auth::user()->business->id;
 
             $contact = EventsGuest::with('eventGuestCategory')
                 ->where('id', $id)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->first();
 
             if (!$contact) {
@@ -594,12 +590,11 @@ class Guest extends Controller {
     public function getContactMessages($id)
     {
         try {
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = Auth::user()->business->id;
 
             // Get contact
             $contact = EventsGuest::where('id', $id)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->first();
 
             if (!$contact) {
@@ -626,8 +621,7 @@ class Guest extends Controller {
     {
         try {
             $user = Auth::user();
-            $user_events = $user->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = $user->business->id;
             
             $contactIds = $request->input('contact_ids', []);
             $message = $request->input('message');
@@ -646,7 +640,7 @@ class Guest extends Controller {
 
             // Get contacts
             $contacts = EventsGuest::whereIn('id', $contactIds)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->get();
 
             if ($contacts->isEmpty()) {
@@ -926,6 +920,261 @@ class Guest extends Controller {
         return view('whatsapp.incoming_messages', [
             'whatsappInstances' => $whatsappInstances
         ]);
+    }
+
+    // ===== HANDOFF MANAGEMENT METHODS =====
+
+    /**
+     * Request handoff for a guest
+     */
+    public function requestHandoff(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'reason' => 'required|string|max:1000',
+                'priority_level' => 'required|integer|in:1,2,3,4,5',
+                'assigned_agent_id' => 'nullable|exists:users,id'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $business_id = Auth::user()->business->id;
+            
+            if ($guest->business_id !== $business_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->requestHandoff(
+                $request->reason,
+                $request->priority_level,
+                $request->assigned_agent_id
+            );
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Handoff requested successfully' : 'Failed to request handoff'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Assign agent to handle guest handoff
+     */
+    public function assignAgent(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'agent_id' => 'required|exists:users,id',
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $business_id = Auth::user()->business->id;
+            
+            if ($guest->business_id !== $business_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->assignToAgent($request->agent_id, $request->notes);
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Agent assigned successfully' : 'Failed to assign agent'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Complete handoff process
+     */
+    public function completeHandoff(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $business_id = Auth::user()->business->id;
+            
+            if ($guest->business_id !== $business_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->completeHandoff($request->notes);
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Handoff completed successfully' : 'Failed to complete handoff'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Return guest to AI handling
+     */
+    public function returnToAI(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $business_id = Auth::user()->business->id;
+            
+            if ($guest->business_id !== $business_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->returnToAI($request->notes);
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Returned to AI successfully' : 'Failed to return to AI'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update guest priority level
+     */
+    public function updatePriority(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'priority_level' => 'required|integer|in:1,2,3,4,5'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+            $event_id = $user_events ? $user_events->event_id : null;
+            
+            if ($guest->event_id !== $event_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->updatePriority($request->priority_level);
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Priority updated successfully' : 'Failed to update priority'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Add notes to guest handoff
+     */
+    public function addHandoffNotes(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id' => 'required|exists:events_guests,id',
+                'notes' => 'required|string|max:1000'
+            ]);
+
+            $guest = EventsGuest::findOrFail($request->guest_id);
+            
+            // Ensure guest belongs to user's business
+            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+            $event_id = $user_events ? $user_events->event_id : null;
+            
+            if ($guest->event_id !== $event_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $result = $guest->addHandoffNotes($request->notes);
+
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'Notes added successfully' : 'Failed to add notes'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get handoff dashboard data
+     */
+    public function getHandoffDashboard()
+    {
+        try {
+            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+            $event_id = $user_events ? $user_events->event_id : null;
+
+            // Get handoff statistics
+            $stats = [
+                'total_guests' => EventsGuest::where('event_id', $event_id)->count(),
+                'ai_handled' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('ai')->count(),
+                'pending_handoff' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('pending_handoff')->count(),
+                'handed_off' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('handed_off')->count(),
+                'completed' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('completed')->count(),
+                'urgent_cases' => EventsGuest::where('event_id', $event_id)->urgent()->count()
+            ];
+
+            // Get recent handoff activities
+            $recentHandoffs = EventsGuest::where('event_id', $event_id)
+                ->whereIn('handoff_status', ['pending_handoff', 'handed_off'])
+                ->with(['assignedAgent', 'eventGuestCategory'])
+                ->orderBy('handoff_requested_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'stats' => $stats,
+                'recent_handoffs' => $recentHandoffs
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get available agents for assignment
+     */
+    public function getAvailableAgents()
+    {
+        try {
+            // Get users who can be assigned as agents (you may want to add role-based filtering)
+            $agents = \App\Models\User::select('id', 'name', 'email')
+                ->where('id', '!=', Auth::id()) // Exclude current user
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'agents' => $agents
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
 }

@@ -39,7 +39,7 @@ return [
             'host' => 'mboxhosting.com',//env('MAIL_HOST', 'smtp.mailgun.org'),
             'port' =>25, // env('MAIL_PORT', 587),
             'encryption' =>'tls',// env('MAIL_ENCRYPTION', 'tls'),
-            'username' =>'info@dikodiko.co.tz',// env('MAIL_USERNAME'),
+            'username' =>'info@safarichat.africa',// env('MAIL_USERNAME'),
             'password' =>'lazacodecompany2020', //env('MAIL_PASSWORD'),
             'timeout' => null,
             'auth_mode' => null,
@@ -84,8 +84,8 @@ return [
     */
 
     'from' => [
-        'address' =>'info@dikodiko.co.tz',// env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => 'DikoDiko', //env('MAIL_FROM_NAME', 'Example'),
+        'address' =>'info@safarichat.africa',// env('MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'name' => 'SafariChat', //env('MAIL_FROM_NAME', 'Example'),
     ],
 
     /*

@@ -280,3 +280,13 @@ Route::middleware('auth:sanctum')->prefix('crm/import')->name('api.crm.import.')
     // Get imported contact with context (for verification)
     Route::get('/contacts/{crm_id}/context', [CrmImportController::class, 'getContactContext'])->name('contact.context');
 });
+
+// Subscription API Routes
+Route::middleware('auth:sanctum')->prefix('subscription')->name('api.subscription.')->group(function () {
+    Route::get('/status', [App\Http\Controllers\API\SubscriptionController::class, 'getStatus'])->name('status');
+    Route::get('/analytics', [App\Http\Controllers\API\SubscriptionController::class, 'getAnalytics'])->name('analytics');
+    Route::get('/credit-balance', [App\Http\Controllers\API\SubscriptionController::class, 'getCreditBalance'])->name('credit-balance');
+    Route::get('/recovery-suggestions', [App\Http\Controllers\API\SubscriptionController::class, 'getRecoverySuggestions'])->name('recovery');
+    Route::get('/can-execute', [App\Http\Controllers\API\SubscriptionController::class, 'canExecuteAutomation'])->name('can-execute');
+    Route::get('/package-recommendations', [App\Http\Controllers\API\SubscriptionController::class, 'getPackageRecommendations'])->name('recommendations');
+});

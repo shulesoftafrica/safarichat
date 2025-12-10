@@ -1,243 +1,181 @@
 @extends('layouts.app')
 @section('content')
-<div class="ai-sales-officer">
+
+<div class="ai-agents-management">
     <div class="container-fluid">
-        <!-- Header -->
-        <div class="reports-header mb-4">
+        <!-- Modern Header -->
+        <div class="page-header">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1 class="reports-title">
-                        <i class="fas fa-robot"></i>
-                        AI Sales Agents
-                        <span class="ai-badge ms-3">
-                            <i class="fas fa-brain me-1"></i>
-                            AI Powered
-                        </span>
-                    </h1>
-                    <p class="reports-subtitle mb-0">
-                        Manage your intelligent WhatsApp sales assistants
-                    </p>
+                    <div class="header-content">
+                        <div class="header-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="header-text">
+                            <h1 class="page-title">AI Sales Agents</h1>
+                            <p class="page-subtitle">
+                                Create and manage intelligent WhatsApp sales assistants to automate customer conversations
+                            </p>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="{{ route('ai-agents.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>
-                        Create New Agent
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <div class="main-layout d-flex">
-            <!-- Sidebar Navigation (Compact) -->
-            <nav class="sidebar shadow-sm">
-                <ul class="sidebar-nav nav flex-column py-3">
-                    <li>
-                        <a href="{{ url('service/index') }}" class="nav-link">
-                            <span>Products</span>
+                    @if($agents->count() === 0)
+                        <a href="{{ route('ai-agents.create') }}" class="btn btn-create">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Create AI Agent
                         </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('ai-agents.index') }}" class="nav-link active">
-                            <span>AI Agents</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('ai-agents.create') }}" class="nav-link">
-                            <span>Create Agent</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- Main Content Area -->
-            <div class="content-area flex-grow-1 p-3 ms-3">
-                <div class="ai-agents-list">
-                    @if($agents->count() > 0)
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-list me-2"></i>
-                                    Your AI Sales Agents ({{ $agents->count() }})
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Assistant Name</th>
-                                                <th>Company</th>
-                                                <th>Target Category</th>
-                                                <th>Language</th>
-                                                <th>Status</th>
-                                                <th>Created</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($agents as $agent)
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-3">
-                                                            <i class="fas fa-robot text-white"></i>
-                                                        </div>
-                                                        <div>
-                                                            <strong>{{ $agent->assistant_name }}</strong>
-                                                            <br>
-                                                            <small class="text-muted">{{ Str::limit($agent->personality_description, 50) }}</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <strong>{{ $agent->company_name ?? 'Not specified' }}</strong>
-                                                    @if($agent->company_industry)
-                                                        <br><small class="text-muted">{{ ucfirst($agent->company_industry) }}</small>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @php
-                                                        $userTypes = $agent->getTargetUserTypeNames();
-                                                    @endphp
-                                                    @if(!empty($userTypes))
-                                                        @foreach($userTypes as $userType)
-                                                            <span class="badge bg-info me-1">{{ $userType }}</span>
-                                                        @endforeach
-                                                    @else
-                                                        <span class="badge bg-secondary">All Users</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <strong>{{ ucfirst($agent->primary_language ?? 'English') }}</strong>
-                                                    @if($agent->additional_languages && count($agent->additional_languages) > 0)
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            +{{ count($agent->additional_languages) }} more
-                                                        </small>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if($agent->status === 'active')
-                                                        <span class="badge bg-success">
-                                                            <i class="fas fa-check-circle me-1"></i>
-                                                            Active
-                                                        </span>
-                                                    @else
-                                                        <span class="badge bg-warning">
-                                                            <i class="fas fa-pause-circle me-1"></i>
-                                                            Inactive
-                                                        </span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <small>
-                                                        {{ $agent->created_at->format('M d, Y') }}
-                                                        <br>
-                                                        <span class="text-muted">{{ $agent->created_at->format('H:i') }}</span>
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group" role="group">
-                                                        <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                                onclick="viewAgent({{ $agent->id }})" title="View Details">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-warning" 
-                                                                onclick="editAgent({{ $agent->id }})" title="Edit">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-{{ $agent->status === 'active' ? 'warning' : 'success' }}" 
-                                                                onclick="toggleStatus({{ $agent->id }})" title="{{ $agent->status === 'active' ? 'Deactivate' : 'Activate' }}">
-                                                            <i class="fas fa-{{ $agent->status === 'active' ? 'pause' : 'play' }}"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                                onclick="deleteAgent({{ $agent->id }})" title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Agent Statistics -->
-                        <div class="row mt-4">
-                            <div class="col-md-3">
-                                <div class="card bg-primary text-white">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="mb-0">{{ $agents->count() }}</h4>
-                                                <small>Total Agents</small>
-                                            </div>
-                                            <i class="fas fa-robot fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card bg-success text-white">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="mb-0">{{ $agents->where('status', 'active')->count() }}</h4>
-                                                <small>Active Agents</small>
-                                            </div>
-                                            <i class="fas fa-check-circle fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card bg-warning text-white">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="mb-0">{{ $agents->where('status', 'inactive')->count() }}</h4>
-                                                <small>Inactive Agents</small>
-                                            </div>
-                                            <i class="fas fa-pause-circle fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card bg-info text-white">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="mb-0">{{ $agents->where('allow_negotiation', true)->count() }}</h4>
-                                                <small>With Negotiation</small>
-                                            </div>
-                                            <i class="fas fa-handshake fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <!-- Empty State -->
-                        <div class="text-center py-5">
-                            <div class="empty-state">
-                                <i class="fas fa-robot fa-4x text-muted mb-4"></i>
-                                <h3 class="text-muted">No AI Sales Agents Yet</h3>
-                                <p class="text-muted mb-4">
-                                    Create your first AI sales assistant to start automating customer engagement.
-                                </p>
-                                <a href="{{ route('ai-agents.create') }}" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Create Your First Agent
-                                </a>
-                            </div>
-                        </div>
                     @endif
                 </div>
             </div>
         </div>
+
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            @if($agents->count() > 0)
+                <!-- Agents Grid View -->
+                <div class="agents-grid">
+                    @foreach($agents as $agent)
+                        <div class="agent-card">
+                            <div class="agent-card-header">
+                                <div class="agent-avatar">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="agent-status">
+                                    <span class="status-badge {{ $agent->status === 'active' ? 'active' : 'inactive' }}">
+                                        {{ ucfirst($agent->status) }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="agent-card-body">
+                                <h3 class="agent-name">{{ $agent->assistant_name }}</h3>
+                                <p class="agent-company">{{ $agent->company_name ?? 'No company specified' }}</p>
+                                <p class="agent-description">
+                                    {{ Str::limit($agent->personality_description, 100) }}
+                                </p>
+                                
+                                <div class="agent-details">
+                                    <div class="detail-item">
+                                        <span class="label">Language:</span>
+                                        <span class="value">{{ ucfirst($agent->primary_language ?? 'English') }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">Industry:</span>
+                                        <span class="value">{{ ucfirst($agent->company_industry ?? 'General') }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">Created:</span>
+                                        <span class="value">{{ $agent->created_at->format('M d, Y') }}</span>
+                                    </div>
+                                </div>
+                                
+                                @php
+                                    $userTypes = $agent->getTargetUserTypeNames();
+                                @endphp
+                                @if(!empty($userTypes))
+                                    <div class="agent-tags">
+                                        @foreach(array_slice($userTypes, 0, 3) as $userType)
+                                            <span class="tag">{{ $userType }}</span>
+                                        @endforeach
+                                        @if(count($userTypes) > 3)
+                                            <span class="tag more">+{{ count($userTypes) - 3 }} more</span>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <div class="agent-card-footer">
+                                <div class="action-buttons">
+                                    <button class="btn-action primary" onclick="viewAgent('{{ $agent->uuid }}')" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-action warning" onclick="editAgent('{{ $agent->uuid }}')" title="Edit Agent">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action {{ $agent->status === 'active' ? 'danger' : 'success' }}" 
+                                            onclick="toggleStatus('{{ $agent->uuid }}')" 
+                                            title="{{ $agent->status === 'active' ? 'Deactivate' : 'Activate' }} Agent">
+                                        <i class="fas fa-{{ $agent->status === 'active' ? 'pause' : 'play' }}"></i>
+                                    </button>
+                                    <button class="btn-action danger" onclick="deleteAgent('{{ $agent->uuid }}')" title="Delete Agent">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="stats-row">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ $agents->count() }}</h3>
+                            <p>Total Agents</p>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ $agents->where('status', 'active')->count() }}</h3>
+                            <p>Active Agents</p>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">
+                            <i class="fas fa-pause-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ $agents->where('status', 'inactive')->count() }}</h3>
+                            <p>Inactive Agents</p>
+                        </div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-icon">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ $agents->where('allow_negotiation', true)->count() }}</h3>
+                            <p>Negotiation Enabled</p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <!-- Empty State -->
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h2>No AI Sales Agents Yet</h2>
+                    <p>Create your first intelligent sales assistant to start automating customer conversations on WhatsApp.</p>
+                    <div class="empty-actions">
+                        <a href="{{ route('ai-agents.create') }}" class="btn btn-primary-lg">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Create Your First Agent
+                        </a>
+                    </div>
+                    <div class="empty-features">
+                        <div class="feature-item">
+                            <i class="fas fa-comments text-primary"></i>
+                            <span>Automated Conversations</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-brain text-success"></i>
+                            <span>AI-Powered Responses</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line text-warning"></i>
+                            <span>Sales Automation</span>
+                        </div>
+                    </div>
+                </div>
+            @endif
     </div>
 </div>
 
@@ -246,7 +184,9 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="agentModalLabel">Agent Details</h5>
+                <h5 class="modal-title" id="agentModalLabel">
+                    <i class="fas fa-robot me-2"></i>Agent Details
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="agentModalBody">
@@ -257,56 +197,445 @@
 </div>
 
 <style>
-.avatar-sm {
+/* Modern AI Agents Management Styles */
+.ai-agents-management {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.page-header {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+}
+
+.header-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.header-icon i {
+    font-size: 2rem;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0 0;
+}
+
+.btn-create {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-create:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    color: white;
+}
+
+.content-wrapper {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Agents Grid */
+.agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.agent-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.agent-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+
+.agent-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.agent-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agent-avatar i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.inactive {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.agent-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.agent-company {
+    color: #7f8c8d;
+    font-weight: 500;
+    margin: 0 0 1rem 0;
+}
+
+.agent-description {
+    color: #6c757d;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.agent-details {
+    margin-bottom: 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.detail-item .label {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.detail-item .value {
+    color: #2c3e50;
+}
+
+.agent-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.tag.more {
+    background: #f5f5f5;
+    color: #6c757d;
+}
+
+.agent-card-footer {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 1rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
     width: 40px;
     height: 40px;
-}
-
-.empty-state {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-
-.sidebar {
-    min-width: 200px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.sidebar .nav-link {
-    color: #6c757d;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    margin-bottom: 0.25rem;
-}
-
-.sidebar .nav-link:hover,
-.sidebar .nav-link.active {
-    color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.1);
-}
-
-.card {
     border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
 }
 
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
+.btn-action.primary {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.btn-action.primary:hover {
+    background: #1976d2;
+    color: white;
+}
+
+.btn-action.warning {
+    background: #fff8e1;
+    color: #f57c00;
+}
+
+.btn-action.warning:hover {
+    background: #f57c00;
+    color: white;
+}
+
+.btn-action.success {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.btn-action.success:hover {
+    background: #2e7d32;
+    color: white;
+}
+
+.btn-action.danger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.btn-action.danger:hover {
+    background: #c62828;
+    color: white;
+}
+
+/* Statistics Row */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    border-radius: 15px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-card.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.stat-card.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card.info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-icon i {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.stat-info h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-info p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem auto;
+}
+
+.empty-icon i {
+    font-size: 3rem;
+    color: white;
+}
+
+.empty-state h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
     color: #6c757d;
+    margin-bottom: 2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.btn-group .btn {
-    margin-right: 0.25rem;
+.btn-primary-lg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.empty-features {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 3rem;
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-item i {
+    font-size: 2rem;
+}
+
+.feature-item span {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    color: #495057;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .agents-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .empty-features {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-icon {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
 }
 </style>
 
 <script>
-function viewAgent(id) {
-    fetch(`/ai-agents/${id}`)
+function viewAgent(uuid) {
+    fetch(`{{ url('/ai-agents') }}/${uuid}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -317,13 +646,13 @@ function viewAgent(id) {
         .catch(error => console.error('Error:', error));
 }
 
-function editAgent(id) {
-    window.location.href = `/ai-agents/${id}/edit`;
+function editAgent(uuid) {
+    window.location.href = "{{ url('/ai-agents') }}/" + uuid + "/edit";
 }
 
-function toggleStatus(id) {
+function toggleStatus(uuid) {
     if (confirm('Are you sure you want to change the agent status?')) {
-        fetch(`/ai-agents/${id}/toggle-status`, {
+        fetch(`/ai-agents/${uuid}/toggle-status`, {
             method: 'PATCH',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -341,9 +670,9 @@ function toggleStatus(id) {
     }
 }
 
-function deleteAgent(id) {
+function deleteAgent(uuid) {
     if (confirm('Are you sure you want to delete this agent? This action cannot be undone.')) {
-        fetch(`/ai-agents/${id}`, {
+        fetch(`/ai-agents/${uuid}`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -399,4 +728,5 @@ function generateAgentDetails(agent) {
     `;
 }
 </script>
+
 @endsection

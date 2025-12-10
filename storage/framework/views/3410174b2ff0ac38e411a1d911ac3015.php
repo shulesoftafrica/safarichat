@@ -1,0 +1,2359 @@
+﻿
+<?php $__env->startSection('content'); ?>
+
+<div class="ai-agent-creator">
+    <div class="container-fluid">
+        <!-- Modern Header with Breadcrumb -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="<?php echo e(route('ai-agents.index')); ?>">
+                                    <i class="fas fa-robot me-1"></i>AI Agents
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">Create New Agent</li>
+                        </ol>
+                    </nav>
+                    <div class="header-content">
+                        <div class="header-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="header-text">
+                            <h1 class="page-title">Create AI Sales Agent</h1>
+                            <p class="page-subtitle">
+                                Set up your intelligent assistant with personality, knowledge, and sales capabilities
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="<?php echo e(route('ai-agents.index')); ?>" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Agents
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            <?php if(isset($existingAgent) && $existingAgent): ?>
+                <!-- Show existing agent summary first -->
+                <div class="current-agent-card">
+                    <div class="agent-summary">
+                        <div class="agent-info">
+                            <div class="agent-avatar-large">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="agent-details">
+                                <h3><?php echo e($existingAgent->assistant_name); ?></h3>
+                                <p class="company"><?php echo e($existingAgent->company_name ?? 'No company specified'); ?></p>
+                                <div class="status-info">
+                                    <span class="status-badge <?php echo e($existingAgent->status === 'active' ? 'active' : 'inactive'); ?>">
+                                        <?php echo e(ucfirst($existingAgent->status)); ?>
+
+                                    </span>
+                                    <span class="created-date">Created <?php echo e($existingAgent->created_at->format('M d, Y')); ?></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn-edit" onclick="showEditForm()">
+                                <i class="fas fa-edit me-2"></i>
+                                Edit Agent
+                            </button>
+                            <a href="<?php echo e(route('ai-agents.index')); ?>" class="btn-secondary">
+                                <i class="fas fa-list me-2"></i>
+                                View All Agents
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Agent Form (Create/Edit) -->
+            <div id="agent-form-section" class="<?php echo e(isset($existingAgent) && $existingAgent ? 'editing-mode' : 'creating-mode'); ?>" 
+                 style="<?php echo e(isset($existingAgent) && $existingAgent ? 'display: none;' : 'display: block;'); ?>">
+                
+                <div class="form-container">
+                    <div class="form-header">
+                        <h2 id="form-title">
+                            <?php echo e(isset($existingAgent) && $existingAgent ? 'Edit AI Sales Agent' : 'Create AI Sales Agent'); ?>
+
+                        </h2>
+                        <p id="form-subtitle">
+                            <?php echo e(isset($existingAgent) && $existingAgent ? 'Update your AI assistant configuration' : 'Set up your intelligent sales assistant with custom personality and capabilities'); ?>
+
+                        </p>
+                    </div>
+
+                    <!-- Progress Wizard -->
+                    <div class="wizard-progress">
+                        <div class="progress-step active" data-step="1">
+                            <div class="step-circle">1</div>
+                            <span class="step-label">Basic Info</span>
+                        </div>
+                        <div class="progress-step" data-step="2">
+                            <div class="step-circle">2</div>
+                            <span class="step-label">Personality</span>
+                        </div>
+                        <div class="progress-step" data-step="3">
+                            <div class="step-circle">3</div>
+                            <span class="step-label">Capabilities</span>
+                        </div>
+                        <div class="progress-step" data-step="4">
+                            <div class="step-circle">4</div>
+                            <span class="step-label">Review</span>
+                        </div>
+                    </div>
+
+                    <form id="ai-agent-form" method="POST" action="<?php echo e(isset($existingAgent) && $existingAgent ? route('ai-agents.update', $existingAgent->uuid) : route('ai-agents.store')); ?>">
+                        <?php echo csrf_field(); ?>
+                        <?php if(isset($existingAgent) && $existingAgent): ?>
+                            <?php echo method_field('PUT'); ?>
+                        <?php endif; ?>
+
+                        <!-- Step 1: Basic Information -->
+                        <div class="wizard-step active" id="step-1">
+                            <h3 class="step-title">Basic Information</h3>
+                            <p class="step-subtitle">Let's start with the basic details of your AI sales assistant</p>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Assistant Name *</label>
+                                    <input type="text" class="form-control" name="assistant_name" 
+                                           value="<?php echo e(old('assistant_name', $existingAgent->assistant_name ?? '')); ?>" 
+                                           placeholder="e.g., Sarah, Alex, or ChatBot" required>
+                                    <small class="form-hint">Choose a friendly name for your AI assistant</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" name="company_name" 
+                                           value="<?php echo e(old('company_name', $existingAgent->company_name ?? '')); ?>" 
+                                           placeholder="Your company name">
+                                    <small class="form-hint">This helps personalize conversations</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Industry *</label>
+                                    <select class="form-control" name="company_industry" required>
+                                        <option value="">Select your industry</option>
+                                        <option value="retail" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'retail' ? 'selected' : ''); ?>>Retail</option>
+                                        <option value="technology" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'technology' ? 'selected' : ''); ?>>Technology</option>
+                                        <option value="healthcare" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'healthcare' ? 'selected' : ''); ?>>Healthcare</option>
+                                        <option value="finance" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'finance' ? 'selected' : ''); ?>>Finance</option>
+                                        <option value="education" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'education' ? 'selected' : ''); ?>>Education</option>
+                                        <option value="real-estate" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'real-estate' ? 'selected' : ''); ?>>Real Estate</option>
+                                        <option value="automotive" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'automotive' ? 'selected' : ''); ?>>Automotive</option>
+                                        <option value="food-beverage" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'food-beverage' ? 'selected' : ''); ?>>Food & Beverage</option>
+                                        <option value="other" <?php echo e(old('company_industry', $existingAgent->company_industry ?? '') == 'other' ? 'selected' : ''); ?>>Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Primary Language *</label>
+                                    <select class="form-control" name="primary_language" required>
+                                        <option value="english" <?php echo e(old('primary_language', $existingAgent->primary_language ?? 'english') == 'english' ? 'selected' : ''); ?>>English</option>
+                                        <option value="swahili" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'swahili' ? 'selected' : ''); ?>>Swahili</option>
+                                        <option value="french" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'french' ? 'selected' : ''); ?>>French</option>
+                                        <option value="spanish" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'spanish' ? 'selected' : ''); ?>>Spanish</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Personality & Style -->
+                        <div class="wizard-step" id="step-2">
+                            <h3 class="step-title">Personality & Communication Style</h3>
+                            <p class="step-subtitle">Define how your AI assistant should interact with customers</p>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Communication Tone *</label>
+                                <div class="tone-options">
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="professional" 
+                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'professional' ? 'checked' : ''); ?> required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-briefcase"></i>
+                                            <h4>Professional</h4>
+                                            <p>Formal, business-appropriate language</p>
+                                        </div>
+                                    </label>
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="friendly" 
+                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'friendly' ? 'checked' : ''); ?> required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-smile"></i>
+                                            <h4>Friendly</h4>
+                                            <p>Warm, approachable, and conversational</p>
+                                        </div>
+                                    </label>
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="casual" 
+                                               <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'casual' ? 'checked' : ''); ?> required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-comments"></i>
+                                            <h4>Casual</h4>
+                                            <p>Relaxed, informal communication</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Target Audience</label>
+                                <select class="form-control" name="target_audience">
+                                    <option value="general-public" <?php echo e(old('target_audience', $existingAgent->target_audience ?? 'general-public') == 'general-public' ? 'selected' : ''); ?>>General Public</option>
+                                    <option value="business-customers" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'business-customers' ? 'selected' : ''); ?>>Business Customers</option>
+                                    <option value="young-adults" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'young-adults' ? 'selected' : ''); ?>>Young Adults</option>
+                                    <option value="professionals" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'professionals' ? 'selected' : ''); ?>>Professionals</option>
+                                </select>
+                                <small class="form-hint">This helps tailor the conversation style</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Products/Services Description</label>
+                                <textarea class="form-control" name="products_services" rows="3" 
+                                          placeholder="Briefly describe what you sell (this helps the AI understand your business)"><?php echo e(old('products_services', $existingAgent->products_services ?? '')); ?></textarea>
+                                <small class="form-hint">Optional: Helps AI provide better product recommendations</small>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Capabilities & Settings -->
+                        <div class="wizard-step" id="step-3">
+                            <h3 class="step-title">Capabilities & Availability</h3>
+                            <p class="step-subtitle">Configure your AI assistant's capabilities and working hours</p>
+                            
+                            <div class="capability-section">
+                                <h4>Availability Settings</h4>
+                                <div class="form-group">
+                                    <div class="toggle-option">
+                                        <input type="checkbox" id="always_available" name="always_available" 
+                                               <?php echo e(old('always_available', $existingAgent->always_available ?? true) ? 'checked' : ''); ?>>
+                                        <label for="always_available">
+                                            <span class="toggle-slider"></span>
+                                            <div class="toggle-content">
+                                                <h4>24/7 Availability</h4>
+                                                <p>AI assistant will respond to messages at any time</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Out-of-Hours Message</label>
+                                    <textarea class="form-control" name="out_of_hours_message" rows="3" 
+                                              placeholder="Message when AI is not available"><?php echo e(old('out_of_hours_message', $existingAgent->out_of_hours_message ?? 'Thank you for contacting us! Our AI assistant is currently offline. We will respond as soon as possible.')); ?></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="capability-section">
+                                <h4>Sales Capabilities</h4>
+                                <div class="form-group">
+                                    <div class="toggle-option">
+                                        <input type="checkbox" id="allow_negotiation" name="allow_negotiation" 
+                                               <?php echo e(old('allow_negotiation', $existingAgent->allow_negotiation ?? true) ? 'checked' : ''); ?>>
+                                        <label for="allow_negotiation">
+                                            <span class="toggle-slider"></span>
+                                            <div class="toggle-content">
+                                                <h4>Price Negotiation</h4>
+                                                <p>Allow AI to negotiate prices within set limits</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div id="negotiation-settings" class="form-group">
+                                    <label class="form-label">Maximum Discount Allowed</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" name="max_discount_allowed" 
+                                               min="0" max="50" value="<?php echo e(old('max_discount_allowed', $existingAgent->max_discount_allowed ?? 15)); ?>">
+                                        <span class="input-addon">%</span>
+                                    </div>
+                                    <small class="form-hint">Maximum discount AI can offer to customers</small>
+                                </div>
+                            </div>
+                            
+                            <div class="capability-section">
+                                <h4>Fallback Contact</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Fallback Phone Number *</label>
+                                        <input type="tel" class="form-control" name="fallback_number" 
+                                               placeholder="+254700000000" 
+                                               value="<?php echo e(old('fallback_number', $existingAgent->fallback_number ?? '')); ?>" required>
+                                        <small class="form-hint">Number to transfer when AI can't help</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Contact Person</label>
+                                        <input type="text" class="form-control" name="fallback_person" 
+                                               placeholder="e.g., John - Sales Manager"
+                                               value="<?php echo e(old('fallback_person', $existingAgent->fallback_person ?? '')); ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Review & Activate -->
+                        <div class="wizard-step" id="step-4">
+                            <h3 class="step-title">Review & Activate</h3>
+                            <p class="step-subtitle">Review your AI assistant configuration and activate</p>
+                            
+                            <div class="review-card">
+                                <div class="agent-preview">
+                                    <div class="preview-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="preview-info">
+                                        <h3 id="preview-name">AI Assistant</h3>
+                                        <p id="preview-company">Your Company</p>
+                                        <div class="preview-tags">
+                                            <span class="tag" id="preview-industry">Industry</span>
+                                            <span class="tag" id="preview-language">Language</span>
+                                            <span class="tag" id="preview-tone">Tone</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="preview-capabilities">
+                                    <h4>Capabilities:</h4>
+                                    <div class="capability-list">
+                                        <div class="capability" id="preview-availability">
+                                            <i class="fas fa-clock"></i>
+                                            <span>24/7 Available</span>
+                                        </div>
+                                        <div class="capability" id="preview-negotiation">
+                                            <i class="fas fa-handshake"></i>
+                                            <span>Price Negotiation</span>
+                                        </div>
+                                        <div class="capability">
+                                            <i class="fas fa-phone"></i>
+                                            <span>Fallback Support</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="terms-section">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="accepted_terms" name="accepted_terms" required>
+                                        <span class="checkmark"></span>
+                                        I agree to the <a href="<?php echo e(route('ai-agent-terms')); ?>" target="_blank">Terms of Service</a> 
+                                        and <a href="<?php echo e(route('privacy-policy')); ?>" target="_blank">Privacy Policy</a>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields -->
+                        <input type="hidden" name="target_user_types[]" value="1">
+                        <input type="hidden" name="timezone" value="Africa/Nairobi">
+
+                        <!-- Navigation Buttons -->
+                        <div class="wizard-navigation">
+                            <button type="button" class="btn-nav secondary" id="prev-btn" onclick="previousStep()" style="display: none;">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Previous
+                            </button>
+                            <button type="button" class="btn-nav primary" id="next-btn" onclick="nextStep()">
+                                Next Step
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="submit" class="btn-nav success" id="submit-btn" style="display: none;">
+                                <i class="fas fa-rocket me-2"></i>
+                                Create AI Agent
+                            </button>
+                        </div>
+                    </form>
+                            
+                            <!-- Step 1: Assistant Information -->
+                            <div class="step-content active" id="step-1">
+                                <div class="step-card">
+                                    <h4 class="step-title">
+                                        <i class="fas fa-robot text-primary"></i>
+                                        Step 1: Assistant Information
+                                    </h4>
+                                    <p class="step-description">Give your AI sales assistant a name and define its basic identity.</p>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Assistant Name *</label>
+                                        <input type="text" class="form-control" name="assistant_name" 
+                                               placeholder="e.g., Sarah, Alex, SalesBot Pro" 
+                                               value="<?php echo e(old('assistant_name', $existingAgent->assistant_name ?? '')); ?>"
+                                               required>
+                                        <small class="text-muted">Choose a friendly name that customers will interact with</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Target Audience *</label>
+                                        <select class="form-select" name="target_audience" required>
+                                            <option value="">Select target audience</option>
+                                            <option value="small-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'small-businesses' ? 'selected' : ''); ?>>Small Businesses (1-10 employees)</option>
+                                            <option value="medium-businesses" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'medium-businesses' ? 'selected' : ''); ?>>Medium Businesses (11-50 employees)</option>
+                                            <option value="enterprises" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'enterprises' ? 'selected' : ''); ?>>Large Enterprises (50+ employees)</option>
+                                            <option value="individuals" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'individuals' ? 'selected' : ''); ?>>Individual Customers</option>
+                                            <option value="mixed" <?php echo e(old('target_audience', $existingAgent->target_audience ?? '') == 'mixed' ? 'selected' : ''); ?>>Mixed (All types)</option>
+                                        </select>
+                                        <small class="text-muted">Your assistant will be optimized to sell to these customer types</small>
+                                    </div>
+                                    
+                                    <!-- Hidden target user types field (auto-populated based on target audience) -->
+                                    <input type="hidden" name="target_user_types[]" value="1">
+                                    
+                                    <!-- Hidden timezone field -->
+                                    <input type="hidden" name="timezone" value="Africa/Nairobi">
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Communication Tone *</label>
+                                        <select class="form-select" name="communication_tone" required>
+                                            <option value="">Select communication style</option>
+                                            <option value="professional" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'professional' ? 'selected' : ''); ?>>Professional & Formal</option>
+                                            <option value="friendly" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'friendly' ? 'selected' : ''); ?>>Friendly & Casual</option>
+                                            <option value="consultative" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'consultative' ? 'selected' : ''); ?>>Consultative & Advisory</option>
+                                            <option value="direct" <?php echo e(old('communication_tone', $existingAgent->communication_tone ?? '') == 'direct' ? 'selected' : ''); ?>>Direct & To-the-point</option>
+                                        </select>
+                                        <small class="text-muted">How your assistant will communicate with customers</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2: Working Hours & Language -->
+                            <div class="step-content" id="step-2">
+                                <div class="step-card">
+                                    <h4 class="step-title">
+                                        <i class="fas fa-clock text-primary"></i>
+                                        Step 2: Working Hours & Language
+                                    </h4>
+                                    <p class="step-description">Set when your AI sales officer should be active and which language to use.</p>
+                                    
+                                    <div class="form-group">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="always_available" name="always_available" 
+                                                   <?php echo e(old('always_available', $existingAgent->always_available ?? true) ? 'checked' : ''); ?>>
+                                            <label class="form-check-label" for="always_available">
+                                                <strong>Available 24/7</strong>
+                                                <small class="d-block text-muted">AI will respond immediately at any time</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Primary Language *</label>
+                                        <select class="form-select" name="primary_language" required>
+                                            <option value="en" <?php echo e(old('primary_language', $existingAgent->primary_language ?? 'en') == 'en' ? 'selected' : ''); ?>>English</option>
+                                            <option value="sw" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'sw' ? 'selected' : ''); ?>>Swahili</option>
+                                            <option value="fr" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'fr' ? 'selected' : ''); ?>>French</option>
+                                            <option value="ar" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'ar' ? 'selected' : ''); ?>>Arabic</option>
+                                            <option value="pt" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'pt' ? 'selected' : ''); ?>>Portuguese</option>
+                                            <option value="am" <?php echo e(old('primary_language', $existingAgent->primary_language ?? '') == 'am' ? 'selected' : ''); ?>>Amharic</option>
+                                        </select>
+                                        <small class="text-muted">Primary language for customer communication</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Out-of-Hours Message</label>
+                                        <textarea class="form-control" name="out_of_hours_message" rows="3" placeholder="Message to send when AI is not available..."><?php echo e(old('out_of_hours_message', $existingAgent->out_of_hours_message ?? 'Thank you for contacting us! Our AI assistant is currently offline. Our business hours are Monday-Friday, 8:00 AM - 6:00 PM EAT. We\'ll respond to your message as soon as we\'re back online.')); ?></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 3: Negotiation & Fallback -->
+                            <div class="step-content" id="step-3">
+                                <div class="step-card">
+                                    <h4 class="step-title">
+                                        <i class="fas fa-handshake text-primary"></i>
+                                        Step 3: Negotiation & Fallback
+                                    </h4>
+                                    <p class="step-description">Configure pricing negotiations and fallback contact information.</p>
+                                    
+                                    <div class="form-group">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="allow_negotiation" name="allow_negotiation" 
+                                                   <?php echo e(old('allow_negotiation', $existingAgent->allow_negotiation ?? true) ? 'checked' : ''); ?>>
+                                            <label class="form-check-label" for="allow_negotiation">
+                                                <strong>Allow AI to negotiate prices?</strong>
+                                                <small class="d-block text-muted">Enable price negotiations within defined limits</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="negotiation-settings">
+                                        <div class="form-group">
+                                            <label class="form-label">Maximum Discount Allowed *</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="max_discount_allowed" min="0" max="50" 
+                                                       value="<?php echo e(old('max_discount_allowed', $existingAgent->max_discount_allowed ?? 15)); ?>">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                            <small class="text-muted">Maximum discount AI can offer</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Fallback Phone Number *</label>
+                                        <input type="tel" class="form-control" name="fallback_number" placeholder="+254700000000" 
+                                               value="<?php echo e(old('fallback_number', $existingAgent->fallback_number ?? '')); ?>"
+                                               required>
+                                        <small class="text-muted">Number to transfer customers when AI cannot help</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Fallback Person Name</label>
+                                        <input type="text" class="form-control" name="fallback_person" placeholder="e.g., John - Sales Manager"
+                                               value="<?php echo e(old('fallback_person', $existingAgent->fallback_person ?? '')); ?>">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 4: Terms & Review -->
+                            <div class="step-content" id="step-4">
+                                <div class="step-card">
+                                    <h4 class="step-title">
+                                        <i class="fas fa-file-contract text-primary"></i>
+                                        Step 4: Terms & Review
+                                    </h4>
+                                    <p class="step-description">Review your AI Sales Agent configuration and accept terms.</p>
+                                    
+                                    <div class="terms-section">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="card-title">
+                                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                                    AI Sales Agent Service Agreement
+                                                </h6>
+                                                <p class="card-text">
+                                                    By using our AI Sales Agent service, you agree to our terms of service, privacy policy, and acceptable use guidelines.
+                                                </p>
+                                                <div class="key-points mb-3">
+                                                    <h6>Key Points:</h6>
+                                                    <ul class="small">
+                                                        <li>Your data is protected and encrypted</li>
+                                                        <li>Service availability is 99.9% uptime target</li>
+                                                        <li>You can modify or cancel anytime</li>
+                                                        <li>Support is available during business hours</li>
+                                                        <li>Billing is monthly based on usage</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group mt-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="accepted_terms" name="accepted_terms" required>
+                                            <label class="form-check-label" for="accepted_terms">
+                                                <strong>I have read and accept the Terms & Conditions and Privacy Policy *</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="configuration-summary" class="mt-4">
+                                        <h6>Configuration Summary:</h6>
+                                        <div class="configuration-summary">
+                                            <div class="summary-section">
+                                                <div class="summary-title">ðŸ¤– Assistant Information</div>
+                                                <div class="summary-value">Name: <span id="review-assistant-name">-</span></div>
+                                                <div class="summary-value">Target Audience: <span id="review-target-audience">-</span></div>
+                                                <div class="summary-value">Communication Tone: <span id="review-communication-tone">-</span></div>
+                                            </div>
+                                            <div class="summary-section">
+                                                <div class="summary-title">â° Working Hours & Language</div>
+                                                <div class="summary-value">Availability: <span id="review-availability">-</span></div>
+                                                <div class="summary-value">Primary Language: <span id="review-language">-</span></div>
+                                            </div>
+                                            <div class="summary-section">
+                                                <div class="summary-title">ðŸ¤ Negotiation & Fallback</div>
+                                                <div class="summary-value">Negotiation: <span id="review-negotiation">-</span></div>
+                                                <div class="summary-value">Fallback Number: <span id="review-fallback">-</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group mt-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="confirm-settings" name="confirm-settings" required>
+                                            <label class="form-check-label" for="confirm-settings">
+                                                I confirm that all settings are correct and want to activate this AI sales officer configuration.
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation Buttons -->
+                            <div class="wizard-navigation">
+                                <button class="btn btn-outline-secondary" id="prev-step" onclick="previousStep()" style="display: none;">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Previous
+                                </button>
+                                <button class="btn btn-primary" id="next-step" onclick="nextStep()">
+                                    Next
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button class="btn btn-success" id="save-config" onclick="finalSave()" style="display: none;">
+                                    <i class="fas fa-save"></i>
+                                    Save & Activate Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modern AI Agent Creator Styles */
+.ai-agent-creator {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.page-header {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.breadcrumb-item a:hover {
+    color: #495057;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+}
+
+.header-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.header-icon i {
+    font-size: 2rem;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0 0;
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.content-wrapper {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Current Agent Card */
+.current-agent-card {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.agent-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.agent-info {
+    display: flex;
+    align-items: center;
+}
+
+.agent-avatar-large {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.agent-avatar-large i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.agent-details h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2c3e50;
+}
+
+.agent-details .company {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    margin: 0.25rem 0;
+}
+
+.status-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.status-badge.active {
+    background: #d4edda;
+    color: #155724;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.inactive {
+    background: #fff3cd;
+    color: #856404;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.created-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Form Container */
+.form-container {
+    padding: 2rem;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.form-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+}
+
+.form-header p {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Wizard Progress */
+.wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding: 0 2rem;
+    position: relative;
+}
+
+.wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 2rem;
+    right: 2rem;
+    height: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.progress-step.active .step-circle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.progress-step.completed .step-circle {
+    background: #28a745;
+    color: white;
+}
+
+.step-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6c757d;
+    text-align: center;
+}
+
+.progress-step.active .step-label {
+    color: #2c3e50;
+}
+
+/* Wizard Steps */
+.wizard-step {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.wizard-step.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+}
+
+.step-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0 0 2rem 0;
+}
+
+/* Form Fields */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Tone Options */
+.tone-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.tone-option {
+    cursor: pointer;
+}
+
+.tone-option input {
+    display: none;
+}
+
+.tone-card {
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.tone-card i {
+    font-size: 2rem;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.tone-card h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 0.25rem 0;
+}
+
+.tone-card p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.tone-option:hover .tone-card {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.tone-option input:checked + .tone-card {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.tone-option input:checked + .tone-card i,
+.tone-option input:checked + .tone-card h4,
+.tone-option input:checked + .tone-card p {
+    color: white;
+}
+
+/* Capability Sections */
+.capability-section {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.capability-section h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+}
+
+/* Toggle Options */
+.toggle-option {
+    position: relative;
+}
+
+.toggle-option input {
+    display: none;
+}
+
+.toggle-option label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.toggle-option:hover label {
+    border-color: #667eea;
+}
+
+.toggle-option input:checked + label {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.toggle-slider {
+    width: 50px;
+    height: 26px;
+    background: #ccc;
+    border-radius: 26px;
+    margin-right: 1rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s ease;
+}
+
+.toggle-option input:checked + label .toggle-slider {
+    background: #667eea;
+}
+
+.toggle-option input:checked + label .toggle-slider::before {
+    transform: translateX(24px);
+}
+
+.toggle-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.toggle-content p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0.25rem 0 0 0;
+}
+
+/* Input Groups */
+.input-group {
+    display: flex;
+}
+
+.input-addon {
+    background: #e9ecef;
+    border: 2px solid #e9ecef;
+    border-left: none;
+    padding: 0.75rem;
+    border-radius: 0 10px 10px 0;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.input-group .form-control {
+    border-radius: 10px 0 0 10px;
+}
+
+/* Review Section */
+.review-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.agent-preview {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.preview-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.preview-avatar i {
+    font-size: 2rem;
+    color: white;
+}
+
+.preview-info h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.preview-info p {
+    color: #6c757d;
+    margin: 0.25rem 0 0.75rem 0;
+}
+
+.preview-tags {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.preview-capabilities h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+}
+
+.capability-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.capability {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+.capability i {
+    margin-right: 0.5rem;
+    color: #667eea;
+}
+
+/* Terms Section */
+.terms-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #2c3e50;
+}
+
+.checkbox-label input {
+    margin-right: 0.75rem;
+}
+
+.checkbox-label a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+/* Navigation Buttons */
+.wizard-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 0 0 0;
+    border-top: 1px solid #e9ecef;
+    margin-top: 2rem;
+}
+
+.btn-nav {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-nav.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-nav.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-nav.secondary {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.btn-nav.secondary:hover {
+    background: #f8f9fa;
+}
+
+.btn-nav.success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-nav.success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .tone-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .wizard-progress {
+        padding: 0 1rem;
+    }
+    
+    .wizard-progress::before {
+        left: 1rem;
+        right: 1rem;
+    }
+    
+    .agent-summary {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .agent-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .agent-avatar-large {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .capability-list {
+        flex-direction: column;
+    }
+    
+    .wizard-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            updateWizard();
+            updatePreview();
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        updateWizard();
+    }
+}
+
+function updateWizard() {
+    // Update progress
+    document.querySelectorAll('.progress-step').forEach((step, index) => {
+        const stepNumber = index + 1;
+        if (stepNumber < currentStep) {
+            step.classList.add('completed');
+            step.classList.remove('active');
+        } else if (stepNumber === currentStep) {
+            step.classList.add('active');
+            step.classList.remove('completed');
+        } else {
+            step.classList.remove('active', 'completed');
+        }
+    });
+
+    // Update steps
+    document.querySelectorAll('.wizard-step').forEach((step, index) => {
+        const stepNumber = index + 1;
+        if (stepNumber === currentStep) {
+            step.classList.add('active');
+        } else {
+            step.classList.remove('active');
+        }
+    });
+
+    // Update navigation
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+
+    if (currentStep === 1) {
+        prevBtn.style.display = 'none';
+    } else {
+        prevBtn.style.display = 'flex';
+    }
+
+    if (currentStep === totalSteps) {
+        nextBtn.style.display = 'none';
+        submitBtn.style.display = 'flex';
+    } else {
+        nextBtn.style.display = 'flex';
+        submitBtn.style.display = 'none';
+    }
+}
+
+function validateCurrentStep() {
+    const currentStepElement = document.getElementById(`step-${currentStep}`);
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+    
+    for (let field of requiredFields) {
+        if (!field.value.trim()) {
+            field.focus();
+            alert('Please fill in all required fields before continuing.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function updatePreview() {
+    const assistantName = document.querySelector('[name="assistant_name"]').value || 'AI Assistant';
+    const companyName = document.querySelector('[name="company_name"]').value || 'Your Company';
+    const industry = document.querySelector('[name="company_industry"]').value;
+    const language = document.querySelector('[name="primary_language"]').value;
+    const tone = document.querySelector('[name="communication_tone"]:checked')?.value;
+    const alwaysAvailable = document.querySelector('[name="always_available"]').checked;
+    const allowNegotiation = document.querySelector('[name="allow_negotiation"]').checked;
+
+    document.getElementById('preview-name').textContent = assistantName;
+    document.getElementById('preview-company').textContent = companyName;
+    document.getElementById('preview-industry').textContent = industry ? industry.replace('-', ' ').toUpperCase() : 'INDUSTRY';
+    document.getElementById('preview-language').textContent = language ? language.toUpperCase() : 'ENGLISH';
+    document.getElementById('preview-tone').textContent = tone ? tone.toUpperCase() : 'FRIENDLY';
+    
+    document.getElementById('preview-availability').innerHTML = 
+        `<i class="fas fa-clock"></i><span>${alwaysAvailable ? '24/7 Available' : 'Business Hours'}</span>`;
+    document.getElementById('preview-negotiation').innerHTML = 
+        `<i class="fas fa-handshake"></i><span>${allowNegotiation ? 'Price Negotiation' : 'Fixed Pricing'}</span>`;
+}
+
+function showEditForm() {
+    document.getElementById('agent-form-section').style.display = 'block';
+    document.querySelector('.current-agent-card').style.display = 'none';
+}
+
+// Initialize wizard
+document.addEventListener('DOMContentLoaded', function() {
+    updateWizard();
+    
+    // Auto-update preview as user types
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('change', updatePreview);
+        field.addEventListener('input', updatePreview);
+    });
+    
+    // Handle negotiation settings visibility
+    const allowNegotiation = document.getElementById('allow_negotiation');
+    const negotiationSettings = document.getElementById('negotiation-settings');
+    
+    if (allowNegotiation && negotiationSettings) {
+        function toggleNegotiationSettings() {
+            negotiationSettings.style.display = allowNegotiation.checked ? 'block' : 'none';
+        }
+        
+        allowNegotiation.addEventListener('change', toggleNegotiationSettings);
+        toggleNegotiationSettings(); // Initial state
+    }
+    
+    // Initial preview update
+    updatePreview();
+});
+</script>
+
+
+<style>
+    .job-description-page {
+        padding: 0;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .configuration-wizard {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .steps-progress {
+        display: flex;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem 2rem;
+        overflow-x: auto;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 120px;
+        padding: 0 1rem;
+        position: relative;
+        color: #64748b;
+    }
+    
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 15px;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background: #e2e8f0;
+        z-index: 1;
+    }
+    
+    .step.active {
+        color: #6366f1;
+    }
+    
+    .step.active .step-number {
+        background: #6366f1;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+    
+    .step.completed::after {
+        background: #10b981;
+    }
+    
+    .step-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .step-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .step-content {
+        display: none;
+        padding: 2rem;
+    }
+    
+    .step-content.active {
+        display: block;
+    }
+    
+    .step-card {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .step-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .step-description {
+        color: #64748b;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .wizard-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .configuration-summary {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+    
+    .summary-section {
+        margin-bottom: 1rem;
+    }
+    
+    .summary-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .summary-title {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+    
+    .summary-value {
+        color: #64748b;
+        margin-left: 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .terms-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Use the application's base font and sizing for consistency */
+    body, .ai-sales-officer {
+        font-family: inherit !important;
+        font-size: 1rem;
+        background: #f8fafc;
+    }
+
+    .ai-sales-officer {
+        min-height: 100vh;
+        padding-bottom: 24px;
+    }
+
+    .reports-header {
+        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+        border-radius: 14px;
+        padding: 18px 18px 12px 18px;
+        color: white;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 16px rgba(37, 211, 102, 0.10);
+    }
+
+    .reports-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reports-subtitle {
+        font-size: 0.97rem;
+        opacity: 0.92;
+        margin-bottom: 0;
+    }
+
+    .ai-badge {
+        font-size: 0.78rem;
+        font-weight: 500;
+        background: #0ea5e9 !important;
+        color: #fff !important;
+        border-radius: 10px;
+        padding: 2px 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .main-layout {
+        gap: 18px;
+    }
+
+    .sidebar {
+        width: 140px;
+        min-width: 120px;
+        max-width: 140px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        position: sticky;
+        top: 24px;
+        height: fit-content;
+        padding: 0;
+    }
+
+    .sidebar-nav .nav-link {
+        border: none;
+        background: none;
+        color: #334155;
+        font-weight: 500;
+        padding: 8px 10px;
+        border-radius: 8px;
+        transition: background 0.18s, color 0.18s;
+        font-size: 0.98rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sidebar-nav .nav-link.active,
+    .sidebar-nav .nav-link:hover {
+        background: #e0f2fe;
+        color: #0ea5e9;
+    }
+
+    .content-area {
+        min-height: 400px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        position: relative;
+        transition: box-shadow 0.18s;
+        font-size: 1rem;
+    }
+
+    @media (max-width: 991px) {
+        .main-layout {
+            flex-direction: column;
+            gap: 12px;
+        }
+        .sidebar {
+            width: 100%;
+            min-width: unset;
+            max-width: unset;
+            position: static;
+            margin-bottom: 10px;
+        }
+        .content-area {
+            margin-left: 0 !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .steps-progress {
+            padding: 1rem;
+        }
+        
+        .step {
+            min-width: 80px;
+            padding: 0 0.5rem;
+        }
+        
+        .step-label {
+            font-size: 0.65rem;
+        }
+        
+        .step-content {
+            padding: 1rem;
+        }
+        
+        .wizard-navigation {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .reports-header {
+            padding: 10px;
+        }
+        .reports-title {
+            font-size: 1rem;
+        }
+        .main-layout {
+            gap: 6px;
+        }
+    }
+</style>
+
+<script type="text/javascript">
+let currentStep = 1;
+const totalSteps = 4;
+
+// Table management functions
+function showCreateForm() {
+    document.getElementById('agent-form-section').style.display = 'block';
+    document.getElementById('form-title').innerHTML = '<i class="fas fa-plus me-2"></i>Create AI Sales Agent';
+    
+    // Reset form for new creation
+    const form = document.getElementById('ai-agent-form');
+    form.reset();
+    form.action = "<?php echo e(route('ai-agents.store')); ?>";
+    
+    // Remove method field if it exists
+    const methodField = form.querySelector('input[name="_method"]');
+    if (methodField) {
+        methodField.remove();
+    }
+    
+    // Clear editing agent ID
+    const editingIdField = document.getElementById('editing-agent-id');
+    if (editingIdField) {
+        editingIdField.value = '';
+    }
+    
+    resetToFirstStep();
+}
+
+function hideCreateForm() {
+    document.getElementById('agent-form-section').style.display = 'none';
+}
+
+function editAgent(agentId) {
+    // Debug logging
+    console.log('editAgent called with agentId:', agentId);
+    <?php if(isset($existingAgent) && $existingAgent): ?>
+        console.log('Existing agent from page:', <?php echo json_encode($existingAgent, 15, 512) ?>);
+        console.log('Current user can edit agent ID:', agentId, 'User ID:', <?php echo e(auth()->id()); ?>);
+    <?php endif; ?>
+    
+    // Check if we already have agent data on the page
+    <?php if(isset($existingAgent) && $existingAgent): ?>
+        const existingAgent = <?php echo json_encode($existingAgent, 15, 512) ?>;
+        
+        // Verify that the agent belongs to the current user
+        if (existingAgent.user_id !== <?php echo e(auth()->id()); ?>) {
+            console.error('Security violation: Agent does not belong to current user', {
+                agent_user_id: existingAgent.user_id,
+                current_user_id: <?php echo e(auth()->id()); ?>,
+                agent_id: agentId
+            });
+            showNotification('Access denied. This agent does not belong to you.', 'error');
+            return;
+        }
+        
+        // Additional safety check - ensure the agentId matches the existing agent
+        if (existingAgent.id !== agentId) {
+            console.error('Agent ID mismatch', {
+                existing_agent_id: existingAgent.id,
+                requested_agent_id: agentId
+            });
+            showNotification('Invalid agent ID. Please refresh the page and try again.', 'error');
+            return;
+        }
+        
+        // Show form and populate with existing data
+        document.getElementById('agent-form-section').style.display = 'block';
+        document.getElementById('form-title').innerHTML = '<i class="fas fa-edit me-2"></i>Configure AI Sales Agent';
+        
+        // Update form action for editing using Laravel route helper
+        const form = document.getElementById('ai-agent-form');
+        const updateUrl = "<?php echo e(route('ai-agents.update', ':id')); ?>".replace(':id', agentId);
+        form.action = updateUrl;
+        
+        console.log('Form action set to:', form.action);
+        console.log('Current page URL:', window.location.href);
+        console.log('Form method via hidden field:', form.querySelector('input[name="_method"]')?.value);
+        console.log('Form method attribute:', form.method);
+        
+        console.log('Form action set to:', form.action);
+        
+        // Add method field for PUT
+        let methodField = form.querySelector('input[name="_method"]');
+        if (!methodField) {
+            methodField = document.createElement('input');
+            methodField.type = 'hidden';
+            methodField.name = '_method';
+            form.appendChild(methodField);
+        }
+        methodField.value = 'PUT';
+        
+        console.log('Method field set to PUT');
+        
+        // Set editing agent ID
+        const editingIdField = document.getElementById('editing-agent-id');
+        if (editingIdField) {
+            editingIdField.value = agentId;
+        }
+        
+        // Populate form fields with existing agent data
+        populateFormWithAgent(existingAgent);
+        resetToFirstStep();
+        
+    <?php else: ?>
+        // Fallback to AJAX if no existing agent data
+        console.log('No existing agent data, falling back to AJAX');
+        fetch(`/ai-agents/${agentId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Authentication required. Please refresh the page and log in.');
+                } else if (response.status === 404) {
+                    throw new Error('Agent not found. It may have been deleted.');
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            
+            // Enhanced content type validation to prevent JSON parsing errors
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response. Please check your login status and try again.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const agent = data.agent;
+                document.getElementById('agent-form-section').style.display = 'block';
+                document.getElementById('form-title').innerHTML = '<i class="fas fa-edit me-2"></i>Configure AI Sales Agent';
+                
+                // Update form action for editing
+                const form = document.getElementById('ai-agent-form');
+                form.action = `/ai-agents/${agentId}`;
+                
+                // Add method field for PUT
+                let methodField = form.querySelector('input[name="_method"]');
+                if (!methodField) {
+                    methodField = document.createElement('input');
+                    methodField.type = 'hidden';
+                    methodField.name = '_method';
+                    form.appendChild(methodField);
+                }
+                methodField.value = 'PUT';
+                
+                // Set editing agent ID
+                const editingIdField = document.getElementById('editing-agent-id');
+                if (editingIdField) {
+                    editingIdField.value = agentId;
+                }
+                
+                // Populate form fields
+                populateFormWithAgent(agent);
+                resetToFirstStep();
+            } else {
+                throw new Error(data.message || 'Failed to load agent data');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading agent:', error);
+            let errorMessage = 'Error loading agent data: ' + error.message;
+            if (error.message.includes('HTML instead of JSON') || 
+                error.message.includes('Unexpected token') || 
+                error.message.includes('<!DOCTYPE')) {
+                errorMessage = 'Session expired or authentication required. Please refresh the page and try again.';
+            } else if (error.message.includes('HTTP error! status: 401')) {
+                errorMessage = 'Authentication required. Please log in and try again.';
+            } else if (error.message.includes('HTTP error! status: 404')) {
+                errorMessage = 'Agent not found. It may have been deleted.';
+            }
+            showNotification(errorMessage, 'error');
+        });
+    <?php endif; ?>
+}
+
+function populateFormWithAgent(agent) {
+    // Populate form fields with agent data
+    const fields = {
+        'assistant_name': agent.assistant_name,
+        'target_audience': agent.target_audience,
+        'communication_tone': agent.communication_tone,
+        'always_available': agent.always_available,
+        'primary_language': agent.primary_language,
+        'out_of_hours_message': agent.out_of_hours_message,
+        'allow_negotiation': agent.allow_negotiation,
+        'max_discount_allowed': agent.max_discount_allowed,
+        'fallback_number': agent.fallback_number,
+        'fallback_person': agent.fallback_person
+    };
+    
+    Object.keys(fields).forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            if (field.type === 'checkbox') {
+                field.checked = !!fields[fieldName];
+            } else {
+                field.value = fields[fieldName] || '';
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeJobDescription();
+});
+
+function initializeJobDescription() {
+    setupFormInteractions();
+    updateStepVisibility();
+    updateNavigationButtons();
+}
+
+function setupFormInteractions() {
+    // Always available toggle
+    const alwaysAvailableToggle = document.getElementById('always_available');
+    if (alwaysAvailableToggle) {
+        alwaysAvailableToggle.addEventListener('change', function() {
+            // This can be used to show/hide custom hours section in future updates
+        });
+    }
+    
+    // Negotiation toggle
+    const allowNegotiationToggle = document.getElementById('allow_negotiation');
+    const negotiationSettings = document.getElementById('negotiation-settings');
+    if (allowNegotiationToggle && negotiationSettings) {
+        allowNegotiationToggle.addEventListener('change', function() {
+            negotiationSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+}
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            updateStepVisibility();
+            updateNavigationButtons();
+            
+            if (currentStep === totalSteps) {
+                generateSummary();
+            }
+        } else if (currentStep === totalSteps) {
+            // On final step, submit the form
+            submitConfiguration();
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        updateStepVisibility();
+        updateNavigationButtons();
+    }
+}
+
+function updateStepVisibility() {
+    // Update step indicators
+    document.querySelectorAll('.step').forEach((step, index) => {
+        const stepNumber = index + 1;
+        step.classList.remove('active', 'completed');
+        
+        if (stepNumber === currentStep) {
+            step.classList.add('active');
+        } else if (stepNumber < currentStep) {
+            step.classList.add('completed');
+        }
+    });
+    
+    // Update step content
+    document.querySelectorAll('.step-content').forEach((content, index) => {
+        const stepNumber = index + 1;
+        content.classList.toggle('active', stepNumber === currentStep);
+    });
+}
+
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prev-step');
+    const nextBtn = document.getElementById('next-step');
+    const saveBtn = document.getElementById('save-config');
+    
+    if (prevBtn) prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
+    if (nextBtn) nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+    if (saveBtn) saveBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+}
+
+function validateCurrentStep() {
+    const currentStepElement = document.getElementById(`step-${currentStep}`);
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+    
+    // Special validation for Terms & Review step (step 4)
+    if (currentStep === 4) {
+        const termsCheckbox = document.getElementById('accepted_terms');
+        if (termsCheckbox && !termsCheckbox.checked) {
+            termsCheckbox.focus();
+            showNotification('You must accept the Terms & Conditions to proceed', 'warning');
+            return false;
+        }
+        
+        const confirmCheckbox = document.getElementById('confirm-settings');
+        if (confirmCheckbox && !confirmCheckbox.checked) {
+            confirmCheckbox.focus();
+            showNotification('Please confirm the settings before saving.', 'warning');
+            return false;
+        }
+    }
+    
+    for (let field of requiredFields) {
+        if (!field.value.trim() && field.type !== 'checkbox') {
+            field.focus();
+            const label = field.previousElementSibling?.textContent || field.name;
+            showNotification(`Please fill in the required field: ${label}`, 'warning');
+            return false;
+        }
+        
+        if (field.type === 'checkbox' && field.required && !field.checked) {
+            field.focus();
+            const label = field.nextElementSibling?.textContent || field.name;
+            showNotification(`Please check the required field: ${label}`, 'warning');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function populateReviewStep() {
+    // Populate Assistant Information
+    const assistantName = document.querySelector('input[name="assistant_name"]');
+    const targetAudience = document.querySelector('select[name="target_audience"]');
+    const communicationTone = document.querySelector('select[name="communication_tone"]');
+    const primaryLanguage = document.querySelector('select[name="primary_language"]');
+    const alwaysAvailable = document.getElementById('always_available');
+    const allowNegotiation = document.getElementById('allow_negotiation');
+    const fallbackNumber = document.querySelector('input[name="fallback_number"]');
+    
+    // Update summary display
+    const reviewAssistantName = document.getElementById('review-assistant-name');
+    if (reviewAssistantName) reviewAssistantName.textContent = assistantName?.value || '-';
+    
+    const reviewTargetAudience = document.getElementById('review-target-audience');
+    if (reviewTargetAudience) reviewTargetAudience.textContent = targetAudience?.selectedOptions[0]?.text || '-';
+    
+    const reviewCommunicationTone = document.getElementById('review-communication-tone');
+    if (reviewCommunicationTone) reviewCommunicationTone.textContent = communicationTone?.selectedOptions[0]?.text || '-';
+    
+    const reviewAvailability = document.getElementById('review-availability');
+    if (reviewAvailability) reviewAvailability.textContent = alwaysAvailable?.checked ? '24/7 Available' : 'Custom Schedule';
+    
+    const reviewLanguage = document.getElementById('review-language');
+    if (reviewLanguage) reviewLanguage.textContent = primaryLanguage?.selectedOptions[0]?.text || '-';
+    
+    const reviewNegotiation = document.getElementById('review-negotiation');
+    if (reviewNegotiation) reviewNegotiation.textContent = allowNegotiation?.checked ? 'Enabled' : 'Disabled';
+    
+    const reviewFallback = document.getElementById('review-fallback');
+    if (reviewFallback) reviewFallback.textContent = fallbackNumber?.value || '-';
+}
+
+function generateSummary() {
+    // Alias for populateReviewStep to maintain backwards compatibility
+    populateReviewStep();
+}
+
+function finalSave() {
+    const confirmCheckbox = document.getElementById('confirm-settings');
+    if (!confirmCheckbox.checked) {
+        showNotification('Please confirm the settings before saving.', 'warning');
+        return;
+    }
+    
+    const form = document.getElementById('ai-agent-form');
+    const saveBtn = document.getElementById('save-config');
+    const originalText = saveBtn.innerHTML;
+    
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Configuration...';
+    saveBtn.disabled = true;
+    
+    // Submit the form
+    const formData = new FormData(form);
+    
+    // Ensure all boolean fields have proper values (1 for true, 0 for false)
+    const booleanFields = [
+        'always_available',
+        'allow_negotiation', 
+        'accept_installments',
+        'stop_orders_low_stock',
+        'auto_followup',
+        'notify_on_deal'
+    ];
+    
+    booleanFields.forEach(fieldName => {
+        const checkbox = document.getElementById(fieldName);
+        formData.set(fieldName, checkbox?.checked ? '1' : '0');
+    });
+    
+    // Debug: Log form data and action
+    console.log('Form action:', form.action);
+    console.log('Form data being submitted:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
+    
+    fetch(form.action, {
+        method: 'POST', // Always use POST for Laravel forms with method spoofing
+        body: formData,
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response URL:', response.url);
+        
+        if (!response.ok) {
+            // Handle HTTP errors
+            if (response.status === 404) {
+                // For 404, try to get more info from the response
+                return response.text().then(htmlText => {
+                    console.log('404 Response body:', htmlText.substring(0, 500));
+                    throw new Error('Route not found or agent does not belong to current user. Please refresh and try again.');
+                });
+            } else if (response.status === 422) {
+                // Validation error - try to parse JSON for detailed errors
+                return response.json().then(data => {
+                    throw new Error(data.message || 'Validation failed');
+                }).catch(() => {
+                    throw new Error('Validation failed. Please check your inputs.');
+                });
+            } else if (response.status === 401) {
+                throw new Error('Authentication required. Please refresh the page and log in.');
+            } else if (response.status === 403) {
+                throw new Error('Access denied. You do not have permission to modify this agent.');
+            } else {
+                throw new Error(`Server error: ${response.status}`);
+            }
+        }
+        
+        // Check content type to ensure we got JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            return response.text().then(htmlText => {
+                console.log('Non-JSON response:', htmlText.substring(0, 500));
+                throw new Error('Server returned non-JSON response. Please check your login status.');
+            });
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            showNotification('AI Sales Agent configured successfully!', 'success');
+            // Reload to show updated agent in table
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            throw new Error(data.message || 'Configuration failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error saving configuration: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+}
+
+function saveConfiguration() {
+    showNotification('Quick save completed!', 'success');
+}
+
+function resetConfiguration() {
+    if (confirm('Are you sure you want to reset all configuration to default values? This will clear all your current settings.')) {
+        // Reset form
+        document.querySelectorAll('.configuration-wizard input, .configuration-wizard select, .configuration-wizard textarea').forEach(field => {
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                field.checked = field.defaultChecked;
+            } else {
+                field.value = field.defaultValue;
+            }
+        });
+        
+        resetToFirstStep();
+        showNotification('Configuration reset to default values.', 'info');
+    }
+}
+
+function resetToFirstStep() {
+    currentStep = 1;
+    updateStepVisibility();
+    updateNavigationButtons();
+    setupFormInteractions();
+}
+
+function showNotification(message, type = 'info') {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                     type === 'warning' ? 'alert-warning' : 
+                     type === 'info' ? 'alert-info' : 'alert-danger';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    notification.style.minWidth = '300px';
+    notification.style.borderRadius = '8px';
+    notification.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+    
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>
+<?php $__env->stopSection(); ?>
+    
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\xampp\htdocs\safarichat\resources\views/service/job-description.blade.php ENDPATH**/ ?>

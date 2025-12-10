@@ -90,60 +90,77 @@ class AiSalesAgentController extends Controller
     }
 
     /**
+     * Show the form for editing an existing AI Sales Agent
+     */
+    public function edit(AiSalesAgent $aiSalesAgent)
+    {
+        // Ensure the agent belongs to the current user
+        if ($aiSalesAgent->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to this AI sales agent.');
+        }
+        
+        $userTypes = UserType::active()->orderBy('name')->get();
+        $existingAgent = $aiSalesAgent;
+        
+        return view('service.job-description', compact('userTypes', 'existingAgent'));
+    }
+
+    /**
      * Update an existing AI sales agent configuration
      */
-    public function update(Request $request, $aiSalesAgent)
+    public function update(Request $request, AiSalesAgent $aiSalesAgent)
     {
         try {
             Log::info('AiSalesAgentController::update - START', [
-                'agent_parameter' => $aiSalesAgent,
-                'agent_type' => gettype($aiSalesAgent),
+                'agent_uuid' => $aiSalesAgent->uuid,
+                'agent_id' => $aiSalesAgent->id,
                 'user_id' => Auth::id(),
                 'request_method' => $request->method(),
-                'request_url' => $request->url(),
-                'full_url' => $request->fullUrl(),
-                'route_name' => $request->route() ? $request->route()->getName() : 'no_route',
-                'route_parameters' => $request->route() ? $request->route()->parameters() : [],
                 'is_ajax' => $request->ajax(),
-                'content_type' => $request->header('Content-Type'),
-                'accept_header' => $request->header('Accept'),
             ]);
             
-            // Convert to ID if it's a model instance, otherwise treat as ID
-            $agentId = is_object($aiSalesAgent) ? $aiSalesAgent->id : $aiSalesAgent;
+            // Ensure the agent belongs to the current user
+            if ($aiSalesAgent->user_id !== Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to this AI sales agent.'
+                ], 403);
+            }
             
-            Log::info('Agent ID resolved', ['agent_id' => $agentId]);
-            
-            $agent = AiSalesAgent::forUser(Auth::id())->findOrFail($agentId);
             $validatedData = $this->validateAgentData($request);
             
             Log::info('Agent found and data validated', [
-                'agent_id' => $agent->id,
-                'agent_name' => $agent->assistant_name
+                'agent_id' => $aiSalesAgent->id,
+                'agent_name' => $aiSalesAgent->assistant_name
             ]);
             
             DB::beginTransaction();
             
             // Update terms acceptance if changed
-            if ($request->accepted_terms && !$agent->accepted_terms) {
+            if ($request->accepted_terms && !$aiSalesAgent->accepted_terms) {
                 $validatedData['terms_accepted_at'] = now();
             }
             
-            $agent->update($validatedData);
+            $aiSalesAgent->update($validatedData);
             
             DB::commit();
             
-            Log::info('AI Sales Agent updated successfully', ['agent_id' => $agent->id]);
+            Log::info('AI Sales Agent updated successfully', ['agent_id' => $aiSalesAgent->id]);
             
             return response()->json([
                 'success' => true,
                 'message' => 'AI Sales Agent configuration updated successfully!',
-                'agent_id' => $agent->id
+                'agent' => [
+                    'id' => $aiSalesAgent->id,
+                    'uuid' => $aiSalesAgent->uuid,
+                    'assistant_name' => $aiSalesAgent->assistant_name,
+                    'status' => $aiSalesAgent->status
+                ]
             ]);
             
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning('AI Sales Agent not found', [
-                'agent_param' => $aiSalesAgent,
+                'agent_uuid' => isset($aiSalesAgent->uuid) ? $aiSalesAgent->uuid : 'unknown',
                 'user_id' => Auth::id()
             ]);
             
@@ -155,7 +172,7 @@ class AiSalesAgentController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('AI Sales Agent update failed: ' . $e->getMessage(), [
-                'agent_param' => $aiSalesAgent,
+                'agent_uuid' => isset($aiSalesAgent->uuid) ? $aiSalesAgent->uuid : 'unknown',
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

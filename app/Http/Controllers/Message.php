@@ -51,8 +51,7 @@ class Message extends Controller
     public function index()
     {
         $this->data[''] = [];
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
+     
         if (Auth::user()->whatsappInstances()->count() == 0) {
             // Create a new WhatsApp instance for the user
             \App\Models\WhatsappInstance::create([
@@ -62,7 +61,7 @@ class Message extends Controller
                 'instance_name' => Auth::user()->name,
             ]);
         }
-        $this->data['guest_categories'] = EventGuestCategory::where('event_id', $event_id)->get();
+        $this->data['guest_categories'] = EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
           //check if the invoice has been paid for bulksms
         $this->checkBookedInvoicePayment();
         $this->data['whatsapp'] = $this->checkChannelStatus('whatsapp');
@@ -111,13 +110,13 @@ class Message extends Controller
 
                 //now check if this package is for bulksms or not
                 if ($booking->admin_package_id == 5) {
-                    $admin_packages_payment_id=DB::table('dikodiko.admin_packages_payments')->insertGetId([
+                    $admin_packages_payment_id=DB::table('admin_packages_payments')->insertGetId([
                         'admin_payment_id' => $payment->id,
                         'admin_package_id' => $booking->admin_package_id,
                         'start_date' => now(),
                         'end_date' => now()->addYear()
                     ]);
-                    DB::table('dikodiko.admin_sms_brought')->insert([
+                    DB::table('admin_sms_brought')->insert([
                         'admin_packages_payment_id' => $admin_packages_payment_id,
                         'sms_provided' => $invoice->quantity ?? 0,
                         'user_id' => $booking->user_id
@@ -125,7 +124,7 @@ class Message extends Controller
                     $user = \App\Models\User::find($booking->user_id);
                     if ($user) {
                         // Send a message to the user informing about SMS allocation
-                        $message = "Hello {$user->name}, SMS credits have been allocated to your account. You can now start sending messages using your DikoDiko account.";
+                        $message = "Hello {$user->name}, SMS credits have been allocated to your account. You can now start sending messages using your SafariChat account.";
                         // Use the send_message method to notify the user via SMS
                           $this->send($message, $user->phone);
                 }
@@ -238,15 +237,12 @@ class Message extends Controller
     public function schedule()
     {
 
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
-
-        $this->data['usertypes'] = \App\Models\EventGuestCategory::where('event_id', $event_id)->get();
+     $this->data['usertypes'] = \App\Models\EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
 
         if ($_POST) {
             $category_id = request('category_id');
             $criteria = strip_tags(request('criteria'));
-            $users = $this->getUserByCriteria($criteria, $event_id, null, $category_id);
+            $users = $this->getUserByCriteria($criteria, Auth::user()->business->id, null, $category_id);
             $exclude_users = request('users');
             $user_inputs = [];
 
@@ -269,7 +265,7 @@ class Message extends Controller
             //            if ((int) $first == 0) {
             //                $lists = (int) request('event_guest_category_id') > 0 ?
             //                        \App\Models\EventsGuest::whereEventGuestCategoryId(request('event_guest_category_id'))->get(['id']) :
-            //                        \App\Models\EventsGuest::where('event_id', $event_id)->get();
+            //                        \App\Models\EventsGuest::where('business_id', Auth::user()->business->id)->get();
             //                foreach ($lists as $list) {
             //                    array_push($user_inputs, $list->id);
             //                }
@@ -307,9 +303,8 @@ class Message extends Controller
     {
         $category_id = request('category_id');
         $criteria = strip_tags(request('criteria'));
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
-        $users = $this->getUserByCriteria($criteria, $event_id, null, $category_id);
+      
+        $users = $this->getUserByCriteria($criteria, Auth::user()->business->id, null, $category_id);
         if (empty($users)) {
             echo '0';
         } else {
@@ -322,17 +317,16 @@ class Message extends Controller
 
     public function report()
     {
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $event_id = $user_events->event_id;
+        $business_id = Auth::user()->business->id;
         $user_id = Auth::id();
 
         // Real WhatsApp Business Data
-        $this->data['sms_sent'] = DB::table('dikodiko.messages')->where('user_id', $user_id)->where('type', 2)->count();
+        $this->data['sms_sent'] = DB::table('messages')->where('user_id', $user_id)->where('type', 2)->count();
         $this->data['whatsapp_sent'] = \App\Models\OutgoingMessage::where('user_id', $user_id)->count();
         
         // If no outgoing messages, fallback to old data
         if ($this->data['whatsapp_sent'] == 0) {
-            $this->data['whatsapp_sent'] = DB::table('dikodiko.messages')->where('user_id', $user_id)->where('type', 4)->count();
+            $this->data['whatsapp_sent'] = DB::table('messages')->where('user_id', $user_id)->where('type', 4)->count();
         }
         
         // Real message analytics
@@ -366,7 +360,7 @@ class Message extends Controller
             ->count();
         
         // Customer engagement metrics
-        $this->data['total_contacts'] = \App\Models\EventsGuest::where('event_id', $event_id)->count();
+        $this->data['total_contacts'] = \App\Models\EventsGuest::where('business_id', Auth::user()->business->id)->count();
         $this->data['contacts_messaged'] = \App\Models\OutgoingMessage::where('user_id', $user_id)
             ->distinct('phone_number')
             ->count();
@@ -417,7 +411,7 @@ class Message extends Controller
         
         // If no outgoing message data, use old format
         if (empty($this->data['reports'])) {
-            $this->data['reports'] = DB::table('dikodiko.messages')
+            $this->data['reports'] = DB::table('messages')
                 ->where('user_id', $user_id)
                 ->select(DB::raw('count(*) as count, extract(month from created_at) as month, extract(year from created_at) as year'))
                 ->groupBy('month', 'year')
@@ -442,8 +436,8 @@ class Message extends Controller
             ? round((($this->data['estimated_total_revenue'] - $this->data['total_messaging_cost']) / $this->data['total_messaging_cost']) * 100, 1)
             : 0;
         
-        $this->data['schedules'] = DB::table('dikodiko.reminders')->where('user_id', $user_id)->count();
-        $this->data['guest_categories'] = EventGuestCategory::where('event_id', $event_id)->get();
+        $this->data['schedules'] = DB::table('reminders')->where('user_id', $user_id)->count();
+        $this->data['guest_categories'] = EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
 
         return view('message.report', $this->data);
     }
@@ -454,11 +448,11 @@ class Message extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function getUserByCriteria($criteria, $event_id, $request = null, $sub_category = null)
+    public function getUserByCriteria($criteria, $business_id, $request = null, $sub_category = null)
     {
         Log::info('getUserByCriteria called', [
             'criteria' => $criteria,
-            'event_id' => $event_id,
+            'business_id' => $business_id,
             'sub_category' => $sub_category,
             'request_custom_numbers' => $request ? $request->input('custom_numbers') : null
         ]);
@@ -466,28 +460,28 @@ class Message extends Controller
         switch ($criteria) {
             case 1:
                 //All
-                $users = \App\Models\EventsGuest::where('event_id', $event_id);
+                $users = \App\Models\EventsGuest::where('business_id', $business_id);
                 break;
 
             case 2:
                 //Select Guest Category
-                $users = $request <> null ? \App\Models\EventsGuest::where('event_id', $event_id)->where('event_guest_category_id', $request->event_guest_category_id) : [];
+                $users = $request <> null ? \App\Models\EventsGuest::where('business_id', $business_id)->where('event_guest_category_id', $request->event_guest_category_id) : [];
                 break;
 
             case 3:
                 //Full Paid Guest
 
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 4:
                 //Non Paid Guest
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 5:
                 //Partially Paid Guest
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 6:
@@ -600,12 +594,12 @@ class Message extends Controller
             }
         }
 
-        $event_id = Auth::user()->event->id;
+        $business_id = Auth::user()->business->id;
         
         // Debug logging
         Log::info('Message store processing', [
             'criteria' => $criteria,
-            'event_id' => $event_id,
+            'business_id' => $business_id,
             'user_id' => Auth::id(),
             'request_data' => $request->all(),
             'sources' => $request->source ?? []
@@ -614,14 +608,14 @@ class Message extends Controller
         // Determine recipients based on criteria from the form
         if ($criteria == 1) {
             // All Contacts
-            $users = $this->getUserByCriteria(1, $event_id, $request);
+            $users = $this->getUserByCriteria(1, $business_id, $request);
         } elseif ($criteria == 2) {
             // Select Category
             $categoryId = $request->input('event_guest_category_id');
-            $users = $this->getUserByCriteria(2, $event_id, $request, $categoryId);
+            $users = $this->getUserByCriteria(2, $business_id, $request, $categoryId);
         } elseif ($criteria == 6) {
             // Custom Numbers
-            $users = $this->getUserByCriteria(6, $event_id, $request);
+            $users = $this->getUserByCriteria(6, $business_id, $request);
         } elseif ($criteria == 7) {
             // Excel Upload
             // Parse uploaded Excel file for phone numbers
@@ -694,7 +688,7 @@ class Message extends Controller
             $users = collect($users);
         } else {
             // Default fallback
-            $users = $this->getUserByCriteria($criteria, $event_id, $request);
+            $users = $this->getUserByCriteria($criteria, $business_id, $request);
         }
         
      
@@ -1103,10 +1097,10 @@ class Message extends Controller
             try {
 
                 $link = url('/');
-                $data = ['content' => isset($sms->body) ? $sms->body : '', 'link' => $link, 'photo' => isset($sms->photo) ?? '', 'sitename' => 'dikodiko', 'name' => isset($sms->name) ? $sms->name : ''];
-                $message = (object) ['sitename' => 'dikodiko', 'email' => $id, 'subject' => isset($sms->subject) ? $sms->subject : 'DikoDiko Email'];
+                $data = ['content' => isset($sms->body) ? $sms->body : '', 'link' => $link, 'photo' => isset($sms->photo) ?? '', 'sitename' => 'SafariChat', 'name' => isset($sms->name) ? $sms->name : ''];
+                $message = (object) ['sitename' => 'SafariChat', 'email' => $id, 'subject' => isset($sms->subject) ? $sms->subject : 'SafariChat Email'];
                 $return = \Mail::send('auth.email.default', $data, function ($m) use ($message) {
-                    $m->from('info@dikodiko.co.tz', $message->sitename);
+                    $m->from('info@co.tz', $message->sitename);
                     $m->to($message->email)->subject($message->subject);
                 });
             } catch (\Exception $e) {
@@ -1127,7 +1121,7 @@ class Message extends Controller
     public function process()
     {
         // Process pending regular messages
-        $pending = DB::select('SELECT b.channel,a.email,a.phone, b.id as message_sentby_id, a.body,a.subject, a.user_id FROM dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where return_code is null limit 100');
+        $pending = DB::select('SELECT b.channel,a.email,a.phone, b.id as message_sentby_id, a.body,a.subject, a.user_id FROM messages a join messages_sentby b on a.id=b.message_id  where return_code is null limit 100');
       
         if (!empty($pending)) {
             foreach ($pending as $message) {
@@ -1210,7 +1204,7 @@ class Message extends Controller
                             'message' => '<p class="alert alert-danger" style="cursor:pointer" role="alert" data-toggle="modal" data-target="#' . $link . '">Please '
                                 . '<span class="badge bg-green" data-toggle="modal" '
                                 . 'data-target=".bs-whatsapp-modal-lg">make payments</span> '
-                                . 'and connect your whatsapp number with DikoDiko to proceed</p>'
+                                . 'and connect your whatsapp number with SafariChat to proceed</p>'
                         ]) : array_push($results, [
                             'channel' => 'whatsapp',
                             'message' => ''
@@ -1315,7 +1309,7 @@ class Message extends Controller
         if ($channel == null) {
             $this->data['messages'] = \App\Models\Message::whereUserId(Auth::user()->id)->get();
         } else {
-            $this->data['guests'] = \App\Models\EventsGuest::where('event_id', Auth::user()->event->id)->get();
+            $this->data['guests'] = \App\Models\EventsGuest::where('business_id', Auth::user()->business->id)->get();
             $this->data['messages'] = \App\Models\Message::whereUserId(Auth::user()->id)->where('type', $channel)->get();
         }
 
@@ -1763,7 +1757,7 @@ class Message extends Controller
                 })
                 ->whereNotNull('guest_phone')
                 ->where('guest_phone', '!=', '')
-                ->limit(50) // Process in batches to prevent overload
+                ->limit(10) // Process in batches to prevent overload
                 ->get();
 
             \Log::info('Processing event guests for sales', ['count' => $newGuests->count()]);
@@ -1775,9 +1769,6 @@ class Message extends Controller
                                                  ->where('status', 'active')
                                                  ->first();
 
-
-      
-             
 
                 if ($aiAgent) {
                               // Find or create lead for this guest
@@ -1881,8 +1872,8 @@ class Message extends Controller
         $name = $lead->name ?? 'there';
         $businessContext = '';
         
-        if ($guest && $guest->event) {
-            $businessContext = " I noticed you're interested in {$guest->event->name}.";
+        if ($guest && $guest->business) {
+            $businessContext = " I noticed you're interested in {$guest->business->name}.";
         }
         
         // Build product showcase
@@ -1903,7 +1894,170 @@ class Message extends Controller
             default => "Hello {$name},{$businessContext} I'm {$aiAgent->assistant_name}.{$productList} I'd be happy to discuss how we can help you. Are you available for a quick chat?"
         };
         
+        // Translate message based on AI agent's language preferences
+        $targetLanguage = $this->determineTargetLanguage($aiAgent, $lead);
+        
+        if ($targetLanguage && $targetLanguage !== 'en') {
+            $translatedMessage = $this->translateMessage($baseMessage, $targetLanguage, $aiAgent);
+            return $translatedMessage ?: $baseMessage; // Fallback to English if translation fails
+        }
+        
         return $baseMessage;
+    }
+    
+    /**
+     * Determine the target language for the message
+     */
+    private function determineTargetLanguage($aiAgent, $lead)
+    {
+        // If auto-detect is enabled, try to detect from lead's previous messages or location
+        if ($aiAgent->auto_detect_language) {
+            // First check if lead has a preferred language from previous conversations
+            $lastIncomingMessage = \App\Models\IncomingMessage::where('sender', $lead->phone)
+                ->where('user_id', $aiAgent->user_id)
+                ->latest()
+                ->first();
+                
+            if ($lastIncomingMessage) {
+                $detectedLanguage = $this->detectMessageLanguage($lastIncomingMessage->body);
+                
+                // Check if detected language is in agent's supported languages
+                $supportedLanguages = array_merge(
+                    [$aiAgent->primary_language], 
+                    $aiAgent->additional_languages ?? []
+                );
+                
+                if (in_array($detectedLanguage, $supportedLanguages)) {
+                    return $detectedLanguage;
+                }
+            }
+        }
+        
+        // Default to agent's primary language
+        return $aiAgent->primary_language ?? 'en';
+    }
+    
+    /**
+     * Detect the language of a message using AI
+     */
+    private function detectMessageLanguage($messageText)
+    {
+        try {
+            // Use OpenAI to detect language
+            $openAiService = app(\App\Services\OpenAiService::class);
+            
+            $prompt = "Detect the language of this text and return only the 2-letter language code (e.g., 'en' for English, 'sw' for Swahili, 'fr' for French, etc.). If uncertain, return 'en'.\n\nText: {$messageText}";
+            
+            $response = $openAiService->generateResponse($prompt, 'You are a language detection expert.');
+            
+            // Extract language code from response
+            $languageCode = strtolower(trim($response));
+            
+            // Validate it's a proper 2-letter code
+            if (preg_match('/^[a-z]{2}$/', $languageCode)) {
+                return $languageCode;
+            }
+            
+        } catch (\Exception $e) {
+            \Log::warning('Language detection failed', [
+                'message' => $messageText,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        return 'en'; // Default fallback
+    }
+    
+    /**
+     * Translate message to target language using AI
+     */
+    private function translateMessage($message, $targetLanguage, $aiAgent)
+    {
+        try {
+            // Language mapping for better context
+            $languageNames = [
+                'en' => 'English',
+                'sw' => 'Swahili',
+                'fr' => 'French',
+                'es' => 'Spanish',
+                'pt' => 'Portuguese',
+                'ar' => 'Arabic',
+                'de' => 'German',
+                'it' => 'Italian',
+                'zh' => 'Chinese',
+                'ja' => 'Japanese',
+                'ko' => 'Korean',
+                'hi' => 'Hindi',
+                'ur' => 'Urdu',
+                'bn' => 'Bengali',
+                'tr' => 'Turkish',
+                'ru' => 'Russian',
+                'nl' => 'Dutch',
+                'sv' => 'Swedish',
+                'da' => 'Danish',
+                'no' => 'Norwegian',
+                'fi' => 'Finnish',
+                'pl' => 'Polish',
+                'cs' => 'Czech',
+                'sk' => 'Slovak',
+                'hu' => 'Hungarian',
+                'ro' => 'Romanian',
+                'bg' => 'Bulgarian',
+                'hr' => 'Croatian',
+                'sr' => 'Serbian',
+                'sl' => 'Slovenian',
+                'et' => 'Estonian',
+                'lv' => 'Latvian',
+                'lt' => 'Lithuanian',
+                'mt' => 'Maltese',
+                'ga' => 'Irish',
+                'cy' => 'Welsh',
+                'eu' => 'Basque',
+                'ca' => 'Catalan',
+                'gl' => 'Galician',
+                'is' => 'Icelandic',
+                'mk' => 'Macedonian',
+                'sq' => 'Albanian',
+                'bs' => 'Bosnian',
+                'me' => 'Montenegrin'
+            ];
+            
+            $targetLanguageName = $languageNames[$targetLanguage] ?? ucfirst($targetLanguage);
+            
+            $openAiService = app(\App\Services\OpenAiService::class);
+            
+            $systemPrompt = "You are a professional translator specializing in business communications. Translate messages while maintaining the original tone, formality level, and cultural appropriateness. Keep the same communication style and preserve any emojis or formatting.";
+            
+            $prompt = "Translate this sales message to {$targetLanguageName}. Maintain the {$aiAgent->communication_tone} tone and keep it natural for business communication:\n\n{$message}";
+            
+            $translatedMessage = $openAiService->generateResponse($prompt, $systemPrompt);
+            
+            // Log successful translation for debugging
+            \Log::info('Message translated successfully', [
+                'from_language' => 'en',
+                'to_language' => $targetLanguage,
+                'original_length' => strlen($message),
+                'translated_length' => strlen($translatedMessage),
+                'agent_id' => $aiAgent->id
+            ]);
+            
+            return trim($translatedMessage);
+            
+        } catch (\Exception $e) {
+            \Log::error('Translation failed', [
+                'message' => $message,
+                'target_language' => $targetLanguage,
+                'agent_id' => $aiAgent->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return fallback message if available
+            if ($aiAgent->language_fallback_message) {
+                return $aiAgent->language_fallback_message;
+            }
+            
+            return null; // Will fall back to original English message
+        }
     }
     
     /**

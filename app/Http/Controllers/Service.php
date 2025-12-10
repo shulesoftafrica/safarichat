@@ -20,8 +20,8 @@ class Service extends Controller {
      */
     public function index() {
         $this->data['suppliers'] = [];
-        // Load products with relationships
-        $this->data['products'] = Product::with('faqs')->orderBy('created_at', 'desc')->get();
+        // Load products with relationships for current user
+        $this->data['products'] = Product::with('faqs')->forUser(auth()->id())->orderBy('created_at', 'desc')->get();
         return view('service.index', $this->data);
     }
 
@@ -59,7 +59,7 @@ class Service extends Controller {
         
         switch ($tab) {
             case 'products':
-                $products = Product::with('faqs')->orderBy('created_at', 'desc')->get();
+                $products = Product::with('faqs')->forUser(auth()->id())->orderBy('created_at', 'desc')->get();
                 return view('service.products', compact('products'));
                 
             case 'job-description':

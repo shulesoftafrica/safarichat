@@ -109,7 +109,7 @@ class Setup extends Controller {
 
     private function resendNonDelivered($user_id) {
         $pending = DB::select("SELECT a.phone, b.id, a.body FROM "
-                        . " dikodiko.messages a join dikodiko.messages_sentby b on a.id=b.message_id  where user_id=" . $user_id . " and"
+                        . " messages a join messages_sentby b on a.id=b.message_id  where user_id=" . $user_id . " and"
                         . " b.status=1 and channel in ('phone-sms') limit 5");
         $object = [];
         if (!empty($pending)) {
@@ -187,7 +187,7 @@ class Setup extends Controller {
             'end_date' => !empty($event) ? $event->event->date : 'now()+30 days'
         ]);
 
-        $subject = 'Dikodiko Payment Accepted';
+        $subject = 'Safarichat Payment Accepted';
         $message = 'Hello ' . $book->user->name . ' ,<br/>'
                 . ' Your payment with reference number ' . $valid->token . ' has been accepted successfully.';
 

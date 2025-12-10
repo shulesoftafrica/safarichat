@@ -19,7 +19,23 @@ class User extends Authenticatable implements MustVerifyEmail{
      *
      * @var array
      */
-    protected $fillable = ['name', 'email', 'email_verified_at', 'password', 'remember_token', 'created_at', 'updated_at', 'phone', 'user_type_id'];
+    protected $fillable = [
+        'name', 
+        'email', 
+        'email_verified_at', 
+        'password', 
+        'remember_token', 
+        'created_at', 
+        'updated_at', 
+        'phone', 
+        'user_type_id',
+        'subscription_status',
+        'trial_ends_at',
+        'country_code',
+        'available_credits',
+        'whatsapp_number',
+        'last_activity_at'
+    ];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -38,6 +54,9 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'trial_ends_at' => 'datetime',
+        'last_activity_at' => 'datetime',
+        'available_credits' => 'integer'
     ];
 
     /**
@@ -146,5 +165,69 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function outgoingMessages()
     {
         return $this->hasMany(\App\Models\OutgoingMessage::class);
+    }
+
+    /**
+     * Get user's subscriptions
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get user's active subscription
+     */
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latest();
+    }
+
+    /**
+     * Get user's credit transactions
+     */
+    public function creditTransactions()
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    /**
+     * Get user's payment methods
+     */
+    public function paymentMethods()
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
+    /**
+     * Get user's missed automations
+     */
+    public function missedAutomations()
+    {
+        return $this->hasMany(MissedAutomation::class);
+    }
+
+    /**
+     * Get user's notifications
+     */
+    public function notifications()
+    {
+        return $this->hasMany(NotificationQueue::class);
+    }
+
+    /**
+     * Get user's products
+     */
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Get user's AI sales agents
+     */
+    public function aiSalesAgents()
+    {
+        return $this->hasMany(AiSalesAgent::class);
     }
 }

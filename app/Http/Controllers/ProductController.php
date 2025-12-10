@@ -24,7 +24,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('faqs');
+        $query = Product::with('faqs')->forUser(auth()->id());
         
         // Search functionality
         if ($request->has('search') && !empty($request->search)) {
@@ -71,8 +71,8 @@ class ProductController extends Controller
         }
         
         $products = $query->paginate(10);
-        $categories = Product::distinct()->pluck('category');
-        
+        $categories = Product::forUser(auth()->id())->distinct()->pluck('category');
+       
         return view('service.products', compact('products', 'categories'));
     }
 
@@ -86,6 +86,12 @@ class ProductController extends Controller
             DB::beginTransaction();
             
             $productData = $request->validated();
+            
+            // Add user and business ownership
+            $productData['user_id'] = auth()->id();
+            if (auth()->user()->business_id) {
+                $productData['business_id'] = auth()->user()->business_id;
+            }
             
             // Handle AI description generation
             if ($productData['ai_generated_description'] && !empty($productData['minimal_description'])) {
@@ -146,7 +152,7 @@ class ProductController extends Controller
     public function show($id)
     {
         try {
-            $product = Product::with('faqs')->findOrFail($id);
+            $product = Product::with('faqs')->forUser(auth()->id())->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -169,7 +175,7 @@ class ProductController extends Controller
         try {
             DB::beginTransaction();
             
-            $product = Product::findOrFail($id);
+            $product = Product::forUser(auth()->id())->findOrFail($id);
             $productData = $request->validated();
             
             // Handle AI description generation
@@ -242,7 +248,7 @@ class ProductController extends Controller
     public function destroy($id)
     {
         try {
-            $product = Product::findOrFail($id);
+            $product = Product::forUser(auth()->id())->findOrFail($id);
             $productName = $product->name;
             
             $product->delete();
@@ -268,7 +274,7 @@ class ProductController extends Controller
     public function edit($id)
     {
         try {
-            $product = Product::with('faqs')->findOrFail($id);
+            $product = Product::with('faqs')->forUser(auth()->id())->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -301,17 +307,17 @@ class ProductController extends Controller
 
             switch ($action) {
                 case 'activate':
-                    Product::whereIn('id', $productIds)->update(['status' => 'active']);
+                    Product::whereIn('id', $productIds)->forUser(auth()->id())->update(['status' => 'active']);
                     $message = "{$count} product(s) activated successfully!";
                     break;
                     
                 case 'deactivate':
-                    Product::whereIn('id', $productIds)->update(['status' => 'inactive']);
+                    Product::whereIn('id', $productIds)->forUser(auth()->id())->update(['status' => 'inactive']);
                     $message = "{$count} product(s) deactivated successfully!";
                     break;
                     
                 case 'delete':
-                    Product::whereIn('id', $productIds)->delete();
+                    Product::whereIn('id', $productIds)->forUser(auth()->id())->delete();
                     $message = "{$count} product(s) deleted successfully!";
                     break;
             }

@@ -1,4 +1,5 @@
-
+@extends('layouts.app')
+@section('content')
 <div class="products-page">
     <div class="page-header">
         <h2 class="page-title">
@@ -1729,7 +1730,7 @@ function saveProduct() {
     saveButton.disabled = true;
     
     // Determine if this is an update or create
-    const url = productId ? `/api/products/${productId}` : '/api/products';
+    const url = productId ? `{{ url('/api/products') }}/${productId}` : '{{ url('/api/products') }}';
     const method = productId ? 'PUT' : 'POST';
     
     if (method === 'PUT') {
@@ -1780,7 +1781,7 @@ function saveProduct() {
 }
 
 function viewProduct(productId) {
-    fetch(`/api/products/${productId}`)
+    fetch(`{{ url('/api/products') }}/${productId}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -1798,7 +1799,7 @@ function viewProduct(productId) {
 }
 
 function editProduct(productId) {
-    fetch(`/api/products/${productId}/edit`)
+    fetch(`{{ url('/api/products') }}/${productId}/edit`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -1820,7 +1821,7 @@ function deleteProduct(productId) {
         return;
     }
     
-    fetch(`/api/products/${productId}`, {
+    fetch(`{{ url('/api/products') }}/${productId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -1892,7 +1893,7 @@ function executeBulkAction() {
         return;
     }
     
-    fetch('/api/products/bulk-action', {
+    fetch('{{ url('/api/products/bulk-action') }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1925,20 +1926,34 @@ function executeBulkAction() {
 function populateEditForm(product) {
     // Update modal title
     const modalTitle = document.querySelector('#addProductModal .modal-title');
-    modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+    if (modalTitle) {
+        modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+    }
     
     // Update save button
     const saveButton = document.querySelector('#addProductModal .btn-primary');
-    saveButton.innerHTML = '<i class="fas fa-save"></i> Update Product';
+    if (saveButton) {
+        saveButton.innerHTML = '<i class="fas fa-save"></i> Update Product';
+    }
     
-    // Populate basic fields
-    document.getElementById('productId').value = product.id;
-    document.querySelector('[name="name"]').value = product.name || '';
-    document.querySelector('[name="description"]').value = product.description || '';
-    document.querySelector('[name="ai_description"]').value = product.ai_description || '';
-    document.querySelector('[name="minimal_description"]').value = product.minimal_description || '';
-    document.querySelector('[name="sku"]').value = product.sku || '';
-    document.querySelector('[name="category"]').value = product.category || '';
+    // Populate basic fields with null checks
+    const productIdField = document.getElementById('productId');
+    if (productIdField) productIdField.value = product.id;
+    
+    const nameField = document.querySelector('[name="name"]');
+    if (nameField) nameField.value = product.name || '';
+    
+    const descriptionField = document.querySelector('[name="description"]');
+    if (descriptionField) descriptionField.value = product.description || '';
+    
+    const minimalDescriptionField = document.querySelector('[name="minimal_description"]');
+    if (minimalDescriptionField) minimalDescriptionField.value = product.minimal_description || '';
+    
+    const skuField = document.querySelector('[name="sku"]');
+    if (skuField) skuField.value = product.sku || '';
+    
+    const categoryField = document.querySelector('[name="category"]');
+    if (categoryField) categoryField.value = product.category || '';
     
     // Populate product type
     if (product.product_type) {
@@ -1951,13 +1966,26 @@ function populateEditForm(product) {
     
     // Populate service fields
     if (product.product_type === 'service') {
-        document.querySelector('[name="service_delivery_type"]').value = product.service_delivery_type || '';
-        document.querySelector('[name="service_duration_days"]').value = product.service_duration_days || '';
-        document.querySelector('[name="pricing_type"]').value = product.pricing_type || '';
-        document.querySelector('[name="hourly_rate"]').value = product.hourly_rate || '';
-        document.querySelector('[name="service_deliverables"]').value = product.service_deliverables || '';
-        document.querySelector('[name="service_tiers"]').value = product.service_tiers || '';
-        document.querySelector('[name="prerequisites"]').value = product.prerequisites || '';
+        const serviceDeliveryTypeField = document.querySelector('[name="service_delivery_type"]');
+        if (serviceDeliveryTypeField) serviceDeliveryTypeField.value = product.service_delivery_type || '';
+        
+        const serviceDurationField = document.querySelector('[name="service_duration_days"]');
+        if (serviceDurationField) serviceDurationField.value = product.service_duration_days || '';
+        
+        const pricingTypeField = document.querySelector('[name="pricing_type"]');
+        if (pricingTypeField) pricingTypeField.value = product.pricing_type || '';
+        
+        const hourlyRateField = document.querySelector('[name="hourly_rate"]');
+        if (hourlyRateField) hourlyRateField.value = product.hourly_rate || '';
+        
+        const serviceDeliverablesField = document.querySelector('[name="service_deliverables"]');
+        if (serviceDeliverablesField) serviceDeliverablesField.value = product.service_deliverables || '';
+        
+        const serviceTiersField = document.querySelector('[name="service_tiers"]');
+        if (serviceTiersField) serviceTiersField.value = product.service_tiers || '';
+        
+        const prerequisitesField = document.querySelector('[name="prerequisites"]');
+        if (prerequisitesField) prerequisitesField.value = product.prerequisites || '';
         
         const requiresConsultation = document.querySelector('[name="requires_consultation"]');
         if (requiresConsultation) {
@@ -1965,18 +1993,34 @@ function populateEditForm(product) {
         }
     }
     
-    // Populate pricing fields
-    document.querySelector('[name="retail_price"]').value = product.retail_price || '';
-    document.querySelector('[name="wholesale_price"]').value = product.wholesale_price || '';
-    document.querySelector('[name="min_negotiable_price"]').value = product.min_negotiable_price || '';
-    document.querySelector('[name="max_discount"]').value = product.max_discount || 0;
-    document.querySelector('[name="quantity"]').value = product.quantity || '';
-    document.querySelector('[name="low_stock_threshold"]').value = product.low_stock_threshold || 10;
-    document.querySelector('[name="conversion_rate"]').value = product.conversion_rate || 0;
-    document.querySelector('[name="status"]').value = product.status || 'active';
+    // Populate pricing fields with null checks
+    const retailPriceField = document.querySelector('[name="retail_price"]');
+    if (retailPriceField) retailPriceField.value = product.retail_price || '';
     
-    // Populate AI fields
-    document.querySelector('[name="ai_prompt"]').value = product.ai_prompt || '';
+    const wholesalePriceField = document.querySelector('[name="wholesale_price"]');
+    if (wholesalePriceField) wholesalePriceField.value = product.wholesale_price || '';
+    
+    const minNegotiableField = document.querySelector('[name="min_negotiable_price"]');
+    if (minNegotiableField) minNegotiableField.value = product.min_negotiable_price || '';
+    
+    const maxDiscountField = document.querySelector('[name="max_discount"]');
+    if (maxDiscountField) maxDiscountField.value = product.max_discount || 0;
+    
+    const quantityField = document.querySelector('[name="quantity"]');
+    if (quantityField) quantityField.value = product.quantity || '';
+    
+    const lowStockField = document.querySelector('[name="low_stock_threshold"]');
+    if (lowStockField) lowStockField.value = product.low_stock_threshold || 10;
+    
+    const conversionRateField = document.querySelector('[name="conversion_rate"]');
+    if (conversionRateField) conversionRateField.value = product.conversion_rate || 0;
+    
+    const statusField = document.querySelector('[name="status"]');
+    if (statusField) statusField.value = product.status || 'active';
+    
+    // Populate AI fields with null checks
+    const aiPromptField = document.querySelector('[name="ai_prompt"]');
+    if (aiPromptField) aiPromptField.value = product.ai_prompt || '';
     
     const aiEnabled = document.getElementById('ai_enabled');
     if (aiEnabled) {
@@ -2001,51 +2045,57 @@ function populateEditForm(product) {
     
     // Populate selling points
     const sellingPointsContainer = document.getElementById('sellingPointsContainer');
-    sellingPointsContainer.innerHTML = '';
-    
-    let sellingPoints = [];
-    if (product.selling_points) {
-        try {
-            sellingPoints = typeof product.selling_points === 'string' 
-                ? JSON.parse(product.selling_points) 
-                : product.selling_points;
-        } catch (e) {
-            sellingPoints = [product.selling_points];
+    if (sellingPointsContainer) {
+        sellingPointsContainer.innerHTML = '';
+        
+        let sellingPoints = [];
+        if (product.selling_points) {
+            try {
+                sellingPoints = typeof product.selling_points === 'string' 
+                    ? JSON.parse(product.selling_points) 
+                    : product.selling_points;
+            } catch (e) {
+                sellingPoints = [product.selling_points];
+            }
         }
+        
+        if (sellingPoints.length === 0) {
+            sellingPoints = [''];
+        }
+        
+        sellingPoints.forEach((point, index) => {
+            const pointHtml = `
+                <div class="input-group mb-2 selling-point-item">
+                    <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point" value="${point || ''}">
+                    <button type="button" class="btn btn-outline-${index === 0 ? 'success' : 'danger'}" onclick="${index === 0 ? 'addSellingPoint()' : 'removeSellingPoint(this)'}">
+                        <i class="fas fa-${index === 0 ? 'plus' : 'minus'}"></i>
+                    </button>
+                </div>
+            `;
+            sellingPointsContainer.insertAdjacentHTML('beforeend', pointHtml);
+        });
+        
+        sellingPointsCount = sellingPoints.length;
     }
-    
-    if (sellingPoints.length === 0) {
-        sellingPoints = [''];
-    }
-    
-    sellingPoints.forEach((point, index) => {
-        const pointHtml = `
-            <div class="input-group mb-2 selling-point-item">
-                <input type="text" class="form-control" name="selling_points[]" placeholder="Enter a key selling point" value="${point || ''}">
-                <button type="button" class="btn btn-outline-${index === 0 ? 'success' : 'danger'}" onclick="${index === 0 ? 'addSellingPoint()' : 'removeSellingPoint(this)'}">
-                    <i class="fas fa-${index === 0 ? 'plus' : 'minus'}"></i>
-                </button>
-            </div>
-        `;
-        sellingPointsContainer.insertAdjacentHTML('beforeend', pointHtml);
-    });
-    
-    sellingPointsCount = sellingPoints.length;
     
     // Populate FAQs
     const faqContainer = document.getElementById('faqContainer');
-    faqContainer.innerHTML = '';
-    
-    if (product.faqs && product.faqs.length > 0) {
-        product.faqs.forEach((faq, index) => {
-            addFAQ();
-            const faqItems = faqContainer.children;
-            const lastFaqItem = faqItems[faqItems.length - 1];
-            lastFaqItem.querySelector('[name$="[question]"]').value = faq.question || '';
-            lastFaqItem.querySelector('[name$="[answer]"]').value = faq.answer || '';
-        });
-    } else {
-        addFAQ(); // Add one FAQ by default
+    if (faqContainer) {
+        faqContainer.innerHTML = '';
+        
+        if (product.faqs && product.faqs.length > 0) {
+            product.faqs.forEach((faq, index) => {
+                addFAQ();
+                const faqItems = faqContainer.children;
+                const lastFaqItem = faqItems[faqItems.length - 1];
+                const questionField = lastFaqItem.querySelector('[name$="[question]"]');
+                const answerField = lastFaqItem.querySelector('[name$="[answer]"]');
+                if (questionField) questionField.value = faq.question || '';
+                if (answerField) answerField.value = faq.answer || '';
+            });
+        } else {
+            addFAQ(); // Add one FAQ by default
+        }
     }
     
     // Handle existing attachments/documents
@@ -2095,7 +2145,7 @@ function reprocessDocument(attachmentId) {
         return;
     }
     
-    fetch(`/api/products/attachments/${attachmentId}/reprocess`, {
+    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}/reprocess`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2126,7 +2176,7 @@ function removeExistingDocument(attachmentId) {
         return;
     }
     
-    fetch(`/api/products/attachments/${attachmentId}`, {
+    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -2439,3 +2489,4 @@ function formatFileSize(bytes) {
 }
 
 </script>
+@endsection

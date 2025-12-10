@@ -302,7 +302,7 @@ class Payment extends Controller {
             'client_id' => $client->id,
             'date' => date('Y-m-d'),
             'created_at' => now(),
-            'addon_id' => 2, //default addon id for dikodiko bulk sms
+            'addon_id' => 2, //default addon id for safarichat bulk sms
             'prefix' => $prefix,
         ];
 
@@ -331,7 +331,7 @@ class Payment extends Controller {
             $user = Auth::user();
    
             // Send message to the user
-            $userMessage = "Hello {$user->name},\n\nYour invoice for Bulk SMS has been created successfully. Reference Number: *{$reference}*.\nThank you for using DikoDiko.";
+            $userMessage = "Hello {$user->name},\n\nYour invoice for Bulk SMS has been created successfully. Reference Number: *{$reference}*.\nThank you for using SafariChat.";
             $this->sendMessage($user->phone, $userMessage, 'whatsapp');
 
             // Send message to admin
@@ -373,7 +373,7 @@ class Payment extends Controller {
         $book = \App\Models\AdminBooking::where('order_id', $order_id);
         $valid = $book->first();
         if (!empty($valid)) {
-            $order = (object) array("order_id" => $order_id, 'action' => 'cancel', 'source' => 'dikodiko');
+            $order = (object) array("order_id" => $order_id, 'action' => 'cancel', 'source' => 'safarichat');
             $this->curlPaymentApi($order);
             $book->delete();
         }
@@ -394,7 +394,7 @@ class Payment extends Controller {
         $phone_number = $valid_phone_number[1];
         $find_user = \App\Models\User::where('phone', $phone_number)->first();
         if (!empty($find_user)) {
-            die('<span class="alert alert-danger">This user already has an account in DikoDiko, kindly try another user</span>');
+            die('<span class="alert alert-danger">This user already has an account in SafariChat, kindly try another user</span>');
         }
         $invited = \App\Models\DiscountRequest::where('phone', $phone_number)->where('type', 1)->first();
         if (!empty($invited)) {
@@ -404,13 +404,13 @@ class Payment extends Controller {
         //send message
         $message = preg_match('/tanzania/i', $valid_phone_number[0]) ?
                 'Habari,'
-                . 'Umealikwa na  *' . Auth::user()->name . '*  ujiunge  kwenye program ya DikoDiko (www.dikodiko.co.tz) ili uweze kusimamia sherehe yako kwa urahisi'
+                . 'Umealikwa na  *' . Auth::user()->name . '*  ujiunge  kwenye program ya SafariChat (www.safarichat.africa) ili uweze kusimamia sherehe yako kwa urahisi'
                 . ''
                 . 'Ikiwa humfahamu *' . Auth::user()->name . '* au hauna sherehe yoyote (harusi, birthday nk), tafadhali andika neno HAPANA na utume kwenye namba'
                 . ''
                 . 'Asante' :
                 'Hello '
-                . 'You have been invited by  *' . Auth::user()->name . '* to join DikoDiko (www.dikodiko.co.tz) to manage your event easily'
+                . 'You have been invited by  *' . Auth::user()->name . '* to join SafariChat (www.safarichat.africa) to manage your event easily'
                 . ''
                 . 'If you do not know  *' . Auth::user()->name . '* or you don not have any event (wedding, sendoff, birthday etc), kindly reply with a word NO and we will delete this request'
                 . ''

@@ -381,6 +381,60 @@
     @endif
     <!-- Key Metrics Row -->
     <div class="row">
+        <!-- Subscription Status -->
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card" style="--card-color: 
+                @if(Auth::user()->subscription_status === 'active') #10b981
+                @elseif(Auth::user()->subscription_status === 'trial') #f59e0b  
+                @else #ef4444 @endif;">
+                <div class="metric-icon" style="background: 
+                    @if(Auth::user()->subscription_status === 'active') #d1fae5; color: #059669;
+                    @elseif(Auth::user()->subscription_status === 'trial') #fed7aa; color: #ea580c;
+                    @else #fee2e2; color: #dc2626; @endif">
+                    <i class="fas fa-
+                        @if(Auth::user()->subscription_status === 'active') crown
+                        @elseif(Auth::user()->subscription_status === 'trial') clock
+                        @else exclamation-triangle @endif"></i>
+                </div>
+                <div class="metric-value" style="font-size: 1.2rem;">
+                    @if(Auth::user()->subscription_status === 'active') 
+                        Active
+                    @elseif(Auth::user()->subscription_status === 'trial') 
+                        Trial
+                    @else 
+                        Inactive
+                    @endif
+                </div>
+                <div class="metric-label">Subscription Status</div>
+                <span class="metric-trend" style="color: 
+                    @if(Auth::user()->subscription_status === 'active') #059669
+                    @elseif(Auth::user()->subscription_status === 'trial') #ea580c  
+                    @else #dc2626 @endif;">
+                    @if(Auth::user()->subscription_status === 'active')
+                        <i class="fas fa-check-circle"></i> All features active
+                    @elseif(Auth::user()->subscription_status === 'trial')
+                        <i class="fas fa-clock"></i> {{ Auth::user()->trial_ends_at ? Auth::user()->trial_ends_at->diffInDays(now()) : 0 }} days left
+                    @else
+                        <i class="fas fa-exclamation"></i> <a href="{{ url('home/settings') }}" style="color: #dc2626;">Reactivate now</a>
+                    @endif
+                </span>
+            </div>
+        </div>
+
+        <!-- Credits Balance -->
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card" style="--card-color: #6366f1;">
+                <div class="metric-icon" style="background: #e0e7ff; color: #4f46e5;">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="metric-value">{{number_format(Auth::user()->available_credits ?? 0)}}</div>
+                <div class="metric-label">Available Credits</div>
+                <span class="metric-trend" style="color: #6b7280;">
+                    <i class="fas fa-info-circle"></i> 1 credit = 4 AI tokens
+                </span>
+            </div>
+        </div>
+
         <!-- WhatsApp Contacts -->
         <div class="col-lg-3 col-md-6">
             <div class="metric-card" style="--card-color: #25d366;">
@@ -408,7 +462,10 @@
                 </span>
             </div>
         </div>
-
+    </div>
+    
+    <!-- Secondary Metrics Row -->
+    <div class="row">
         <!-- Messages Sent Today -->
         <div class="col-lg-3 col-md-6">
             <div class="metric-card" style="--card-color: #8b5cf6;">
@@ -433,6 +490,41 @@
                 <div class="metric-label">Response Rate</div>
                 <span class="metric-trend trend-up">
                     <i class="fas fa-arrow-up"></i> Last 7 days
+                </span>
+            </div>
+        </div>
+        
+        <!-- Package Info -->
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card" style="--card-color: #8b5cf6;">
+                <div class="metric-icon" style="background: #f3e8ff; color: #7c3aed;">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="metric-value" style="font-size: 1.2rem;">
+                    @php $activeSubscription = Auth::user()->activeSubscription; @endphp
+                    @if($activeSubscription)
+                        {{ $activeSubscription->adminPackage->name ?? 'N/A' }}
+                    @else
+                        No Package
+                    @endif
+                </div>
+                <div class="metric-label">Current Package</div>
+                <span class="metric-trend" style="color: #7c3aed;">
+                    <i class="fas fa-arrow-up"></i> <a href="{{ url('home/settings') }}" style="color: #7c3aed;">Upgrade</a>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Quick Action -->
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card" style="--card-color: #f59e0b; cursor: pointer;" onclick="window.location.href='{{ url('home/settings') }}'">
+                <div class="metric-icon" style="background: #fef3c7; color: #d97706;">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="metric-value" style="font-size: 1rem; line-height: 1.2;">Manage Subscription</div>
+                <div class="metric-label">Settings & Billing</div>
+                <span class="metric-trend" style="color: #d97706;">
+                    <i class="fas fa-arrow-right"></i> Go to settings
                 </span>
             </div>
         </div>

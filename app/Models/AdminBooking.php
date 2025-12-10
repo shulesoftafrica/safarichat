@@ -25,7 +25,41 @@ class AdminBooking extends Model
     /**
      * @var array
      */
-    protected $fillable = ['user_id', 'order_id', 'amount', 'token', 'methods', 'reference', 'status', 'gateway_buyer_uuid', 'qr', 'payment_gateway_url', 'created_at', 'updated_at','admin_package_id'];
+    protected $fillable = [
+        'user_id', 
+        'order_id', 
+        'amount', 
+        'token', 
+        'methods', 
+        'reference', 
+        'status', 
+        'gateway_buyer_uuid', 
+        'qr', 
+        'payment_gateway_url', 
+        'admin_package_id',
+        // Currency and payment fields
+        'base_currency',
+        'base_amount',
+        'display_currency',
+        'display_amount',
+        'fx_rate',
+        'fx_markup',
+        'locked_at',
+        'expires_at',
+        'payment_status'
+    ];
+
+    /**
+     * @var array
+     */
+    protected $casts = [
+        'base_amount' => 'integer',
+        'display_amount' => 'decimal:2',
+        'fx_rate' => 'decimal:8',
+        'fx_markup' => 'decimal:4',
+        'locked_at' => 'timestamp',
+        'expires_at' => 'timestamp'
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

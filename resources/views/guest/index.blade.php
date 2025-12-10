@@ -89,6 +89,57 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Handoff Management Tabs -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+                                <div class="card-body py-3">
+                                    <h5 class="text-white mb-3"><i class="mdi mdi-account-supervisor-circle mr-2"></i>{{__('handoff_management')}}</h5>
+                                    
+                                    <!-- Status Filter Tabs -->
+                                    <ul class="nav nav-pills nav-fill" id="handoff-tabs" style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 5px;">
+                                        <li class="nav-item">
+                                            <a class="nav-link active text-white" data-status="all" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-view-dashboard mr-1"></i>{{__('all')}}
+                                                <span class="badge badge-light ml-2">{{ $total_guests ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="ai" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-robot mr-1"></i>{{__('ai_handling')}}
+                                                <span class="badge badge-light ml-2">{{ $handoff_stats['ai_handled'] ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="pending_handoff" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-clock-outline mr-1"></i>{{__('pending_handoff')}}
+                                                <span class="badge badge-warning ml-2">{{ $handoff_stats['pending_handoff'] ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="handed_off" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-account-check mr-1"></i>{{__('handed_off')}}
+                                                <span class="badge badge-info ml-2">{{ $handoff_stats['handed_off'] ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="completed" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-check-circle mr-1"></i>{{__('completed')}}
+                                                <span class="badge badge-success ml-2">{{ $handoff_stats['completed'] ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="urgent" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-alert mr-1"></i>{{__('urgent')}}
+                                                <span class="badge badge-danger ml-2">{{ $handoff_stats['urgent_cases'] ?? 0 }}</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <p>  
                         <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal" onclick=" $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');">
@@ -522,9 +573,11 @@
                                     <th>{{__('name')}}</th>
                                     <th>{{__('phone')}}</th>
                                     <!--<th>{{__('email')}} </th>-->
-                                     <th>{{__('date')}}</th>
-         
+                                    <th>{{__('date')}}</th>
                                     <th>{{__('group')}}</th>
+                                    <th>{{__('handoff_status')}}</th>
+                                    <th>{{__('priority')}}</th>
+                                    <th>{{__('assigned_agent')}}</th>
                                     <th name="buttons">{{__('action')}}</th>
                                 </tr>
                             </thead>
@@ -536,7 +589,7 @@
                                 foreach ($guests as $guest) {
                                     $total_pledge += $guest->guest_pledge;
                                     ?>
-                                    <tr>
+                                    <tr data-handoff-status="{{ $guest->handoff_status ?? 'ai' }}" data-priority="{{ $guest->priority_level ?? 3 }}">
                                         <td>
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-<?= $guest->id ?>" value="<?= $guest->id ?>">
@@ -549,6 +602,57 @@
                                         <!--<td>{{$guest->guest_email}}</td>-->
                                         <td>{{date('d M Y',strtotime($guest->created_at))}}</td>
                                         <td>{{isset($guest->eventGuestCategory->name) ?$guest->eventGuestCategory->name:''}}</td>
+                                        
+                                        <!-- Handoff Status Column -->
+                                        <td>
+                                            @php
+                                                $handoffStatus = $guest->handoff_status ?? 'ai';
+                                                $statusColors = [
+                                                    'ai' => 'primary',
+                                                    'pending_handoff' => 'warning',
+                                                    'handed_off' => 'info',
+                                                    'completed' => 'success'
+                                                ];
+                                                $statusIcons = [
+                                                    'ai' => 'robot',
+                                                    'pending_handoff' => 'clock-outline',
+                                                    'handed_off' => 'account-check',
+                                                    'completed' => 'check-circle'
+                                                ];
+                                            @endphp
+                                            <span class="badge badge-{{ $statusColors[$handoffStatus] ?? 'secondary' }}" style="font-size: 0.85em; padding: 6px 10px;">
+                                                <i class="mdi mdi-{{ $statusIcons[$handoffStatus] ?? 'help' }} mr-1"></i>
+                                                {{ ucfirst(str_replace('_', ' ', $handoffStatus)) }}
+                                            </span>
+                                        </td>
+                                        
+                                        <!-- Priority Column -->
+                                        <td>
+                                            @php
+                                                $priority = $guest->priority_level ?? 3;
+                                                $priorityLabels = [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Urgent', 5 => 'Critical'];
+                                                $priorityColors = [1 => 'warning', 2 => 'info', 3 => 'secondary', 4 => 'danger', 5 => 'dark'];
+                                            @endphp
+                                            <span class="badge badge-{{ $priorityColors[$priority] ?? 'secondary' }}" style="font-size: 0.75em;">
+                                                {{ $priorityLabels[$priority] ?? 'Unknown' }}
+                                            </span>
+                                        </td>
+                                        
+                                        <!-- Assigned Agent Column -->
+                                        <td>
+                                            @if($guest->assignedAgent)
+                                                <span class="text-success">
+                                                    <i class="mdi mdi-account-check mr-1"></i>
+                                                    {{ $guest->assignedAgent->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">
+                                                    <i class="mdi mdi-account-off mr-1"></i>
+                                                    {{__('unassigned')}}
+                                                </span>
+                                            @endif
+                                        </td>
+                                        
                                         <td name="buttons">
                                             <a onclick="viewContact('<?= $guest->id ?>')" class="btn btn-info btn-sm" title="{{__('view_contact')}}">
                                                 <i class="las la-eye"></i>
@@ -556,6 +660,10 @@
                                             <a onclick="sendMessageToContact('<?= $guest->id ?>')" class="btn btn-success btn-sm" title="{{__('send_message')}}">
                                                 <i class="las la-comment"></i>
                                             </a>
+                                            <!-- Handoff Management Button -->
+                                            <button onclick="openHandoffModal('<?= $guest->id ?>')" class="btn btn-primary btn-sm" title="{{__('manage_handoff')}}">
+                                                <i class="mdi mdi-account-supervisor"></i>
+                                            </button>
                                             <a onclick="editGuest('<?= $guest->id ?>')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{__('edit')}}">
                                                 <i class="las la-pen"></i>
                                             </a>
@@ -576,8 +684,10 @@
                                     <th></th>
                                     <th></th>
                                     <!--<th>Email </th>-->
-                                   <th></th>
-                                  
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
                                     <th></th>
                                     <th name="buttons"></th>
                                 </tr>
@@ -1531,4 +1641,453 @@
     }
     //  $(document).ready(load_contact);
 </script>
+
+<!-- Handoff Management Modal -->
+<div class="modal fade" id="handoffModal" tabindex="-1" role="dialog" aria-labelledby="handoffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white" id="handoffModalLabel">
+                    <i class="mdi mdi-account-supervisor-circle mr-2"></i>{{__('handoff_management')}}
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Guest Information -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card" style="border-left: 4px solid #667eea;">
+                            <div class="card-body py-3">
+                                <h6 class="mb-2"><i class="mdi mdi-account mr-2"></i>{{__('customer_information')}}</h6>
+                                <div id="guest-info">
+                                    <p class="mb-1"><strong>{{__('name')}}:</strong> <span id="modal-guest-name"></span></p>
+                                    <p class="mb-1"><strong>{{__('phone')}}:</strong> <span id="modal-guest-phone"></span></p>
+                                    <p class="mb-0"><strong>{{__('current_status')}}:</strong> <span id="modal-guest-status"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Handoff Actions Tabs -->
+                <ul class="nav nav-tabs mb-3" id="handoffTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="request-tab" data-toggle="tab" href="#request-handoff" role="tab">
+                            <i class="mdi mdi-hand-pointing-up mr-1"></i>{{__('request_handoff')}}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="assign-tab" data-toggle="tab" href="#assign-agent" role="tab">
+                            <i class="mdi mdi-account-plus mr-1"></i>{{__('assign_agent')}}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="notes-tab" data-toggle="tab" href="#handoff-notes" role="tab">
+                            <i class="mdi mdi-note-text mr-1"></i>{{__('notes')}}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="actions-tab" data-toggle="tab" href="#handoff-actions" role="tab">
+                            <i class="mdi mdi-cogs mr-1"></i>{{__('actions')}}
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="handoffTabContent">
+                    <!-- Request Handoff Tab -->
+                    <div class="tab-pane fade show active" id="request-handoff" role="tabpanel">
+                        <form id="requestHandoffForm">
+                            <input type="hidden" id="request-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="handoff-reason">{{__('reason_for_handoff')}}</label>
+                                <textarea class="form-control" id="handoff-reason" name="reason" rows="3" 
+                                         placeholder="{{__('explain_why_handoff_needed')}}" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="priority-level">{{__('priority_level')}}</label>
+                                <select class="form-control" id="priority-level" name="priority_level" required>
+                                    <option value="3">{{__('low')}}</option>
+                                    <option value="2">{{__('medium')}}</option>
+                                    <option value="1">{{__('high')}}</option>
+                                    <option value="4">{{__('urgent')}}</option>
+                                    <option value="5">{{__('critical')}}</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="mdi mdi-hand-pointing-up mr-1"></i>{{__('request_handoff')}}
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Assign Agent Tab -->
+                    <div class="tab-pane fade" id="assign-agent" role="tabpanel">
+                        <form id="assignAgentForm">
+                            <input type="hidden" id="assign-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="assigned-agent">{{__('select_agent')}}</label>
+                                <select class="form-control" id="assigned-agent" name="agent_id" required>
+                                    <option value="">{{__('select_agent')}}</option>
+                                    @foreach($available_agents ?? [] as $agent)
+                                        <option value="{{ $agent->id }}">{{ $agent->name }} ({{ $agent->email }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="assignment-notes">{{__('assignment_notes')}}</label>
+                                <textarea class="form-control" id="assignment-notes" name="notes" rows="3" 
+                                         placeholder="{{__('optional_notes_for_agent')}}"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-info">
+                                <i class="mdi mdi-account-check mr-1"></i>{{__('assign_agent')}}
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Handoff Notes Tab -->
+                    <div class="tab-pane fade" id="handoff-notes" role="tabpanel">
+                        <div id="existing-notes" class="mb-3">
+                            <h6>{{__('existing_notes')}}</h6>
+                            <div class="border rounded p-3" style="min-height: 100px; background-color: #f8f9fa;">
+                                <span id="notes-content" class="text-muted">{{__('no_notes_available')}}</span>
+                            </div>
+                        </div>
+                        <form id="addNotesForm">
+                            <input type="hidden" id="notes-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="new-notes">{{__('add_new_notes')}}</label>
+                                <textarea class="form-control" id="new-notes" name="notes" rows="3" 
+                                         placeholder="{{__('add_notes_about_handoff')}}" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="mdi mdi-note-plus mr-1"></i>{{__('add_notes')}}
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Handoff Actions Tab -->
+                    <div class="tab-pane fade" id="handoff-actions" role="tabpanel">
+                        <input type="hidden" id="actions-guest-id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">
+                                            <i class="mdi mdi-check-circle mr-2"></i>{{__('complete_handoff')}}
+                                        </h6>
+                                        <p class="card-text small">{{__('mark_handoff_as_completed')}}</p>
+                                        <button class="btn btn-success btn-sm" onclick="completeHandoff()">
+                                            <i class="mdi mdi-check mr-1"></i>{{__('complete')}}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">
+                                            <i class="mdi mdi-robot mr-2"></i>{{__('return_to_ai')}}
+                                        </h6>
+                                        <p class="card-text small">{{__('return_customer_to_ai_handling')}}</p>
+                                        <button class="btn btn-primary btn-sm" onclick="returnToAI()">
+                                            <i class="mdi mdi-robot mr-1"></i>{{__('return_to_ai')}}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Priority Update -->
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">
+                                    <i class="mdi mdi-priority-high mr-2"></i>{{__('update_priority')}}
+                                </h6>
+                                <form id="updatePriorityForm" class="form-inline">
+                                    <input type="hidden" id="priority-guest-id" name="guest_id">
+                                    <select class="form-control mr-2" id="new-priority" name="priority_level" required>
+                                        <option value="3">{{__('low')}}</option>
+                                        <option value="2">{{__('medium')}}</option>
+                                        <option value="1">{{__('high')}}</option>
+                                        <option value="4">{{__('urgent')}}</option>
+                                        <option value="5">{{__('critical')}}</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-warning btn-sm">
+                                        <i class="mdi mdi-update mr-1"></i>{{__('update')}}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handoff Management JavaScript Functions
+
+let currentGuestId = null;
+
+function openHandoffModal(guestId) {
+    currentGuestId = guestId;
+    
+    // Set guest IDs in all forms
+    document.getElementById('request-guest-id').value = guestId;
+    document.getElementById('assign-guest-id').value = guestId;
+    document.getElementById('notes-guest-id').value = guestId;
+    document.getElementById('actions-guest-id').value = guestId;
+    document.getElementById('priority-guest-id').value = guestId;
+    
+    // Load guest information
+    loadGuestInfo(guestId);
+    
+    // Show modal
+    $('#handoffModal').modal('show');
+}
+
+function loadGuestInfo(guestId) {
+    $.ajax({
+        url: `{{ route('guest.getContactDetails', '') }}/${guestId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const guest = response.contact;
+                document.getElementById('modal-guest-name').textContent = guest.guest_name;
+                document.getElementById('modal-guest-phone').textContent = guest.guest_phone;
+                // You can add more guest info display here
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading guest info:', error);
+        }
+    });
+}
+
+// Request Handoff Form
+document.getElementById('requestHandoffForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '{{ route("guest.requestHandoff") }}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('{{__("handoff_requested_successfully")}}');
+                location.reload();
+            } else {
+                alert('{{__("error")}}: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('{{__("error")}}: ' + error);
+        }
+    });
+});
+
+// Assign Agent Form
+document.getElementById('assignAgentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '{{ route("guest.assignAgent") }}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('{{__("agent_assigned_successfully")}}');
+                location.reload();
+            } else {
+                alert('{{__("error")}}: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('{{__("error")}}: ' + error);
+        }
+    });
+});
+
+// Add Notes Form
+document.getElementById('addNotesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '{{ route("guest.addHandoffNotes") }}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('{{__("notes_added_successfully")}}');
+                // Optionally reload notes display
+                document.getElementById('new-notes').value = '';
+            } else {
+                alert('{{__("error")}}: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('{{__("error")}}: ' + error);
+        }
+    });
+});
+
+// Update Priority Form
+document.getElementById('updatePriorityForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '{{ route("guest.updatePriority") }}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('{{__("priority_updated_successfully")}}');
+                location.reload();
+            } else {
+                alert('{{__("error")}}: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('{{__("error")}}: ' + error);
+        }
+    });
+});
+
+function completeHandoff() {
+    if (!currentGuestId) return;
+    
+    if (confirm('{{__("are_you_sure_complete_handoff")}}')) {
+        $.ajax({
+            url: '{{ route("guest.completeHandoff") }}',
+            method: 'POST',
+            data: {
+                guest_id: currentGuestId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('{{__("handoff_completed_successfully")}}');
+                    location.reload();
+                } else {
+                    alert('{{__("error")}}: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('{{__("error")}}: ' + error);
+            }
+        });
+    }
+}
+
+function returnToAI() {
+    if (!currentGuestId) return;
+    
+    if (confirm('{{__("are_you_sure_return_to_ai")}}')) {
+        $.ajax({
+            url: '{{ route("guest.returnToAI") }}',
+            method: 'POST',
+            data: {
+                guest_id: currentGuestId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('{{__("returned_to_ai_successfully")}}');
+                    location.reload();
+                } else {
+                    alert('{{__("error")}}: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('{{__("error")}}: ' + error);
+            }
+        });
+    }
+}
+
+// Handoff Status Filter Tabs
+document.addEventListener('DOMContentLoaded', function() {
+    const filterTabs = document.querySelectorAll('#handoff-tabs .nav-link');
+    const tableRows = document.querySelectorAll('#datatable-buttons tbody tr');
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all tabs
+            filterTabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            const filterStatus = this.getAttribute('data-status');
+            
+            tableRows.forEach(row => {
+                const rowStatus = row.getAttribute('data-handoff-status');
+                const rowPriority = parseInt(row.getAttribute('data-priority'));
+                
+                if (filterStatus === 'all') {
+                    row.style.display = '';
+                } else if (filterStatus === 'urgent') {
+                    row.style.display = (rowPriority >= 4) ? '' : 'none';
+                } else {
+                    row.style.display = (rowStatus === filterStatus) ? '' : 'none';
+                }
+            });
+        });
+    });
+    
+    // Add hover effects to tabs
+    filterTabs.forEach(tab => {
+        tab.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = 'rgba(255,255,255,0.2)';
+            }
+        });
+        
+        tab.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = '';
+            }
+        });
+    });
+    
+    // Style active tab
+    const activeTab = document.querySelector('#handoff-tabs .nav-link.active');
+    if (activeTab) {
+        activeTab.style.background = 'rgba(255,255,255,0.3)';
+    }
+});
+</script>
+
 @endsection

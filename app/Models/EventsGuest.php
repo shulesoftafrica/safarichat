@@ -25,7 +25,43 @@ class EventsGuest extends Model
     /**
      * @var array
      */
-    protected $fillable = ['business_id', 'guest_name', 'guest_email', 'guest_email_verified_at', 'guest_phone', 'event_guest_category_id', 'guest_pledge', 'contacted_for_sales', 'contacted_at', 'created_at', 'updated_at','code'];
+    protected $fillable = [
+        'business_id', 
+        'guest_name', 
+        'guest_email', 
+        'guest_email_verified_at', 
+        'guest_phone', 
+        'event_guest_category_id', 
+        'guest_pledge', 
+        'contacted_for_sales', 
+        'contacted_at', 
+        'created_at', 
+        'updated_at',
+        'code',
+        // Handoff Management Fields
+        'handoff_status',
+        'assigned_agent_id',
+        'handoff_reason',
+        'handoff_notes',
+        'priority_level',
+        'handoff_requested_at',
+        'handoff_assigned_at',
+        'handoff_completed_at',
+        'last_ai_interaction',
+        'last_human_interaction'
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     */
+    protected $casts = [
+        'handoff_requested_at' => 'datetime',
+        'handoff_assigned_at' => 'datetime',
+        'handoff_completed_at' => 'datetime',
+        'last_ai_interaction' => 'datetime',
+        'last_human_interaction' => 'datetime',
+        'priority_level' => 'integer'
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -56,6 +92,184 @@ class EventsGuest extends Model
     public function eventGuestCategory()
     {
         return $this->belongsTo('App\Models\EventGuestCategory');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function assignedAgent()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'assigned_agent_id');
+    }
+
+    // ===== HANDOFF MANAGEMENT METHODS =====
+
+    /**
+     * Request handoff to human agent
+     */
+    public function requestHandoff(string $reason, int $priorityLevel = 3, ?int $assignedAgentId = null): bool
+    {
+        $this->handoff_status = 'pending_handoff';
+        $this->handoff_reason = $reason;
+        $this->priority_level = $priorityLevel;
+        $this->handoff_requested_at = now();
+        $this->last_ai_interaction = now();
+        
+        if ($assignedAgentId) {
+            $this->assigned_agent_id = $assignedAgentId;
+            $this->handoff_status = 'handed_off';
+            $this->handoff_assigned_at = now();
+        }
+        
+        return $this->save();
+    }
+
+    /**
+     * Assign agent to handle handoff
+     */
+    public function assignToAgent(int $agentId, ?string $notes = null): bool
+    {
+        $this->assigned_agent_id = $agentId;
+        $this->handoff_status = 'handed_off';
+        $this->handoff_assigned_at = now();
+        
+        if ($notes) {
+            $this->handoff_notes = $this->handoff_notes ? $this->handoff_notes . "\n" . $notes : $notes;
+        }
+        
+        return $this->save();
+    }
+
+    /**
+     * Complete handoff process
+     */
+    public function completeHandoff(?string $notes = null): bool
+    {
+        $this->handoff_status = 'completed';
+        $this->handoff_completed_at = now();
+        $this->last_human_interaction = now();
+        
+        if ($notes) {
+            $this->handoff_notes = $this->handoff_notes ? $this->handoff_notes . "\n" . $notes : $notes;
+        }
+        
+        return $this->save();
+    }
+
+    /**
+     * Return customer to AI handling
+     */
+    public function returnToAI(?string $notes = null): bool
+    {
+        $this->handoff_status = 'ai';
+        $this->assigned_agent_id = null;
+        $this->last_ai_interaction = now();
+        
+        if ($notes) {
+            $this->handoff_notes = $this->handoff_notes ? $this->handoff_notes . "\n" . $notes : $notes;
+        }
+        
+        return $this->save();
+    }
+
+    /**
+     * Update priority level
+     */
+    public function updatePriority(int $priorityLevel): bool
+    {
+        $this->priority_level = $priorityLevel;
+        return $this->save();
+    }
+
+    /**
+     * Add notes to handoff
+     */
+    public function addHandoffNotes(string $notes): bool
+    {
+        $this->handoff_notes = $this->handoff_notes ? $this->handoff_notes . "\n" . $notes : $notes;
+        return $this->save();
+    }
+
+    /**
+     * Get priority level label
+     */
+    public function getPriorityLabelAttribute(): string
+    {
+        $labels = [
+            1 => 'High',
+            2 => 'Medium', 
+            3 => 'Low',
+            4 => 'Urgent',
+            5 => 'Critical'
+        ];
+        
+        return $labels[$this->priority_level] ?? 'Unknown';
+    }
+
+    /**
+     * Get handoff status label
+     */
+    public function getHandoffStatusLabelAttribute(): string
+    {
+        $labels = [
+            'ai' => 'AI Handling',
+            'pending_handoff' => 'Pending Handoff',
+            'handed_off' => 'Handed Off',
+            'completed' => 'Completed'
+        ];
+        
+        return $labels[$this->handoff_status] ?? 'Unknown';
+    }
+
+    /**
+     * Check if customer needs urgent attention
+     */
+    public function needsUrgentAttention(): bool
+    {
+        return in_array($this->priority_level, [4, 5]) || 
+               ($this->handoff_status === 'pending_handoff' && 
+                $this->handoff_requested_at && 
+                $this->handoff_requested_at->diffInHours(now()) > 2);
+    }
+
+    /**
+     * Scope for filtering by handoff status
+     */
+    public function scopeByHandoffStatus($query, string $status)
+    {
+        return $query->where('handoff_status', $status);
+    }
+
+    /**
+     * Scope for filtering by priority
+     */
+    public function scopeByPriority($query, int $priority)
+    {
+        return $query->where('priority_level', $priority);
+    }
+
+    /**
+     * Scope for assigned to specific agent
+     */
+    public function scopeAssignedToAgent($query, int $agentId)
+    {
+        return $query->where('assigned_agent_id', $agentId);
+    }
+
+    /**
+     * Scope for urgent cases
+     */
+    public function scopeUrgent($query)
+    {
+        return $query->whereIn('priority_level', [4, 5]);
+    }
+
+    /**
+     * Scope for pending handoffs
+     */
+    public function scopePendingHandoff($query)
+    {
+        return $query->where('handoff_status', 'pending_handoff');
     }
 
     // ===== NOTIFICATION API METHODS =====

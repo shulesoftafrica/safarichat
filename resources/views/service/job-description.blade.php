@@ -1,203 +1,375 @@
 ﻿@extends('layouts.app')
 @section('content')
-<div class="ai-sales-officer">
+
+<div class="ai-agent-creator">
     <div class="container-fluid">
-        <!-- Header -->
-        <div class="reports-header mb-4">
+        <!-- Modern Header with Breadcrumb -->
+        <div class="page-header">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1 class="reports-title">
-                        <i class="fas fa-robot"></i>
-                        AI Sales Officer
-                        <span class="ai-badge ms-3">
-                            <i class="fas fa-brain me-1"></i>
-                            AI Powered
-                        </span>
-                    </h1>
-                    <p class="reports-subtitle mb-0">
-                        Configure your intelligent WhatsApp sales assistant for automated customer engagement
-                    </p>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ route('ai-agents.index') }}">
+                                    <i class="fas fa-robot me-1"></i>AI Agents
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">Create New Agent</li>
+                        </ol>
+                    </nav>
+                    <div class="header-content">
+                        <div class="header-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="header-text">
+                            <h1 class="page-title">Create AI Sales Agent</h1>
+                            <p class="page-subtitle">
+                                Set up your intelligent assistant with personality, knowledge, and sales capabilities
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ route('ai-agents.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Agents
+                    </a>
                 </div>
             </div>
         </div>
-        
-        <div class="main-layout d-flex">
-            <!-- Sidebar Navigation (Compact) -->
-            <nav class="sidebar shadow-sm">
-                <ul class="sidebar-nav nav flex-column py-3">
-                    <li>
-                        <a href="{{ url('service/index') }}" class="nav-link{{ request()->is('service/index') ? ' active' : '' }}">
-                            <span>Products</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ url('service/jd') }}" class="nav-link{{ request()->is('service/jd') ? ' active' : '' }}">
-                            <span>Job Description</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
 
-            <!-- Main Content Area -->
-            <div class="content-area flex-grow-1 p-3 ms-3 mb-4" style="width:80%">
-                <div class="job-description-page">
-                    <div class="page-header">
-                        <h2 class="page-title">
-                            <i class="fas fa-clipboard-list"></i>
-                            AI Job Description Configuration
-                        </h2>
-                        <div class="header-actions">
-                            @if(!isset($existingAgent) || !$existingAgent)
-                                <button class="btn btn-primary" onclick="showCreateForm()">
-                                    <i class="fas fa-plus"></i>
-                                    Add Job Description
-                                </button>
-                            @endif
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            @if(isset($existingAgent) && $existingAgent)
+                <!-- Show existing agent summary first -->
+                <div class="current-agent-card">
+                    <div class="agent-summary">
+                        <div class="agent-info">
+                            <div class="agent-avatar-large">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="agent-details">
+                                <h3>{{ $existingAgent->assistant_name }}</h3>
+                                <p class="company">{{ $existingAgent->company_name ?? 'No company specified' }}</p>
+                                <div class="status-info">
+                                    <span class="status-badge {{ $existingAgent->status === 'active' ? 'active' : 'inactive' }}">
+                                        {{ ucfirst($existingAgent->status) }}
+                                    </span>
+                                    <span class="created-date">Created {{ $existingAgent->created_at->format('M d, Y') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn-edit" onclick="showEditForm()">
+                                <i class="fas fa-edit me-2"></i>
+                                Edit Agent
+                            </button>
+                            <a href="{{ route('ai-agents.index') }}" class="btn-secondary">
+                                <i class="fas fa-list me-2"></i>
+                                View All Agents
+                            </a>
                         </div>
                     </div>
-                    
-                    @if(isset($existingAgent) && $existingAgent)
-                        <!-- Debug Information (remove in production) -->
-                        <div class="alert alert-info mb-3" id="debug-info">
-                            <small>
-                                <strong>Debug Info:</strong>
-                                User ID: {{ auth()->id() }} | 
-                                Agent ID: {{ $existingAgent->id }} | 
-                                Agent User ID: {{ $existingAgent->user_id }} |
-                                Update Route: {{ route('ai-agents.update', $existingAgent) }} |
-                                Current URL: {{ request()->fullUrl() }} |
-                                Auth Check: {{ auth()->check() ? 'true' : 'false' }}
-                            </small>
+                </div>
+            @endif
+            
+            <!-- Agent Form (Create/Edit) -->
+            <div id="agent-form-section" class="{{ isset($existingAgent) && $existingAgent ? 'editing-mode' : 'creating-mode' }}" 
+                 style="{{ isset($existingAgent) && $existingAgent ? 'display: none;' : 'display: block;' }}">
+                
+                <div class="form-container">
+                    <div class="form-header">
+                        <h2 id="form-title">
+                            {{ isset($existingAgent) && $existingAgent ? 'Edit AI Sales Agent' : 'Create AI Sales Agent' }}
+                        </h2>
+                        <p id="form-subtitle">
+                            {{ isset($existingAgent) && $existingAgent ? 'Update your AI assistant configuration' : 'Set up your intelligent sales assistant with custom personality and capabilities' }}
+                        </p>
+                    </div>
+
+                    <!-- Progress Wizard -->
+                    <div class="wizard-progress">
+                        <div class="progress-step active" data-step="1">
+                            <div class="step-circle">1</div>
+                            <span class="step-label">Basic Info</span>
                         </div>
-                        
-                        <!-- Existing Agents Table -->
-                        <div class="agents-table-section mb-4">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-robot me-2"></i>
-                                        Your AI Sales Agent
-                                    </h5>
-                                    <span class="badge bg-{{ $existingAgent->status === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($existingAgent->status) }}</span>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Agent Name</th>
-                                                    <th>Target Audience</th>
-                                                    <th>Status</th>
-                                                    <th>Availability</th>
-                                                    <th>Language</th>
-                                                    <th>Created</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <i class="fas fa-robot text-primary me-2"></i>
-                                                            <strong>{{ $existingAgent->assistant_name }}</strong>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">{{ ucfirst(str_replace('-', ' ', $existingAgent->target_audience)) }}</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-{{ $existingAgent->status === 'active' ? 'success' : 'secondary' }}">
-                                                            {{ ucfirst($existingAgent->status) }}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">
-                                                            {{ $existingAgent->always_available ? '24/7' : 'Business Hours' }}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">{{ strtoupper($existingAgent->primary_language) }}</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">{{ $existingAgent->created_at->format('M d, Y') }}</span>
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary" onclick="editAgent({{ $existingAgent->id }})" title="Edit Configuration">
-                                                            <i class="fas fa-edit me-1"></i>
-                                                            Edit
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="progress-step" data-step="2">
+                            <div class="step-circle">2</div>
+                            <span class="step-label">Personality</span>
                         </div>
-                    @else
-                        <!-- No Agents Found -->
-                        <div class="no-agents-section mb-4">
-                            <div class="card text-center">
-                                <div class="card-body py-5">
-                                    <div class="mb-4">
-                                        <i class="fas fa-robot fa-4x text-muted mb-3"></i>
-                                        <h4 class="text-muted">No AI Sales Agents Defined</h4>
-                                        <p class="text-muted mb-4">
-                                            Create your first AI sales assistant to start automating customer engagement and sales processes.
-                                        </p>
-                                        <button class="btn btn-primary btn-lg" onclick="showCreateForm()">
-                                            <i class="fas fa-plus me-2"></i>
-                                            Create Your First AI Agent
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="progress-step" data-step="3">
+                            <div class="step-circle">3</div>
+                            <span class="step-label">Capabilities</span>
                         </div>
-                    @endif
-                    
-                    <!-- Create/Edit Form (Initially Hidden) -->
-                    <div id="agent-form-section" style="display: none;">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0" id="form-title">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Create New AI Sales Agent
-                                </h5>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="hideCreateForm()">
-                                    <i class="fas fa-times"></i>
-                                    Cancel
-                                </button>
-                            </div>
-                            <div class="card-body">
-                    
-                    <form id="ai-agent-form" method="POST" action="{{ isset($existingAgent) && $existingAgent ? route('ai-agents.update', $existingAgent) : route('ai-agents.store') }}">
+                        <div class="progress-step" data-step="4">
+                            <div class="step-circle">4</div>
+                            <span class="step-label">Review</span>
+                        </div>
+                    </div>
+
+                    <form id="ai-agent-form" method="POST" action="{{ isset($existingAgent) && $existingAgent ? route('ai-agents.update', $existingAgent->uuid) : route('ai-agents.store') }}">
                         @csrf
-                        
                         @if(isset($existingAgent) && $existingAgent)
-                        <!-- Hidden field for agent ID when editing -->
-                        <input type="hidden" id="editing-agent-id" name="agent_id" value="">
+                            @method('PUT')
                         @endif
-                        
-                        <div class="configuration-wizard">
-                            <!-- Progress Steps -->
-                            <div class="steps-progress">
-                                <div class="step active" data-step="1">
-                                    <div class="step-number">1</div>
-                                    <div class="step-label">Assistant Info</div>
+
+                        <!-- Step 1: Basic Information -->
+                        <div class="wizard-step active" id="step-1">
+                            <h3 class="step-title">Basic Information</h3>
+                            <p class="step-subtitle">Let's start with the basic details of your AI sales assistant</p>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Assistant Name *</label>
+                                    <input type="text" class="form-control" name="assistant_name" 
+                                           value="{{ old('assistant_name', $existingAgent->assistant_name ?? '') }}" 
+                                           placeholder="e.g., Sarah, Alex, or ChatBot" required>
+                                    <small class="form-hint">Choose a friendly name for your AI assistant</small>
                                 </div>
-                                <div class="step" data-step="2">
-                                    <div class="step-number">2</div>
-                                    <div class="step-label">Working Hours</div>
-                                </div>
-                                <div class="step" data-step="3">
-                                    <div class="step-number">3</div>
-                                    <div class="step-label">Negotiation</div>
-                                </div>
-                                <div class="step" data-step="4">
-                                    <div class="step-number">4</div>
-                                    <div class="step-label">Terms & Review</div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" name="company_name" 
+                                           value="{{ old('company_name', $existingAgent->company_name ?? '') }}" 
+                                           placeholder="Your company name">
+                                    <small class="form-hint">This helps personalize conversations</small>
                                 </div>
                             </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Industry *</label>
+                                    <select class="form-control" name="company_industry" required>
+                                        <option value="">Select your industry</option>
+                                        <option value="retail" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'retail' ? 'selected' : '' }}>Retail</option>
+                                        <option value="technology" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'technology' ? 'selected' : '' }}>Technology</option>
+                                        <option value="healthcare" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'healthcare' ? 'selected' : '' }}>Healthcare</option>
+                                        <option value="finance" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'finance' ? 'selected' : '' }}>Finance</option>
+                                        <option value="education" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'education' ? 'selected' : '' }}>Education</option>
+                                        <option value="real-estate" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'real-estate' ? 'selected' : '' }}>Real Estate</option>
+                                        <option value="automotive" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'automotive' ? 'selected' : '' }}>Automotive</option>
+                                        <option value="food-beverage" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'food-beverage' ? 'selected' : '' }}>Food & Beverage</option>
+                                        <option value="other" {{ old('company_industry', $existingAgent->company_industry ?? '') == 'other' ? 'selected' : '' }}>Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Primary Language *</label>
+                                    <select class="form-control" name="primary_language" required>
+                                        <option value="english" {{ old('primary_language', $existingAgent->primary_language ?? 'english') == 'english' ? 'selected' : '' }}>English</option>
+                                        <option value="swahili" {{ old('primary_language', $existingAgent->primary_language ?? '') == 'swahili' ? 'selected' : '' }}>Swahili</option>
+                                        <option value="french" {{ old('primary_language', $existingAgent->primary_language ?? '') == 'french' ? 'selected' : '' }}>French</option>
+                                        <option value="spanish" {{ old('primary_language', $existingAgent->primary_language ?? '') == 'spanish' ? 'selected' : '' }}>Spanish</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Personality & Style -->
+                        <div class="wizard-step" id="step-2">
+                            <h3 class="step-title">Personality & Communication Style</h3>
+                            <p class="step-subtitle">Define how your AI assistant should interact with customers</p>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Communication Tone *</label>
+                                <div class="tone-options">
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="professional" 
+                                               {{ old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'professional' ? 'checked' : '' }} required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-briefcase"></i>
+                                            <h4>Professional</h4>
+                                            <p>Formal, business-appropriate language</p>
+                                        </div>
+                                    </label>
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="friendly" 
+                                               {{ old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'friendly' ? 'checked' : '' }} required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-smile"></i>
+                                            <h4>Friendly</h4>
+                                            <p>Warm, approachable, and conversational</p>
+                                        </div>
+                                    </label>
+                                    <label class="tone-option">
+                                        <input type="radio" name="communication_tone" value="casual" 
+                                               {{ old('communication_tone', $existingAgent->communication_tone ?? 'friendly') == 'casual' ? 'checked' : '' }} required>
+                                        <div class="tone-card">
+                                            <i class="fas fa-comments"></i>
+                                            <h4>Casual</h4>
+                                            <p>Relaxed, informal communication</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Target Audience</label>
+                                <select class="form-control" name="target_audience">
+                                    <option value="general-public" {{ old('target_audience', $existingAgent->target_audience ?? 'general-public') == 'general-public' ? 'selected' : '' }}>General Public</option>
+                                    <option value="business-customers" {{ old('target_audience', $existingAgent->target_audience ?? '') == 'business-customers' ? 'selected' : '' }}>Business Customers</option>
+                                    <option value="young-adults" {{ old('target_audience', $existingAgent->target_audience ?? '') == 'young-adults' ? 'selected' : '' }}>Young Adults</option>
+                                    <option value="professionals" {{ old('target_audience', $existingAgent->target_audience ?? '') == 'professionals' ? 'selected' : '' }}>Professionals</option>
+                                </select>
+                                <small class="form-hint">This helps tailor the conversation style</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Products/Services Description</label>
+                                <textarea class="form-control" name="products_services" rows="3" 
+                                          placeholder="Briefly describe what you sell (this helps the AI understand your business)">{{ old('products_services', $existingAgent->products_services ?? '') }}</textarea>
+                                <small class="form-hint">Optional: Helps AI provide better product recommendations</small>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Capabilities & Settings -->
+                        <div class="wizard-step" id="step-3">
+                            <h3 class="step-title">Capabilities & Availability</h3>
+                            <p class="step-subtitle">Configure your AI assistant's capabilities and working hours</p>
+                            
+                            <div class="capability-section">
+                                <h4>Availability Settings</h4>
+                                <div class="form-group">
+                                    <div class="toggle-option">
+                                        <input type="checkbox" id="always_available" name="always_available" 
+                                               {{ old('always_available', $existingAgent->always_available ?? true) ? 'checked' : '' }}>
+                                        <label for="always_available">
+                                            <span class="toggle-slider"></span>
+                                            <div class="toggle-content">
+                                                <h4>24/7 Availability</h4>
+                                                <p>AI assistant will respond to messages at any time</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Out-of-Hours Message</label>
+                                    <textarea class="form-control" name="out_of_hours_message" rows="3" 
+                                              placeholder="Message when AI is not available">{{ old('out_of_hours_message', $existingAgent->out_of_hours_message ?? 'Thank you for contacting us! Our AI assistant is currently offline. We will respond as soon as possible.') }}</textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="capability-section">
+                                <h4>Sales Capabilities</h4>
+                                <div class="form-group">
+                                    <div class="toggle-option">
+                                        <input type="checkbox" id="allow_negotiation" name="allow_negotiation" 
+                                               {{ old('allow_negotiation', $existingAgent->allow_negotiation ?? true) ? 'checked' : '' }}>
+                                        <label for="allow_negotiation">
+                                            <span class="toggle-slider"></span>
+                                            <div class="toggle-content">
+                                                <h4>Price Negotiation</h4>
+                                                <p>Allow AI to negotiate prices within set limits</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div id="negotiation-settings" class="form-group">
+                                    <label class="form-label">Maximum Discount Allowed</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" name="max_discount_allowed" 
+                                               min="0" max="50" value="{{ old('max_discount_allowed', $existingAgent->max_discount_allowed ?? 15) }}">
+                                        <span class="input-addon">%</span>
+                                    </div>
+                                    <small class="form-hint">Maximum discount AI can offer to customers</small>
+                                </div>
+                            </div>
+                            
+                            <div class="capability-section">
+                                <h4>Fallback Contact</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Fallback Phone Number *</label>
+                                        <input type="tel" class="form-control" name="fallback_number" 
+                                               placeholder="+254700000000" 
+                                               value="{{ old('fallback_number', $existingAgent->fallback_number ?? '') }}" required>
+                                        <small class="form-hint">Number to transfer when AI can't help</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Contact Person</label>
+                                        <input type="text" class="form-control" name="fallback_person" 
+                                               placeholder="e.g., John - Sales Manager"
+                                               value="{{ old('fallback_person', $existingAgent->fallback_person ?? '') }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Review & Activate -->
+                        <div class="wizard-step" id="step-4">
+                            <h3 class="step-title">Review & Activate</h3>
+                            <p class="step-subtitle">Review your AI assistant configuration and activate</p>
+                            
+                            <div class="review-card">
+                                <div class="agent-preview">
+                                    <div class="preview-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="preview-info">
+                                        <h3 id="preview-name">AI Assistant</h3>
+                                        <p id="preview-company">Your Company</p>
+                                        <div class="preview-tags">
+                                            <span class="tag" id="preview-industry">Industry</span>
+                                            <span class="tag" id="preview-language">Language</span>
+                                            <span class="tag" id="preview-tone">Tone</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="preview-capabilities">
+                                    <h4>Capabilities:</h4>
+                                    <div class="capability-list">
+                                        <div class="capability" id="preview-availability">
+                                            <i class="fas fa-clock"></i>
+                                            <span>24/7 Available</span>
+                                        </div>
+                                        <div class="capability" id="preview-negotiation">
+                                            <i class="fas fa-handshake"></i>
+                                            <span>Price Negotiation</span>
+                                        </div>
+                                        <div class="capability">
+                                            <i class="fas fa-phone"></i>
+                                            <span>Fallback Support</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="terms-section">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="accepted_terms" name="accepted_terms" required>
+                                        <span class="checkmark"></span>
+                                        I agree to the <a href="{{ route('ai-agent-terms') }}" target="_blank">Terms of Service</a> 
+                                        and <a href="{{ route('privacy-policy') }}" target="_blank">Privacy Policy</a>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields -->
+                        <input type="hidden" name="target_user_types[]" value="1">
+                        <input type="hidden" name="timezone" value="Africa/Nairobi">
+
+                        <!-- Navigation Buttons -->
+                        <div class="wizard-navigation">
+                            <button type="button" class="btn-nav secondary" id="prev-btn" onclick="previousStep()" style="display: none;">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Previous
+                            </button>
+                            <button type="button" class="btn-nav primary" id="next-btn" onclick="nextStep()">
+                                Next Step
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="submit" class="btn-nav success" id="submit-btn" style="display: none;">
+                                <i class="fas fa-rocket me-2"></i>
+                                Create AI Agent
+                            </button>
+                        </div>
+                    </form>
                             
                             <!-- Step 1: Assistant Information -->
                             <div class="step-content active" id="step-1">
@@ -430,14 +602,864 @@
                             </div>
                         </div>
                     </form>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Modern AI Agent Creator Styles */
+.ai-agent-creator {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.page-header {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.breadcrumb-item a:hover {
+    color: #495057;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+}
+
+.header-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.header-icon i {
+    font-size: 2rem;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0 0;
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.content-wrapper {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Current Agent Card */
+.current-agent-card {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.agent-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.agent-info {
+    display: flex;
+    align-items: center;
+}
+
+.agent-avatar-large {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.agent-avatar-large i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.agent-details h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2c3e50;
+}
+
+.agent-details .company {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    margin: 0.25rem 0;
+}
+
+.status-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.status-badge.active {
+    background: #d4edda;
+    color: #155724;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.inactive {
+    background: #fff3cd;
+    color: #856404;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.created-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Form Container */
+.form-container {
+    padding: 2rem;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.form-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+}
+
+.form-header p {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Wizard Progress */
+.wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding: 0 2rem;
+    position: relative;
+}
+
+.wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 2rem;
+    right: 2rem;
+    height: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.progress-step.active .step-circle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.progress-step.completed .step-circle {
+    background: #28a745;
+    color: white;
+}
+
+.step-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6c757d;
+    text-align: center;
+}
+
+.progress-step.active .step-label {
+    color: #2c3e50;
+}
+
+/* Wizard Steps */
+.wizard-step {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.wizard-step.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+}
+
+.step-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0 0 2rem 0;
+}
+
+/* Form Fields */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Tone Options */
+.tone-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.tone-option {
+    cursor: pointer;
+}
+
+.tone-option input {
+    display: none;
+}
+
+.tone-card {
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.tone-card i {
+    font-size: 2rem;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.tone-card h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 0.25rem 0;
+}
+
+.tone-card p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.tone-option:hover .tone-card {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.tone-option input:checked + .tone-card {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.tone-option input:checked + .tone-card i,
+.tone-option input:checked + .tone-card h4,
+.tone-option input:checked + .tone-card p {
+    color: white;
+}
+
+/* Capability Sections */
+.capability-section {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.capability-section h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+}
+
+/* Toggle Options */
+.toggle-option {
+    position: relative;
+}
+
+.toggle-option input {
+    display: none;
+}
+
+.toggle-option label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.toggle-option:hover label {
+    border-color: #667eea;
+}
+
+.toggle-option input:checked + label {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.toggle-slider {
+    width: 50px;
+    height: 26px;
+    background: #ccc;
+    border-radius: 26px;
+    margin-right: 1rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s ease;
+}
+
+.toggle-option input:checked + label .toggle-slider {
+    background: #667eea;
+}
+
+.toggle-option input:checked + label .toggle-slider::before {
+    transform: translateX(24px);
+}
+
+.toggle-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.toggle-content p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0.25rem 0 0 0;
+}
+
+/* Input Groups */
+.input-group {
+    display: flex;
+}
+
+.input-addon {
+    background: #e9ecef;
+    border: 2px solid #e9ecef;
+    border-left: none;
+    padding: 0.75rem;
+    border-radius: 0 10px 10px 0;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.input-group .form-control {
+    border-radius: 10px 0 0 10px;
+}
+
+/* Review Section */
+.review-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.agent-preview {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.preview-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+.preview-avatar i {
+    font-size: 2rem;
+    color: white;
+}
+
+.preview-info h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.preview-info p {
+    color: #6c757d;
+    margin: 0.25rem 0 0.75rem 0;
+}
+
+.preview-tags {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.preview-capabilities h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+}
+
+.capability-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.capability {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+.capability i {
+    margin-right: 0.5rem;
+    color: #667eea;
+}
+
+/* Terms Section */
+.terms-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #2c3e50;
+}
+
+.checkbox-label input {
+    margin-right: 0.75rem;
+}
+
+.checkbox-label a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+/* Navigation Buttons */
+.wizard-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 0 0 0;
+    border-top: 1px solid #e9ecef;
+    margin-top: 2rem;
+}
+
+.btn-nav {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-nav.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-nav.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-nav.secondary {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.btn-nav.secondary:hover {
+    background: #f8f9fa;
+}
+
+.btn-nav.success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-nav.success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .tone-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .wizard-progress {
+        padding: 0 1rem;
+    }
+    
+    .wizard-progress::before {
+        left: 1rem;
+        right: 1rem;
+    }
+    
+    .agent-summary {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .agent-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .agent-avatar-large {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .capability-list {
+        flex-direction: column;
+    }
+    
+    .wizard-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            updateWizard();
+            updatePreview();
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        updateWizard();
+    }
+}
+
+function updateWizard() {
+    // Update progress
+    document.querySelectorAll('.progress-step').forEach((step, index) => {
+        const stepNumber = index + 1;
+        if (stepNumber < currentStep) {
+            step.classList.add('completed');
+            step.classList.remove('active');
+        } else if (stepNumber === currentStep) {
+            step.classList.add('active');
+            step.classList.remove('completed');
+        } else {
+            step.classList.remove('active', 'completed');
+        }
+    });
+
+    // Update steps
+    document.querySelectorAll('.wizard-step').forEach((step, index) => {
+        const stepNumber = index + 1;
+        if (stepNumber === currentStep) {
+            step.classList.add('active');
+        } else {
+            step.classList.remove('active');
+        }
+    });
+
+    // Update navigation
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+
+    if (currentStep === 1) {
+        prevBtn.style.display = 'none';
+    } else {
+        prevBtn.style.display = 'flex';
+    }
+
+    if (currentStep === totalSteps) {
+        nextBtn.style.display = 'none';
+        submitBtn.style.display = 'flex';
+    } else {
+        nextBtn.style.display = 'flex';
+        submitBtn.style.display = 'none';
+    }
+}
+
+function validateCurrentStep() {
+    const currentStepElement = document.getElementById(`step-${currentStep}`);
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+    
+    for (let field of requiredFields) {
+        if (!field.value.trim()) {
+            field.focus();
+            alert('Please fill in all required fields before continuing.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function updatePreview() {
+    const assistantName = document.querySelector('[name="assistant_name"]').value || 'AI Assistant';
+    const companyName = document.querySelector('[name="company_name"]').value || 'Your Company';
+    const industry = document.querySelector('[name="company_industry"]').value;
+    const language = document.querySelector('[name="primary_language"]').value;
+    const tone = document.querySelector('[name="communication_tone"]:checked')?.value;
+    const alwaysAvailable = document.querySelector('[name="always_available"]').checked;
+    const allowNegotiation = document.querySelector('[name="allow_negotiation"]').checked;
+
+    document.getElementById('preview-name').textContent = assistantName;
+    document.getElementById('preview-company').textContent = companyName;
+    document.getElementById('preview-industry').textContent = industry ? industry.replace('-', ' ').toUpperCase() : 'INDUSTRY';
+    document.getElementById('preview-language').textContent = language ? language.toUpperCase() : 'ENGLISH';
+    document.getElementById('preview-tone').textContent = tone ? tone.toUpperCase() : 'FRIENDLY';
+    
+    document.getElementById('preview-availability').innerHTML = 
+        `<i class="fas fa-clock"></i><span>${alwaysAvailable ? '24/7 Available' : 'Business Hours'}</span>`;
+    document.getElementById('preview-negotiation').innerHTML = 
+        `<i class="fas fa-handshake"></i><span>${allowNegotiation ? 'Price Negotiation' : 'Fixed Pricing'}</span>`;
+}
+
+function showEditForm() {
+    document.getElementById('agent-form-section').style.display = 'block';
+    document.querySelector('.current-agent-card').style.display = 'none';
+}
+
+// Initialize wizard
+document.addEventListener('DOMContentLoaded', function() {
+    updateWizard();
+    
+    // Auto-update preview as user types
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('change', updatePreview);
+        field.addEventListener('input', updatePreview);
+    });
+    
+    // Handle negotiation settings visibility
+    const allowNegotiation = document.getElementById('allow_negotiation');
+    const negotiationSettings = document.getElementById('negotiation-settings');
+    
+    if (allowNegotiation && negotiationSettings) {
+        function toggleNegotiationSettings() {
+            negotiationSettings.style.display = allowNegotiation.checked ? 'block' : 'none';
+        }
+        
+        allowNegotiation.addEventListener('change', toggleNegotiationSettings);
+        toggleNegotiationSettings(); // Initial state
+    }
+    
+    // Initial preview update
+    updatePreview();
+});
+</script>
+
 
 <style>
     .job-description-page {

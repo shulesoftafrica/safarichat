@@ -67,7 +67,10 @@ class LeadProductApiController extends Controller
                     'is_active' => true
                 ]);
 
-                $product = Product::find($productId);
+                $product = Product::forUser(auth()->id())->find($productId);
+                if (!$product) {
+                    continue; // Skip products not owned by current user
+                }
                 $addedProducts[] = [
                     'id' => $product->id,
                     'name' => $product->name,

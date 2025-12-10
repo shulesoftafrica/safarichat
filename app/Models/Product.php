@@ -10,6 +10,7 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id', 'business_id', // User and business ownership
         'name', 'sku', 'category', 'description', 'retail_price', 'wholesale_price',
         'max_discount', 'quantity', 'tags', 'status', 'ai_generated_description',
         'minimal_description', 'image_path', 'attachment_path', 'image_original_name',
@@ -50,6 +51,24 @@ class Product extends Model
         'requires_consultation' => 'boolean',
         'service_duration_days' => 'integer'
     ];
+
+    // === RELATIONSHIPS ===
+    
+    /**
+     * Get the user that owns the product.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the business that owns the product.
+     */
+    public function business()
+    {
+        return $this->belongsTo(Business::class);
+    }
 
     /**
      * Get the FAQs for this product
@@ -198,6 +217,38 @@ class Product extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope for products owned by a specific user
+     */
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope for products owned by a specific business
+     */
+    public function scopeForBusiness($query, $businessId)
+    {
+        return $query->where('business_id', $businessId);
+    }
+
+    /**
+     * Scope for active products owned by a specific user
+     */
+    public function scopeUserActive($query, $userId)
+    {
+        return $query->where('user_id', $userId)->where('status', 'active');
+    }
+
+    /**
+     * Scope for active products owned by a specific business
+     */
+    public function scopeBusinessActive($query, $businessId)
+    {
+        return $query->where('business_id', $businessId)->where('status', 'active');
     }
 
     /**

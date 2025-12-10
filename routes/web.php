@@ -78,6 +78,17 @@ Route::get('/service', [App\Http\Controllers\Service::class, 'index'])->name('se
 Route::get('/service/jd', [App\Http\Controllers\Service::class, 'jd'])->name('service.jd')->middleware('auth');
 Route::get('/service/tab-content', [App\Http\Controllers\Service::class, 'getTabContent'])->name('service.tab-content');
 
+// Products Management Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [App\Http\Controllers\ProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
+    Route::get('/products/{id}/edit', [App\Http\Controllers\ProductController::class, 'edit'])->name('products.edit');
+    Route::put('/products/{id}', [App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{id}', [App\Http\Controllers\ProductController::class, 'destroy'])->name('products.destroy');
+    Route::post('/products/bulk-action', [App\Http\Controllers\ProductController::class, 'bulkAction'])->name('products.bulk-action');
+});
+
 // Contact Management Routes
 Route::middleware('auth')->group(function () {
     Route::get('/guest/getContactDetails/{id}', [App\Http\Controllers\Guest::class, 'getContactDetails'])->name('guest.getContactDetails');
@@ -102,6 +113,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/guest/sendMessage', [App\Http\Controllers\Guest::class, 'sendMessage'])->name('guest.sendMessage');
     Route::delete('/guest/bulkDelete', [App\Http\Controllers\Guest::class, 'bulkDelete'])->name('guest.bulkDelete');
     
+    // Handoff Management routes
+    Route::post('/guest/request-handoff', [App\Http\Controllers\Guest::class, 'requestHandoff'])->name('guest.requestHandoff');
+    Route::post('/guest/assign-agent', [App\Http\Controllers\Guest::class, 'assignAgent'])->name('guest.assignAgent');
+    Route::post('/guest/complete-handoff', [App\Http\Controllers\Guest::class, 'completeHandoff'])->name('guest.completeHandoff');
+    Route::post('/guest/return-to-ai', [App\Http\Controllers\Guest::class, 'returnToAI'])->name('guest.returnToAI');
+    Route::post('/guest/update-priority', [App\Http\Controllers\Guest::class, 'updatePriority'])->name('guest.updatePriority');
+    Route::post('/guest/add-handoff-notes', [App\Http\Controllers\Guest::class, 'addHandoffNotes'])->name('guest.addHandoffNotes');
+    Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');
+    Route::get('/guest/available-agents', [App\Http\Controllers\Guest::class, 'getAvailableAgents'])->name('guest.availableAgents');
+    
     // Payment verification route
     Route::post('/payment/verify', [App\Http\Controllers\Payment::class, 'verify'])->name('payment.verify');
     Route::get('/payment/subscription', [App\Http\Controllers\Payment::class, 'subscriptionStatus'])->name('payment.subscription');
@@ -112,6 +133,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [App\Http\Controllers\AiSalesAgentController::class, 'store'])->name('store');
         Route::get('/create', [App\Http\Controllers\AiSalesAgentController::class, 'create'])->name('create');
         Route::get('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'show'])->name('show');
+        Route::get('/{aiSalesAgent}/edit', [App\Http\Controllers\AiSalesAgentController::class, 'edit'])->name('edit');
         Route::put('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'update'])->name('update');
         Route::delete('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'destroy'])->name('destroy');
         Route::patch('/{aiSalesAgent}/toggle-status', [App\Http\Controllers\AiSalesAgentController::class, 'toggleStatus'])->name('toggle-status');
@@ -207,6 +229,54 @@ Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function
     Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance'])
         ->name('disconnect');
 });
+
+// Subscription Management Routes
+Route::middleware('auth')->group(function () {
+    // Main subscription routes
+    Route::prefix('subscription')->name('subscription.')->group(function () {
+        Route::get('/', [App\Http\Controllers\SubscriptionController::class, 'index'])->name('index');
+        Route::get('/paywall', [App\Http\Controllers\SubscriptionController::class, 'paywall'])->name('paywall');
+        Route::post('/check-payment', [App\Http\Controllers\SubscriptionController::class, 'checkPaymentStatus'])->name('check-payment');
+    });
+    
+    // Payment routes
+    Route::prefix('payment')->name('payment.')->group(function () {
+        Route::post('/initialize', [App\Http\Controllers\PaymentController::class, 'initialize'])->name('initialize');
+        Route::get('/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('success');
+        Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('cancel');
+        Route::post('/check-status', [App\Http\Controllers\PaymentController::class, 'checkStatus'])->name('check-status');
+        Route::post('/topup', [App\Http\Controllers\PaymentController::class, 'topupCredits'])->name('topup');
+    });
+});
+
+// Webhook routes (no auth required)
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('/lipa-namba', [App\Http\Controllers\WebhookController::class, 'lipaNamba'])->name('lipa-namba');
+    Route::post('/stripe', [App\Http\Controllers\WebhookController::class, 'stripe'])->name('stripe');
+});
+
+// Subscription and Payment Management Routes
+Route::middleware('auth')->group(function () {
+    // Subscription management
+    Route::get('/subscription', [App\Http\Controllers\SubscriptionController::class, 'index'])->name('subscription.index');
+    Route::post('/subscription/initiate-payment', [App\Http\Controllers\SubscriptionController::class, 'initiatePayment'])->name('subscription.initiate-payment');
+    Route::get('/subscription/check-payment-status', [App\Http\Controllers\SubscriptionController::class, 'checkPaymentStatus'])->name('subscription.check-payment-status');
+    Route::get('/subscription/billing-history', [App\Http\Controllers\SubscriptionController::class, 'billingHistory'])->name('subscription.billing-history');
+    Route::post('/subscription/upgrade', [App\Http\Controllers\SubscriptionController::class, 'upgrade'])->name('subscription.upgrade');
+    Route::post('/subscription/cancel', [App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    
+    // Payment processing
+    Route::get('/payment/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('payment.cancel');
+    
+    // API routes for frontend
+    Route::get('/api/subscription/status', [App\Http\Controllers\API\SubscriptionController::class, 'getStatus'])->name('api.subscription.status');
+    Route::post('/api/subscription/check-payment', [App\Http\Controllers\API\SubscriptionController::class, 'checkPayment'])->name('api.subscription.check-payment');
+});
+
+// Webhook routes (no auth middleware)
+Route::post('/webhooks/lipa-number', [App\Http\Controllers\WebhookController::class, 'handleLipaNamba'])->name('webhooks.lipa-number');
+Route::post('/webhooks/stripe', [App\Http\Controllers\WebhookController::class, 'handleStripe'])->name('webhooks.stripe');
 
 
 if (createRoute() != NULL) {

@@ -298,8 +298,8 @@ class AiWhatsAppService
             }
         }
 
-        // Then search in all available products
-        $products = Product::active()->get();
+        // Then search in all available products for this user
+        $products = Product::active()->forUser($message->user_id)->get();
         
         foreach ($products as $product) {
             $productName = strtolower($product->name);

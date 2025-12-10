@@ -11,6 +11,7 @@
         --dark: #1A365D;
         --light: #F8FAFC;
         --success: #10B981;
+        --success-light: #ecfdf5;
         --gray-50: #F9FAFB;
         --gray-100: #F3F4F6;
         --gray-200: #E5E7EB;
@@ -21,6 +22,37 @@
         --gray-700: #374151;
         --gray-800: #1F2937;
         --gray-900: #111827;
+        --text-color: #111827;
+        --body-bg: #ffffff;
+        --card-bg: #ffffff;
+        --border-color: #e5e7eb;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Dark theme variables */
+    [data-theme="dark"] {
+        --primary: #22D3EE;
+        --secondary: #FCD34D;
+        --accent: #1E293B;
+        --dark: #F1F5F9;
+        --light: #0F172A;
+        --success: #34D399;
+        --success-light: #064e3b;
+        --gray-50: #0F172A;
+        --gray-100: #1E293B;
+        --gray-200: #334155;
+        --gray-300: #475569;
+        --gray-400: #64748B;
+        --gray-500: #94A3B8;
+        --gray-600: #CBD5E1;
+        --gray-700: #E2E8F0;
+        --gray-800: #F1F5F9;
+        --gray-900: #F8FAFC;
+        --text-color: #f8fafc;
+        --body-bg: #0f172a;
+        --card-bg: #1e293b;
+        --border-color: #334155;
+        --shadow-color: rgba(0, 0, 0, 0.3);
     }
     
     * {
@@ -31,11 +63,49 @@
     }
     
     body {
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
         line-height: 1.6;
         color: var(--gray-800);
+        transition: background-color 0.3s ease, color 0.3s ease;
     }
     
+    /* Theme Toggle */
+    .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1001;
+        background: var(--gray-100);
+        border: 1px solid var(--gray-300);
+        border-radius: 12px;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--gray-700);
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .theme-toggle:hover {
+        background: var(--gray-200);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .theme-icon {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.3s ease;
+    }
+    
+    .theme-toggle:hover .theme-icon {
+        transform: rotate(10deg);
+    }
+
     /* Layout */
     .modern-layout {
         min-height: 100vh;
@@ -47,11 +117,12 @@
         overflow-y: auto;
         margin-right: 450px;
         background: var(--light);
+        transition: background-color 0.3s ease;
     }
     
     .sticky-login {
         width: 450px;
-        background: white;
+        background: var(--gray-50);
         box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
         position: fixed;
         right: 0;
@@ -63,6 +134,7 @@
         justify-content: center;
         z-index: 1000;
         border-left: 1px solid var(--gray-200);
+        transition: background-color 0.3s ease;
     }
     
     /* Hero Section */
@@ -187,9 +259,10 @@
     
     /* Track Record Section */
     .track-record {
-        background: white;
+        background: var(--gray-50);
         padding: 80px 80px;
         text-align: center;
+        transition: background-color 0.3s ease;
     }
     
     .stats-grid {
@@ -241,14 +314,14 @@
     }
     
     .problem-card {
-        background: #FEF2F2;
+        background: var(--gray-50);
         border: 2px solid #FECACA;
         border-radius: 20px;
         padding: 40px;
     }
     
     .solution-card {
-        background: #F0FDF4;
+        background: var(--gray-50);
         border: 2px solid #BBF7D0;
         border-radius: 20px;
         padding: 40px;
@@ -264,8 +337,16 @@
         color: #DC2626;
     }
     
+    [data-theme="dark"] .problem-card .card-title {
+        color: #F87171;
+    }
+    
     .solution-card .card-title {
         color: #059669;
+    }
+    
+    [data-theme="dark"] .solution-card .card-title {
+        color: #34D399;
     }
     
     .problem-list, .solution-list {
@@ -278,6 +359,7 @@
         margin-bottom: 20px;
         font-size: 1.1rem;
         line-height: 1.6;
+        color: var(--gray-800);
     }
     
     .problem-list li::before {
@@ -294,8 +376,9 @@
     
     /* Features Section */
     .features-section {
-        background: white;
+        background: var(--gray-50);
         padding: 80px 80px;
+        transition: background-color 0.3s ease;
     }
     
     .features-grid {
@@ -306,7 +389,7 @@
     }
     
     .feature-card {
-        background: white;
+        background: var(--gray-50);
         border: 2px solid var(--gray-100);
         border-radius: 20px;
         padding: 40px 30px;
@@ -376,7 +459,7 @@
     }
     
     .industry-card {
-        background: white;
+        background: var(--gray-50);
         border-radius: 20px;
         padding: 40px 30px;
         text-align: center;
@@ -410,7 +493,7 @@
     
     /* Pricing Section */
     .pricing-section {
-        background: white;
+        background: var(--gray-50);
         padding: 80px 80px;
     }
     
@@ -485,7 +568,7 @@
         align-items: center;
         gap: 12px;
         padding: 15px;
-        background: white;
+        background: var(--gray-50);
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
@@ -566,7 +649,7 @@
         top: 100%;
         left: 0;
         right: 0;
-        background: white;
+        background: var(--gray-50);
         border: 2px solid var(--gray-200);
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -727,7 +810,7 @@
         align-items: center;
         gap: 12px;
         padding: 15px;
-        background: white;
+        background: var(--gray-50);
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
@@ -774,7 +857,7 @@
     }
     
     .pricing-card {
-        background: white;
+        background: var(--gray-50);
         border: 2px solid var(--gray-200);
         border-radius: 25px;
         padding: 40px 30px;
@@ -923,7 +1006,7 @@
     }
     
     .testimonial {
-        background: white;
+        background: var(--gray-50);
         border-radius: 20px;
         padding: 40px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
@@ -1099,13 +1182,14 @@
         font-size: 1.1rem;
         transition: all 0.3s ease;
         background: var(--gray-50);
+        color: var(--gray-800);
     }
     
     .form-control:focus {
         border-color: var(--primary);
         box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.1);
         outline: none;
-        background: white;
+        background: var(--gray-50);
     }
     
     .btn-proceed {
@@ -1162,8 +1246,8 @@
     
     /* Footer Styles */
     .footer-section {
-        background: var(--gray-900);
-        color: var(--gray-300);
+        background: var(--dark);
+        color: var(--gray-200);
         padding: 80px 80px 0;
     }
     
@@ -1180,14 +1264,14 @@
     }
     
     .footer-column h3.footer-title {
-        color: white;
+        color: var(--gray-100);
         font-size: 1.8rem;
         font-weight: 800;
         margin-bottom: 16px;
     }
     
     .footer-column h4.footer-heading {
-        color: white;
+        color: var(--gray-100);
         font-size: 1.1rem;
         font-weight: 700;
         margin-bottom: 24px;
@@ -1290,7 +1374,7 @@
     }
     
     .footer-bottom {
-        border-top: 1px solid var(--gray-800);
+        border-top: 1px solid var(--gray-600);
         padding: 30px 0;
     }
     
@@ -1367,7 +1451,7 @@
         position: absolute;
         top: 100%;
         right: 0;
-        background: white;
+        background: var(--gray-50);
         min-width: 200px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
         border-radius: 15px;
@@ -1694,7 +1778,7 @@
     }
     
     .corporate-urgency {
-        background: white;
+        background: var(--gray-50);
         padding: 60px;
         border-radius: 20px;
         margin-bottom: 80px;
@@ -1772,7 +1856,7 @@
     }
     
     .transformation-card {
-        background: white;
+        background: var(--gray-50);
         padding: 40px 30px;
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -1836,7 +1920,7 @@
     }
     
     .package-detail-card {
-        background: white;
+        background: var(--gray-50);
         padding: 40px;
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -1892,7 +1976,7 @@
     }
     
     .corporate-roi {
-        background: white;
+        background: var(--gray-50);
         padding: 60px;
         border-radius: 20px;
         margin-bottom: 80px;
@@ -1964,7 +2048,7 @@
         display: flex;
         gap: 20px;
         padding: 30px;
-        background: white;
+        background: var(--gray-50);
         border-radius: 15px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
@@ -2118,7 +2202,7 @@
     }
     
     .btn-corporate-consultant:hover {
-        background: white;
+        background: var(--gray-50);
         color: var(--primary);
         transform: translateY(-3px);
     }
@@ -2162,16 +2246,17 @@
     /* AI vs Human Comparison Styles */
     .comparison-section {
         padding: 80px 0;
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        background: var(--body-bg);
     }
 
     .comparison-table {
         max-width: 1000px;
         margin: 0 auto;
-        background: white;
+        background: var(--card-bg);
         border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 20px 60px var(--shadow-color);
         overflow: hidden;
+        border: 1px solid var(--border-color);
     }
 
     .comparison-header {
@@ -2212,20 +2297,20 @@
     .comparison-row {
         display: grid;
         grid-template-columns: 200px 1fr 1fr;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--border-color);
         min-height: 80px;
         align-items: center;
     }
 
     .comparison-row:nth-child(even) {
-        background: #f8f9fa;
+        background: var(--gray-50);
     }
 
     .comparison-category {
         padding: 20px;
         font-weight: 600;
-        color: var(--primary);
-        border-right: 1px solid #eee;
+        color: var(--text-color);
+        border-right: 1px solid var(--border-color);
     }
 
     .comparison-ai, .comparison-human {
@@ -2234,7 +2319,7 @@
     }
 
     .comparison-ai.winner {
-        background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
+        background: var(--success-light);
         position: relative;
     }
 
@@ -2249,7 +2334,7 @@
     .comparison-value {
         font-size: 1.2rem;
         font-weight: 700;
-        color: var(--primary);
+        color: var(--text-color);
         margin-bottom: 5px;
     }
 
@@ -2264,8 +2349,8 @@
     }
 
     .comparison-footer {
-        background: linear-gradient(135deg, var(--secondary) 0%, #e6a82e 100%);
-        color: var(--primary);
+        background: var(--primary);
+        color: white;
         padding: 30px;
         text-align: center;
     }
@@ -2274,13 +2359,13 @@
         font-size: 1.5rem;
         font-weight: 700;
         margin-bottom: 10px;
-        color: var(--primary);
+        color: white;
     }
 
     .comparison-summary p {
         font-size: 1.1rem;
         margin: 0;
-        color: var(--primary);
+        color: white;
         opacity: 0.9;
     }
 
@@ -2300,14 +2385,14 @@
 
         .comparison-category {
             border-right: none;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-color);
             background: var(--primary);
             color: white;
             font-size: 1.1rem;
         }
 
         .comparison-ai, .comparison-human {
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .comparison-ai.winner::before {
@@ -2323,6 +2408,15 @@
         
         <!-- Hero Section -->
         <section class="hero-section">
+            <!-- Theme Toggle -->
+            <div class="theme-toggle" id="themeToggle">
+                <svg class="theme-icon" id="themeIcon" fill="currentColor" viewBox="0 0 24 24">
+                    <path id="sunIcon" d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" style="display: none;"/>
+                    <path id="moonIcon" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"/>
+                </svg>
+                <span id="themeText">Dark</span>
+            </div>
+            
             <!-- Language Switcher -->
             <div class="language-switcher">
                 <div class="language-dropdown" id="languageDropdown">
@@ -3898,6 +3992,78 @@
             updateCurrentLanguage(selectedLanguage);
             applyTranslations(selectedLanguage);
         }
+    });
+
+    // Theme Toggle Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        const htmlElement = document.documentElement;
+
+        // Function to detect system theme preference
+        function getSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        }
+
+        // Function to apply theme
+        function applyTheme(theme) {
+            htmlElement.setAttribute('data-theme', theme);
+            
+            if (theme === 'dark') {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                themeText.textContent = 'Light';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                themeText.textContent = 'Dark';
+            }
+        }
+
+        // Initialize theme based on localStorage or system preference
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemTheme = getSystemTheme();
+            const initialTheme = savedTheme || systemTheme;
+            
+            applyTheme(initialTheme);
+            return initialTheme;
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Event listener for theme toggle button
+        if (themeToggle) {
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', function(e) {
+                // Only update if user hasn't manually set a preference
+                if (!localStorage.getItem('theme')) {
+                    const systemTheme = e.matches ? 'dark' : 'light';
+                    applyTheme(systemTheme);
+                }
+            });
+        }
+
+        // Initialize theme on page load
+        initializeTheme();
     });
 </script>
 @endsection
