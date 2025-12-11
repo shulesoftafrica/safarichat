@@ -26,7 +26,8 @@ class EventsGuest extends Model
      * @var array
      */
     protected $fillable = [
-        'business_id', 
+        'business_id',
+        'user_id',
         'guest_name', 
         'guest_email', 
         'guest_email_verified_at', 
@@ -38,6 +39,8 @@ class EventsGuest extends Model
         'created_at', 
         'updated_at',
         'code',
+        'crm_id',
+        'crm_data',
         // Handoff Management Fields
         'handoff_status',
         'assigned_agent_id',
@@ -60,7 +63,8 @@ class EventsGuest extends Model
         'handoff_completed_at' => 'datetime',
         'last_ai_interaction' => 'datetime',
         'last_human_interaction' => 'datetime',
-        'priority_level' => 'integer'
+        'priority_level' => 'integer',
+        'crm_data' => 'array'
     ];
 
     /**

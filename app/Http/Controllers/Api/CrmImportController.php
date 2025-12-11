@@ -171,11 +171,25 @@ class CrmImportController extends Controller
             }
 
             // Find the contact by CRM ID
-            $contact = EventsGuest::where('user_id', Auth::id())
-                                 ->where('crm_id', $request->contact_crm_id)
+            $userId = Auth::id();
+            $crmId = $request->contact_crm_id;
+            
+            \Log::info("Looking for contact", [
+                'user_id' => $userId,
+                'crm_id' => $crmId
+            ]);
+            
+            $contact = EventsGuest::where('user_id', $userId)
+                                 ->where('crm_id', $crmId)
                                  ->first();
 
             if (!$contact) {
+                \Log::warning("Contact not found", [
+                    'user_id' => $userId,
+                    'crm_id' => $crmId,
+                    'total_contacts' => EventsGuest::where('user_id', $userId)->count()
+                ]);
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Contact not found. Please import the contact first.'

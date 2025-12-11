@@ -39,6 +39,26 @@ class Handler extends ExceptionHandler {
     }
 
     /**
+     * Handle unauthenticated users.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Illuminate\Http\Response
+     */
+    protected function unauthenticated($request, \Illuminate\Auth\AuthenticationException $exception)
+    {
+        // Return JSON for API routes or if client expects JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+                'error' => 'Invalid or missing API token. Please provide a valid Bearer token in the Authorization header.'
+            ], 401);
+        }
+        
+        return redirect()->guest(route('login'));
+    }
+
+    /**
      * Report or log an exception.
      *
      * This is a great spot to send exceptions to Sentry, Bugsnag, etc.

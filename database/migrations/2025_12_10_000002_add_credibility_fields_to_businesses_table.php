@@ -17,7 +17,11 @@ return new class extends Migration
             // Add company credibility kit fields
             $table->text('mission')->nullable()->after('name');
             $table->string('credibility_statistics', 500)->nullable()->after('mission');
-            $table->string('website', 255)->nullable()->after('credibility_statistics');
+            
+            // Check if website column doesn't exist before adding
+            if (!Schema::hasColumn('businesses', 'website')) {
+                $table->string('website', 255)->nullable()->after('credibility_statistics');
+            }
         });
     }
 

@@ -1,0 +1,2144 @@
+
+<?php $__env->startSection('content'); ?>
+<style>
+.file-upload-area {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff !important;
+    background-color: #f8f9fa !important;
+}
+
+.file-upload-area.border-primary {
+    border-color: #007bff !important;
+    background-color: #e3f2fd !important;
+}
+
+.file-preview-item {
+    transition: all 0.2s ease;
+}
+
+.file-preview-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.bulk-actions-bar {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+<div class="container-fluid">
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <div class="float-right">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="javascript:void(0);"><?php echo e(__('home')); ?></a></li>
+                        <li class="breadcrumb-item"><a href="javascript:void(0);"><?php echo e(__('category')); ?></a></li>
+                        <li class="breadcrumb-item active"><?php echo e(__('guests')); ?></li>
+                    </ol>
+                </div>
+            </div><!--end page-title-box-->
+        </div><!--end col-->
+    </div>
+    <!-- end page title end breadcrumb -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+
+                    <h4 class="mt-0 header-title"><?php echo e(__('list_of_guests')); ?> <span class="badge badge-primary" id="total-contacts"><?php echo e($total_guests ?? 0); ?></span></h4>
+                    <p class="text-muted mb-3"><?php echo e(__('manage_list_of_guests')); ?></p>
+                    
+                    <!-- Bulk Actions Bar -->
+                    <div id="bulk-actions-bar" class="alert alert-primary" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="mdi mdi-check-circle mr-2"></i>
+                                <span id="selected-count">0</span> <?php echo e(__('contacts_selected')); ?>
+
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-success btn-sm mr-2" id="bulk-send-message">
+                                    <i class="mdi mdi-message-text mr-1"></i><?php echo e(__('send_message')); ?>
+
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm mr-2" id="bulk-delete">
+                                    <i class="mdi mdi-delete mr-1"></i><?php echo e(__('delete_selected')); ?>
+
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selection">
+                                    <i class="mdi mdi-close mr-1"></i><?php echo e(__('clear_selection')); ?>
+
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Handoff Management Tabs -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+                                <div class="card-body py-3">
+                                    <h5 class="text-white mb-3"><i class="mdi mdi-account-supervisor-circle mr-2"></i><?php echo e(__('handoff_management')); ?></h5>
+                                    
+                                    <!-- Status Filter Tabs -->
+                                    <ul class="nav nav-pills nav-fill" id="handoff-tabs" style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 5px;">
+                                        <li class="nav-item">
+                                            <a class="nav-link active text-white" data-status="all" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-view-dashboard mr-1"></i><?php echo e(__('all')); ?>
+
+                                                <span class="badge badge-light ml-2"><?php echo e($total_guests ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="ai" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-robot mr-1"></i><?php echo e(__('ai_handling')); ?>
+
+                                                <span class="badge badge-light ml-2"><?php echo e($handoff_stats['ai_handled'] ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="pending_handoff" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-clock-outline mr-1"></i><?php echo e(__('pending_handoff')); ?>
+
+                                                <span class="badge badge-warning ml-2"><?php echo e($handoff_stats['pending_handoff'] ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="handed_off" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-account-check mr-1"></i><?php echo e(__('handed_off')); ?>
+
+                                                <span class="badge badge-info ml-2"><?php echo e($handoff_stats['handed_off'] ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="completed" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-check-circle mr-1"></i><?php echo e(__('completed')); ?>
+
+                                                <span class="badge badge-success ml-2"><?php echo e($handoff_stats['completed'] ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" data-status="urgent" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
+                                                <i class="mdi mdi-alert mr-1"></i><?php echo e(__('urgent')); ?>
+
+                                                <span class="badge badge-danger ml-2"><?php echo e($handoff_stats['urgent_cases'] ?? 0); ?></span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p>  
+                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal" onclick=" $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');">
+                          <?php echo e(__('add_new_guest')); ?>  
+                        </button>
+                        <a href="#" class="btn btn-outline-success ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myUploadModal" title="<?php echo e(__('upload_excel')); ?>">
+                            <i class="mdi mdi-file-excel-box" style="font-size: 1.2em; margin-right: 6px;"></i>
+                            <?php echo e(__('upload_excel')); ?>
+
+                        </a>
+
+                        <button type="button" class="btn btn-outline-primary ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#whatsappSyncModal">
+                            <i class="mdi mdi-whatsapp" style="font-size: 1.2em; margin-right: 6px;"></i>
+                            <?php echo e(__('sync_from_whatsapp')); ?>
+
+                        </button>
+
+                        <button type="button" class="btn btn-outline-info ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#googleSyncModal">
+                            <i class="mdi mdi-google" style="font-size: 1.2em; margin-right: 6px; color: #4285f4;"></i>
+                            <?php echo e(__('sync_from_google')); ?>
+
+                        </button>
+
+                        <!-- WhatsApp Sync Modal -->
+                        <div class="modal fade planner-modal-bx" id="whatsappSyncModal" tabindex="-1" role="dialog" aria-labelledby="whatsappSyncModalLabel" aria-hidden="true" style="display: none;">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content start-here">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title mt-0" id="whatsappSyncModalLabel"><?php echo e(__('sync_whatsapp_contacts')); ?></h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">×</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><?php echo e(__('connect_whatsapp_to_import_contacts')); ?></p>
+                                        <div id="whatsapp-sync-status" class="mb-2"></div>
+                                        <button type="button" class="btn btn-success" id="startWhatsappSync">
+                                            <i class="mdi mdi-whatsapp"></i> <?php echo e(__('start_sync')); ?>
+
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Google Contacts Sync Modal -->
+                        <div class="modal fade planner-modal-bx" id="googleSyncModal" tabindex="-1" role="dialog" aria-labelledby="googleSyncModalLabel" aria-hidden="true" style="display: none;">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content start-here">
+                                    <div class="modal-header" style="background: linear-gradient(135deg, #4285f4 0%, #34a853 100%); color: white;">
+                                        <h5 class="modal-title mt-0" id="googleSyncModalLabel">
+                                            <i class="mdi mdi-google mr-2"></i><?php echo e(__('sync_google_contacts')); ?>
+
+                                        </h5>
+                                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">×</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="text-center mb-3">
+                                            <i class="mdi mdi-google" style="font-size: 4rem; color: #4285f4;"></i>
+                                        </div>
+                                        <p class="text-center"><?php echo e(__('sync_contacts_from_google_account')); ?></p>
+                                        <p class="text-muted small text-center"><?php echo e(__('secure_google_oauth_process')); ?></p>
+                                        
+                                        <div id="google-sync-status" class="mb-3"></div>
+                                        
+                                        <div class="text-center">
+                                            <button type="button" class="btn btn-primary btn-lg" id="startGoogleAuth" style="background: #4285f4; border-color: #4285f4; padding: 12px 30px; border-radius: 25px;">
+                                                <i class="mdi mdi-google mr-2"></i> <?php echo e(__('sign_in_with_google')); ?>
+
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <small class="text-muted">
+                                                <i class="mdi mdi-information"></i>
+                                                <?php echo e(__('google_contacts_sync_info')); ?>:
+                                                <ul class="mt-2 mb-0">
+                                                    <li><?php echo e(__('secure_oauth_authentication')); ?></li>
+                                                    <li><?php echo e(__('read_only_access_to_contacts')); ?></li>
+                                                    <li><?php echo e(__('no_passwords_stored')); ?></li>
+                                                    <li><?php echo e(__('automatic_duplicate_prevention')); ?></li>
+                                                </ul>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <script type="text/javascript">
+                            // Google API Configuration
+                            const GOOGLE_CLIENT_ID = '<?php echo e(config("services.google.client_id", "YOUR_GOOGLE_CLIENT_ID")); ?>';
+                            const GOOGLE_API_KEY = '<?php echo e(config("services.google.api_key", "YOUR_GOOGLE_API_KEY")); ?>';
+                            const DISCOVERY_DOC = 'https://people.googleapis.com/$discovery/rest?version=v1';
+                            const SCOPES = 'https://www.googleapis.com/auth/contacts.readonly';
+                            
+                            let tokenClient;
+                            let gapi_inited = false;
+                            let gsi_inited = false;
+                            
+                            // Initialize Google API
+                            function initializeGoogleAPI() {
+                                if (typeof gapi !== 'undefined' && !gapi_inited) {
+                                    gapi.load('client', initializeGapiClient);
+                                }
+                                if (typeof google !== 'undefined' && !gsi_inited) {
+                                    initializeGsiClient();
+                                }
+                            }
+                            
+                            async function initializeGapiClient() {
+                                try {
+                                    await gapi.client.init({
+                                        apiKey: GOOGLE_API_KEY,
+                                        discoveryDocs: [DISCOVERY_DOC],
+                                    });
+                                    gapi_inited = true;
+                                    console.log('Google API client initialized');
+                                } catch (error) {
+                                    console.error('Error initializing Google API:', error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger">Error initializing Google API</div>');
+                                }
+                            }
+                            
+                            function initializeGsiClient() {
+                                try {
+                                    tokenClient = google.accounts.oauth2.initTokenClient({
+                                        client_id: GOOGLE_CLIENT_ID,
+                                        scope: SCOPES,
+                                        callback: handleAuthResponse,
+                                    });
+                                    gsi_inited = true;
+                                    console.log('Google Sign-In client initialized');
+                                } catch (error) {
+                                    console.error('Error initializing Google Sign-In:', error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger">Error initializing Google Sign-In</div>');
+                                }
+                            }
+                            
+                            // Handle Google Auth button click
+                            $('#startGoogleAuth').on('click', function() {
+                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i><?php echo e(__("initializing_google_auth")); ?></div>');
+                                
+                                if (!gapi_inited || !gsi_inited) {
+                                    initializeGoogleAPI();
+                                    setTimeout(() => {
+                                        if (gapi_inited && gsi_inited) {
+                                            requestGoogleAuth();
+                                        } else {
+                                            $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_initialize_google_api")); ?></div>');
+                                        }
+                                    }, 2000);
+                                } else {
+                                    requestGoogleAuth();
+                                }
+                            });
+                            
+                            function requestGoogleAuth() {
+                                try {
+                                    if (gapi.client.getToken() === null) {
+                                        tokenClient.requestAccessToken({prompt: 'consent'});
+                                    } else {
+                                        tokenClient.requestAccessToken({prompt: ''});
+                                    }
+                                } catch (error) {
+                                    console.error('Error requesting Google auth:', error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_start_google_auth")); ?></div>');
+                                }
+                            }
+                            
+                            // Handle authentication response
+                            async function handleAuthResponse(resp) {
+                                if (resp.error !== undefined) {
+                                    console.error('Google Auth Error:', resp.error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("google_auth_failed")); ?>: ' + resp.error + '</div>');
+                                    return;
+                                }
+                                
+                                $('#google-sync-status').html('<div class="alert alert-success"><i class="mdi mdi-check mr-2"></i><?php echo e(__("google_auth_successful_fetching_contacts")); ?></div>');
+                                
+                                try {
+                                    await fetchGoogleContacts();
+                                } catch (error) {
+                                    console.error('Error fetching contacts:', error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_fetch_google_contacts")); ?></div>');
+                                }
+                            }
+                            
+                            // Fetch Google Contacts
+                            async function fetchGoogleContacts() {
+                                try {
+                                    $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i><?php echo e(__("fetching_contacts_from_google")); ?></div>');
+                                    
+                                    const response = await gapi.client.people.people.connections.list({
+                                        resourceName: 'people/me',
+                                        personFields: 'names,phoneNumbers,emailAddresses',
+                                        pageSize: 1000
+                                    });
+                                    
+                                    const contacts = response.result.connections || [];
+                                    console.log('Google contacts fetched:', contacts.length);
+                                    
+                                    if (contacts.length > 0) {
+                                        processGoogleContacts(contacts);
+                                    } else {
+                                        $('#google-sync-status').html('<div class="alert alert-warning"><?php echo e(__("no_contacts_found_in_google_account")); ?></div>');
+                                    }
+                                    
+                                } catch (error) {
+                                    console.error('Error fetching Google contacts:', error);
+                                    $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("error_fetching_google_contacts")); ?>: ' + error.message + '</div>');
+                                }
+                            }
+                            
+                            // Process and import Google contacts
+                            function processGoogleContacts(contacts) {
+                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i><?php echo e(__("processing_contacts_for_import")); ?></div>');
+                                
+                                const processedContacts = contacts.map(contact => {
+                                    const name = contact.names && contact.names.length > 0 
+                                        ? contact.names[0].displayName || contact.names[0].givenName + ' ' + (contact.names[0].familyName || '')
+                                        : 'Unknown Contact';
+                                    
+                                    const phones = contact.phoneNumbers || [];
+                                    const emails = contact.emailAddresses || [];
+                                    
+                                    return {
+                                        name: name.trim(),
+                                        phones: phones.map(p => p.value),
+                                        emails: emails.map(e => e.value),
+                                        primaryPhone: phones.length > 0 ? phones[0].value : null,
+                                        primaryEmail: emails.length > 0 ? emails[0].value : null
+                                    };
+                                }).filter(contact => contact.primaryPhone); // Only contacts with phone numbers
+                                
+                                console.log('Processed contacts:', processedContacts.length);
+                                
+                                if (processedContacts.length > 0) {
+                                    importGoogleContacts(processedContacts);
+                                } else {
+                                    $('#google-sync-status').html('<div class="alert alert-warning"><?php echo e(__("no_contacts_with_phone_numbers_found")); ?></div>');
+                                }
+                            }
+                            
+                            // Import contacts to backend
+                            function importGoogleContacts(contacts) {
+                                $.ajax({
+                                    url: '<?= url("guest/importGoogleContacts") ?>',
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    data: JSON.stringify({
+                                        contacts: contacts
+                                    }),
+                                    success: function(response) {
+                                        console.log('Google contacts import response:', response);
+                                        
+                                        if (response.success) {
+                                            $('#google-sync-status').html(
+                                                '<div class="alert alert-success">' +
+                                                '<i class="mdi mdi-check-circle mr-2"></i>' +
+                                                '<?php echo e(__("google_contacts_imported_successfully")); ?>: ' + 
+                                                (response.imported_count || 0) + ' <?php echo e(__("contacts_imported")); ?>' +
+                                                '</div>'
+                                            );
+                                            
+                                            // Reload page after 3 seconds
+                                            setTimeout(function() {
+                                                location.reload();
+                                            }, 3000);
+                                        } else {
+                                            $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_import_google_contacts")); ?>: ' + (response.message || 'Unknown error') + '</div>');
+                                        }
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error('Google contacts import failed:', error);
+                                        $('#google-sync-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_import_google_contacts")); ?>: Import request failed</div>');
+                                    }
+                                });
+                            }
+                            
+                            // Initialize when modal is shown
+                            $('#googleSyncModal').on('shown.bs.modal', function() {
+                                if (typeof gapi === 'undefined' || typeof google === 'undefined') {
+                                    $('#google-sync-status').html('<div class="alert alert-warning"><?php echo e(__("loading_google_apis")); ?></div>');
+                                    loadGoogleAPIs();
+                                }
+                            });
+                            
+                            // Load Google APIs dynamically
+                            function loadGoogleAPIs() {
+                                if (typeof gapi === 'undefined') {
+                                    const gapiScript = document.createElement('script');
+                                    gapiScript.src = 'https://apis.google.com/js/api.js';
+                                    gapiScript.onload = () => {
+                                        console.log('Google API script loaded');
+                                        gapi.load('client', initializeGapiClient);
+                                    };
+                                    document.head.appendChild(gapiScript);
+                                }
+                                
+                                if (typeof google === 'undefined') {
+                                    const gsiScript = document.createElement('script');
+                                    gsiScript.src = 'https://accounts.google.com/gsi/client';
+                                    gsiScript.onload = () => {
+                                        console.log('Google Sign-In script loaded');
+                                        initializeGsiClient();
+                                    };
+                                    document.head.appendChild(gsiScript);
+                                }
+                            }
+                        </script>
+                        
+                        <script type="text/javascript">
+                            $('#startWhatsappSync').on('click', function () {
+                                $('#whatsapp-sync-status').html('<span class="text-info"><?php echo e(__("syncing_contacts_please_wait")); ?></span>');
+                                
+                                // Get user's WhatsApp instance directly from backend
+                                <?php
+                                    $whatsappInstance = Auth::user()->whatsappInstance();
+                                   
+                                ?>
+                                
+                                <?php if($whatsappInstance): ?>
+                                    // User has a WhatsApp instance, proceed with sync
+                                    var instanceId = '<?php echo e($whatsappInstance->instance_id); ?>';
+                                    var connectStatus = '<?php echo e($whatsappInstance->connect_status); ?>';
+                                    
+                                    if (connectStatus === 'ready') {
+                                        syncContactsFromWAAPI(instanceId);
+                                    } else {
+                                        $('#whatsapp-sync-status').html('<span class="text-warning"><?php echo e(__("whatsapp_instance_not_connected_please_connect_first")); ?></span>');
+                                    }
+                                <?php else: ?>
+                                    // No WhatsApp instance found
+                                    $('#whatsapp-sync-status').html('<span class="text-danger"><?php echo e(__("no_whatsapp_instance_found_please_setup_first")); ?></span>');
+                                <?php endif; ?>
+                            });
+                            
+                            function syncContactsFromWAAPI(instanceId) {
+                                console.log('Syncing contacts for instance:', instanceId);
+                                
+                                $.ajax({
+                                    url: 'https://waapi.app/api/v1/instances/' + instanceId + '/client/action/get-contacts',
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': 'Bearer <?php echo e(config("app.waapi_token", "ftXEQe1S8hncxJVzHRrc3JqB9eHqUmG6WIctlMPy8435fd42")); ?>',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    data: JSON.stringify({}),
+                                    success: function (data) {
+                                        console.log('Contacts sync response:', data);
+                                        
+                                        if (data.data && data.data.length > 0) {
+                                            // Process and save contacts to backend
+                                            $.ajax({
+                                                url: '<?= url("guest/importWhatsappContacts") ?>',
+                                                method: 'POST',
+                                                headers: {
+                                                    'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                data: JSON.stringify({
+                                                    contacts: data.data,
+                                                    instance_id: instanceId
+                                                }),
+                                                success: function(response) {
+                                                    console.log('Import response:', response);
+                                                    
+                                                    if (response.success) {
+                                                        $('#whatsapp-sync-status').html('<span class="text-success"><?php echo e(__("contacts_synced_successfully")); ?>: ' + (response.imported_count || 0) + ' contacts imported</span>');
+                                                        
+                                                        // Reload page after 2 seconds to show new contacts
+                                                        setTimeout(function() {
+                                                            location.reload();
+                                                        }, 2000);
+                                                    } else {
+                                                        $('#whatsapp-sync-status').html('<span class="text-danger"><?php echo e(__("failed_to_import_contacts")); ?>: ' + (response.message || 'Unknown error') + '</span>');
+                                                    }
+                                                },
+                                                error: function(xhr, status, error) {
+                                                    console.error('Import failed:', error);
+                                                    $('#whatsapp-sync-status').html('<span class="text-danger"><?php echo e(__("failed_to_import_contacts")); ?>: Import request failed</span>');
+                                                }
+                                            });
+                                        } else {
+                                            $('#whatsapp-sync-status').html('<span class="text-warning"><?php echo e(__("no_contacts_found_in_whatsapp")); ?></span>');
+                                        }
+                                    },
+                                    error: function (xhr, status, error) {
+                                        console.error('WAAPI contacts request failed:', {
+                                            status: xhr.status,
+                                            statusText: xhr.statusText,
+                                            responseText: xhr.responseText,
+                                            error: error
+                                        });
+                                        
+                                        let errorMessage = '<?php echo e(__("failed_to_sync_contacts")); ?>';
+                                        if (xhr.status === 401) {
+                                            errorMessage = '<?php echo e(__("authentication_failed_check_waapi_token")); ?>';
+                                        } else if (xhr.status === 404) {
+                                            errorMessage = '<?php echo e(__("instance_not_found_or_not_connected")); ?>';
+                                        } else if (xhr.status === 405) {
+                                            errorMessage = '<?php echo e(__("method_not_allowed_api_endpoint_issue")); ?>';
+                                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                            errorMessage = xhr.responseJSON.message;
+                                        }
+                                        
+                                        $('#whatsapp-sync-status').html('<span class="text-danger">' + errorMessage + '</span>');
+                                    }
+                                });
+                            }
+                        </script>
+                    </p>
+                    <br/>
+                    <div class="table-responsive">
+                        <table class="table table-bordered dataTable" id="datatable-buttons">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="select-all">
+                                            <label class="custom-control-label" for="select-all"></label>
+                                        </div>
+                                    </th>
+                                    <th>#</th>
+                                    <th><?php echo e(__('name')); ?></th>
+                                    <th><?php echo e(__('phone')); ?></th>
+                                    <!--<th><?php echo e(__('email')); ?> </th>-->
+                                    <th><?php echo e(__('date')); ?></th>
+                                    <th><?php echo e(__('group')); ?></th>
+                                    <th><?php echo e(__('handoff_status')); ?></th>
+                                    <th><?php echo e(__('priority')); ?></th>
+                                    <th><?php echo e(__('assigned_agent')); ?></th>
+                                    <th name="buttons"><?php echo e(__('action')); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                              
+                                $total_pledge = 0;
+                                $i = 1;
+                                foreach ($guests as $guest) {
+                                    $total_pledge += $guest->guest_pledge;
+                                    ?>
+                                    <tr data-handoff-status="<?php echo e($guest->handoff_status ?? 'ai'); ?>" data-priority="<?php echo e($guest->priority_level ?? 3); ?>">
+                                        <td>
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-<?= $guest->id ?>" value="<?= $guest->id ?>">
+                                                <label class="custom-control-label" for="checkbox-<?= $guest->id ?>"></label>
+                                            </div>
+                                        </td>
+                                        <td><?php echo e($i); ?></td>
+                                        <td><span id="guest_name<?= $guest->id ?>"><?php echo e($guest->guest_name); ?></span></td>
+                                        <td><span id="guest_phone<?= $guest->id ?>"><?php echo e($guest->guest_phone); ?></span></td>
+                                        <!--<td><?php echo e($guest->guest_email); ?></td>-->
+                                        <td><?php echo e(date('d M Y',strtotime($guest->created_at))); ?></td>
+                                        <td><?php echo e(isset($guest->eventGuestCategory->name) ?$guest->eventGuestCategory->name:''); ?></td>
+                                        
+                                        <!-- Handoff Status Column -->
+                                        <td>
+                                            <?php
+                                                $handoffStatus = $guest->handoff_status ?? 'ai';
+                                                $statusColors = [
+                                                    'ai' => 'primary',
+                                                    'pending_handoff' => 'warning',
+                                                    'handed_off' => 'info',
+                                                    'completed' => 'success'
+                                                ];
+                                                $statusIcons = [
+                                                    'ai' => 'robot',
+                                                    'pending_handoff' => 'clock-outline',
+                                                    'handed_off' => 'account-check',
+                                                    'completed' => 'check-circle'
+                                                ];
+                                            ?>
+                                            <span class="badge badge-<?php echo e($statusColors[$handoffStatus] ?? 'secondary'); ?>" style="font-size: 0.85em; padding: 6px 10px;">
+                                                <i class="mdi mdi-<?php echo e($statusIcons[$handoffStatus] ?? 'help'); ?> mr-1"></i>
+                                                <?php echo e(ucfirst(str_replace('_', ' ', $handoffStatus))); ?>
+
+                                            </span>
+                                        </td>
+                                        
+                                        <!-- Priority Column -->
+                                        <td>
+                                            <?php
+                                                $priority = $guest->priority_level ?? 3;
+                                                $priorityLabels = [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Urgent', 5 => 'Critical'];
+                                                $priorityColors = [1 => 'warning', 2 => 'info', 3 => 'secondary', 4 => 'danger', 5 => 'dark'];
+                                            ?>
+                                            <span class="badge badge-<?php echo e($priorityColors[$priority] ?? 'secondary'); ?>" style="font-size: 0.75em;">
+                                                <?php echo e($priorityLabels[$priority] ?? 'Unknown'); ?>
+
+                                            </span>
+                                        </td>
+                                        
+                                        <!-- Assigned Agent Column -->
+                                        <td>
+                                            <?php if($guest->assignedAgent): ?>
+                                                <span class="text-success">
+                                                    <i class="mdi mdi-account-check mr-1"></i>
+                                                    <?php echo e($guest->assignedAgent->name); ?>
+
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted">
+                                                    <i class="mdi mdi-account-off mr-1"></i>
+                                                    <?php echo e(__('unassigned')); ?>
+
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        
+                                        <td name="buttons">
+                                            <a onclick="viewContact('<?= $guest->id ?>')" class="btn btn-info btn-sm" title="<?php echo e(__('view_contact')); ?>">
+                                                <i class="las la-eye"></i>
+                                            </a>
+                                            <a onclick="sendMessageToContact('<?= $guest->id ?>')" class="btn btn-success btn-sm" title="<?php echo e(__('send_message')); ?>">
+                                                <i class="las la-comment"></i>
+                                            </a>
+                                            <!-- Handoff Management Button -->
+                                            <button onclick="openHandoffModal('<?= $guest->id ?>')" class="btn btn-primary btn-sm" title="<?php echo e(__('manage_handoff')); ?>">
+                                                <i class="mdi mdi-account-supervisor"></i>
+                                            </button>
+                                            <a onclick="editGuest('<?= $guest->id ?>')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="<?php echo e(__('edit')); ?>">
+                                                <i class="las la-pen"></i>
+                                            </a>
+                                            <a onclick="confirmDelete('<?= $guest->id ?>')" class="btn btn-danger btn-sm" title="<?php echo e(__('delete')); ?>">
+                                                <i class="las la-trash-alt"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                    $i++;
+                                }
+                                ?>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <!--<th>Email </th>-->
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th name="buttons"></th>
+                                </tr>
+                        </table>
+                        
+                        <!-- Pagination Links -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted">
+                                </p>
+                            </div>
+                            <div>
+                               
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                </div><!--end card-body-->
+            </div><!--end card-->
+        </div> <!-- end col -->
+    </div> <!-- end row -->
+
+
+</div>
+
+<div class="modal fade planner-modal-bx" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">×</span>
+    </button>
+    <div class="modal-dialog" role="document">
+        <form class="modal-content start-here" id="ProfileStep5" action="<?= url('guest/store') ?>" method="POST">
+
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mt-0" id="exampleModalLabel"><?php echo e(__('edit_guest_details')); ?></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="form-group">
+                        <label for="quantity" class=" col-form-label text-right"><?php echo e(__('guest_name')); ?></label>
+                        <input type="text" 
+                               name="guest_name" 
+                               id="edit_guest_name" 
+                               class="form-control" 
+                               placeholder="Name" 
+                               pattern="^[a-zA-Z\s\-']+$"
+                               title="Only letters, spaces, hyphens and apostrophes allowed"
+                               oninput="this.value = this.value.replace(/[^a-zA-Z\s\-']/g, '')"
+                               required="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity" class="col-form-label text-right"><?php echo e(__('phone')); ?></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <select class="form-control" name="country_code" id="country_code" style="max-width: 100px;">
+                                    <?php $__currentLoopData = \App\Models\Country::orderBy('name')->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $country): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="+<?php echo e($country->phonecode); ?>">
+                                            +<?php echo e($country->name); ?> 
+                                        </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    <!-- Add more country codes as needed -->
+                                </select>
+                            </div>
+                            <input type="text"
+                                   name="guest_phone"
+                                   id="edit_guest_phone"
+                                   class="form-control"
+                                   placeholder="7XXXXXXXX"
+                                   pattern="[0-9]{7,15}"
+                                   title="Enter phone number without country code, numbers only"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                   required="">
+                        </div>
+                        <small class="form-text text-muted">
+                            <?php echo e(__('enter_phone_with_country_code')); ?> (e.g. +255 712345678)
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity" class=" col-form-label text-right"><?php echo e(__('user_group')); ?></label>
+                        <select class="form-control" name="event_guest_category_id" id="append_option">
+                            <?php foreach ($guest_categories as $category) { ?>
+                                <option value="<?= $category->id ?>"><?= $category->name ?></option>
+                            <?php } ?>
+                        </select>
+                        <br/>
+                        <a class="label label-default mb-2 mb-lg-0 badge badge-success" onclick="$('.arrow').toggle()" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                           <?php echo e(__('add_new_user_group')); ?> 
+                        </a> <i class="dripicons-arrow-thin-right arrow"></i> <i class="dripicons-arrow-thin-down arrow" style="display: none"></i>
+                        <div class="collapse hide" id="collapseExample" style="">
+                            <div class="card mb-0 card-body">
+                                <p class="mb-0 text-muted"><?php echo e(__('user_group_name')); ?> </p> 
+                                <div class="table-responsive">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <input type="text" id="new_category_value"  name="name" class="form-control" placeholder="<?php echo e(__('type_name')); ?>">
+                                            <span class="input-group-append">
+
+                                                <button type="button" class="btn  btn-sm btn-success" id="new_category"><?php echo e(__('save')); ?></button>
+                                            </span>
+
+                                        </div> 
+                                        <span id="error_message"></span>
+                                      </div>
+                                          <div class="text-muted small d-block mt-1"><?php echo e(__('user_group_name_help')); ?> </div>
+
+                                        <div class="alert alert-warning mt-3">
+                                            <i class="mdi mdi-information-outline mr-2"></i>
+                                            <?php echo e(__('You can edit or manage existing categories in the')); ?>
+
+                                            <a href="<?php echo e(url('home/settings')); ?>" class="font-weight-bold text-primary" target="_blank">
+                                                <?php echo e(__('Settings page')); ?>
+
+                                            </a>.
+                                        </div>
+                                  
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer text-center">
+                <?= csrf_field() ?>
+                <input type="hidden" id="edit_guest" value="" name="id"/>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo e(__('close')); ?></button>
+                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top"><?php echo e(__('save')); ?></button>
+            </div>
+        </form>
+
+
+    </div>
+</div>
+
+<div class="modal fade planner-modal-bx" id="myUploadModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">×</span>
+    </button>
+    <div class="modal-dialog" role="document">
+        <form class="modal-content start-here" id="ProfileStep5" enctype="multipart/form-data" action="<?= url('guest/uploadGuest') ?>" method="POST">
+
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mt-0" id="exampleModalLabel"><?php echo e(__('upload_guest_details')); ?></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="alert alert-info d-flex align-items-center">
+                        <span class="mr-2"><?php echo e(__('download_sample_file')); ?></span>
+                        <a href="<?= url('storage/uploads/sample.xlsx') ?>" class="btn btn-primary btn-sm font-weight-bold" style="margin-left:10px;">
+                            <i class="mdi mdi-download" style="margin-right:5px;"></i><?php echo e(__('sample_excel_file')); ?>
+
+                        </a>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity" class="col-form-label text-right"><?php echo e(__('click_to_upload_excel_or_vcf')); ?></label>
+                        <input type="file" name="file" id="edit_guest_name" class="form-control" accept=".xls,.csv,.xlsx,.vcf" placeholder="File Upload" required="">
+                        <small class="form-text text-muted">
+                            <?php echo e(__('supported_formats')); ?>: .xls, .xlsx, .csv, .vcf
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <a href="#" class="badge badge-info" data-toggle="collapse" data-target="#vcfInstructions" aria-expanded="false" aria-controls="vcfInstructions">
+                            <i class="mdi mdi-information-outline"></i> <?php echo e(__('how_to_export_vcf_from_phone')); ?>
+
+                        </a>
+                        <div class="collapse mt-2" id="vcfInstructions">
+                            <div class="card card-body">
+                                <strong><?php echo e(__('step_by_step_vcf_export_instructions')); ?></strong>
+                                <ol class="mb-2">
+                                    <li><?php echo e(__('open_contacts_app_on_your_phone')); ?></li>
+                                    <li><?php echo e(__('go_to_settings_or_manage_contacts')); ?></li>
+                                    <li><?php echo e(__('find_export_option_and_choose_export_to_vcf_file')); ?></li>
+                                    <li><?php echo e(__('save_vcf_file_to_your_phone_storage')); ?></li>
+                                    <li><?php echo e(__('transfer_vcf_file_to_your_computer_if_needed')); ?></li>
+                                    <li><?php echo e(__('click_browse_and_select_vcf_file_to_upload')); ?></li>
+                                </ol>
+                                <small class="text-muted">
+                                    <?php echo e(__('note_vcf_export_steps_may_vary_by_phone_brand')); ?>
+
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer text-center">
+                <?= csrf_field() ?>
+                <input type="hidden" id="edit_guest" value="" name="id"/>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo e(__('close')); ?></button>
+                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top"><?php echo e(__('save')); ?></button>
+            </div>
+        </form>
+
+
+    </div>
+</div>
+
+<!-- Contact View Modal -->
+<div class="modal fade" id="contactViewModal" tabindex="-1" role="dialog" aria-labelledby="contactViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="contactViewModalLabel">
+                    <i class="mdi mdi-account-circle mr-2"></i><?php echo e(__('contact_details')); ?>
+
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="mdi mdi-account mr-2"></i><?php echo e(__('contact_information')); ?></h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong><?php echo e(__('name')); ?>:</strong></td>
+                                        <td id="view-contact-name"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><?php echo e(__('phone')); ?>:</strong></td>
+                                        <td id="view-contact-phone"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><?php echo e(__('email')); ?>:</strong></td>
+                                        <td id="view-contact-email"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><?php echo e(__('group')); ?>:</strong></td>
+                                        <td id="view-contact-group"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><?php echo e(__('date_added')); ?>:</strong></td>
+                                        <td id="view-contact-date"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="mdi mdi-message-text mr-2"></i><?php echo e(__('recent_messages')); ?></h6>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="contact-messages">
+                                    <div class="text-center text-muted">
+                                        <i class="mdi mdi-loading mdi-spin"></i> <?php echo e(__('loading_messages')); ?>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="sendMessageFromView()">
+                    <i class="mdi mdi-message-text mr-2"></i><?php echo e(__('send_message')); ?>
+
+                </button>
+                <button type="button" class="btn btn-warning" onclick="editFromView()">
+                    <i class="mdi mdi-pencil mr-2"></i><?php echo e(__('edit_contact')); ?>
+
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo e(__('close')); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Message Modal -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1" role="dialog" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="sendMessageModalLabel">
+                    <i class="mdi mdi-message-text mr-2"></i><?php echo e(__('send_message')); ?>
+
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <form id="messageForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="message-recipients"><?php echo e(__('recipients')); ?>:</label>
+                        <div id="message-recipients" class="border rounded p-2 bg-light">
+                            <!-- Recipients will be populated here -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="message-content"><?php echo e(__('message')); ?>:</label>
+                        <textarea class="form-control" id="message-content" name="message" rows="5" placeholder="<?php echo e(__('enter_your_message_here')); ?>"></textarea>
+                        <small class="form-text text-muted">
+                            <span id="char-count">0</span>/1000 <?php echo e(__('characters')); ?>
+
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><?php echo e(__('attachments')); ?> (<?php echo e(__('optional')); ?>):</label>
+                        <div class="file-upload-area border rounded p-3" style="border-style: dashed !important; border-color: #dee2e6;">
+                            <div class="text-center">
+                                <i class="mdi mdi-cloud-upload text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mb-2"><?php echo e(__('drag_drop_files_or_click_to_browse')); ?></p>
+                                <input type="file" id="message-attachments" name="attachments[]" multiple class="d-none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="$('#message-attachments').click()">
+                                    <i class="mdi mdi-attachment mr-1"></i><?php echo e(__('choose_files')); ?>
+
+                                </button>
+                            </div>
+                            <div id="file-preview" class="mt-3" style="display: none;">
+                                <small class="text-muted mb-2 d-block"><?php echo e(__('selected_files')); ?>:</small>
+                                <div class="row" id="file-list"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <i class="mdi mdi-information mr-1"></i><?php echo e(__('supported_formats')); ?>: <?php echo e(__('images_videos_audio_documents_max_16mb')); ?>
+
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="schedule-message">
+                            <label class="custom-control-label" for="schedule-message"><?php echo e(__('schedule_message')); ?></label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="schedule-datetime" style="display: none;">
+                        <label for="schedule-date"><?php echo e(__('schedule_date_time')); ?>:</label>
+                        <input type="datetime-local" class="form-control" id="schedule-date" name="schedule_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div id="message-status" class="mr-auto"></div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo e(__('cancel')); ?></button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="mdi mdi-send mr-2"></i><?php echo e(__('send_message')); ?>
+
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="mdi mdi-delete mr-2"></i><?php echo e(__('confirm_delete')); ?>
+
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="mdi mdi-alert-circle text-danger" style="font-size: 3rem;"></i>
+                    <h6 class="mt-3" id="delete-message"><?php echo e(__('are_you_sure_you_want_to_delete')); ?></h6>
+                    <div id="delete-contact-info" class="mt-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo e(__('cancel')); ?></button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">
+                    <i class="mdi mdi-delete mr-2"></i><?php echo e(__('yes_delete')); ?>
+
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // Contact management variables
+    let selectedContacts = [];
+    let currentContactId = null;
+    let deleteAction = 'single'; // 'single' or 'bulk'
+    let contactsToDelete = [];
+
+    // Initialize contact management features
+    $(document).ready(function() {
+        initializeContactSelection();
+        initializeMessageForm();
+        save_category();
+    });
+
+    // Contact Selection Functions
+    function initializeContactSelection() {
+        // Select All checkbox
+        $('#select-all').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            $('.contact-checkbox').prop('checked', isChecked);
+            updateSelectedContacts();
+        });
+
+        // Individual contact checkboxes
+        $('.contact-checkbox').on('change', function() {
+            updateSelectedContacts();
+            updateSelectAllState();
+        });
+
+        // Bulk action buttons
+        $('#bulk-send-message').on('click', function() {
+            if (selectedContacts.length > 0) {
+                openSendMessageModal(selectedContacts);
+            }
+        });
+
+        $('#bulk-delete').on('click', function() {
+            if (selectedContacts.length > 0) {
+                confirmBulkDelete(selectedContacts);
+            }
+        });
+
+        $('#clear-selection').on('click', function() {
+            clearSelection();
+        });
+    }
+
+    function updateSelectedContacts() {
+        selectedContacts = [];
+        $('.contact-checkbox:checked').each(function() {
+            selectedContacts.push(parseInt($(this).val()));
+        });
+        
+        updateBulkActionsBar();
+    }
+
+    function updateSelectAllState() {
+        const totalCheckboxes = $('.contact-checkbox').length;
+        const checkedCheckboxes = $('.contact-checkbox:checked').length;
+        
+        if (checkedCheckboxes === 0) {
+            $('#select-all').prop('indeterminate', false).prop('checked', false);
+        } else if (checkedCheckboxes === totalCheckboxes) {
+            $('#select-all').prop('indeterminate', false).prop('checked', true);
+        } else {
+            $('#select-all').prop('indeterminate', true);
+        }
+    }
+
+    function updateBulkActionsBar() {
+        if (selectedContacts.length > 0) {
+            $('#bulk-actions-bar').show();
+            $('#selected-count').text(selectedContacts.length);
+        } else {
+            $('#bulk-actions-bar').hide();
+        }
+    }
+
+    function clearSelection() {
+        $('.contact-checkbox').prop('checked', false);
+        $('#select-all').prop('checked', false).prop('indeterminate', false);
+        selectedContacts = [];
+        updateBulkActionsBar();
+    }
+
+    // Contact View Functions
+    function viewContact(contactId) {
+        currentContactId = contactId;
+        
+        // Get contact details
+        $.ajax({
+            url: '<?= url("guest/getContactDetails") ?>/' + contactId,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    const contact = response.contact;
+                    $('#view-contact-name').text(contact.guest_name);
+                    $('#view-contact-phone').text(contact.guest_phone);
+                    $('#view-contact-email').text(contact.guest_email || '<?php echo e(__("not_provided")); ?>');
+                    $('#view-contact-group').text(contact.category_name || '<?php echo e(__("no_group")); ?>');
+                    $('#view-contact-date').text(new Date(contact.created_at).toLocaleDateString());
+                    
+                    // Load messages
+                    loadContactMessages(contactId);
+                    
+                    $('#contactViewModal').modal('show');
+                } else {
+                    alert('<?php echo e(__("failed_to_load_contact_details")); ?>');
+                }
+            },
+            error: function() {
+                alert('<?php echo e(__("error_loading_contact_details")); ?>');
+            }
+        });
+    }
+
+    function loadContactMessages(contactId) {
+        $('#contact-messages').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> <?php echo e(__("loading_messages")); ?></div>');
+        
+        $.ajax({
+            url: '<?= url("guest/getContactMessages") ?>/' + contactId,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    displayMessages(response.messages);
+                } else {
+                    $('#contact-messages').html('<div class="text-center text-muted"><?php echo e(__("no_messages_found")); ?></div>');
+                }
+            },
+            error: function() {
+                $('#contact-messages').html('<div class="text-center text-danger"><?php echo e(__("error_loading_messages")); ?></div>');
+            }
+        });
+    }
+
+    function displayMessages(messages) {
+        if (messages.length === 0) {
+            $('#contact-messages').html('<div class="text-center text-muted"><?php echo e(__("no_messages_found")); ?></div>');
+            return;
+        }
+
+        let messagesHtml = '';
+        messages.forEach(function(message) {
+            const messageDate = new Date(message.created_at).toLocaleDateString();
+            const messageTime = new Date(message.created_at).toLocaleTimeString();
+            const statusClass = message.status === 'sent' ? 'success' : 
+                               message.status === 'delivered' ? 'info' : 
+                               message.status === 'failed' ? 'danger' : 'warning';
+            
+            messagesHtml += `
+                <div class="message-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="message-content">
+                            <p class="mb-1">${message.message}</p>
+                            <small class="text-muted">${messageDate} ${messageTime}</small>
+                        </div>
+                        <span class="badge badge-${statusClass}">${message.status}</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        $('#contact-messages').html(messagesHtml);
+    }
+
+    // Message Functions
+    function sendMessageToContact(contactId) {
+        openSendMessageModal([contactId]);
+    }
+
+    function openSendMessageModal(contactIds) {
+        // Get contact details for recipients display
+        const recipientNames = [];
+        contactIds.forEach(function(id) {
+            const name = $('#guest_name' + id).text();
+            const phone = $('#guest_phone' + id).text();
+            recipientNames.push(`${name} (${phone})`);
+        });
+        
+        $('#message-recipients').html(recipientNames.map(name => 
+            `<span class="badge badge-primary mr-1 mb-1">${name}</span>`
+        ).join(''));
+        
+        // Store contact IDs for sending
+        $('#messageForm').data('contactIds', contactIds);
+        
+        // Clear form
+        $('#message-content').val('');
+        $('#message-attachments').val('');
+        $('#file-preview').hide();
+        $('#file-list').empty();
+        $('#schedule-message').prop('checked', false);
+        $('#schedule-datetime').hide();
+        $('#message-status').html('');
+        updateCharCount();
+        
+        $('#sendMessageModal').modal('show');
+    }
+
+    function initializeMessageForm() {
+        // Character count
+        $('#message-content').on('input', updateCharCount);
+        
+        // File upload handling
+        $('#message-attachments').on('change', handleFileSelection);
+        
+        // Drag and drop functionality
+        $('.file-upload-area').on('dragover', function(e) {
+            e.preventDefault();
+            $(this).addClass('border-primary bg-light');
+        });
+        
+        $('.file-upload-area').on('dragleave', function(e) {
+            e.preventDefault();
+            $(this).removeClass('border-primary bg-light');
+        });
+        
+        $('.file-upload-area').on('drop', function(e) {
+            e.preventDefault();
+            $(this).removeClass('border-primary bg-light');
+            
+            const files = e.originalEvent.dataTransfer.files;
+            $('#message-attachments')[0].files = files;
+            handleFileSelection();
+        });
+        
+        // Schedule checkbox
+        $('#schedule-message').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#schedule-datetime').show();
+                // Set minimum date to current time
+                const now = new Date();
+                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                $('#schedule-date').attr('min', localDateTime);
+            } else {
+                $('#schedule-datetime').hide();
+            }
+        });
+        
+        // Form submission
+        $('#messageForm').on('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+    }
+
+    // File handling functions
+    function handleFileSelection() {
+        const files = $('#message-attachments')[0].files;
+        if (files.length > 0) {
+            displayFilePreview(files);
+            $('#file-preview').show();
+        } else {
+            $('#file-preview').hide();
+        }
+    }
+
+    function displayFilePreview(files) {
+        const fileList = $('#file-list');
+        fileList.empty();
+        
+        Array.from(files).forEach(function(file, index) {
+            // Validate file size (16MB limit)
+            if (file.size > 16 * 1024 * 1024) {
+                alert('<?php echo e(__("file_too_large")); ?>: ' + file.name + ' (<?php echo e(__("max_16mb")); ?>)');
+                return;
+            }
+            
+            const fileSize = formatFileSize(file.size);
+            const fileType = getFileType(file.type, file.name);
+            const fileIcon = getFileIcon(fileType);
+            
+            const filePreview = `
+                <div class="col-md-6 mb-2">
+                    <div class="card card-body p-2">
+                        <div class="d-flex align-items-center">
+                            <i class="${fileIcon} mr-2" style="font-size: 1.5rem;"></i>
+                            <div class="flex-grow-1">
+                                <div class="file-name text-truncate" title="${file.name}">
+                                    <strong>${file.name}</strong>
+                                </div>
+                                <small class="text-muted">${fileType} • ${fileSize}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger ml-2" onclick="removeFile(${index})">
+                                <i class="mdi mdi-close"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            fileList.append(filePreview);
+        });
+    }
+
+    function removeFile(index) {
+        const files = $('#message-attachments')[0].files;
+        const dataTransfer = new DataTransfer();
+        
+        Array.from(files).forEach(function(file, i) {
+            if (i !== index) {
+                dataTransfer.items.add(file);
+            }
+        });
+        
+        $('#message-attachments')[0].files = dataTransfer.files;
+        handleFileSelection();
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getFileType(mimeType, fileName) {
+        if (mimeType.startsWith('image/')) return '<?php echo e(__("image")); ?>';
+        if (mimeType.startsWith('video/')) return '<?php echo e(__("video")); ?>';
+        if (mimeType.startsWith('audio/')) return '<?php echo e(__("audio")); ?>';
+        if (mimeType.includes('pdf')) return 'PDF';
+        if (mimeType.includes('word') || fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'Word';
+        if (mimeType.includes('excel') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return 'Excel';
+        if (mimeType.includes('powerpoint') || fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return 'PowerPoint';
+        if (fileName.endsWith('.txt')) return 'Text';
+        if (fileName.endsWith('.zip') || fileName.endsWith('.rar')) return 'Archive';
+        return '<?php echo e(__("document")); ?>';
+    }
+
+    function getFileIcon(fileType) {
+        switch(fileType.toLowerCase()) {
+            case '<?php echo e(__("image")); ?>': return 'mdi mdi-image text-success';
+            case '<?php echo e(__("video")); ?>': return 'mdi mdi-video text-primary';
+            case '<?php echo e(__("audio")); ?>': return 'mdi mdi-music text-info';
+            case 'pdf': return 'mdi mdi-file-pdf text-danger';
+            case 'word': return 'mdi mdi-file-word text-primary';
+            case 'excel': return 'mdi mdi-file-excel text-success';
+            case 'powerpoint': return 'mdi mdi-file-powerpoint text-warning';
+            case 'text': return 'mdi mdi-file-document-outline text-secondary';
+            case 'archive': return 'mdi mdi-archive text-warning';
+            default: return 'mdi mdi-file text-secondary';
+        }
+    }
+
+    function updateCharCount() {
+        const content = $('#message-content').val();
+        $('#char-count').text(content.length);
+        
+        if (content.length > 1000) {
+            $('#char-count').parent().addClass('text-danger');
+        } else if (content.length > 800) {
+            $('#char-count').parent().addClass('text-warning').removeClass('text-danger');
+        } else {
+            $('#char-count').parent().removeClass('text-warning text-danger');
+        }
+    }
+
+    function sendMessage() {
+        const contactIds = $('#messageForm').data('contactIds');
+        const message = $('#message-content').val();
+        const scheduleDate = $('#schedule-message').is(':checked') ? $('#schedule-date').val() : null;
+        const files = $('#message-attachments')[0].files;
+        
+        if (!message.trim() && files.length === 0) {
+            alert('<?php echo e(__("please_enter_a_message_or_select_files")); ?>');
+            return;
+        }
+        
+        $('#message-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i><?php echo e(__("sending_message")); ?></div>');
+        
+        // Create FormData for file upload support
+        const formData = new FormData();
+        formData.append('contact_ids', JSON.stringify(contactIds));
+        formData.append('message', message);
+        if (scheduleDate) {
+            formData.append('schedule_date', scheduleDate);
+        }
+        
+        // Add files to FormData
+        Array.from(files).forEach(function(file, index) {
+            formData.append('attachments[]', file);
+        });
+        
+        $.ajax({
+            url: '<?= url("guest/sendMessage") ?>',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+            },
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $('#message-status').html('<div class="alert alert-success"><?php echo e(__("message_sent_successfully")); ?></div>');
+                    setTimeout(function() {
+                        $('#sendMessageModal').modal('hide');
+                        clearSelection();
+                    }, 2000);
+                } else {
+                    $('#message-status').html('<div class="alert alert-danger"><?php echo e(__("failed_to_send_message")); ?>: ' + (response.message || 'Unknown error') + '</div>');
+                }
+            },
+            error: function() {
+                $('#message-status').html('<div class="alert alert-danger"><?php echo e(__("error_sending_message")); ?></div>');
+            }
+        });
+    }
+
+    // Delete Functions
+    function confirmDelete(contactId) {
+        currentContactId = contactId;
+        deleteAction = 'single';
+        contactsToDelete = [contactId];
+        
+        const contactName = $('#guest_name' + contactId).text();
+        const contactPhone = $('#guest_phone' + contactId).text();
+        
+        $('#delete-message').text('<?php echo e(__("are_you_sure_you_want_to_delete_this_contact")); ?>');
+        $('#delete-contact-info').html(`
+            <div class="alert alert-warning">
+                <strong>${contactName}</strong><br>
+                <small>${contactPhone}</small>
+            </div>
+        `);
+        
+        $('#deleteConfirmModal').modal('show');
+    }
+
+    function confirmBulkDelete(contactIds) {
+        deleteAction = 'bulk';
+        contactsToDelete = contactIds;
+        
+        $('#delete-message').text('<?php echo e(__("are_you_sure_you_want_to_delete_selected_contacts")); ?>');
+        $('#delete-contact-info').html(`
+            <div class="alert alert-warning">
+                <strong>${contactIds.length} <?php echo e(__("contacts_will_be_deleted")); ?></strong>
+            </div>
+        `);
+        
+        $('#deleteConfirmModal').modal('show');
+    }
+
+    $('#confirm-delete-btn').on('click', function() {
+        if (deleteAction === 'single') {
+            deleteSingleContact(currentContactId);
+        } else {
+            deleteBulkContacts(contactsToDelete);
+        }
+    });
+
+    function deleteSingleContact(contactId) {
+        $.ajax({
+            url: '<?= url("guest/destroy") ?>/' + contactId,
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#deleteConfirmModal').modal('hide');
+                    $(`#contact-${contactId}`).closest('tr').fadeOut(function() {
+                        $(this).remove();
+                        updateSelectedContacts();
+                    });
+                    showSuccessMessage('<?php echo e(__("contact_deleted_successfully")); ?>');
+                } else {
+                    alert('<?php echo e(__("failed_to_delete_contact")); ?>');
+                }
+            },
+            error: function() {
+                alert('<?php echo e(__("error_deleting_contact")); ?>');
+            }
+        });
+    }
+
+    function deleteBulkContacts(contactIds) {
+        $.ajax({
+            url: '<?= url("guest/bulkDelete") ?>',
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                contact_ids: contactIds
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#deleteConfirmModal').modal('hide');
+                    contactIds.forEach(function(id) {
+                        $(`#contact-${id}`).closest('tr').fadeOut(function() {
+                            $(this).remove();
+                        });
+                    });
+                    clearSelection();
+                    showSuccessMessage(`${response.deleted_count} <?php echo e(__("contacts_deleted_successfully")); ?>`);
+                } else {
+                    alert('<?php echo e(__("failed_to_delete_contacts")); ?>');
+                }
+            },
+            error: function() {
+                alert('<?php echo e(__("error_deleting_contacts")); ?>');
+            }
+        });
+    }
+
+    // Helper Functions
+    function sendMessageFromView() {
+        $('#contactViewModal').modal('hide');
+        sendMessageToContact(currentContactId);
+    }
+
+    function editFromView() {
+        $('#contactViewModal').modal('hide');
+        editGuest(currentContactId);
+    }
+
+    function showSuccessMessage(message) {
+        const alertHtml = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="mdi mdi-check-circle mr-2"></i>${message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        `;
+        $('.card-body').prepend(alertHtml);
+        
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 3000);
+    }
+
+    // Original functions (updated)
+    function editGuest(a) {
+        $('#edit_guest_name').val($('#guest_name' + a).text());
+        $('#edit_guest_phone').val($('#guest_phone' + a).text());
+        $('#edit_pledge').val(parseInt($('#guest_pledge' + a).text()));
+        $('#edit_guest').val(a);
+        $('#ProfileStep5').attr('action', '<?= url('guest/edit/null') ?>');
+        $('#myModal').modal('show');
+    }
+
+    save_category = function () {
+        $('#new_category').mousedown(function () {
+            var val = $('#new_category_value').val();
+            if ($.trim(val) == '') {
+                $('#error_message').html('This field is required').addClass('alert alert-danger');
+            } else {
+                $.ajax({
+                    type: 'POST',
+                    url: "<?= url('guest/addguestcategory') ?>",
+                    data: {"name": val},
+                    dataType: "html",
+                    success: function (data) {
+                        $('#append_option').html(data);
+                    }
+                });
+            }
+        });
+    }
+
+    load_contact = function () {
+        $.getJSON('https://www.google.com/m8/feeds/contacts/default/full/?access_token=' +
+                authResult.access_token + "&alt=json&callback=?", function (result) {
+                    console.log(JSON.stringify(result));
+                });
+    }
+    //  $(document).ready(load_contact);
+</script>
+
+<!-- Handoff Management Modal -->
+<div class="modal fade" id="handoffModal" tabindex="-1" role="dialog" aria-labelledby="handoffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white" id="handoffModalLabel">
+                    <i class="mdi mdi-account-supervisor-circle mr-2"></i><?php echo e(__('handoff_management')); ?>
+
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Guest Information -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card" style="border-left: 4px solid #667eea;">
+                            <div class="card-body py-3">
+                                <h6 class="mb-2"><i class="mdi mdi-account mr-2"></i><?php echo e(__('customer_information')); ?></h6>
+                                <div id="guest-info">
+                                    <p class="mb-1"><strong><?php echo e(__('name')); ?>:</strong> <span id="modal-guest-name"></span></p>
+                                    <p class="mb-1"><strong><?php echo e(__('phone')); ?>:</strong> <span id="modal-guest-phone"></span></p>
+                                    <p class="mb-0"><strong><?php echo e(__('current_status')); ?>:</strong> <span id="modal-guest-status"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Handoff Actions Tabs -->
+                <ul class="nav nav-tabs mb-3" id="handoffTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="request-tab" data-toggle="tab" href="#request-handoff" role="tab">
+                            <i class="mdi mdi-hand-pointing-up mr-1"></i><?php echo e(__('request_handoff')); ?>
+
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="assign-tab" data-toggle="tab" href="#assign-agent" role="tab">
+                            <i class="mdi mdi-account-plus mr-1"></i><?php echo e(__('assign_agent')); ?>
+
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="notes-tab" data-toggle="tab" href="#handoff-notes" role="tab">
+                            <i class="mdi mdi-note-text mr-1"></i><?php echo e(__('notes')); ?>
+
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="actions-tab" data-toggle="tab" href="#handoff-actions" role="tab">
+                            <i class="mdi mdi-cogs mr-1"></i><?php echo e(__('actions')); ?>
+
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="handoffTabContent">
+                    <!-- Request Handoff Tab -->
+                    <div class="tab-pane fade show active" id="request-handoff" role="tabpanel">
+                        <form id="requestHandoffForm">
+                            <input type="hidden" id="request-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="handoff-reason"><?php echo e(__('reason_for_handoff')); ?></label>
+                                <textarea class="form-control" id="handoff-reason" name="reason" rows="3" 
+                                         placeholder="<?php echo e(__('explain_why_handoff_needed')); ?>" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="priority-level"><?php echo e(__('priority_level')); ?></label>
+                                <select class="form-control" id="priority-level" name="priority_level" required>
+                                    <option value="3"><?php echo e(__('low')); ?></option>
+                                    <option value="2"><?php echo e(__('medium')); ?></option>
+                                    <option value="1"><?php echo e(__('high')); ?></option>
+                                    <option value="4"><?php echo e(__('urgent')); ?></option>
+                                    <option value="5"><?php echo e(__('critical')); ?></option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="mdi mdi-hand-pointing-up mr-1"></i><?php echo e(__('request_handoff')); ?>
+
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Assign Agent Tab -->
+                    <div class="tab-pane fade" id="assign-agent" role="tabpanel">
+                        <form id="assignAgentForm">
+                            <input type="hidden" id="assign-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="assigned-agent"><?php echo e(__('select_agent')); ?></label>
+                                <select class="form-control" id="assigned-agent" name="agent_id" required>
+                                    <option value=""><?php echo e(__('select_agent')); ?></option>
+                                    <?php $__currentLoopData = $available_agents ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $agent): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($agent->id); ?>"><?php echo e($agent->name); ?> (<?php echo e($agent->email); ?>)</option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="assignment-notes"><?php echo e(__('assignment_notes')); ?></label>
+                                <textarea class="form-control" id="assignment-notes" name="notes" rows="3" 
+                                         placeholder="<?php echo e(__('optional_notes_for_agent')); ?>"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-info">
+                                <i class="mdi mdi-account-check mr-1"></i><?php echo e(__('assign_agent')); ?>
+
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Handoff Notes Tab -->
+                    <div class="tab-pane fade" id="handoff-notes" role="tabpanel">
+                        <div id="existing-notes" class="mb-3">
+                            <h6><?php echo e(__('existing_notes')); ?></h6>
+                            <div class="border rounded p-3" style="min-height: 100px; background-color: #f8f9fa;">
+                                <span id="notes-content" class="text-muted"><?php echo e(__('no_notes_available')); ?></span>
+                            </div>
+                        </div>
+                        <form id="addNotesForm">
+                            <input type="hidden" id="notes-guest-id" name="guest_id">
+                            <div class="form-group">
+                                <label for="new-notes"><?php echo e(__('add_new_notes')); ?></label>
+                                <textarea class="form-control" id="new-notes" name="notes" rows="3" 
+                                         placeholder="<?php echo e(__('add_notes_about_handoff')); ?>" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="mdi mdi-note-plus mr-1"></i><?php echo e(__('add_notes')); ?>
+
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Handoff Actions Tab -->
+                    <div class="tab-pane fade" id="handoff-actions" role="tabpanel">
+                        <input type="hidden" id="actions-guest-id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">
+                                            <i class="mdi mdi-check-circle mr-2"></i><?php echo e(__('complete_handoff')); ?>
+
+                                        </h6>
+                                        <p class="card-text small"><?php echo e(__('mark_handoff_as_completed')); ?></p>
+                                        <button class="btn btn-success btn-sm" onclick="completeHandoff()">
+                                            <i class="mdi mdi-check mr-1"></i><?php echo e(__('complete')); ?>
+
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">
+                                            <i class="mdi mdi-robot mr-2"></i><?php echo e(__('return_to_ai')); ?>
+
+                                        </h6>
+                                        <p class="card-text small"><?php echo e(__('return_customer_to_ai_handling')); ?></p>
+                                        <button class="btn btn-primary btn-sm" onclick="returnToAI()">
+                                            <i class="mdi mdi-robot mr-1"></i><?php echo e(__('return_to_ai')); ?>
+
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Priority Update -->
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">
+                                    <i class="mdi mdi-priority-high mr-2"></i><?php echo e(__('update_priority')); ?>
+
+                                </h6>
+                                <form id="updatePriorityForm" class="form-inline">
+                                    <input type="hidden" id="priority-guest-id" name="guest_id">
+                                    <select class="form-control mr-2" id="new-priority" name="priority_level" required>
+                                        <option value="3"><?php echo e(__('low')); ?></option>
+                                        <option value="2"><?php echo e(__('medium')); ?></option>
+                                        <option value="1"><?php echo e(__('high')); ?></option>
+                                        <option value="4"><?php echo e(__('urgent')); ?></option>
+                                        <option value="5"><?php echo e(__('critical')); ?></option>
+                                    </select>
+                                    <button type="submit" class="btn btn-warning btn-sm">
+                                        <i class="mdi mdi-update mr-1"></i><?php echo e(__('update')); ?>
+
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handoff Management JavaScript Functions
+
+let currentGuestId = null;
+
+function openHandoffModal(guestId) {
+    currentGuestId = guestId;
+    
+    // Set guest IDs in all forms
+    document.getElementById('request-guest-id').value = guestId;
+    document.getElementById('assign-guest-id').value = guestId;
+    document.getElementById('notes-guest-id').value = guestId;
+    document.getElementById('actions-guest-id').value = guestId;
+    document.getElementById('priority-guest-id').value = guestId;
+    
+    // Load guest information
+    loadGuestInfo(guestId);
+    
+    // Show modal
+    $('#handoffModal').modal('show');
+}
+
+function loadGuestInfo(guestId) {
+    $.ajax({
+        url: `<?php echo e(route('guest.getContactDetails', '')); ?>/${guestId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const guest = response.contact;
+                document.getElementById('modal-guest-name').textContent = guest.guest_name;
+                document.getElementById('modal-guest-phone').textContent = guest.guest_phone;
+                // You can add more guest info display here
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading guest info:', error);
+        }
+    });
+}
+
+// Request Handoff Form
+document.getElementById('requestHandoffForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '<?php echo e(route("guest.requestHandoff")); ?>',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('<?php echo e(__("handoff_requested_successfully")); ?>');
+                location.reload();
+            } else {
+                alert('<?php echo e(__("error")); ?>: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('<?php echo e(__("error")); ?>: ' + error);
+        }
+    });
+});
+
+// Assign Agent Form
+document.getElementById('assignAgentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '<?php echo e(route("guest.assignAgent")); ?>',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('<?php echo e(__("agent_assigned_successfully")); ?>');
+                location.reload();
+            } else {
+                alert('<?php echo e(__("error")); ?>: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('<?php echo e(__("error")); ?>: ' + error);
+        }
+    });
+});
+
+// Add Notes Form
+document.getElementById('addNotesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '<?php echo e(route("guest.addHandoffNotes")); ?>',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('<?php echo e(__("notes_added_successfully")); ?>');
+                // Optionally reload notes display
+                document.getElementById('new-notes').value = '';
+            } else {
+                alert('<?php echo e(__("error")); ?>: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('<?php echo e(__("error")); ?>: ' + error);
+        }
+    });
+});
+
+// Update Priority Form
+document.getElementById('updatePriorityForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '<?php echo e(route("guest.updatePriority")); ?>',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('<?php echo e(__("priority_updated_successfully")); ?>');
+                location.reload();
+            } else {
+                alert('<?php echo e(__("error")); ?>: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('<?php echo e(__("error")); ?>: ' + error);
+        }
+    });
+});
+
+function completeHandoff() {
+    if (!currentGuestId) return;
+    
+    if (confirm('<?php echo e(__("are_you_sure_complete_handoff")); ?>')) {
+        $.ajax({
+            url: '<?php echo e(route("guest.completeHandoff")); ?>',
+            method: 'POST',
+            data: {
+                guest_id: currentGuestId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('<?php echo e(__("handoff_completed_successfully")); ?>');
+                    location.reload();
+                } else {
+                    alert('<?php echo e(__("error")); ?>: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('<?php echo e(__("error")); ?>: ' + error);
+            }
+        });
+    }
+}
+
+function returnToAI() {
+    if (!currentGuestId) return;
+    
+    if (confirm('<?php echo e(__("are_you_sure_return_to_ai")); ?>')) {
+        $.ajax({
+            url: '<?php echo e(route("guest.returnToAI")); ?>',
+            method: 'POST',
+            data: {
+                guest_id: currentGuestId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('<?php echo e(__("returned_to_ai_successfully")); ?>');
+                    location.reload();
+                } else {
+                    alert('<?php echo e(__("error")); ?>: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('<?php echo e(__("error")); ?>: ' + error);
+            }
+        });
+    }
+}
+
+// Handoff Status Filter Tabs
+document.addEventListener('DOMContentLoaded', function() {
+    const filterTabs = document.querySelectorAll('#handoff-tabs .nav-link');
+    const tableRows = document.querySelectorAll('#datatable-buttons tbody tr');
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all tabs
+            filterTabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            const filterStatus = this.getAttribute('data-status');
+            
+            tableRows.forEach(row => {
+                const rowStatus = row.getAttribute('data-handoff-status');
+                const rowPriority = parseInt(row.getAttribute('data-priority'));
+                
+                if (filterStatus === 'all') {
+                    row.style.display = '';
+                } else if (filterStatus === 'urgent') {
+                    row.style.display = (rowPriority >= 4) ? '' : 'none';
+                } else {
+                    row.style.display = (rowStatus === filterStatus) ? '' : 'none';
+                }
+            });
+        });
+    });
+    
+    // Add hover effects to tabs
+    filterTabs.forEach(tab => {
+        tab.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = 'rgba(255,255,255,0.2)';
+            }
+        });
+        
+        tab.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = '';
+            }
+        });
+    });
+    
+    // Style active tab
+    const activeTab = document.querySelector('#handoff-tabs .nav-link.active');
+    if (activeTab) {
+        activeTab.style.background = 'rgba(255,255,255,0.3)';
+    }
+});
+</script>
+
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\xampp\htdocs\safarichat\resources\views/guest/index.blade.php ENDPATH**/ ?>
