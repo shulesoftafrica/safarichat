@@ -197,18 +197,29 @@ class CrmImportController extends Controller
             }
 
             // Find or create a lead for this contact
+            // Note: ai_sales_agent_id is required, so we'll use the first available agent for this user
+            $defaultAgentId = \App\Models\AiSalesAgent::where('user_id', Auth::id())
+                                                      ->value('id');
+            
+            if (!$defaultAgentId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No AI sales agent found. Please create an AI agent first before importing conversations.'
+                ], 400);
+            }
+            
             $lead = Lead::firstOrCreate(
                 [
                     'events_guest_id' => $contact->id,
                     'user_id' => Auth::id()
                 ],
                 [
-                    'name' => $contact->guest_name,
-                    'phone_number' => $contact->guest_phone,
-                    'email' => $contact->guest_email,
+                    'ai_sales_agent_id' => $defaultAgentId,
                     'source' => 'crm_import',
                     'status' => Lead::STATUS_NEW,
                     'lead_score' => 50,
+                    'company_name' => $contact->crm_data['company'] ?? null,
+                    'industry' => $contact->crm_data['industry'] ?? null,
                     'metadata' => [
                         'crm_imported' => true,
                         'contact_background' => $request->contact_background ?? [],
@@ -225,13 +236,14 @@ class CrmImportController extends Controller
 
             foreach ($request->conversations as $index => $conversationData) {
                 try {
-                    // Map sender type
+                    // Map sender type for both message_type and sender_type
                     $messageType = $this->mapSenderToMessageType($conversationData['sender_type']);
+                    $dbSenderType = $this->mapSenderType($conversationData['sender_type']);
                     
                     $conversation = Conversation::create([
                         'lead_id' => $lead->id,
                         'message_type' => $messageType,
-                        'sender_type' => $conversationData['sender_type'],
+                        'sender_type' => $dbSenderType,
                         'message_content' => $conversationData['message_content'],
                         'conversation_state' => 'INTRO', // Default state for imported conversations
                         'is_active' => false, // Mark as historical
@@ -404,6 +416,24 @@ class CrmImportController extends Controller
                 return Conversation::TYPE_AI_AGENT;
             default:
                 return Conversation::TYPE_CUSTOMER;
+        }
+    }
+
+    /**
+     * Map API sender_type to database enum values
+     * Database expects: customer, ai_agent, user_manual, ai_agent_followup
+     */
+    private function mapSenderType(string $senderType): string
+    {
+        switch ($senderType) {
+            case 'customer':
+                return 'customer';
+            case 'agent':
+                return 'user_manual'; // Human agent messages
+            case 'system':
+                return 'ai_agent'; // System/AI messages
+            default:
+                return 'customer';
         }
     }
 }

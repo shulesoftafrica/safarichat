@@ -11,87 +11,93 @@
 $baseUrl = 'https://localhost/safarichat';
 $apiToken = '10|IhduIVvtapSzmpvPxXBERDm0RnjT8NHlhRoCZfDd56362e4c';
 
-// Sample conversation history data
+// Sample conversation history data for ONE contact
 $conversationData = [
+    'contact_crm_id' => 'CRM-CONTACT-001',
     'conversations' => [
         [
-            'crm_id' => 'CRM-CONTACT-001',
-            'history' => [
-                [
-                    'date' => '2025-12-01',
-                    'type' => 'email',
-                    'subject' => 'Initial Inquiry',
-                    'content' => 'Customer inquired about enterprise pricing and features. Expressed interest in AI-powered customer service solutions.',
-                    'direction' => 'inbound'
-                ],
-                [
-                    'date' => '2025-12-02',
-                    'type' => 'call',
-                    'subject' => 'Follow-up Call',
-                    'content' => 'Discussed implementation timeline. Customer wants to start in Q1 2026. Mentioned they have 50+ agents and need multi-language support.',
-                    'direction' => 'outbound'
-                ],
-                [
-                    'date' => '2025-12-05',
-                    'type' => 'meeting',
-                    'subject' => 'Demo Session',
-                    'content' => 'Conducted live demo of WhatsApp integration and AI agent capabilities. Customer was impressed with the natural language processing. Next step: Send formal proposal.',
-                    'direction' => 'meeting'
-                ]
-            ]
+            'message_content' => 'Hi, I am interested in your enterprise AI customer service solution. We currently have 50+ agents and need to automate responses.',
+            'sender_type' => 'customer',
+            'timestamp' => '2025-12-01 10:30:00',
+            'crm_conversation_id' => 'CONV-001',
+            'metadata' => [
+                'channel' => 'email',
+                'subject' => 'Initial Inquiry'
+            ],
+            'tags' => ['inquiry', 'enterprise', 'automation']
         ],
         [
-            'crm_id' => 'CRM-CONTACT-002',
-            'history' => [
-                [
-                    'date' => '2025-11-28',
-                    'type' => 'chat',
-                    'subject' => 'Website Chat Inquiry',
-                    'content' => 'Lead came through website chat asking about pricing for small business package. Interested in WhatsApp Business API integration.',
-                    'direction' => 'inbound'
-                ],
-                [
-                    'date' => '2025-12-03',
-                    'type' => 'email',
-                    'subject' => 'Pricing Information Sent',
-                    'content' => 'Sent detailed pricing breakdown and feature comparison. Included case studies from similar-sized businesses in the software industry.',
-                    'direction' => 'outbound'
-                ],
-                [
-                    'date' => '2025-12-10',
-                    'type' => 'whatsapp',
-                    'subject' => 'Quick Question',
-                    'content' => 'Customer asked if we support integration with their existing CRM (Salesforce). Confirmed yes and sent integration documentation.',
-                    'direction' => 'inbound'
-                ]
-            ]
+            'message_content' => 'Thank you for reaching out! I would love to schedule a call to understand your requirements better. When would be a good time?',
+            'sender_type' => 'agent',
+            'timestamp' => '2025-12-01 14:00:00',
+            'crm_conversation_id' => 'CONV-002',
+            'metadata' => [
+                'channel' => 'email',
+                'agent_name' => 'Sales Team',
+                'subject' => 'Re: Initial Inquiry'
+            ],
+            'tags' => ['response', 'follow-up']
         ],
         [
-            'crm_id' => 'CRM-CONTACT-003',
-            'history' => [
-                [
-                    'date' => '2025-10-15',
-                    'type' => 'email',
-                    'subject' => 'New Customer Onboarding',
-                    'content' => 'Completed onboarding process. Set up account with basic package. Customer primarily interested in bulk WhatsApp messaging for promotions.',
-                    'direction' => 'system'
-                ],
-                [
-                    'date' => '2025-11-20',
-                    'type' => 'call',
-                    'subject' => 'Monthly Check-in',
-                    'content' => 'Monthly success call. Customer satisfied with service. Sending approximately 5000 messages per month. Asked about upgrade options for holiday season.',
-                    'direction' => 'outbound'
-                ],
-                [
-                    'date' => '2025-12-08',
-                    'type' => 'support',
-                    'subject' => 'Technical Support',
-                    'content' => 'Opened support ticket regarding message delivery delays. Issue was traced to WhatsApp rate limiting. Advised on best practices for bulk sending. Resolved.',
-                    'direction' => 'support'
-                ]
-            ]
+            'message_content' => 'We discussed implementation timeline. Customer wants to start in Q1 2026. They need multi-language support (English, Swahili, French) and CRM integration.',
+            'sender_type' => 'agent',
+            'timestamp' => '2025-12-02 11:00:00',
+            'crm_conversation_id' => 'CONV-003',
+            'metadata' => [
+                'channel' => 'call',
+                'duration_minutes' => 30,
+                'call_outcome' => 'qualified'
+            ],
+            'tags' => ['call', 'discovery', 'qualified-lead']
+        ],
+        [
+            'message_content' => 'The demo was excellent! Our team is very impressed with the AI capabilities and the natural language processing. What are the next steps for getting a proposal?',
+            'sender_type' => 'customer',
+            'timestamp' => '2025-12-05 15:30:00',
+            'crm_conversation_id' => 'CONV-004',
+            'metadata' => [
+                'channel' => 'meeting',
+                'attendees' => ['CTO', 'IT Director', 'Customer Service Manager'],
+                'meeting_duration_minutes' => 60
+            ],
+            'tags' => ['demo', 'hot-lead', 'proposal-requested']
+        ],
+        [
+            'message_content' => 'I will prepare a detailed proposal and pricing based on your requirements. Expect it by end of day tomorrow.',
+            'sender_type' => 'agent',
+            'timestamp' => '2025-12-05 16:00:00',
+            'crm_conversation_id' => 'CONV-005',
+            'metadata' => [
+                'channel' => 'meeting',
+                'agent_name' => 'Account Executive'
+            ],
+            'tags' => ['proposal', 'commitment']
         ]
+    ],
+    'contact_background' => [
+        'company_size' => '500+ employees',
+        'current_solution' => 'Manual customer service with 50+ agents',
+        'pain_points' => [
+            'High operational costs',
+            'Inconsistent response quality',
+            'No multilingual support',
+            'Long response times'
+        ],
+        'budget_range' => '$50,000 - $100,000 annually',
+        'decision_makers' => ['CTO', 'IT Director']
+    ],
+    'previous_interactions' => [
+        'total_touchpoints' => 5,
+        'first_contact_date' => '2025-12-01',
+        'last_contact_date' => '2025-12-05',
+        'channels_used' => ['email', 'call', 'meeting'],
+        'engagement_level' => 'high'
+    ],
+    'customer_preferences' => [
+        'preferred_contact_method' => 'email',
+        'preferred_contact_time' => 'mornings',
+        'timezone' => 'Africa/Dar_es_Salaam',
+        'decision_timeframe' => 'Q1 2026'
     ]
 ];
 
@@ -113,7 +119,8 @@ curl_setopt_array($ch, [
 
 echo "\n=== Testing CRM Conversation History Import ===\n";
 echo "Endpoint: {$baseUrl}/api/crm/import/context\n";
-echo "Importing conversation history for " . count($conversationData['conversations']) . " contacts...\n\n";
+echo "Contact CRM ID: {$conversationData['contact_crm_id']}\n";
+echo "Importing " . count($conversationData['conversations']) . " conversation messages...\n\n";
 
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -139,7 +146,7 @@ if ($responseData) {
 
 echo str_repeat('-', 80) . "\n\n";
 
-if ($httpCode === 200) {
+if ($httpCode === 200 || $httpCode === 201) {
     echo "✅ Conversation history imported successfully!\n";
 } elseif ($httpCode === 401) {
     echo "❌ Authentication failed. Please check your API token.\n";
