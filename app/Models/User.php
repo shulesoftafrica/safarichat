@@ -230,4 +230,12 @@ class User extends Authenticatable implements MustVerifyEmail{
     {
         return $this->hasMany(AiSalesAgent::class);
     }
+
+    /**
+     * Get handoffs assigned to this user (as an agent)
+     */
+    public function assignedHandoffs()
+    {
+        return $this->hasMany(Handoff::class, 'human_agent_id');
+    }
 }

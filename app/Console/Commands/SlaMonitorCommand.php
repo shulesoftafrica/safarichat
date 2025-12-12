@@ -111,7 +111,7 @@ class SlaMonitorCommand extends Command
 
         $breachedHandoffs = Handoff::where('status', Handoff::STATUS_PENDING)
             ->where('created_at', '<', now()->subMinutes($escalationThreshold))
-            ->with(['lead', 'conversation', 'assignedAgent'])
+            ->with(['lead', 'conversation', 'humanAgent'])
             ->get();
 
         $breaches = [];
@@ -128,7 +128,7 @@ class SlaMonitorCommand extends Command
                 'handoff_id' => $handoff->id,
                 'lead_name' => $handoff->lead->name,
                 'breach_minutes' => $breachMinutes,
-                'assigned_agent' => $handoff->assignedAgent?->name ?? 'Unassigned',
+                'assigned_agent' => $handoff->humanAgent?->name ?? 'Unassigned',
                 'priority' => $handoff->priority
             ];
 
@@ -145,15 +145,15 @@ class SlaMonitorCommand extends Command
     {
         $this->info('📈 Monitoring Agent Performance...');
 
-        $activeAgents = \App\Models\User::where('role', 'agent')
-            ->where('is_active', true)
+        // Get users who have been assigned handoffs (they are agents)
+        $activeAgents = \App\Models\User::whereHas('assignedHandoffs')
             ->get();
 
         $performance = [];
 
         foreach ($activeAgents as $agent) {
             // Get agent's handoff stats for today
-            $todayHandoffs = Handoff::where('assigned_agent_id', $agent->id)
+            $todayHandoffs = Handoff::where('human_agent_id', $agent->id)
                 ->whereDate('created_at', today())
                 ->get();
 
@@ -188,9 +188,9 @@ class SlaMonitorCommand extends Command
             'issues' => []
         ];
 
-        // Check conversation queue backup
-        $queuedConversations = Conversation::where('status', Conversation::STATUS_PENDING)
-            ->where('created_at', '<', now()->subMinutes(10))
+        // Check conversation queue backup - conversations older than 10 minutes
+        $queuedConversations = Conversation::where('created_at', '<', now()->subMinutes(10))
+            ->whereNull('ai_response')
             ->count();
 
         if ($queuedConversations > 50) {
@@ -199,17 +199,16 @@ class SlaMonitorCommand extends Command
         }
 
         // Check AI agent availability
-        $inactiveAgents = AiSalesAgent::where('is_active', false)->count();
         $totalAgents = AiSalesAgent::count();
         
-        if ($inactiveAgents > ($totalAgents * 0.3)) {
-            $health['issues'][] = "Too many inactive AI agents: {$inactiveAgents}/{$totalAgents}";
+        if ($totalAgents === 0) {
+            $health['issues'][] = "No AI agents configured";
             $health['status'] = 'critical';
         }
 
         // Check failed message count
         $failedMessages = \DB::table('failed_jobs')
-            ->where('created_at', '>', now()->subHour())
+            ->where('failed_at', '>', now()->subHour())
             ->count();
 
         if ($failedMessages > 10) {
@@ -268,7 +267,7 @@ class SlaMonitorCommand extends Command
 
     private function calculateAverageResponseTime(int $agentId): int
     {
-        $completedHandoffs = Handoff::where('assigned_agent_id', $agentId)
+        $completedHandoffs = Handoff::where('human_agent_id', $agentId)
             ->where('status', Handoff::STATUS_COMPLETED)
             ->whereNotNull('response_time_minutes')
             ->whereDate('created_at', '>=', now()->subDays(7))

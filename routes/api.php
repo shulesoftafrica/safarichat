@@ -202,6 +202,7 @@ Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {
 });
 
 Route::post('/payment','Setup@apiAcceptPayment');
+Route::post('/registerBusiness', 'Setup@registerBusiness');
 Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance');
 Route::post('/update-instance-status', 'Setup@updateInstanceStatus');
 Route::get('/user-whatsapp-instances', 'Setup@getUserWhatsappInstances');
