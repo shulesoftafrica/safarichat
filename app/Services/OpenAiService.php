@@ -30,6 +30,17 @@ class OpenAiService
         ?Product $product = null
     ): array {
         try {
+            // Pre-check if message is business-related
+            if (!$this->isBusinessRelated($customerMessage, $agent)) {
+                return [
+                    'success' => true,
+                    'response' => "I'm here to help with questions about our products and services. How can I assist you with that?",
+                    'actions' => ['note' => 'Redirected off-topic question'],
+                    'conversation_state' => 'INTRO',
+                    'confidence' => 1.0
+                ];
+            }
+
             $prompt = $this->buildPromptWithAgent($customerMessage, $agent, $lead, $conversationHistory, $product);
             
             $response = $this->client->chat()->create([
@@ -337,6 +348,13 @@ class OpenAiService
         }
 
         $prompt .= "\n\nAlways be helpful, accurate, and focused on the customer's needs.";
+
+        // IMPORTANT: Business context restriction
+        $prompt .= "\n\nIMPORTANT GUIDELINES:";
+        $prompt .= "\n- ONLY respond to questions about our business, products, services, or sales-related inquiries";
+        $prompt .= "\n- For questions about unrelated topics (like geography, general knowledge, etc.), politely redirect: 'I'm here to help with questions about our products and services. How can I assist you with that?'";
+        $prompt .= "\n- Stay focused on your role as a sales agent for {$businessName}";
+        $prompt .= "\n- If unsure whether a question is business-related, ask how it relates to our products or services";
 
         return $prompt;
     }
@@ -665,5 +683,79 @@ class OpenAiService
             
             return ['sentiment' => 'neutral', 'confidence' => 0.5, 'emotions' => []];
         }
+    }
+
+    /**
+     * Check if customer message is business-related
+     */
+    private function isBusinessRelated(string $message, AiSalesAgent $agent): bool
+    {
+        $message = strtolower(trim($message));
+        
+        // Always allow common greetings and basic interactions
+        $allowedBasics = [
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+            'thanks', 'thank you', 'bye', 'goodbye', 'yes', 'no', 'ok', 'okay',
+            'help', 'assist', 'support', 'info', 'information'
+        ];
+        
+        foreach ($allowedBasics as $basic) {
+            if (strpos($message, $basic) !== false) {
+                return true;
+            }
+        }
+        
+        // Business and product-related keywords
+        $businessKeywords = [
+            'buy', 'purchase', 'price', 'cost', 'product', 'service', 'order',
+            'delivery', 'shipping', 'payment', 'discount', 'offer', 'deal',
+            'business', 'company', 'contact', 'email', 'phone', 'address',
+            'available', 'stock', 'quantity', 'feature', 'specification',
+            'warranty', 'guarantee', 'return', 'refund', 'exchange',
+            'install', 'setup', 'how to', 'when', 'where', 'what is',
+            'tell me about', 'show me', 'explain', 'demo', 'trial'
+        ];
+        
+        // Check for business keywords
+        foreach ($businessKeywords as $keyword) {
+            if (strpos($message, $keyword) !== false) {
+                return true;
+            }
+        }
+        
+        // Check if message mentions the business or products
+        $businessName = $agent->user?->business?->name ?? '';
+        if ($businessName && strpos($message, strtolower($businessName)) !== false) {
+            return true;
+        }
+        
+        // Check against common off-topic patterns
+        $offTopicPatterns = [
+            'capital city', 'capital of', 'country', 'geography', 'weather',
+            'what time is it', 'current time', 'date today', 'calendar',
+            'recipe', 'cooking', 'food recipe', 'how to cook',
+            'news', 'politics', 'election', 'government', 'president',
+            'sports', 'football', 'basketball', 'soccer', 'game score',
+            'movie', 'film', 'entertainment', 'celebrity', 'actor',
+            'mathematics', 'solve equation', 'calculate', 'math problem',
+            'translate', 'translation', 'language learning', 'grammar',
+            'history', 'historical', 'when was', 'who invented',
+            'medical advice', 'health problem', 'symptoms', 'disease',
+            'legal advice', 'lawyer', 'lawsuit', 'court'
+        ];
+        
+        foreach ($offTopicPatterns as $pattern) {
+            if (strpos($message, $pattern) !== false) {
+                return false;
+            }
+        }
+        
+        // If message is very short (likely greeting/basic response), allow it
+        if (strlen($message) < 10) {
+            return true;
+        }
+        
+        // Default: allow if unclear (better to be permissive for sales)
+        return true;
     }
 }
