@@ -984,12 +984,11 @@
         <div class="footer-content">
             <div class="footer-links">
                 <a href="/privacy">Privacy Policy</a>
-                <a href="/terms">Terms of Service</a>
+                <a href="/terms-and-conditions">Terms of Service</a>
                 <a href="/security">Security</a>
-                <a href="/support">Support</a>
                 <a href="/api">API Docs</a>
             </div>
-            <p>&copy; 2025 SafariChat. All rights reserved. Building the future of AI sales automation.</p>
+            <p>&copy; {{date('Y')}} SafariChat. All rights reserved. Building the future of AI sales automation.</p>
         </div>
     </footer>
 </div>

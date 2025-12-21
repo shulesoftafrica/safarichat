@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\LeadProductApiController;
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\CrmSyncApiController;
 use App\Http\Controllers\Api\CrmImportController;
+use App\Http\Controllers\WaSenderController;
 
 /*
   |--------------------------------------------------------------------------
@@ -168,9 +169,10 @@ Route::any('/validate/{null}/{imei?}/{model?}/{param1?}/{id?}/{param3?}/{param4?
 Route::any('/updatestatus/{code?}/{sms_id?}/{imei?}{device?}','Setup@updatestatus');
 Route::any('/smsreport/{code?}/{imei?}/{model?}', 'Setup@smsReport');
 // WaSender testing and management routes
-Route::get('/wasender/test-connection', 'WaSenderController@testConnection');
-Route::get('/wasender/user-instances', 'WaSenderController@getUserInstances');
-Route::post('/wasender/send-test-message', 'WaSenderController@sendTestMessage');
+Route::get('/wasender/test-connection', [WaSenderController::class, 'testConnection']);
+Route::get('/wasender/user-instances', [WaSenderController::class, 'getUserInstances']);
+Route::post('/wasender/send-test-message', [WaSenderController::class, 'sendTestMessage']);
+Route::post('/wasender/test-qr-generation', [WaSenderController::class, 'testQRGeneration']);
 
 // Queue testing routes
 Route::post('/wasender/test-queue-message', 'WaSenderController@testQueueMessage');

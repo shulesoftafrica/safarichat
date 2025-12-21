@@ -12,7 +12,7 @@ class Product extends Model
     protected $fillable = [
         'user_id', 'business_id', // User and business ownership
         'name', 'sku', 'category', 'description', 'retail_price', 'wholesale_price',
-        'max_discount', 'quantity', 'tags', 'status', 'ai_generated_description',
+        'max_discount', 'quantity', 'tags', 'selling_points', 'status', 'ai_generated_description',
         'minimal_description', 'image_path', 'attachment_path', 'image_original_name',
         'attachment_original_name', 
         // AI Sales Agent fields
@@ -30,6 +30,7 @@ class Product extends Model
 
     protected $casts = [
         'tags' => 'array',
+        'selling_points' => 'array',
         'retail_price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
         'ai_generated_description' => 'boolean',

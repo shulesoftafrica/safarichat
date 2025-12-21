@@ -40,6 +40,8 @@ class UpdateProductRequest extends FormRequest
             'faq_questions.*' => 'string|max:500',
             'faq_answers' => 'nullable|array',
             'faq_answers.*' => 'string|max:1000',
+            'faqs' => 'nullable|string', // JSON string from frontend
+            'selling_points' => 'nullable|string', // JSON string from frontend
             'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             'product_attachment' => 'nullable|mimes:pdf|max:10240' // 10MB max
         ];

@@ -52,11 +52,16 @@ return [
     ],
 
     'wasender' => [
-        'base_url' => env('WASENDER_BASE_URL', 'https://wasender.co.tz/api'),
-        'api_key' => env('WASENDER_API_KEY'),
-        'default_instance_id' => env('WASENDER_DEFAULT_INSTANCE_ID'),
-        'webhook_secret' => env('WASENDER_WEBHOOK_SECRET'),
+        'access_token' => env('WASENDER_ACCESS_TOKEN'),
+        'base_url' => env('WASENDER_BASE_URL', 'https://api.wasenderapi.com'),
         'timeout' => env('WASENDER_TIMEOUT', 30),
+        'default' => true,
+    ],
+
+    'unified_notification' => [
+        'base_url' => env('NOTIFICATION_BASE_URL', 'https://notifications.shulesoft.africa/api'),
+        'token' => env('NOTIFICATION_API_TOKEN'),
+        'timeout' => env('NOTIFICATION_TIMEOUT', 30),
     ],
 
     'stripe' => [

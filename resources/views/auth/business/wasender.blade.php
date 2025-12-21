@@ -329,11 +329,7 @@
                             <h5>QR Code</h5>
                             <p>Scan with your phone</p>
                         </div>
-                        <div class="auth-option" data-method="phone">
-                            <i class="fas fa-sms"></i>
-                            <h5>Phone Code</h5>
-                            <p>Receive verification code</p>
-                        </div>
+
                     </div>
                 </div>
 
@@ -397,45 +393,7 @@
                 </div>
             </div>
 
-            <!-- Phone Code Section -->
-            <div class="setup-section" id="phone-code-section">
-                <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Enter Verification Code</h4>
-                
-                <div class="alert-info">
-                    <i class="fas fa-sms"></i>
-                    <strong>Code Sent!</strong><br>
-                    We sent a verification code to your WhatsApp number. Enter it below.
-                </div>
 
-                <form id="verify-code-form">
-                    <div class="form-group">
-                        <label class="form-label">Verification Code</label>
-                        <input
-                            id="verification_code"
-                            name="verification_code"
-                            type="text"
-                            class="form-control"
-                            placeholder="Enter 6-digit code"
-                            maxlength="6"
-                            autocomplete="off"
-                            required
-                        >
-                        <small class="text-muted">Enter the code you received on WhatsApp</small>
-                    </div>
-
-                    <button type="submit" class="btn-whatsapp" id="verify-code-btn">
-                        <span class="spinner d-none" id="verify-spinner"></span>
-                        <span id="verify-text">Verify Code</span>
-                        <i class="fas fa-check ml-2"></i>
-                    </button>
-                </form>
-
-                <div style="text-align: center; margin-top: 1rem;">
-                    <button class="btn-secondary" onclick="showSection('phone-input-section')">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                </div>
-            </div>
 
             <!-- Success Section -->
             <div class="setup-section" id="success-section">
@@ -648,8 +606,8 @@
                     
                     checkSessionStatus(data.session_id);
                 } else {
-                    showSection('phone-code-section');
-                    $('#verification_code').focus();
+                    alert('QR code generation failed. Please try again.');
+
                 }
             } else {
                 alert('Error: ' + data.message);
@@ -663,46 +621,7 @@
         }
     }
 
-    async function verifyCode() {
-        const verifyBtn = $('#verify-code-btn');
-        const code = $('#verification_code').val();
 
-        if (!code) {
-            alert('Please enter the verification code');
-            return;
-        }
-
-        verifyBtn.prop('disabled', true);
-        $('#verify-spinner').removeClass('d-none');
-        
-        try {
-            const response = await fetch('{{ route("wasender.verify-code") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ 
-                    session_id: currentSessionId,
-                    code: code
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showSection('success-section');
-            } else {
-                alert('Error: ' + data.message);
-                verifyBtn.prop('disabled', false);
-                $('#verify-spinner').addClass('d-none');
-            }
-        } catch (error) {
-            alert('Connection error. Please try again.');
-            verifyBtn.prop('disabled', false);
-            $('#verify-spinner').addClass('d-none');
-        }
-    }
 
     async function checkSessionStatus(sessionId) {
         // Clear any existing interval
@@ -733,22 +652,11 @@
     $(document).ready(function() {
         initializePhoneValidation();
 
-        // Authentication method selection
+        // Authentication method selection (QR only)
         $('.auth-option').click(function() {
             $('.auth-option').removeClass('selected');
             $(this).addClass('selected');
-            
-            const method = $(this).data('method');
-            $('#auth_method').val(method);
-            
-            // Update button text and icon
-            if (method === 'qr') {
-                $('#btn-text').text('Generate QR Code');
-                $('#btn-icon').removeClass('fa-sms').addClass('fa-qrcode');
-            } else {
-                $('#btn-text').text('Send Code');
-                $('#btn-icon').removeClass('fa-qrcode').addClass('fa-sms');
-            }
+            $('#auth_method').val('qr');
         });
 
         // Set default selection
@@ -760,11 +668,7 @@
             generateSession();
         });
 
-        // Handle code verification
-        $('#verify-code-form').submit(function(e) {
-            e.preventDefault();
-            verifyCode();
-        });
+
 
         // Make functions globally available
         window.showSection = showSection;

@@ -123,10 +123,54 @@ class ProductController extends Controller
                 $productData['campaign_attachment_path'] = $campaignPath;
             }
             
+            // Handle FAQ data - initialize as empty since frontend sends JSON format
+            $faqQuestions = [];
+            $faqAnswers = [];
+            
+            // Handle new FAQ JSON format from frontend (can be string or array)
+            if (isset($productData['faqs'])) {
+                $faqsData = null;
+                
+                // Handle if it's a JSON string
+                if (is_string($productData['faqs'])) {
+                    $faqsData = json_decode($productData['faqs'], true);
+                }
+                // Handle if it's already an array
+                elseif (is_array($productData['faqs'])) {
+                    $faqsData = $productData['faqs'];
+                }
+                
+                // Process the FAQ data if valid
+                if (is_array($faqsData)) {
+                    $faqQuestions = [];
+                    $faqAnswers = [];
+                    foreach ($faqsData as $faq) {
+                        if (isset($faq['question']) && isset($faq['answer'])) {
+                            $faqQuestions[] = $faq['question'];
+                            $faqAnswers[] = $faq['answer'];
+                        }
+                    }
+                }
+            }
+            
+            // Handle selling_points JSON data (can be string or array)
+            if (isset($productData['selling_points'])) {
+                if (is_string($productData['selling_points'])) {
+                    $sellingPointsData = json_decode($productData['selling_points'], true);
+                    if (is_array($sellingPointsData)) {
+                        $productData['selling_points'] = $sellingPointsData;
+                    } else {
+                        unset($productData['selling_points']); // Remove invalid data
+                    }
+                }
+                // If it's already an array, keep it as is
+                elseif (!is_array($productData['selling_points'])) {
+                    unset($productData['selling_points']); // Remove invalid data
+                }
+            }
+            
             // Remove FAQ data from product data
-            $faqQuestions = $productData['faq_questions'] ?? [];
-            $faqAnswers = $productData['faq_answers'] ?? [];
-            unset($productData['faq_questions'], $productData['faq_answers']);
+            unset($productData['faq_questions'], $productData['faq_answers'], $productData['faqs']);
             
             // Create product
             $product = Product::create($productData);
@@ -236,10 +280,54 @@ class ProductController extends Controller
                 $productData['campaign_attachment_path'] = $campaignPath;
             }
             
+            // Handle FAQ data - initialize as empty since frontend sends JSON format
+            $faqQuestions = [];
+            $faqAnswers = [];
+            
+            // Handle new FAQ JSON format from frontend (can be string or array)
+            if (isset($productData['faqs'])) {
+                $faqsData = null;
+                
+                // Handle if it's a JSON string
+                if (is_string($productData['faqs'])) {
+                    $faqsData = json_decode($productData['faqs'], true);
+                }
+                // Handle if it's already an array
+                elseif (is_array($productData['faqs'])) {
+                    $faqsData = $productData['faqs'];
+                }
+                
+                // Process the FAQ data if valid
+                if (is_array($faqsData)) {
+                    $faqQuestions = [];
+                    $faqAnswers = [];
+                    foreach ($faqsData as $faq) {
+                        if (isset($faq['question']) && isset($faq['answer'])) {
+                            $faqQuestions[] = $faq['question'];
+                            $faqAnswers[] = $faq['answer'];
+                        }
+                    }
+                }
+            }
+            
+            // Handle selling_points JSON data (can be string or array)
+            if (isset($productData['selling_points'])) {
+                if (is_string($productData['selling_points'])) {
+                    $sellingPointsData = json_decode($productData['selling_points'], true);
+                    if (is_array($sellingPointsData)) {
+                        $productData['selling_points'] = $sellingPointsData;
+                    } else {
+                        unset($productData['selling_points']); // Remove invalid data
+                    }
+                }
+                // If it's already an array, keep it as is
+                elseif (!is_array($productData['selling_points'])) {
+                    unset($productData['selling_points']); // Remove invalid data
+                }
+            }
+            
             // Remove FAQ data from product data
-            $faqQuestions = $productData['faq_questions'] ?? [];
-            $faqAnswers = $productData['faq_answers'] ?? [];
-            unset($productData['faq_questions'], $productData['faq_answers']);
+            unset($productData['faq_questions'], $productData['faq_answers'], $productData['faqs']);
             
             // Update product
             $product->update($productData);

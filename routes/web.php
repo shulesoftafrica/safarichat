@@ -32,6 +32,15 @@ Route::get('/corporate', function() {
     return view('corporate.index');
 })->name('corporate');
 
+// Information pages
+Route::get('/security', function() {
+    return view('corporate.security');
+})->name('security');
+
+Route::get('/api', function() {
+    return view('corporate.api-docs');
+})->name('api.docs');
+
 // Landing Page Routes with Multi-language Support  
 Route::get('/', [App\Http\Controllers\Setup::class, 'businessLogin'])->name('business.login');
 Route::get('/roi-calculator', function() { return view('landing.roi-calculator'); })->name('landing.roi-calculator');
@@ -58,7 +67,7 @@ Route::get('/terms/use', function() { return view('auth.legal.terms_of_use');});
 Route::get('/test-queue', function() {
     return view('test-queue');
 })->name('test.queue');
-Route::get('/privacy', function() { return view('auth.legal.privacy');});
+Route::get('/privacy', function() { return view('corporate.privacy');});
 Route::get('/live/{event_id?}','Setup@liveEvent');
 Route::post('/resetpassword/resetP','Setup@resetP');
 //Auth::routes();
@@ -222,8 +231,6 @@ Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function
         ->name('create-session');
     Route::get('/session-status/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'checkSessionStatus'])
         ->name('session-status');
-    Route::post('/verify-code', [App\Http\Controllers\WaSenderController::class, 'verifyPhoneCode'])
-        ->name('verify-code');
     Route::get('/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances'])
         ->name('user-instances');
     Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance'])

@@ -1,5 +1,5 @@
-@extends('layouts.app')
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="products-page">
     <div class="page-header">
         <h2 class="page-title">
@@ -69,60 +69,62 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if($products ?? false)
-                        @foreach($products as $product)
-                        <tr data-product-id="{{ $product->id }}">
+                    <?php if($products ?? false): ?>
+                        <?php $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <tr data-product-id="<?php echo e($product->id); ?>">
                             <td>
-                                <input type="checkbox" class="product-checkbox" value="{{ $product->id }}" onchange="updateBulkActions()">
+                                <input type="checkbox" class="product-checkbox" value="<?php echo e($product->id); ?>" onchange="updateBulkActions()">
                             </td>
                             <td>
                                 <div class="product-info d-flex align-items-center">
                                     <div class="product-image me-3">
-                                        @if($product->hasImage())
-                                            <img src="{{ $product->getImageFile() }}" alt="{{ $product->name }}" class="product-thumb">
-                                        @else
+                                        <?php if($product->hasImage()): ?>
+                                            <img src="<?php echo e($product->getImageFile()); ?>" alt="<?php echo e($product->name); ?>" class="product-thumb">
+                                        <?php else: ?>
                                             <div class="product-placeholder">
                                                 <i class="fas fa-box"></i>
                                             </div>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
                                     <div>
-                                        <div class="product-name">{{ $product->name }}</div>
-                                        <div class="product-description">{{ Str::limit($product->description, 80) }}</div>
+                                        <div class="product-name"><?php echo e($product->name); ?></div>
+                                        <div class="product-description"><?php echo e(Str::limit($product->description, 80)); ?></div>
                                         <small class="text-muted">
-                                            SKU: {{ $product->sku }} | {{ $product->category }}
-                                            @if($product->hasAttachment())
-                                                <a href="{{ $product->attachment_url }}" target="_blank" class="ms-2">
+                                            SKU: <?php echo e($product->sku); ?> | <?php echo e($product->category); ?>
+
+                                            <?php if($product->hasAttachment()): ?>
+                                                <a href="<?php echo e($product->attachment_url); ?>" target="_blank" class="ms-2">
                                                     <i class="fas fa-file-pdf text-danger"></i>
                                                 </a>
-                                            @endif
+                                            <?php endif; ?>
                                         </small>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="pricing-info">
-                                    <div class="retail-price">${{ number_format($product->retail_price, 2) }}<small>/month</small></div>
-                                    <div class="wholesale-price">${{ number_format($product->wholesale_price, 2) }}<small>/month (wholesale)</small></div>
-                                    <div class="discount-info">Max discount: {{ $product->max_discount }}%</div>
+                                    <div class="retail-price">$<?php echo e(number_format($product->retail_price, 2)); ?><small>/month</small></div>
+                                    <div class="wholesale-price">$<?php echo e(number_format($product->wholesale_price, 2)); ?><small>/month (wholesale)</small></div>
+                                    <div class="discount-info">Max discount: <?php echo e($product->max_discount); ?>%</div>
                                 </div>
                             </td>
                             <td>
                                 <div class="stock-info">
-                                    <span class="stock-quantity">{{ $product->quantity ?? 'Unlimited' }}</span>
-                                    <div class="stock-status text-{{ $product->stock_status_color }}">{{ $product->stock_status_text }}</div>
+                                    <span class="stock-quantity"><?php echo e($product->quantity ?? 'Unlimited'); ?></span>
+                                    <div class="stock-status text-<?php echo e($product->stock_status_color); ?>"><?php echo e($product->stock_status_text); ?></div>
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-{{ $product->status === 'active' ? 'success' : ($product->status === 'inactive' ? 'secondary' : 'warning') }} status-badge">
-                                    {{ ucfirst($product->status) }}
+                                <span class="badge bg-<?php echo e($product->status === 'active' ? 'success' : ($product->status === 'inactive' ? 'secondary' : 'warning')); ?> status-badge">
+                                    <?php echo e(ucfirst($product->status)); ?>
+
                                 </span>
                             </td>
                             <td>
                                 <div class="product-tags">
-                                    @if($product->tags)
-                                        @foreach($product->tags as $tag)
-                                            @php
+                                    <?php if($product->tags): ?>
+                                        <?php $__currentLoopData = $product->tags; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tag): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <?php
                                                 $badgeClass = match($tag) {
                                                     'hot-deal' => 'bg-danger',
                                                     'featured' => 'bg-info',
@@ -131,28 +133,28 @@
                                                     'bestseller' => 'bg-success',
                                                     default => 'bg-secondary'
                                                 };
-                                            @endphp
-                                            <span class="badge {{ $badgeClass }}">{{ ucfirst(str_replace('-', ' ', $tag)) }}</span>
-                                        @endforeach
-                                    @endif
+                                            ?>
+                                            <span class="badge <?php echo e($badgeClass); ?>"><?php echo e(ucfirst(str_replace('-', ' ', $tag))); ?></span>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewProduct({{ $product->id }})" title="View Details">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewProduct(<?php echo e($product->id); ?>)" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-warning" onclick="editProduct({{ $product->id }})" title="Edit">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editProduct(<?php echo e($product->id); ?>)" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct({{ $product->id }})" title="Delete">
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(<?php echo e($product->id); ?>)" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </td>
                         </tr>
-                        @endforeach
-                    @else
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    <?php else: ?>
                         <!-- Sample data when no products exist -->
                         <tr>
                             <td colspan="7" class="text-center py-4">
@@ -160,7 +162,7 @@
                                 <p class="text-muted">No products found. Click "Add New Product" to get started.</p>
                             </td>
                         </tr>
-                    @endif
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -182,7 +184,7 @@
             </div>
             <div class="modal-body">
                 <form id="addProductForm" enctype="multipart/form-data">
-                    @csrf
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" id="productId" name="id">
                     
                     <!-- Product Type and Basic Information -->
@@ -2001,7 +2003,7 @@ function saveProduct() {
     saveButton.disabled = true;
     
     // Determine if this is an update or create
-    const url = productId ? `{{ url('/api/products') }}/${productId}` : '{{ url('/api/products') }}';
+    const url = productId ? `<?php echo e(url('/api/products')); ?>/${productId}` : '<?php echo e(url('/api/products')); ?>';
     const method = productId ? 'PUT' : 'POST';
     
     if (method === 'PUT') {
@@ -2118,7 +2120,7 @@ function saveProduct() {
 }
 
 function viewProduct(productId) {
-    fetch(`{{ url('/api/products') }}/${productId}`)
+    fetch(`<?php echo e(url('/api/products')); ?>/${productId}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -2137,7 +2139,7 @@ function viewProduct(productId) {
 
 function editProduct(productId) {
     console.log('Editing product:', productId);
-    fetch(`{{ url('/api/products') }}/${productId}/edit`)
+    fetch(`<?php echo e(url('/api/products')); ?>/${productId}/edit`)
     .then(response => {
         console.log('Edit response status:', response.status);
         return response.json();
@@ -2188,7 +2190,7 @@ function deleteProduct(productId) {
         return;
     }
     
-    fetch(`{{ url('/api/products') }}/${productId}`, {
+    fetch(`<?php echo e(url('/api/products')); ?>/${productId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -2260,7 +2262,7 @@ function executeBulkAction() {
         return;
     }
     
-    fetch('{{ url('/api/products/bulk-action') }}', {
+    fetch('<?php echo e(url('/api/products/bulk-action')); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2661,7 +2663,7 @@ function reprocessDocument(attachmentId) {
         return;
     }
     
-    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}/reprocess`, {
+    fetch(`<?php echo e(url('/api/products/attachments')); ?>/${attachmentId}/reprocess`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2692,7 +2694,7 @@ function removeExistingDocument(attachmentId) {
         return;
     }
     
-    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}`, {
+    fetch(`<?php echo e(url('/api/products/attachments')); ?>/${attachmentId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -3059,4 +3061,5 @@ function formatFileSize(bytes) {
 }
 
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\xampp\htdocs\safarichat\resources\views/service/products.blade.php ENDPATH**/ ?>

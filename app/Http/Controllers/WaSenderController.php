@@ -145,13 +145,36 @@ class WaSenderController extends Controller
     }
 
     /**
-     * Generate QR code for session connection - Simplified to always work
+     * Generate QR code for session connection via unified notification service
      */
     private function generateQRCode($sessionId)
     {
-        // For now, always generate a working placeholder QR code
-        Log::info('Generating QR code for session', ['session_id' => $sessionId]);
-        return $this->generatePlaceholderQR($sessionId);
+        try {
+            Log::info('Generating QR code via unified service', ['session_id' => $sessionId]);
+            
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            $result = $unifiedService->getQRCode($sessionId);
+            
+            if ($result['success'] ?? false) {
+                Log::info('QR code retrieved from unified service', [
+                    'session_id' => $sessionId,
+                    'has_qr_code' => !empty($result['qr_code'])
+                ]);
+                return $result['qr_code'];
+            } else {
+                Log::warning('Unified service QR generation failed, using fallback', [
+                    'session_id' => $sessionId,
+                    'error' => $result['message'] ?? 'Unknown error'
+                ]);
+                return $this->generatePlaceholderQR($sessionId);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error generating QR via unified service', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->generatePlaceholderQR($sessionId);
+        }
     }
     
     /**
@@ -165,7 +188,7 @@ class WaSenderController extends Controller
             $request->validate([
                 'phone_number' => 'required|string',
                 'instance_name' => 'nullable|string|max:50',
-                'auth_method' => 'nullable|string|in:qr,phone,code'
+                'auth_method' => 'nullable|string|in:qr'
             ]);
 
             $user = Auth::user();
@@ -345,36 +368,6 @@ class WaSenderController extends Controller
                 Log::info('Sending QR response to frontend', ['response_keys' => array_keys($response)]);
                 
                 return response()->json($response);
-                
-            } else {
-                // Phone code method
-                $instance->update([
-                    'connect_status' => 'connecting',
-                    'metadata' => json_encode([
-                        'session_data' => $sessionData,
-                        'auth_method' => 'phone',
-                        'awaiting_code' => true
-                    ])
-                ]);
-
-                // Create default AI Sales Agent for this user if not exists
-                $this->createDefaultAiAgent($user);
-
-                Log::info('WhatsApp session creation completed with phone code', [
-                    'user_id' => $user->id,
-                    'session_id' => $sessionId,
-                    'instance_id' => $instance->id
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Verification code sent to your WhatsApp number.',
-                    'session_id' => $sessionId,
-                    'instance_id' => $instance->id,
-                    'auth_method' => 'phone',
-                    'status' => 'AWAITING_CODE',
-                    'phone_number' => $phoneNumber
-                ]);
             }
 
         } catch (\Exception $e) {
@@ -892,127 +885,9 @@ class WaSenderController extends Controller
         }
     }
 
-    /**
-     * Verify phone code
-     */
-    public function verifyPhoneCode(Request $request)
-    {
-        try {
-            $request->validate([
-                'session_id' => 'required|string',
-                'code' => 'required|string'
-            ]);
 
-            $sessionId = $request->session_id;
-            $code = $request->code;
 
-            $instance = WhatsappInstance::where('instance_id', $sessionId)
-                ->where('user_id', Auth::id())
-                ->first();
 
-            if (!$instance) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session not found'
-                ], 404);
-            }
-
-            // Verify code with WaSender API
-            $verified = $this->verifyCodeWithAPI($sessionId, $code);
-
-            if ($verified) {
-                // Update instance as connected
-                $instance->update([
-                    'status' => 'connected',
-                    'connect_status' => 'ready',
-                    'connected_at' => now(),
-                    'last_active_at' => now(),
-                ]);
-
-                // Create default AI Sales Agent for this user if not exists
-                $this->createDefaultAiAgent($instance->user);
-
-                Log::info('WhatsApp session connected via phone code', [
-                    'session_id' => $sessionId,
-                    'user_id' => $instance->user_id
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'WhatsApp connected successfully',
-                    'status' => 'connected',
-                    'instance' => [
-                        'id' => $instance->id,
-                        'phone_number' => $instance->phone_number,
-                        'connected_at' => $instance->connected_at,
-                    ]
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid verification code'
-            ], 400);
-
-        } catch (\Exception $e) {
-            Log::error('Error verifying phone code', [
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Verification failed'
-            ], 500);
-        }
-    }
-
-    /**
-     * Verify code with external API
-     */
-    private function verifyCodeWithAPI($sessionId, $code)
-    {
-        try {
-            $apiKey = config('services.wasender.access_token');
-
-            if (!$apiKey) {
-                // Mock verification for development
-                return strlen($code) >= 4;
-            }
-
-            $url = "https://www.wasenderapi.com/api/whatsapp-sessions/{$sessionId}/verify-code";
-            
-            $response = Http::timeout(30)->withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json'
-            ])->post($url, [
-                'code' => $code
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                Log::info('Code verification response', [
-                    'session_id' => $sessionId,
-                    'response' => $data
-                ]);
-                return $data['success'] ?? $data['verified'] ?? false;
-            }
-
-            Log::error('Code verification failed', [
-                'session_id' => $sessionId,
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-
-            return false;
-
-        } catch (\Exception $e) {
-            Log::error('Error verifying code with API', [
-                'session_id' => $sessionId,
-                'error' => $e->getMessage()
-            ]);
-            return false;
-        }
-    }
 
     /**
      * Handle incoming webhook from WaSender API
@@ -1554,41 +1429,163 @@ class WaSenderController extends Controller
      */
     public function createSession(Request $request)
     {
-        $validator = \Validator::make($request->all(), [
-            'schema_name' => 'required|string',
-            'name' => 'required|string|max:100',
-            'phone_number' => 'required|string|regex:/^\+?[1-9]\d{1,14}$/',
-            'account_protection' => 'sometimes|boolean',
-            'log_messages' => 'sometimes|boolean',
-            'read_incoming_messages' => 'sometimes|boolean',
-            'webhook_url' => 'sometimes|url',
-            'webhook_enabled' => 'sometimes|boolean',
-            'webhook_events' => 'sometimes|array',
-        ]);
+        try {
+            $user = Auth::user();
+            
+            $validated = $request->validate([
+                'phone_number' => 'required|string',
+                'instance_name' => 'nullable|string',
+                'auth_method' => 'nullable|string|in:qr', // Only QR supported
+                'webhook_events' => 'nullable|array',
+                'webhook_events.*' => 'string|in:messages.received,session.status,messages.update',
+                'webhook_url' => 'nullable|url'
+            ]);
 
-        if ($validator->fails()) {
+            $phoneNumber = $validated['phone_number'];
+            $instanceName = $validated['instance_name'] ?? 'WhatsApp_' . time();
+            $authMethod = $validated['auth_method'] ?? 'qr';
+            
+            // Validate webhook events with correct event names
+            $webhookEvents = $validated['webhook_events'] ?? [
+                'messages.received',
+                'session.status', 
+                'messages.update'
+            ];
+
+            $webhookUrl = $validated['webhook_url'] ?? url("/api/wasender/webhook/user_instance_id");
+
+            $sessionId = 'session_' . uniqid() . '_' . time();
+            
+            Log::info('Starting WhatsApp session creation', [
+                'user_id' => $user->id,
+                'phone_number' => $phoneNumber,
+                'session_id' => $sessionId,
+                'auth_method' => $authMethod
+            ]);
+            
+            // Create or update WhatsApp instance
+            $instance = WhatsappInstance::updateOrCreate(
+                ['user_id' => $user->id, 'phone_number' => $phoneNumber],
+                [
+                    'instance_name' => $instanceName,
+                    'instance_id' => $sessionId,
+                    'connect_status' => 'connecting',
+                    'status' => 'pending',
+                    'webhook_url' => $webhookUrl,
+                    'webhook_events' => json_encode($webhookEvents),
+                    'platform' => 'wasender',
+                    'metadata' => json_encode([
+                        'session_data' => compact('sessionId', 'phoneNumber', 'authMethod'),
+                        'auth_method' => 'qr'
+                    ])
+                ]
+            );
+
+            // Use UnifiedNotificationService to create session via notifications.shulesoft.africa
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            $sessionResponse = $unifiedService->createSession([
+                'schema_name' => $user->uuid,
+                'name' => $user->name,
+                'phone_number' => $phoneNumber,
+                'instance_name' => $instanceName,
+                'account_protection' => true,
+                'log_messages' => true,
+                'read_incoming_messages' => false,
+                'webhook_url' => $webhookUrl,
+                'webhook_enabled' => true,
+                'webhook_events' => $webhookEvents
+            ]);
+
+            if (isset($sessionResponse['success']) && $sessionResponse['success']) {
+                // Check if session was created in mock mode due to authentication issues
+                $isMockSession = isset($sessionResponse['data']['is_mock']) && $sessionResponse['data']['is_mock'];
+                
+                // Update instance with session response data
+                if (isset($sessionResponse['data'])) {
+                    $responseData = $sessionResponse['data'];
+                    $instance->update([
+                        'instance_id' => $responseData['wasender_session_id'] ?? $sessionId,
+                        'connect_status' => $responseData['status'] ?? 'connecting',
+                        'api_key' => $responseData['api_key'] ?? null,
+                        'metadata' => json_encode([
+                            'session_data' => $responseData,
+                            'auth_method' => 'qr',
+                            'is_mock' => $isMockSession
+                        ])
+                    ]);
+                    $sessionId = $responseData['wasender_session_id'] ?? $sessionId;
+                }
+                
+                // Generate QR code using the unified service
+                $qrResponse = $unifiedService->getQRCode($sessionId);
+                
+                if (isset($qrResponse['success']) && $qrResponse['success']) {
+                    $qrCodeForFrontend = $qrResponse['qr_code'];
+                    
+                    // Add data:image/png;base64, prefix if not present and not a URL
+                    if (!str_starts_with($qrCodeForFrontend, 'data:image/') && !filter_var($qrCodeForFrontend, FILTER_VALIDATE_URL)) {
+                        $qrCodeForFrontend = 'data:image/png;base64,' . $qrCodeForFrontend;
+                    }
+                    
+                    if (isset($qrResponse['is_mock']) && $qrResponse['is_mock']) {
+                        Log::info('Using mock QR code for session', ['session_id' => $sessionId]);
+                    }
+                } else {
+                    // Fallback to mock QR generation
+                    Log::warning('QR generation failed, using mock', ['session_id' => $sessionId]);
+                    $qrCodeForFrontend = 'data:image/png;base64,' . base64_encode('mock_qr_code');
+                }
+
+                // Create default AI Sales Agent for this user if not exists
+                $this->createDefaultAiAgent($user);
+
+                $response = [
+                    'success' => true,
+                    'message' => 'QR code generated successfully. Scan with WhatsApp to connect.',
+                    'session_id' => $sessionId,
+                    'instance_id' => $instance->id,
+                    'qr_code' => $qrCodeForFrontend,
+                    'auth_method' => 'qr',
+                    'status' => 'NEED_SCAN',
+                    'phone_number' => $phoneNumber,
+                    'service_endpoint' => 'notifications.shulesoft.africa',
+                    // Debug information
+                    'debug' => [
+                        'api_configured' => !empty(config('services.unified_notification.token')),
+                        'qr_code_type' => filter_var($qrCodeForFrontend, FILTER_VALIDATE_URL) ? 'url' : 'base64',
+                        'is_mock' => isset($qrResponse['is_mock']) ? $qrResponse['is_mock'] : $isMockSession,
+                        'session_mock' => $isMockSession
+                    ]
+                ];
+                
+                Log::info('WhatsApp session created successfully', [
+                    'user_id' => $user->id,
+                    'session_id' => $sessionId,
+                    'instance_id' => $instance->id,
+                    'qr_generated' => isset($qrResponse['success']) ? $qrResponse['success'] : false
+                ]);
+                
+                return response()->json($response);
+            } else {
+                throw new \Exception('Session creation failed: ' . ($sessionResponse['message'] ?? 'Unknown error'));
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $e->errors()
             ], 422);
-        }
-
-        try {
-            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
-            $result = $unifiedService->createSession($request->all());
-            
-            return response()->json($result);
         } catch (\Exception $e) {
-            Log::error('Unified session creation failed', [
+            Log::error('Session creation failed', [
                 'error' => $e->getMessage(),
-                'data' => $request->all()
+                'user_id' => Auth::id(),
+                'phone_number' => $request->get('phone_number')
             ]);
 
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to create session',
-                'message' => $e->getMessage()
+                'message' => 'Failed to create WhatsApp session: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1725,13 +1722,32 @@ class WaSenderController extends Controller
             $instance = WhatsappInstance::findOrFail($id);
             $unifiedService = app(\App\Services\UnifiedNotificationService::class);
             
+            Log::info('Requesting QR code via unified service', [
+                'instance_id' => $id,
+                'session_id' => $instance->instance_id
+            ]);
+            
             $result = $unifiedService->getQRCode($instance->instance_id);
+            
+            // Update instance with latest QR code if successful
+            if ($result['success'] ?? false) {
+                $instance->update([
+                    'qr_code' => $result['qr_code'] ?? null,
+                    'qr_code_generated_at' => now(),
+                    'status' => $result['status'] ?? $instance->status
+                ]);
+            }
             
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('Error getting QR code via unified service', [
+                'instance_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to get QR code',
+                'error' => 'Failed to retrieve QR code',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -1817,6 +1833,48 @@ class WaSenderController extends Controller
                 'success' => false,
                 'error' => 'Failed to delete session',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Test QR code generation from unified notification service
+     */
+    public function testQRGeneration(Request $request)
+    {
+        try {
+            $sessionId = $request->get('session_id');
+            if (!$sessionId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'session_id is required'
+                ], 400);
+            }
+
+            Log::info('Testing QR code generation', ['session_id' => $sessionId]);
+            
+            // Test direct unified service call
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            $result = $unifiedService->getQRCode($sessionId);
+            
+            return response()->json([
+                'success' => true,
+                'test_result' => $result,
+                'timestamp' => now()->toISOString(),
+                'service_endpoint' => 'notifications.shulesoft.africa'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('QR generation test failed', [
+                'session_id' => $request->get('session_id'),
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'QR generation test failed',
+                'message' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
             ], 500);
         }
     }

@@ -61,18 +61,17 @@ class Home extends Controller
     public function index()
     {
 
-          // Check if user has no active whatsapp instance
-            // $hasWhatsappInstance = \App\Models\MessageInstance::where('user_id', Auth::id())
-            // ->where('type', 'whatsapp')
-            // ->where('status', 1)
-            // ->exists();
+          //Check if user has no active whatsapp instance
+            $hasWhatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+            ->where('status', 'connected')
+            ->exists();
 
-            // if (!$hasWhatsappInstance) {
-            //       $this->data['ward'] = Auth::user()->business;
-            //     $this->data['event'] = [];
+            if (!$hasWhatsappInstance) {
+                  $this->data['ward'] = Auth::user()->business;
+                $this->data['event'] = [];
            
-            //     return view('auth.business.wasender', $this->data);
-            // }
+                return view('auth.business.wasender', $this->data);
+            }
 
          
         $userBusiness = Auth::user()->business;

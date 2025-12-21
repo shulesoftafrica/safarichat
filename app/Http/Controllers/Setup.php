@@ -541,7 +541,7 @@ class Setup extends Controller {
         }
 
         // Optionally, log registration or send welcome message
-       // $this->sendTextMessage($data['phone'], 'Welcome to SafariChat! Your business profile has been created.', 'whatsapp');
+      $this->sendTextMessage($data['phone'], 'Welcome to SafariChat! Your business profile has been created.', 'whatsapp');
 
         return redirect('/home')->with('success', 'Business profile registered successfully!');
     }

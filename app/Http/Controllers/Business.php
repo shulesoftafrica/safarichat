@@ -151,4 +151,15 @@ class Business extends Controller {
         return redirect()->back()->with('success', 'success');
     }
 
+    /**
+     * Display business requests page
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function request() {
+        // You can customize this method based on what "requests" should display
+        // For now, returning a simple view or redirect to a relevant page
+        return redirect('/business/product')->with('info', 'Requests functionality coming soon');
+    }
+
 }
