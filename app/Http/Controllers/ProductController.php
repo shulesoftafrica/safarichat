@@ -24,7 +24,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('faqs')->forUser(auth()->id());
+        $query = Product::with('faqs')->withCount('leadProducts')->forUser(auth()->id());
         
         // Search functionality
         if ($request->has('search') && !empty($request->search)) {
@@ -185,11 +185,27 @@ class ProductController extends Controller
             
             DB::commit();
             
-            return response()->json([
+            // Check if this is the user's first product and onboarding is active
+            $isOnboarding = request('onboarding') === 'true' || request()->header('X-Onboarding') === 'true';
+            $userProductCount = Product::forUser(auth()->id())->count();
+            
+            $response = [
                 'success' => true,
                 'message' => 'Product created successfully!',
                 'product' => $product->load('faqs')
-            ]);
+            ];
+            
+            // If this is their first product during onboarding, suggest next step
+            if ($isOnboarding && $userProductCount === 1) {
+                $response['onboarding'] = [
+                    'first_product' => true,
+                    'next_step' => 'ai_agent',
+                    'next_step_url' => url('/service/jd?onboarding=true'),
+                    'message' => '🎉 Great! Now let\'s set up your AI Sales Agent to handle customer conversations.'
+                ];
+            }
+            
+            return response()->json($response);
             
         } catch (\Exception $e) {
             DB::rollBack();

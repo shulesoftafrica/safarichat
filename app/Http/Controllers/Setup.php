@@ -97,14 +97,6 @@ class Setup extends Controller {
      }
 
   
-  
-    public function createPassword($users) {
-        $pass = rand(1, 999) . substr(str_shuffle('abcdefghkmnp'), 0, 3);
-        $password = bcrypt($pass);
-        $user_info = DB::table('users')->where('id', $users->id);
-        $user_info->update(['password' => $password]);
-        return $pass;
-    }
 
 
     private function resendNonDelivered($user_id) {

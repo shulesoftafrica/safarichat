@@ -42,6 +42,10 @@ class UpdateProductRequest extends FormRequest
             'faq_answers.*' => 'string|max:1000',
             'faqs' => 'nullable|string', // JSON string from frontend
             'selling_points' => 'nullable|string', // JSON string from frontend
+            'is_active_campaign' => 'boolean',
+            'campaign_hook_text' => 'nullable|string|max:1000',
+            'campaign_pain_point' => 'nullable|string|max:1000',
+            'campaign_attachment' => 'nullable|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', // 10MB max
             'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             'product_attachment' => 'nullable|mimes:pdf|max:10240' // 10MB max
         ];

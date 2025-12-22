@@ -66,7 +66,7 @@
         <!--end logo-->
         <div class="menu-body slimscroll">  
             <?php
-            if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
+        //    if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
                 ?>
                 <div id="MetricaCRM" class="main-icon-menu-pane <?= !in_array(request()->segment(1), ['message', 'business']) ? 'active' : '' ?> ">
                     <div class="title-box">
@@ -125,21 +125,22 @@
                 </div><!-- end CRM -->                
 
          
-            <?php } ?>
+            <?php //} ?>
 
             <?php if (!empty(Auth::user()->business)) { ?>
-                <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
+                <!-- <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
                     <div class="title-box">
                         <h6 class="menu-title">Business </h6>        
                     </div>
                     <ul class="nav">
                         <li class="nav-item"><a class="nav-link" href="<?= url('business/summary') ?>">{{__('summary')}}</a></li>
                         <li class="nav-item"><a class="nav-link" href="<?= url('business/request') ?>">{{__('requests')}} </a></li>
-                        <!--<li class="nav-item"><a class="nav-link" href="<?= url('business/product/1') ?>">{{__('products')}}</a></li>-->
-                        <li class="nav-item"><a class="nav-link" href="<?= url('business/product/2') ?>">{{__('services')}}</a></li>
+                        <li class="nav-item"><a class="nav-link" href="<?= url('business/product/1') ?>">{{__('products')}}</a></li>-->
+                        <!-- <li class="nav-item"><a class="nav-link" href="<?= url('business/product/2') ?>">{{__('services')}}</a></li> -->
                         <!--<li class="nav-item"><a class="nav-link" href="<?= url('business/promote') ?>">{{__('matangazo')}}</a></li>-->
-                    </ul>
-                </div><!-- end Pages -->
+                    <!-- </ul> -->
+                <!-- </div> --> 
+                <!-- end Pages -->
             <?php } ?>
          
 

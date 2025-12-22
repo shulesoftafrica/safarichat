@@ -110,7 +110,7 @@ class WaSenderController extends Controller
                 'account_protection' => true,
                 'log_messages' => true,
                 'read_incoming_messages' => false,
-                'webhook_url' => url('/api/wasender/webhook'),
+                'webhook_url' => 'https://safarichat.africa/api/wasender/webhook/' . $instanceName,
                 'webhook_enabled' => true,
                 'webhook_events' => [
                     'messages.received',
@@ -1429,6 +1429,7 @@ class WaSenderController extends Controller
      */
     public function createSession(Request $request)
     {
+        return $this->createSessionLegacy($request);
         try {
             $user = Auth::user();
             

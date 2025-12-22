@@ -57,21 +57,31 @@
             <table class="table table-hover" id="productsTable">
                 <thead>
                     <tr>
-                        <th>
+                        <th style="width: 40px;">
                             <input type="checkbox" id="selectAll" onchange="selectAllProducts()">
                         </th>
-                        <th>Product Details</th>
-                        <th>Pricing</th>
-                        <th>Stock</th>
-                        <th>Status</th>
-                        <th>Tags</th>
-                        <th>Actions</th>
+                        <th style="width: 300px;">Product/Service Details</th>
+                        <th style="width: 150px;">Pricing</th>
+                        <th class="stock-column <?php echo e($products->where('product_type', 'service')->count() === $products->count() ? 'd-none' : ''); ?>" style="width: 100px;">Stock</th>
+                        <th style="width: 100px;">Status</th>
+                        <th class="tags-column <?php echo e($products->where('product_type', 'service')->count() === $products->count() ? 'd-none' : ''); ?>" style="width: 150px;">
+                            <?php if($products->where('product_type', 'service')->count() > 0 && $products->where('product_type', 'tangible')->count() > 0): ?>
+                                Tags/Features
+                            <?php elseif($products->where('product_type', 'service')->count() > 0): ?>
+                                Features
+                            <?php else: ?>
+                                Tags
+                            <?php endif; ?>
+                        </th>
+                        <th style="width: 100px;">Leads</th>
+                        <th style="width: 120px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if($products ?? false): ?>
                         <?php $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <tr data-product-id="<?php echo e($product->id); ?>">
+                        <tr data-product-id="<?php echo e($product->id); ?>" 
+                            class="<?php echo e($product->is_active_campaign ? 'campaign-active' : ''); ?>">
                             <td>
                                 <input type="checkbox" class="product-checkbox" value="<?php echo e($product->id); ?>" onchange="updateBulkActions()">
                             </td>
@@ -82,47 +92,123 @@
                                             <img src="<?php echo e($product->getImageFile()); ?>" alt="<?php echo e($product->name); ?>" class="product-thumb">
                                         <?php else: ?>
                                             <div class="product-placeholder">
-                                                <i class="fas fa-box"></i>
+                                                <i class="fas fa-<?php echo e($product->product_type === 'service' ? 'cogs' : 'box'); ?>"></i>
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <div>
-                                        <div class="product-name"><?php echo e($product->name); ?></div>
-                                        <div class="product-description"><?php echo e(Str::limit($product->description, 80)); ?></div>
-                                        <small class="text-muted">
-                                            SKU: <?php echo e($product->sku); ?> | <?php echo e($product->category); ?>
-
+                                    <div class="product-details">
+                                        <div class="product-name-row d-flex align-items-center gap-2">
+                                            <h6 class="product-name mb-0"><?php echo e($product->name); ?></h6>
+                                            <?php if($product->product_type === 'service'): ?>
+                                                <span class="badge badge-service">Service</span>
+                                            <?php endif; ?>
+                                            <?php if($product->is_active_campaign): ?>
+                                                <span class="badge badge-campaign">
+                                                    <i class="fas fa-bullhorn me-1"></i>Active Campaign
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="product-description text-muted mt-1"><?php echo e(Str::limit($product->description, 80)); ?></div>
+                                        <div class="product-meta mt-2">
+                                            <?php if($product->product_type === 'tangible'): ?>
+                                                <span class="meta-item"><strong>SKU:</strong> <?php echo e($product->sku); ?></span>
+                                                <span class="meta-divider">|</span>
+                                            <?php endif; ?>
+                                            <span class="meta-item"><strong>Category:</strong> <?php echo e($product->category); ?></span>
+                                            <?php if($product->product_type === 'service'): ?>
+                                                <span class="meta-divider">|</span>
+                                                <span class="meta-item"><strong>Delivery:</strong> <?php echo e(ucfirst(str_replace('_', ' ', $product->service_delivery_type ?? 'N/A'))); ?></span>
+                                                <?php if($product->service_duration_days): ?>
+                                                    <span class="meta-divider">|</span>
+                                                    <span class="meta-item"><strong>Duration:</strong> <?php echo e($product->service_duration_days); ?> days</span>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
                                             <?php if($product->hasAttachment()): ?>
-                                                <a href="<?php echo e($product->attachment_url); ?>" target="_blank" class="ms-2">
+                                                <a href="<?php echo e($product->attachment_url); ?>" target="_blank" class="ms-2 text-decoration-none">
                                                     <i class="fas fa-file-pdf text-danger"></i>
                                                 </a>
                                             <?php endif; ?>
-                                        </small>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="pricing-info">
-                                    <div class="retail-price">$<?php echo e(number_format($product->retail_price, 2)); ?><small>/month</small></div>
-                                    <div class="wholesale-price">$<?php echo e(number_format($product->wholesale_price, 2)); ?><small>/month (wholesale)</small></div>
-                                    <div class="discount-info">Max discount: <?php echo e($product->max_discount); ?>%</div>
+                                    <?php if($product->product_type === 'service'): ?>
+                                        <?php if($product->pricing_type === 'tiered' && $product->service_tiers): ?>
+                                            <div class="pricing-tiered">
+                                                <?php $tiers = is_string($product->service_tiers) ? json_decode($product->service_tiers, true) : $product->service_tiers; ?>
+                                                <?php if($tiers && is_array($tiers)): ?>
+                                                    <div class="pricing-label">Tiered Pricing</div>
+                                                    <?php $__currentLoopData = $tiers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $tier): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                        <div class="tier-price">
+                                                            <span class="price-amount">$<?php echo e(number_format($tier['price'] ?? 0, 2)); ?></span>
+                                                            <span class="price-period">/<?php echo e($tier['name'] ?? "Tier " . ($index + 1)); ?></span>
+                                                        </div>
+                                                        <?php if($loop->iteration >= 2): ?> <?php break; ?> <?php endif; ?>
+                                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                    <?php if(count($tiers) > 2): ?>
+                                                        <small class="text-muted">+<?php echo e(count($tiers) - 2); ?> more</small>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php elseif($product->pricing_type === 'per_hour'): ?>
+                                            <div class="pricing-single">
+                                                <div class="price-main">
+                                                    <span class="price-amount">$<?php echo e(number_format($product->hourly_rate ?? 0, 2)); ?></span>
+                                                    <span class="price-period">/hour</span>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="pricing-single">
+                                                <div class="price-main">
+                                                    <span class="price-amount">$<?php echo e(number_format($product->retail_price, 2)); ?></span>
+                                                    <span class="price-period">/<?php echo e($product->pricing_type === 'monthly' ? 'month' : 
+                                                             ($product->pricing_type === 'yearly' ? 'year' : 
+                                                             ($product->pricing_type === 'per_project' ? 'project' : 'one-time'))); ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <div class="pricing-product">
+                                            <div class="price-main">
+                                                <span class="price-amount">$<?php echo e(number_format($product->retail_price, 2)); ?></span>
+                                                <span class="price-label">Retail</span>
+                                            </div>
+                                            <div class="price-wholesale">
+                                                <span class="price-amount">$<?php echo e(number_format($product->wholesale_price, 2)); ?></span>
+                                                <span class="price-label">Wholesale</span>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if($product->max_discount > 0): ?>
+                                        <div class="discount-badge">
+                                            <i class="fas fa-percentage"></i> <?php echo e($product->max_discount); ?>% max
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </td>
-                            <td>
-                                <div class="stock-info">
-                                    <span class="stock-quantity"><?php echo e($product->quantity ?? 'Unlimited'); ?></span>
-                                    <div class="stock-status text-<?php echo e($product->stock_status_color); ?>"><?php echo e($product->stock_status_text); ?></div>
-                                </div>
+                            <td class="stock-column <?php echo e($product->product_type === 'service' ? 'd-none' : ''); ?>">
+                                <?php if($product->product_type === 'tangible'): ?>
+                                    <div class="stock-info">
+                                        <span class="stock-quantity"><?php echo e($product->quantity ?? 'Unlimited'); ?></span>
+                                        <div class="stock-status text-<?php echo e($product->stock_status_color); ?>"><?php echo e($product->stock_status_text); ?></div>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-muted">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge bg-<?php echo e($product->status === 'active' ? 'success' : ($product->status === 'inactive' ? 'secondary' : 'warning')); ?> status-badge">
-                                    <?php echo e(ucfirst($product->status)); ?>
+                                <div class="status-info">
+                                    <span class="badge badge-status bg-<?php echo e($product->status === 'active' ? 'success' : ($product->status === 'inactive' ? 'secondary' : 'warning')); ?>">
+                                        <?php echo e(ucfirst($product->status)); ?>
 
-                                </span>
+                                    </span>
+                                </div>
                             </td>
-                            <td>
-                                <div class="product-tags">
-                                    <?php if($product->tags): ?>
+                            <td class="tags-column <?php echo e($product->product_type === 'service' ? 'd-none' : ''); ?>">
+                                <?php if($product->product_type === 'tangible' && $product->tags): ?>
+                                    <div class="product-tags">
                                         <?php $__currentLoopData = $product->tags; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tag): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                             <?php
                                                 $badgeClass = match($tag) {
@@ -134,8 +220,41 @@
                                                     default => 'bg-secondary'
                                                 };
                                             ?>
-                                            <span class="badge <?php echo e($badgeClass); ?>"><?php echo e(ucfirst(str_replace('-', ' ', $tag))); ?></span>
+                                            <span class="badge tag-badge <?php echo e($badgeClass); ?> mb-1"><?php echo e(ucfirst(str_replace('-', ' ', $tag))); ?></span>
                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </div>
+                                <?php elseif($product->product_type === 'service'): ?>
+                                    <div class="service-features">
+                                        <?php if($product->requires_consultation): ?>
+                                            <span class="badge service-feature-badge bg-primary mb-1">Consultation</span>
+                                        <?php endif; ?>
+                                        <?php if($product->has_trial): ?>
+                                            <span class="badge service-feature-badge bg-success mb-1">Trial Available</span>
+                                        <?php endif; ?>
+                                        <?php if($product->requires_demo): ?>
+                                            <span class="badge service-feature-badge bg-info mb-1">Demo Required</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div class="leads-engagement">
+                                    <div class="leads-count-circle bg-<?php echo e($product->lead_products_count > 0 ? 'primary' : 'light'); ?>">
+                                        <span class="leads-number"><?php echo e($product->lead_products_count ?? 0); ?></span>
+                                    </div>
+                                    <div class="leads-label">Leads</div>
+                                    <?php if($product->lead_products_count > 0): ?>
+                                        <div class="engagement-level mt-1">
+                                            <?php if($product->lead_products_count >= 10): ?>
+                                                <span class="engagement-badge high">High</span>
+                                            <?php elseif($product->lead_products_count >= 5): ?>
+                                                <span class="engagement-badge medium">Good</span>
+                                            <?php else: ?>
+                                                <span class="engagement-badge low">Active</span>
+                                            <?php endif; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -157,7 +276,7 @@
                     <?php else: ?>
                         <!-- Sample data when no products exist -->
                         <tr>
-                            <td colspan="7" class="text-center py-4">
+                            <td colspan="8" class="text-center py-4">
                                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No products found. Click "Add New Product" to get started.</p>
                             </td>
@@ -707,42 +826,278 @@
         background: #f8fafc;
     }
     
-    .product-info .product-name {
-        font-weight: 700;
-        color: #1e293b;
-        font-size: 1rem;
-        margin-bottom: 0.25rem;
+    /* Campaign Active Row Styling */
+    .campaign-active {
+        background-color: #fffbeb;
+        border-left: 3px solid #f59e0b;
     }
     
-    .product-info .product-description {
+    .campaign-active:hover {
+        background-color: #fef3c7;
+    }
+    
+    .badge-campaign {
+        background-color: #f59e0b;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .badge-service {
+        background-color: #3b82f6;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    /* Status Badge and Tag Styling */
+    .status-info {
+        display: flex;
+        align-items: flex-start;
+    }
+    
+    .badge-status {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-weight: 500;
+        text-transform: uppercase;
+        text-align: center;
+    }
+    
+    /* Product Tags and Service Features */
+    .product-tags,
+    .service-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .tag-badge,
+    .service-feature-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+    
+    .tiered-pricing {
+        max-width: 150px;
+    }
+    
+    .tier-price {
+        display: flex;
+        align-items: baseline;
+        gap: 0.25rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .tier-price strong {
+        color: #059669;
+    }
+    
+    /* Leads Engagement Styling */
+    .leads-engagement {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 100px;
+        text-align: center;
+    }
+    
+    .leads-count-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+    
+    .leads-count-circle.bg-primary {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .leads-count-circle.bg-light {
+        background-color: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .leads-number {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .leads-label {
+        font-size: 0.7rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .engagement-badge {
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .engagement-badge.high {
+        background-color: #dc2626;
+        color: white;
+    }
+    
+    .engagement-badge.medium {
+        background-color: #f59e0b;
+        color: white;
+    }
+    
+    .engagement-badge.low {
+        background-color: #2563eb;
+        color: white;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .stock-column,
+        .tags-column {
+            display: none !important;
+        }
+        
+        .table thead th:nth-child(4),
+        .table thead th:nth-child(6) {
+            display: none !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .leads-info small {
+            display: none;
+        }
+        
+        .product-description {
+            display: none;
+        }
+        
+        .tier-price small {
+            font-size: 0.6rem;
+        }
+    }
+    
+    /* Action Button Styling */
+    .btn-edit {
+        background-color: #3b82f6;
+        border: none;
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        text-decoration: none;
+    }
+    
+    .btn-edit:hover {
+        background-color: #1d4ed8;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-delete {
+        background-color: #dc2626;
+        border: none;
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .btn-delete:hover {
+        background-color: #b91c1c;
+        color: white;
+    }
+    
+    /* Product Name and Details Styling */
+    .product-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+        font-size: 1rem;
+    }
+    
+    .product-description {
         color: #64748b;
         font-size: 0.875rem;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
     }
     
-    .product-info {
-        align-items: flex-start !important;
+    .product-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #6b7280;
     }
     
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .meta-divider {
+        color: #d1d5db;
+    }
+    
+    /* Product Image Styling */
     .product-thumb {
         width: 50px;
         height: 50px;
         object-fit: cover;
         border-radius: 8px;
-        border: 1px solid #e2e8f0;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .product-thumb:hover {
+        border-color: #3b82f6;
+        transform: scale(1.05);
     }
     
     .product-placeholder {
         width: 50px;
         height: 50px;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        border: 2px solid #d1d5db;
         border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #64748b;
+        color: #6b7280;
         font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+    
+    .product-placeholder:hover {
+        background: linear-gradient(135deg, #e2e8f0, #d1d5db);
+        border-color: #9ca3af;
     }
     
     .table-controls {

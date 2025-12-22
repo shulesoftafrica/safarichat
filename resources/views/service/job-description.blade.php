@@ -3,6 +3,24 @@
 
 <div class="ai-agent-creator">
     <div class="container-fluid">
+        <!-- Onboarding Message -->
+        @if(request('onboarding') === 'true')
+        <div class="onboarding-alert">
+            <div class="alert alert-success alert-dismissible fade show" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white; margin-bottom: 2rem;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-robot fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1" style="color: white;"><strong>🤖 Final Step: Set Up Your AI Sales Agent</strong></h5>
+                        <p class="mb-0">Perfect! Now let's create your intelligent sales assistant. This AI will handle customer conversations, answer questions about your products, and help convert leads into sales.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        @endif
+        
         <!-- Modern Header with Breadcrumb -->
         <div class="page-header">
             <div class="row align-items-center">
@@ -2000,9 +2018,52 @@ function submitConfiguration() {
     .then(data => {
         if (data.success) {
             showNotification('AI Sales Agent configured successfully!', 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            
+            // Check if we're in onboarding mode
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('onboarding') === 'true') {
+                // Show onboarding completion modal
+                setTimeout(() => {
+                    const completionModal = document.createElement('div');
+                    completionModal.className = 'modal fade show';
+                    completionModal.style.display = 'block';
+                    completionModal.innerHTML = `
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content" style="border: none; border-radius: 15px;">
+                                <div class="modal-body text-center" style="background: linear-gradient(135deg, #28a745 0%, #17a2b8 100%); color: white; padding: 3rem;">
+                                    <div style="font-size: 4rem; margin-bottom: 1rem;">🚀</div>
+                                    <h3 style="color: white; margin-bottom: 1rem;">System Ready!</h3>
+                                    <p style="font-size: 1.1rem; margin-bottom: 2rem;">Excellent! Your WhatsApp sales system is now fully configured. Choose how you want to start selling:</p>
+                                    <div class="d-flex gap-3 justify-content-center flex-wrap">
+                                        <button class="btn btn-light btn-lg" onclick="chooseProactiveOutreach()" style="min-width: 180px;">
+                                            <i class="fas fa-upload"></i><br>
+                                            <small>Option A: Proactive</small><br>
+                                            Import Contacts
+                                        </button>
+                                        <button class="btn btn-outline-light btn-lg" onclick="chooseInboundSales()" style="border-color: rgba(255,255,255,0.8); min-width: 180px;">
+                                            <i class="fas fa-phone"></i><br>
+                                            <small>Option B: Inbound</small><br>
+                                            Wait for Messages
+                                        </button>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-light" onclick="goToDashboard()" style="border-color: rgba(255,255,255,0.5);">
+                                            Skip - Go to Dashboard
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-backdrop fade show"></div>
+                    `;
+                    document.body.appendChild(completionModal);
+                }, 1500);
+            } else {
+                // Normal flow - reload page
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
         } else {
             // Show validation errors
             if (data.errors) {
@@ -2192,6 +2253,84 @@ function showNotification(message, type = 'info') {
             notification.remove();
         }
     }, 5000);
+}
+
+// Onboarding completion functions
+function chooseProactiveOutreach() {
+    // Remove completion modal
+    const modal = document.querySelector('.modal.show');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Navigate to contacts import or lead management
+    window.location.href = '{{ url("/guest") }}?onboarding_complete=proactive';
+}
+
+function chooseInboundSales() {
+    // Remove completion modal
+    const modal = document.querySelector('.modal.show');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Show WhatsApp number and marketing tips
+    const inboundModal = document.createElement('div');
+    inboundModal.className = 'modal fade show';
+    inboundModal.style.display = 'block';
+    inboundModal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: #25d366; color: white;">
+                    <h5 class="modal-title">
+                        <i class="fab fa-whatsapp"></i>
+                        Your WhatsApp Business Number
+                    </h5>
+                </div>
+                <div class="modal-body text-center" style="padding: 2rem;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Your AI is ready!</strong> Share this number so customers can start conversations.
+                    </div>
+                    <div class="phone-display" style="background: #f8f9fa; border-radius: 10px; padding: 2rem; margin: 1rem 0;">
+                        <h3 style="color: #25d366; margin-bottom: 1rem;">
+                            <i class="fab fa-whatsapp"></i>
+                            {{ auth()->user()->phone ?? '+255XXXXXXXXX' }}
+                        </h3>
+                        <p class="text-muted">Customers can message this number directly</p>
+                    </div>
+                    <div class="marketing-tips">
+                        <h6><i class="fas fa-bullhorn"></i> Marketing Tips:</h6>
+                        <ul class="list-unstyled">
+                            <li>✓ Add this number to your business cards</li>
+                            <li>✓ Share on social media profiles</li>
+                            <li>✓ Include in email signatures</li>
+                            <li>✓ Display on your website</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success btn-lg w-100" onclick="goToDashboard()">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Go to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    `;
+    document.body.appendChild(inboundModal);
+}
+
+function goToDashboard() {
+    // Remove any modal
+    const modal = document.querySelector('.modal.show');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Navigate to dashboard with completion flag
+    window.location.href = '{{ url("/dashboard") }}?onboarding_complete=true';
 }
 </script>
 @endsection

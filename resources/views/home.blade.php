@@ -1,6 +1,35 @@
 @extends('layouts.app')
 @section('content')
 
+<!-- Onboarding Completion Message -->
+@if(request('onboarding_complete') === 'true')
+<div class="alert alert-success alert-dismissible fade show" style="background: linear-gradient(135deg, #28a745 0%, #17a2b8 100%); border: none; color: white; margin-bottom: 2rem;">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            <i class="fas fa-check-circle fa-3x"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h4 class="mb-1" style="color: white;"><strong>🎉 Onboarding Complete!</strong></h4>
+            <p class="mb-0" style="font-size: 1.1rem;">Your WhatsApp AI Sales System is ready! You've successfully connected WhatsApp, added products, and configured your AI agent. You're all set to start converting leads into sales.</p>
+        </div>
+    </div>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+</div>
+@elseif(request('onboarding_complete') === 'proactive')
+<div class="alert alert-info alert-dismissible fade show">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            <i class="fas fa-upload fa-2x"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h5 class="mb-1"><strong>Ready for Proactive Outreach!</strong></h5>
+            <p class="mb-0">You can start importing contacts and sending targeted messages. Your AI will handle all conversations automatically.</p>
+        </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     

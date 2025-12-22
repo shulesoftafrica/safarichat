@@ -59,7 +59,7 @@ Route::get('/api/demo-templates', [App\Http\Controllers\Api\LandingApiController
 Route::post('/api/track-interaction', [App\Http\Controllers\Api\LandingApiController::class, 'trackInteraction']);
 
 // Original routes (keeping for existing functionality)
-Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard');
+Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard')->middleware('onboarding.complete');
 Route::get('/terms', function() { return view('auth.legal.terms_of_service');});
 Route::get('/terms/use', function() { return view('auth.legal.terms_of_use');});
 

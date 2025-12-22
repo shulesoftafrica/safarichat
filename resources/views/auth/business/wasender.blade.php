@@ -314,11 +314,7 @@
             <div class="setup-section active" id="phone-input-section">
                 <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Choose Authentication Method</h4>
                 
-                <div class="alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    <strong>Two Options Available</strong><br>
-                    Choose your preferred method to connect WhatsApp.
-                </div>
+             
 
                 <!-- Authentication Method Selection -->
                 <div class="form-group">
@@ -388,7 +384,7 @@
                     <div class="status-spinner"></div>
                     <div>
                         <strong>Waiting for scan...</strong><br>
-                        <small>Please scan the QR code with your WhatsApp app</small>
+                        <small>QR code expires in: <span id="qr-timer">30</span> seconds</small>
                     </div>
                 </div>
             </div>
@@ -404,18 +400,18 @@
                     <h4 style="color: #333; margin-bottom: 1rem;">WhatsApp Connected Successfully!</h4>
                     
                     <div class="alert-success">
-                        <strong>Your WhatsApp session is now active</strong><br>
-                        <small>You can now send and receive messages through the platform</small>
+                        <strong>Great! Next step: Set up your products or services</strong><br>
+                        <small>Before you can start selling, you need to define at least one product or service</small>
                     </div>
 
                     <div style="margin-top: 2rem;">
-                        <button class="btn-whatsapp" onclick="window.location.href='{{ url('/dashboard') }}'">
-                            Go to Dashboard
+                        <button class="btn-whatsapp" onclick="window.location.href='{{ url('/service/index?onboarding=true') }}'">
+                            Set Up Products/Services
                             <i class="fas fa-arrow-right ml-2"></i>
                         </button>
-                        <button class="btn-secondary" style="width: 100%;" onclick="location.reload()">
+                        <!-- <button class="btn-secondary" style="width: 100%;" onclick="location.reload()">
                             <i class="fas fa-plus"></i> Setup Another Number
-                        </button>
+                        </button> -->
                     </div>
                 </div>
             </div>
@@ -525,6 +521,7 @@
 
     let currentSessionId = null;
     let statusCheckInterval = null;
+    let countdownInterval = null;
 
     function showSection(sectionId) {
         $('.setup-section').removeClass('active');
@@ -534,6 +531,24 @@
     function showError(message) {
         showSection('error-section');
         $('#error-message').text(message);
+    }
+
+    function startCountdown() {
+        let timeLeft = 30;
+        $('#qr-timer').text(timeLeft);
+        
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            $('#qr-timer').text(timeLeft);
+            
+            if (timeLeft <= 0) {
+                timeLeft = 30; // Reset countdown
+            }
+        }, 1000);
     }
 
     async function generateSession() {
@@ -572,6 +587,7 @@
                 
                 if (data.auth_method === 'qr') {
                     showSection('qr-code-section');
+                    startCountdown(); // Start the countdown timer
 
                     // Handle QR code - either base64 or URL
                     let qrCodeData = data.qr_code;
@@ -641,12 +657,15 @@
                 
                 if (data.success && data.status === 'connected') {
                     clearInterval(statusCheckInterval);
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                    }
                     showSection('success-section');
                 }
             } catch (error) {
                 console.error('Status check failed:', error);
             }
-        }, 3000); // Check every 3 seconds
+        }, 30000); // Check every 30 seconds
     }
 
     $(document).ready(function() {

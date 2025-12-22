@@ -66,7 +66,7 @@
         <!--end logo-->
         <div class="menu-body slimscroll">  
             <?php
-            if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
+        //    if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
                 ?>
                 <div id="MetricaCRM" class="main-icon-menu-pane <?= !in_array(request()->segment(1), ['message', 'business']) ? 'active' : '' ?> ">
                     <div class="title-box">
@@ -134,21 +134,22 @@
                 </div><!-- end CRM -->                
 
          
-            <?php } ?>
+            <?php //} ?>
 
             <?php if (!empty(Auth::user()->business)) { ?>
-                <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
+                <!-- <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
                     <div class="title-box">
                         <h6 class="menu-title">Business </h6>        
                     </div>
                     <ul class="nav">
                         <li class="nav-item"><a class="nav-link" href="<?= url('business/summary') ?>"><?php echo e(__('summary')); ?></a></li>
                         <li class="nav-item"><a class="nav-link" href="<?= url('business/request') ?>"><?php echo e(__('requests')); ?> </a></li>
-                        <!--<li class="nav-item"><a class="nav-link" href="<?= url('business/product/1') ?>"><?php echo e(__('products')); ?></a></li>-->
-                        <li class="nav-item"><a class="nav-link" href="<?= url('business/product/2') ?>"><?php echo e(__('services')); ?></a></li>
+                        <li class="nav-item"><a class="nav-link" href="<?= url('business/product/1') ?>"><?php echo e(__('products')); ?></a></li>-->
+                        <!-- <li class="nav-item"><a class="nav-link" href="<?= url('business/product/2') ?>"><?php echo e(__('services')); ?></a></li> -->
                         <!--<li class="nav-item"><a class="nav-link" href="<?= url('business/promote') ?>"><?php echo e(__('matangazo')); ?></a></li>-->
-                    </ul>
-                </div><!-- end Pages -->
+                    <!-- </ul> -->
+                <!-- </div> --> 
+                <!-- end Pages -->
             <?php } ?>
          
 
