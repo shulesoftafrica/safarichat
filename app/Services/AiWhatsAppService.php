@@ -594,6 +594,18 @@ class AiWhatsAppService
         // Update sentiment tracking
         if ($sentiment['sentiment'] === 'negative') {
             $lead->increment('negative_sentiment_count');
+        } elseif ($sentiment['sentiment'] === 'positive') {
+            $lead->increment('positive_sentiment_count');
+        }
+        
+        // Update overall sentiment score (running average based on total interactions)
+        $totalPositive = $lead->positive_sentiment_count + ($sentiment['sentiment'] === 'positive' ? 1 : 0);
+        $totalNegative = $lead->negative_sentiment_count + ($sentiment['sentiment'] === 'negative' ? 1 : 0);
+        $totalInteractions = $lead->interaction_count;
+        
+        if ($totalInteractions > 0) {
+            $overallScore = ($totalPositive - $totalNegative) / $totalInteractions;
+            $lead->update(['overall_sentiment_score' => round($overallScore, 2)]);
         }
 
         // Update lead status based on conversation

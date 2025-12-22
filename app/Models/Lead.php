@@ -12,15 +12,17 @@ class Lead extends Model
 
     protected $fillable = [
         'events_guest_id', 'ai_sales_agent_id', 'user_id', 'business_id', 'name', 'phone_number', 
-        'email', 'source', 'status', 'last_interaction_at', 'last_contact_at', 'follow_up_sent_at',
+        'email', 'source', 'status', 'last_interaction_at', 'last_activity_at', 'last_contact_at', 'follow_up_sent_at',
         'notes', 'company_name', 'industry', 'is_churned', 'churn_date', 'churn_reason',
         'churn_notes', 'win_back_eligible_at', 'win_back_attempts', 'last_win_back_at',
         'final_price', 'deal_value', 'conversion_probability', 'lead_score',
-        'assigned_agent_id', 'metadata'
+        'assigned_agent_id', 'metadata', 'negative_sentiment_count', 'positive_sentiment_count',
+        'overall_sentiment_score'
     ];
 
     protected $casts = [
         'last_interaction_at' => 'datetime',
+        'last_activity_at' => 'datetime',
         'last_contact_at' => 'datetime',
         'follow_up_sent_at' => 'datetime',
         'churn_date' => 'datetime',
@@ -31,6 +33,9 @@ class Lead extends Model
         'conversion_probability' => 'integer',
         'lead_score' => 'integer',
         'win_back_attempts' => 'integer',
+        'negative_sentiment_count' => 'integer',
+        'positive_sentiment_count' => 'integer',
+        'overall_sentiment_score' => 'decimal:2',
         'is_churned' => 'boolean',
         'metadata' => 'array'
     ];
@@ -294,5 +299,65 @@ class Lead extends Model
         $salesCycleDays = $primaryProduct?->sales_cycle_days ?? 30;
         
         return $this->created_at->addDays($salesCycleDays);
+    }
+
+    /**
+     * Get sentiment analysis summary
+     */
+    public function getSentimentAnalysis()
+    {
+        $totalInteractions = $this->interaction_count;
+        $positiveCount = $this->positive_sentiment_count ?? 0;
+        $negativeCount = $this->negative_sentiment_count ?? 0;
+        $neutralCount = max(0, $totalInteractions - $positiveCount - $negativeCount);
+        
+        return [
+            'overall_score' => $this->overall_sentiment_score ?? 0,
+            'positive_count' => $positiveCount,
+            'negative_count' => $negativeCount,
+            'neutral_count' => $neutralCount,
+            'total_interactions' => $totalInteractions,
+            'sentiment_label' => $this->getSentimentLabel(),
+            'engagement_quality' => $this->getEngagementQuality()
+        ];
+    }
+
+    /**
+     * Get sentiment label based on overall score
+     */
+    public function getSentimentLabel()
+    {
+        $score = $this->overall_sentiment_score ?? 0;
+        
+        if ($score >= 0.3) return 'Very Positive';
+        if ($score >= 0.1) return 'Positive';
+        if ($score >= -0.1) return 'Neutral';
+        if ($score >= -0.3) return 'Negative';
+        return 'Very Negative';
+    }
+
+    /**
+     * Get engagement quality assessment
+     */
+    public function getEngagementQuality()
+    {
+        $score = $this->overall_sentiment_score ?? 0;
+        $interactions = $this->interaction_count;
+        
+        if ($interactions === 0) return 'No Data';
+        
+        if ($score >= 0.2 && $interactions >= 3) return 'Excellent';
+        if ($score >= 0.1 && $interactions >= 2) return 'Good';
+        if ($score >= -0.1) return 'Fair';
+        return 'Poor';
+    }
+
+    /**
+     * Check if lead needs attention based on sentiment
+     */
+    public function needsSentimentAttention()
+    {
+        return $this->overall_sentiment_score <= -0.2 || 
+               $this->negative_sentiment_count >= 3;
     }
 }
