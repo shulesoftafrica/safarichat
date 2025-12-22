@@ -2381,7 +2381,7 @@ function saveProduct() {
     saveButton.disabled = true;
     
     // Determine if this is an update or create
-    const url = productId ? `{{ url('/api/products') }}/${productId}` : '{{ url('/api/products') }}';
+    const url = productId ? `{{ url('/products') }}/${productId}` : '{{ url('/products') }}';
     const method = productId ? 'PUT' : 'POST';
     
     if (method === 'PUT') {
@@ -2403,8 +2403,10 @@ function saveProduct() {
         body: cleanFormData,
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                           document.querySelector('input[name="_token"]').value
-        }
+                           document.querySelector('input[name="_token"]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
     })
     .then(response => {
         console.log('Response status:', response.status);
@@ -2529,7 +2531,17 @@ function saveProduct() {
 }
 
 function viewProduct(productId) {
-    fetch(`{{ url('/api/products') }}/${productId}`)
+    fetch(`{{ url('/products') }}/${productId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="_token"]')?.value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -2548,9 +2560,31 @@ function viewProduct(productId) {
 
 function editProduct(productId) {
     console.log('Editing product:', productId);
-    fetch(`{{ url('/api/products') }}/${productId}/edit`)
+    fetch(`{{ url('/products') }}/${productId}/edit`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="_token"]')?.value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
     .then(response => {
         console.log('Edit response status:', response.status);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Authentication required. Please refresh the page and try again.');
+            } else if (response.status === 403) {
+                throw new Error('Permission denied.');
+            } else if (response.status === 404) {
+                throw new Error('Product not found.');
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         return response.json();
     })
     .then(data => {
@@ -2599,13 +2633,15 @@ function deleteProduct(productId) {
         return;
     }
     
-    fetch(`{{ url('/api/products') }}/${productId}`, {
+    fetch(`{{ url('/products') }}/${productId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                           document.querySelector('input[name="_token"]').value
-        }
+                           document.querySelector('input[name="_token"]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {

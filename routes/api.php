@@ -134,7 +134,7 @@ Route::middleware('auth:sanctum')->prefix('crm')->name('api.crm.')->group(functi
 
 
 
-// Product Management API Routes
+// Product Management API Routes  
 Route::post('products', [ProductController::class, 'store']);
 Route::get('products', [ProductController::class, 'index']);
 Route::get('products/{id}', [ProductController::class, 'show']);

@@ -194,8 +194,8 @@ class OpenAiService
         
         // Add relevant document context
         if (!empty($relevantDocs)) {
-            $contextPrompt .= "\n\n=== RELEVANT DOCUMENTATION ===\n";
-            $contextPrompt .= "The following information from product documentation may help answer the customer's question:\n\n";
+            $contextPrompt .= "\n\n=== RELEVANT DOCUMENTATION (LATEST & AUTHORITATIVE) ===\n";
+            $contextPrompt .= "The following information from product documentation is the MOST CURRENT and should be your PRIMARY source for answers:\n\n";
             
             foreach ($relevantDocs as $doc) {
                 $contextPrompt .= "**Source:** {$doc['document_title']} ({$doc['document_type']})";
@@ -213,11 +213,19 @@ class OpenAiService
                 $contextPrompt .= "**Relevance Score:** " . round($doc['similarity_score'], 2) . "\n\n";
             }
             
-            $contextPrompt .= "INSTRUCTIONS FOR USING DOCUMENTATION:\n";
-            $contextPrompt .= "- Use this documentation to provide accurate, detailed answers\n";
-            $contextPrompt .= "- Reference specific sections when helpful (e.g., 'According to our technical specifications...')\n";
-            $contextPrompt .= "- If the customer needs more detailed information, mention you can provide the full documentation\n";
-            $contextPrompt .= "- Always prioritize accuracy over completeness - if unsure, say so\n";
+            $contextPrompt .= "CRITICAL INSTRUCTIONS FOR USING DOCUMENTATION:\n";
+            $contextPrompt .= "- ⚠️ ALWAYS prioritize information from these documents over any prior knowledge\n";
+            $contextPrompt .= "- ✅ Use this documentation to provide accurate, detailed answers based on CURRENT data\n";
+            $contextPrompt .= "- 📖 Reference specific sections when helpful (e.g., 'According to our latest documentation...')\n";
+            $contextPrompt .= "- 🔗 If the customer needs more detailed information, mention you can provide the full documentation\n";
+            $contextPrompt .= "- ❌ Do NOT use outdated or general knowledge - stick to these latest sources\n";
+            $contextPrompt .= "- ⚡ This is the FRESHEST information available - last updated recently\n";
+            $contextPrompt .= "===============================\n";
+        } else {
+            // No relevant docs found - still emphasize using latest FAQ and product data
+            $contextPrompt .= "\n\n=== NO SPECIFIC DOCUMENTS FOUND ===\n";
+            $contextPrompt .= "No relevant documentation was found for this query. Please rely on the LATEST FAQ and product information provided above.\n";
+            $contextPrompt .= "Always mention that you're using the most current product information available.\n";
             $contextPrompt .= "===============================\n";
         }
         
@@ -420,8 +428,12 @@ class OpenAiService
             $context .= "(Low Priority)\n";
         }
 
-        // Enhanced Product Context
+        // Enhanced Product Context with fresh data loading
         if ($product) {
+            // Force reload product with fresh FAQ data
+            $freshProduct = Product::with('faqs')->find($product->id);
+            $product = $freshProduct ?? $product;
+            
             $context .= "\nProduct Information:\n";
             $context .= "- {$product->name} (SKU: {$product->sku})\n";
             $context .= "- Type: " . ($product->isService() ? 'SERVICE' : 'PRODUCT') . "\n";
@@ -463,6 +475,30 @@ class OpenAiService
             
             if ($product->ai_description) {
                 $context .= "- AI Highlights: {$product->ai_description}\n";
+            }
+            
+            // Include FAQs for this product - ENHANCED with fresh loading
+            if ($product->faqs && $product->faqs->count() > 0) {
+                $context .= "\nFrequently Asked Questions (LATEST):\n";
+                foreach ($product->faqs->sortByDesc('updated_at')->take(10) as $faq) { // Increased to 10 FAQs, sorted by latest
+                    $context .= "Q: {$faq->question}\n";
+                    $context .= "A: {$faq->answer}\n\n";
+                }
+                $context .= "IMPORTANT: Use ONLY these latest FAQs to answer customer questions. These are the most current answers available.\n";
+            }
+            
+            // Include selling points if available
+            if ($product->selling_points) {
+                $sellingPoints = is_string($product->selling_points) 
+                    ? json_decode($product->selling_points, true) 
+                    : $product->selling_points;
+                
+                if (is_array($sellingPoints) && !empty($sellingPoints)) {
+                    $context .= "\nKey Selling Points (LATEST):\n";
+                    foreach ($sellingPoints as $point) {
+                        $context .= "• {$point}\n";
+                    }
+                }
             }
             
             // Service-specific context

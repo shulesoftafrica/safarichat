@@ -42,7 +42,7 @@ class RagSearchService
             // Step 4: Cache results
             $this->cacheResults($cacheKey, $query, $productIds, $results);
 
-            Log::info("RAG search completed", [
+            Log::info("RAG search completed with fresh results", [
                 'query' => substr($query, 0, 100),
                 'results_count' => count($results),
                 'product_ids' => $productIds
