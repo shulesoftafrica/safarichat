@@ -16,6 +16,12 @@ class Handoff extends Model
         'context_data', 'priority_level', 'estimated_resolution_time'
     ];
 
+    protected $attributes = [
+        'reason_code' => self::REASON_COMPLEX_QUESTION, // Default reason code
+        'status' => self::STATUS_PENDING,
+        'priority_level' => self::PRIORITY_MEDIUM
+    ];
+
     protected $casts = [
         'assigned_at' => 'datetime',
         'resolved_at' => 'datetime',
@@ -45,6 +51,8 @@ class Handoff extends Model
     const REASON_ANGRY_CUSTOMER = 'ANGRY_CUSTOMER';
     const REASON_AI_ERROR = 'AI_ERROR';
     const REASON_LOW_STOCK = 'LOW_STOCK';
+    const REASON_GENERAL_ESCALATION = 'GENERAL_ESCALATION';
+    const REASON_CUSTOMER_REQUEST = 'CUSTOMER_REQUEST';
 
     // Relationships
     public function lead()
@@ -212,6 +220,8 @@ class Handoff extends Model
             self::REASON_ANGRY_CUSTOMER => 'Angry/Frustrated Customer',
             self::REASON_AI_ERROR => 'AI System Error',
             self::REASON_LOW_STOCK => 'Low Stock Issue',
+            self::REASON_GENERAL_ESCALATION => 'General Escalation',
+            self::REASON_CUSTOMER_REQUEST => 'Customer Request for Human Agent',
             default => 'Other Reason'
         };
     }
@@ -247,5 +257,48 @@ class Handoff extends Model
         
         $this->update(['context_data' => $context]);
         return $this;
+    }
+
+    /**
+     * Create a handoff with proper defaults and validation
+     */
+    public static function createHandoff(array $data)
+    {
+        // Ensure required fields have defaults
+        $data = array_merge([
+            'reason_code' => self::REASON_GENERAL_ESCALATION,
+            'status' => self::STATUS_PENDING,
+            'priority_level' => self::PRIORITY_MEDIUM,
+            'ai_summary' => 'Customer requested human assistance during conversation'
+        ], $data);
+
+        // Validate required fields
+        if (empty($data['lead_id'])) {
+            throw new \InvalidArgumentException('lead_id is required for handoff creation');
+        }
+
+        if (empty($data['reason_code'])) {
+            $data['reason_code'] = self::REASON_GENERAL_ESCALATION;
+        }
+
+        return self::create($data);
+    }
+
+    /**
+     * Get all available reason codes
+     */
+    public static function getReasonCodes()
+    {
+        return [
+            self::REASON_COMPLEX_QUESTION,
+            self::REASON_COMPLAINT,
+            self::REASON_LARGE_ORDER,
+            self::REASON_PAYMENT_ISSUE,
+            self::REASON_ANGRY_CUSTOMER,
+            self::REASON_AI_ERROR,
+            self::REASON_LOW_STOCK,
+            self::REASON_GENERAL_ESCALATION,
+            self::REASON_CUSTOMER_REQUEST
+        ];
     }
 }

@@ -25,7 +25,7 @@ class HandoffService
     public function createHandoff(
         Lead $lead,
         AiSalesAgent $agent,
-        string $reason,
+        string $reasonCode,
         string $priority = 'medium',
         array $context = []
     ): Handoff {
@@ -33,26 +33,23 @@ class HandoffService
             DB::beginTransaction();
 
             $handoff = $lead->handoffs()->create([
-                'ai_sales_agent_id' => $agent->id,
-                'reason' => $reason,
-                'priority' => $priority,
-                'status' => 'pending',
-                'escalation_type' => $this->determineEscalationType($reason),
-                'context' => array_merge($context, [
+                'reason_code' => $reasonCode,
+                'priority_level' => $priority,
+                'status' => Handoff::STATUS_PENDING,
+                'ai_summary' => $this->generateAiSummary($lead, $agent, $reasonCode),
+                'context_data' => array_merge($context, [
                     'lead_score' => $lead->calculateLeadScore(),
                     'agent_name' => $agent->assistant_name,
                     'interested_products' => $lead->leadProducts()->with('product')->get()->pluck('product.name'),
-                    'recent_conversations' => $lead->conversations()->latest()->limit(3)->get()->pluck('summary'),
-                ]),
-                'sla_deadline' => $this->calculateSlaDeadline($priority),
-                'metadata' => [
-                    'created_by' => 'ai_agent',
+                    'recent_conversations' => $lead->conversations()->latest()->limit(3)->get()->pluck('ai_response'),
+                    'escalation_trigger' => $reasonCode,
                     'agent_config' => [
                         'max_discount' => $agent->max_discount_allowed,
                         'negotiation_enabled' => $agent->allow_negotiation,
                         'fallback_person' => $agent->fallback_person,
                     ],
-                ],
+                ]),
+                'estimated_resolution_time' => $this->calculateEstimatedResolutionTime($priority, $reasonCode),
             ]);
 
             // Update lead status
@@ -67,7 +64,7 @@ class HandoffService
                 'handoff_id' => $handoff->id,
                 'lead_id' => $lead->id,
                 'agent_id' => $agent->id,
-                'reason' => $reason,
+                'reason_code' => $reasonCode,
                 'priority' => $priority,
             ]);
 
@@ -240,7 +237,61 @@ class HandoffService
     }
 
     /**
-     * Determine escalation type based on reason
+     * Generate AI summary for handoff
+     */
+    private function generateAiSummary(Lead $lead, AiSalesAgent $agent, string $reasonCode): string
+    {
+        $summary = "Customer escalation requested via {$agent->assistant_name}. ";
+        
+        $summary .= match($reasonCode) {
+            Handoff::REASON_COMPLEX_QUESTION => "Customer has complex technical questions requiring human expertise.",
+            Handoff::REASON_COMPLAINT => "Customer has expressed dissatisfaction and needs immediate attention.",
+            Handoff::REASON_LARGE_ORDER => "Customer interested in large order requiring approval and negotiation.",
+            Handoff::REASON_PAYMENT_ISSUE => "Customer experiencing payment processing difficulties.",
+            Handoff::REASON_ANGRY_CUSTOMER => "Customer is frustrated/angry and needs immediate human intervention.",
+            Handoff::REASON_AI_ERROR => "AI system encountered error or limitation in handling customer query.",
+            Handoff::REASON_LOW_STOCK => "Customer inquiry relates to low stock items requiring immediate action.",
+            Handoff::REASON_CUSTOMER_REQUEST => "Customer specifically requested to speak with human agent.",
+            default => "General escalation requiring human attention."
+        };
+
+        if ($lead->name) {
+            $summary .= " Customer: {$lead->name}";
+        }
+        
+        $summary .= " Phone: {$lead->phone_number}";
+        
+        return $summary;
+    }
+
+    /**
+     * Calculate estimated resolution time based on priority and reason
+     */
+    private function calculateEstimatedResolutionTime(string $priority, string $reasonCode): int
+    {
+        // Base time in minutes
+        $baseTime = match($priority) {
+            Handoff::PRIORITY_URGENT => 30,
+            Handoff::PRIORITY_HIGH => 120,
+            Handoff::PRIORITY_MEDIUM => 240,
+            Handoff::PRIORITY_LOW => 480,
+            default => 240
+        };
+
+        // Adjust based on reason complexity
+        $multiplier = match($reasonCode) {
+            Handoff::REASON_COMPLEX_QUESTION => 1.5,
+            Handoff::REASON_LARGE_ORDER => 2.0,
+            Handoff::REASON_PAYMENT_ISSUE => 1.2,
+            Handoff::REASON_AI_ERROR => 0.8,
+            default => 1.0
+        };
+
+        return (int)($baseTime * $multiplier);
+    }
+
+    /**
+     * Determine escalation type based on reason (kept for backward compatibility)
      */
     private function determineEscalationType(string $reason): string
     {
@@ -266,7 +317,7 @@ class HandoffService
     }
 
     /**
-     * Calculate SLA deadline based on priority
+     * Calculate SLA deadline based on priority (kept for backward compatibility)
      */
     private function calculateSlaDeadline(string $priority): \Carbon\Carbon
     {

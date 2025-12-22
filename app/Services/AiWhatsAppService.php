@@ -9,6 +9,7 @@ use App\Models\Conversation;
 use App\Models\EventsGuest;
 use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
+use App\Models\Handoff;
 use App\Services\WaSenderService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -409,16 +410,20 @@ class AiWhatsAppService
      */
     private function createEscalation(AiSalesAgent $agent, Lead $lead, string $reason): array
     {
+        // Map old reason strings to proper reason codes
+        $reasonCode = $this->mapReasonToCode($reason);
+        
         $handoff = $lead->handoffs()->create([
-            'ai_sales_agent_id' => $agent->id,
-            'reason' => $reason,
-            'priority' => 'medium',
-            'status' => 'pending',
-            'escalation_type' => 'ai_triggered',
-            'context' => [
+            'reason_code' => $reasonCode,
+            'priority_level' => Handoff::PRIORITY_MEDIUM,
+            'status' => Handoff::STATUS_PENDING,
+            'ai_summary' => "Customer escalation requested via {$agent->assistant_name}. Reason: {$reason}",
+            'context_data' => [
                 'agent_name' => $agent->assistant_name,
                 'lead_score' => $lead->calculateLeadScore(),
                 'interested_products' => $lead->leadProducts()->with('product')->get()->pluck('product.name'),
+                'escalation_trigger' => $reason,
+                'original_reason' => $reason,
             ],
         ]);
 
@@ -427,6 +432,49 @@ class AiWhatsAppService
             'handoff_id' => $handoff->id,
             'fallback_person' => $agent->fallback_person,
         ];
+    }
+
+    /**
+     * Map legacy reason strings to proper reason codes
+     */
+    private function mapReasonToCode(string $reason): string
+    {
+        $reason = strtolower(trim($reason));
+        
+        if (str_contains($reason, 'complaint') || str_contains($reason, 'dissatisfied')) {
+            return Handoff::REASON_COMPLAINT;
+        }
+        
+        if (str_contains($reason, 'angry') || str_contains($reason, 'frustrated')) {
+            return Handoff::REASON_ANGRY_CUSTOMER;
+        }
+        
+        if (str_contains($reason, 'large order') || str_contains($reason, 'bulk')) {
+            return Handoff::REASON_LARGE_ORDER;
+        }
+        
+        if (str_contains($reason, 'payment') || str_contains($reason, 'billing')) {
+            return Handoff::REASON_PAYMENT_ISSUE;
+        }
+        
+        if (str_contains($reason, 'technical') || str_contains($reason, 'complex')) {
+            return Handoff::REASON_COMPLEX_QUESTION;
+        }
+        
+        if (str_contains($reason, 'ai error') || str_contains($reason, 'system')) {
+            return Handoff::REASON_AI_ERROR;
+        }
+        
+        if (str_contains($reason, 'stock') || str_contains($reason, 'inventory')) {
+            return Handoff::REASON_LOW_STOCK;
+        }
+        
+        if (str_contains($reason, 'human') || str_contains($reason, 'agent')) {
+            return Handoff::REASON_CUSTOMER_REQUEST;
+        }
+        
+        // Default for any unmatched reasons
+        return Handoff::REASON_GENERAL_ESCALATION;
     }
 
     /**
