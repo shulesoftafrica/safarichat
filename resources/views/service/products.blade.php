@@ -605,12 +605,12 @@
                         </h6>
                         <div class="alert alert-info">
                             <i class="fas fa-lightbulb"></i>
-                            <strong>RAG Enhancement:</strong> Upload documents to enhance AI responses with product-specific knowledge. Supports PDF, Word, and text files.
+                            <strong>RAG Enhancement:</strong> Upload documents to enhance AI responses with product-specific knowledge. Only PDF, Word (.doc/.docx), and text files are processed for AI search and retrieval.
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Product Documentation</label>
-                            <input type="file" class="form-control" id="ragDocuments" name="rag_documents[]" multiple accept=".pdf,.doc,.docx,.txt,.md">
-                            <small class="text-muted">Max 10MB per file. Supports: PDF, Word, Text, Markdown. Multiple files allowed.</small>
+                            <input type="file" class="form-control" id="ragDocuments" name="rag_documents[]" multiple accept=".pdf,.doc,.docx,.txt">
+                            <small class="text-muted">Max 10MB per file. Supports: PDF, Word Documents, Text files. Multiple files allowed.</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -1609,8 +1609,8 @@ function addDocumentUpload() {
                 </button>
             </div>
             <div class="mb-2">
-                <input type="file" class="form-control" name="documents_${selectedType}[]" multiple accept=".pdf,.doc,.docx,.txt,.md" onchange="handleDocumentUpload(this, '${selectedType}')">
-                <small class="text-muted">Max 10MB per file. Supports: PDF, Word, Text, Markdown. Multiple files allowed.</small>
+                <input type="file" class="form-control" name="documents_${selectedType}[]" multiple accept=".pdf,.doc,.docx,.txt" onchange="handleDocumentUpload(this, '${selectedType}')">
+                <small class="text-muted">Max 10MB per file. Supports: PDF, Word Documents, Text files. Multiple files allowed.</small>
             </div>
             <div class="document-previews-${selectedType}">
                 <!-- File previews will appear here -->
@@ -1699,12 +1699,11 @@ function validateRagDocument(file) {
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'text/markdown'
+        'text/plain'
     ];
     
     if (!allowedTypes.includes(file.type)) {
-        alert(`File "${file.name}" is not a supported format. Please use PDF, Word, Text, or Markdown files.`);
+        alert(`File "${file.name}" is not a supported format. Please use PDF, Word, or Text files only.`);
         return false;
     }
     
@@ -1748,7 +1747,6 @@ function getFileIcon(mimeType) {
         case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
             return 'fas fa-file-word';
         case 'text/plain':
-        case 'text/markdown':
             return 'fas fa-file-alt';
         default:
             return 'fas fa-file';
@@ -1763,7 +1761,6 @@ function getFileIconClass(mimeType) {
         case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
             return 'text-primary';
         case 'text/plain':
-        case 'text/markdown':
             return 'text-success';
         default:
             return 'text-muted';

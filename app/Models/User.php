@@ -130,7 +130,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function whatsappInstance() {
         // Get ready instance first
         $readyInstance = \App\Models\WhatsappInstance::where('user_id', $this->id)
-            ->where('connect_status', 'ready')
+            ->where('status', 'connected')
             ->first();
             
         if ($readyInstance) {

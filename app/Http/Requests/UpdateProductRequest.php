@@ -47,7 +47,7 @@ class UpdateProductRequest extends FormRequest
             'campaign_pain_point' => 'nullable|string|max:1000',
             'campaign_attachment' => 'nullable|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', // 10MB max
             'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
-            'product_attachment' => 'nullable|mimes:pdf|max:10240' // 10MB max
+            'product_attachment' => 'nullable|mimes:pdf,doc,docx,txt|max:10240' // 10MB max
         ];
 
         // Check if this is a tangible product or service
@@ -129,7 +129,7 @@ class UpdateProductRequest extends FormRequest
             'product_image.image' => 'Product image must be a valid image file.',
             'product_image.mimes' => 'Product image must be jpeg, png, jpg, or gif.',
             'product_image.max' => 'Product image size cannot exceed 5MB.',
-            'product_attachment.mimes' => 'Product attachment must be a PDF file.',
+            'product_attachment.mimes' => 'Product documentation must be PDF, Word, or Text file.',
             'product_attachment.max' => 'Product attachment size cannot exceed 10MB.'
         ];
     }

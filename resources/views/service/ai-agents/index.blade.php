@@ -45,6 +45,7 @@
                                     <span class="status-badge {{ $agent->status === 'active' ? 'active' : 'inactive' }}">
                                         {{ ucfirst($agent->status) }}
                                     </span>
+                                 
                                 </div>
                             </div>
                             
@@ -69,6 +70,22 @@
                                         <span class="value">{{ $agent->created_at->format('M d, Y') }}</span>
                                     </div>
                                 </div>
+
+                                @php
+                                    $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())->first();
+                                @endphp
+                                @if($whatsappInstance)
+                                <div class="whatsapp-info">
+                                    <div class="detail-item">
+                                        <span class="label"><i class="fab fa-whatsapp me-1"></i>Phone:</span>
+                                        <span class="value">{{ $whatsappInstance->phone_number ?? 'Not configured' }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">Instance:</span>
+                                        <span class="value">{{ $whatsappInstance->instance_name ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                                @endif
                                 
                                 @php
                                     $userTypes = $agent->getTargetUserTypeNames();

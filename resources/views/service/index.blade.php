@@ -192,9 +192,9 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label">Product Attachment (PDF)</label>
-                                    <input type="file" class="form-control" name="product_attachment" accept=".pdf" id="productAttachmentInput">
-                                    <small class="text-muted">Upload product documentation (PDF only - Max 10MB)</small>
+                                    <label class="form-label">Product Documentation</label>
+                                    <input type="file" class="form-control" name="product_attachment" accept=".pdf,.doc,.docx,.txt" id="productAttachmentInput">
+                                    <small class="text-muted">Upload product documentation (PDF, Word, Text - Max 10MB)</small>
                                     <div id="attachmentPreview" class="mt-2" style="display: none;">
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-file-pdf text-danger me-2"></i>

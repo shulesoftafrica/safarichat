@@ -63,7 +63,7 @@ class Message extends Controller
         }
         $this->data['guest_categories'] = EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
           //check if the invoice has been paid for bulksms
-        $this->checkBookedInvoicePayment();
+      
         $this->data['whatsapp'] = $this->checkChannelStatus('whatsapp');
         $this->data['remained_sms'] = $this->checkChannelStatus('quick-sms');
         $this->data['phone_sms'] = $this->checkChannelStatus('phone-sms');
@@ -161,7 +161,7 @@ class Message extends Controller
             }
         }
         }  
-         $this->checkBookedInvoicePayment();
+ 
         // if (Auth::user()->messageInstances()->where('type', 'whatsapp')->count() == 0) {
         //     // Create a new WhatsApp instance for the user
         //     \App\Models\MessageInstance::create([
