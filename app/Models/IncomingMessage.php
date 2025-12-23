@@ -9,6 +9,7 @@ class IncomingMessage extends Model
     protected $fillable = [
         'user_id',
         'instance_id',
+        'whatsapp_instance_id', // New field for multi-instance support
         'message_id',
         'events_guest_id',
         'chat_id',
@@ -50,9 +51,17 @@ class IncomingMessage extends Model
     }
 
     /**
-     * Get the WhatsApp instance
+     * Get the WhatsApp instance (updated for new relationship)
      */
     public function whatsappInstance()
+    {
+        return $this->belongsTo(WhatsappInstance::class, 'whatsapp_instance_id');
+    }
+
+    /**
+     * Get the legacy WhatsApp instance (for backward compatibility)
+     */
+    public function whatsappInstanceLegacy()
     {
         return $this->belongsTo(WhatsappInstance::class, 'instance_id', 'instance_id');
     }

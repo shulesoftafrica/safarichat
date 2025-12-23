@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\CrmSyncApiController;
 use App\Http\Controllers\Api\CrmImportController;
 use App\Http\Controllers\WaSenderController;
+use App\Http\Controllers\Auth\WhatsAppRegistrationController;
 
 /*
   |--------------------------------------------------------------------------
@@ -21,6 +22,22 @@ use App\Http\Controllers\WaSenderController;
   | is assigned the "api" middleware group. Enjoy building your API!
   |
  */
+
+// WhatsApp Registration Routes (Public)
+Route::prefix('auth')->name('api.auth.')->group(function () {
+    Route::post('/check-phone', [WhatsAppRegistrationController::class, 'checkPhone'])->name('check_phone');
+    Route::post('/send-otp', [WhatsAppRegistrationController::class, 'sendOtp'])->name('send_otp');
+    Route::post('/register', [WhatsAppRegistrationController::class, 'register'])->name('register');
+    Route::post('/resend-otp', [WhatsAppRegistrationController::class, 'resendOtp'])->name('resend_otp');
+    Route::post('/forgot-password', [WhatsAppRegistrationController::class, 'sendPasswordResetOtp'])->name('forgot_password');
+    Route::post('/reset-password', [WhatsAppRegistrationController::class, 'resetPassword'])->name('reset_password');
+});
+
+// Registration Stats (Admin only)
+Route::middleware('auth:sanctum')->prefix('admin')->name('api.admin.')->group(function () {
+    Route::get('/registration-stats', [WhatsAppRegistrationController::class, 'getStats'])->name('registration_stats');
+});
+
 //DB::table('api_requests')->insert(['content'=> json_encode(request()->all()),'url'=>url()->current()]);
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
@@ -181,8 +198,22 @@ Route::get('/wasender/queue-stats', 'WaSenderController@getQueueStats');
 Route::post('/wasender/clear-failed-jobs', 'WaSenderController@clearFailedJobs');
 Route::post('/wasender/retry-failed-jobs', 'WaSenderController@retryFailedJobs');
 
-// WaSender Incoming Message Processing
-Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook')->middleware(['throttle:webhooks']);;
+// WaSender Incoming Message Processing (Updated for UUID-based routing)
+Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook')->middleware(['throttle:webhooks']); // Legacy route
+Route::post('/webhook/whatsapp/{instanceUuid}', 'WaSenderController@handleWebhookByUuid')->middleware(['throttle:webhooks']); // New UUID-based route
+
+// WhatsApp Instance Management API Routes
+Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whatsapp.instances.')->group(function () {
+    Route::get('/', 'WhatsappInstanceController@index');
+    Route::post('/', 'WhatsappInstanceController@store');
+    Route::get('/active', 'WhatsappInstanceController@getActiveInstance');
+    Route::post('/select', 'WhatsappInstanceController@selectActiveInstance');
+    Route::get('/{id}', 'WhatsappInstanceController@show');
+    Route::put('/{id}', 'WhatsappInstanceController@updateInstance');
+    Route::delete('/{id}', 'WhatsappInstanceController@destroy');
+    Route::get('/{id}/stats', 'WhatsappInstanceController@getInstanceStats');
+    Route::get('/purposes', 'WhatsappInstanceController@getPurposes');
+});
 
 // WaSender API endpoints for sending messages
 Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {

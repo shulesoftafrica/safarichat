@@ -27,7 +27,8 @@ class OpenAiService
         AiSalesAgent $agent,
         Lead $lead,
         array $conversationHistory = [],
-        ?Product $product = null
+        ?Product $product = null,
+        ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
         try {
             // Pre-check if message is business-related
@@ -41,7 +42,7 @@ class OpenAiService
                 ];
             }
 
-            $prompt = $this->buildPromptWithAgent($customerMessage, $agent, $lead, $conversationHistory, $product);
+            $prompt = $this->buildPromptWithAgent($customerMessage, $agent, $lead, $conversationHistory, $product, $instance);
             
             $response = $this->client->chat()->create([
                 'model' => $this->defaultModel,
@@ -135,7 +136,8 @@ class OpenAiService
         \App\Models\AiSalesAgent $agent,
         \App\Models\Lead $lead,
         array $conversationHistory = [],
-        ?\App\Models\Product $product = null
+        ?\App\Models\Product $product = null,
+        ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
         try {
             // Step 1: Search for relevant document content
@@ -144,7 +146,7 @@ class OpenAiService
             $relevantDocs = $ragService->searchDocuments($customerMessage, $productIds, 3);
             
             // Step 2: Build enhanced prompt with document context
-            $prompt = $this->buildRAGPrompt($customerMessage, $agent, $lead, $conversationHistory, $product, $relevantDocs);
+            $prompt = $this->buildRAGPrompt($customerMessage, $agent, $lead, $conversationHistory, $product, $relevantDocs, $instance);
             
             // Step 3: Generate response
             $response = $this->client->chat()->create([
@@ -172,7 +174,7 @@ class OpenAiService
         } catch (\Exception $e) {
             Log::warning('RAG-enhanced response failed, falling back to standard: ' . $e->getMessage());
             // Fallback to regular response generation
-            return $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product);
+            return $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product, $instance);
         }
     }
 
@@ -185,9 +187,10 @@ class OpenAiService
         \App\Models\Lead $lead,
         array $conversationHistory,
         ?\App\Models\Product $product,
-        array $relevantDocs
+        array $relevantDocs,
+        ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
-        $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product);
+        $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product, $instance);
         
         // Enhanced context with RAG documents
         $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
@@ -256,9 +259,10 @@ class OpenAiService
         AiSalesAgent $agent,
         Lead $lead,
         array $conversationHistory,
-        ?Product $product
+        ?Product $product,
+        ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
-        $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product);
+        $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product, $instance);
         $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
         
         $messages = [
@@ -283,10 +287,26 @@ class OpenAiService
     /**
      * Build detailed system prompt
      */
-    private function buildSystemPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product): string
+    private function buildSystemPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product, ?\App\Models\WhatsappInstance $instance = null): string
     {
         $businessName = $agent->user?->business?->name ?? 'our company';
         $prompt = "You are {$agent->assistant_name}, a sales agent for {$businessName}. ";
+        
+        // Add instance-specific context
+        if ($instance) {
+            $instanceName = $instance->display_name ?: $instance->phone_number;
+            $prompt .= "You are communicating via the {$instanceName} WhatsApp line";
+            
+            if ($instance->purpose && $instance->purpose !== 'general') {
+                $prompt .= ", which specializes in {$instance->purpose} inquiries";
+            }
+            
+            if ($instance->instance_description) {
+                $prompt .= ". {$instance->instance_description}";
+            }
+            
+            $prompt .= ". ";
+        }
         
         // Personality and communication style
         if ($agent->personality_description) {

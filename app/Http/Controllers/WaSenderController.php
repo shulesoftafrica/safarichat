@@ -958,13 +958,90 @@ class WaSenderController extends Controller
     }
 
     /**
-     * Handle incoming message from webhook
+     * Handle incoming webhook from WaSender API using instance UUID (NEW)
+     */
+    public function handleWebhookByUuid(Request $request, $instanceUuid)
+    {
+        try {
+            $webhookData = $request->all();
+            
+            Log::info('Received WaSender webhook by UUID', [
+                'instance_uuid' => $instanceUuid,
+                'event_type' => $webhookData['event'] ?? 'unknown',
+                'webhook_data' => $webhookData
+            ]);
+
+            // Find instance by UUID instead of instanceId
+            $instance = WhatsappInstance::where('uuid', $instanceUuid)->first();
+            
+            if (!$instance) {
+                Log::warning('Webhook received for unknown instance UUID', ['instance_uuid' => $instanceUuid]);
+                return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+            }
+
+            // Update instance last seen
+            $instance->update(['last_seen' => now()]);
+
+            // Handle different webhook events (reuse existing logic)
+            $eventType = $webhookData['event'] ?? $webhookData['type'] ?? 'message';
+            
+            switch ($eventType) {
+                case 'message':
+                case 'messages.received':
+                    return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+                
+                case 'status':
+                case 'status.update':
+                    return $this->handleStatusUpdate($webhookData, $instance);
+                    
+                case 'qr':
+                case 'qr.update':
+                    return response()->json(['success' => true]);       
+                case 'ready':
+                case 'connection.ready':
+                    return $this->handleConnectionReady($webhookData, $instance);          
+                case 'disconnected':
+                case 'connection.lost':
+                    return $this->handleDisconnection($webhookData, $instance);             
+                default:
+                    Log::info('Unhandled webhook event type', [
+                        'event_type' => $eventType,
+                        'instance_uuid' => $instanceUuid
+                    ]);
+                    return response()->json(['status' => 'received','success'=>true], 200);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Webhook processing failed', [
+                'instance_uuid' => $instanceUuid,
+                'error' => $e->getMessage(),
+                'webhook_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Webhook processing failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle incoming message from webhook (legacy method)
      */
     private function handleIncomingMessage($webhookData, $instance)
     {
+        return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+    }
+
+    /**
+     * Handle incoming message from webhook with instance tracking
+     */
+    private function handleIncomingMessageWithInstance($webhookData, $instance)
+    {
         try {
-            Log::info('Processing incoming WhatsApp message with AI', [
+            Log::info('Processing incoming WhatsApp message with AI and instance tracking', [
                 'instance_id' => $instance->instance_id,
+                'instance_uuid' => $instance->uuid,
                 'message_type' => $webhookData['messageType'] ?? 'text',
                 'from' => $webhookData['from'] ?? 'unknown'
             ]);
@@ -995,13 +1072,13 @@ class WaSenderController extends Controller
                 'message_body' => substr($incomingMessage->message_body, 0, 100) . '...'
             ]);
 
-            // Process message with AI sales agent
-            $aiResult = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI($incomingMessage);
+            // Process message with AI sales agent (include instance for context)
+            $aiResult = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI($incomingMessage, $instance);
             
             if ($aiResult['success']) {
-                // Send AI response back to customer
+                // Send AI response back to customer using instance
                 if (isset($aiResult['response']) && !empty($aiResult['response'])) {
-                    $sent = $this->aiWhatsAppService->sendResponse($aiResult['response'], $incomingMessage);
+                    $sent = $this->aiWhatsAppService->sendResponse($aiResult['response'], $incomingMessage, $instance);
                     
                     if ($sent) {
                         $incomingMessage->markAsReplied($aiResult['response']);
@@ -1250,6 +1327,7 @@ class WaSenderController extends Controller
             $extractedData = [
                 'user_id' => $instance->user_id,
                 'instance_id' => $instance->instance_id,
+                'whatsapp_instance_id' => $instance->id, // New field for multi-instance support
                 'message_id' => $messageId,
                 'chat_id' => $chatId,
                 'phone_number' => $phoneNumber,

@@ -89,33 +89,44 @@ class Home extends Controller
         }
         $business_id = $userBusiness->id;
 
-        // WhatsApp-based metrics using the new tables
+        // WhatsApp-based metrics using the new tables with instance filtering
         $user_id = Auth::id();
+        $activeInstanceId = session('active_whatsapp_instance');
+        
+        // Base query with optional instance filtering
+        $messageQuery = function($model) use ($user_id, $activeInstanceId) {
+            $query = $model::where('user_id', $user_id);
+            if ($activeInstanceId) {
+                $query->where('whatsapp_instance_id', $activeInstanceId);
+            }
+            return $query;
+        };
         
         // Total WhatsApp contacts (guests)
         $this->data['guests'] = EventsGuest::where('business_id', $business_id)->count();
         
-        // Active conversations (users who have received/sent messages in last 30 days)
-        $this->data['active_conversations'] = \App\Models\IncomingMessage::where('user_id', $user_id)
-            ->where('received_at', '>=', now()->subDays(30))
+        // Instance-aware active conversations
+        $this->data['active_conversations'] = $messageQuery(\App\Models\IncomingMessage::class)
+            ->where('created_at', '>=', now()->subDays(30))
             ->distinct('phone_number')
             ->count();
             
-        // Messages sent today
-        $this->data['messages_sent_today'] = \App\Models\OutgoingMessage::where('user_id', $user_id)
+        // Instance-aware messages sent today
+        $this->data['messages_sent_today'] = $messageQuery(\App\Models\OutgoingMessage::class)
             ->whereDate('created_at', today())
             ->count();
             
-        // Response rate (incoming messages vs outgoing messages ratio)
-        $outgoing_count = \App\Models\OutgoingMessage::where('user_id', $user_id)
+        // Instance-aware response rate (incoming messages vs outgoing messages ratio)
+        $outgoing_count = $messageQuery(\App\Models\OutgoingMessage::class)
             ->where('created_at', '>=', now()->subDays(7))
             ->count();
-        $incoming_count = \App\Models\IncomingMessage::where('user_id', $user_id)
-            ->where('received_at', '>=', now()->subDays(7))
+        $incoming_count = $messageQuery(\App\Models\IncomingMessage::class)
+            ->where('created_at', '>=', now()->subDays(7))
             ->count();
         $this->data['response_rate'] = $outgoing_count > 0 ? round(($incoming_count / $outgoing_count) * 100, 1) : 0;
         
-        // Chart data - messages over time (last 12 months)
+        // Instance-aware chart data - messages over time (last 12 months)
+        $instanceFilter = $activeInstanceId ? "AND whatsapp_instance_id = $activeInstanceId" : "";
         $this->data['reports'] = DB::select("
             SELECT 
                 COUNT(*) as sum, 
@@ -123,6 +134,7 @@ class Home extends Controller
             FROM outgoing_messages 
             WHERE user_id = ? 
                 AND created_at >= ? 
+                $instanceFilter
             GROUP BY TO_CHAR(created_at, 'MM-YYYY'), DATE_TRUNC('month', created_at)
             ORDER BY DATE_TRUNC('month', created_at) ASC 
             LIMIT 12
@@ -141,14 +153,25 @@ class Home extends Controller
             ", [$business_id]);
         }
 
-        // Recent activity data for WhatsApp
-        $this->data['recent_messages'] = \App\Models\IncomingMessage::where('user_id', $user_id)
+        // Instance-aware recent activity data for WhatsApp
+        $recentQuery = \App\Models\IncomingMessage::where('user_id', $user_id);
+        if ($activeInstanceId) {
+            $recentQuery->where('whatsapp_instance_id', $activeInstanceId);
+        }
+        $this->data['recent_messages'] = $recentQuery
             ->with('guest')
-            ->orderBy('received_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
             
-        $this->data['whatsapp_instances'] = \App\Models\WhatsappInstance::where('user_id', $user_id)->get();
+        // Instance selector data
+        $this->data['whatsapp_instances'] = \App\Models\WhatsappInstance::where('user_id', $user_id)
+            ->orderBy('is_primary', 'desc')
+            ->orderBy('created_at')
+            ->get();
+            
+        // Current active instance
+        $this->data['active_instance_id'] = $activeInstanceId;
         
         return view('home', $this->data);
     }

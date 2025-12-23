@@ -41,15 +41,15 @@ class WaSenderService
      * @param string $phoneNumber Phone number in international format
      * @param string $message The message content
      * @param array $options Additional options (attachment, type, priority, etc.)
-     * @param string|null $instanceId Optional instance ID (mapped to schema_name)
-     * @param int|null $userId User ID for tracking
+     * @param WhatsappInstance|string|null $instance WhatsApp instance object or legacy instanceId
+     * @param int|null $userId User ID for tracking (fallback)
      * @return array Response from the API
      * @throws Exception
      */
-    public function sendMessage(string $phoneNumber, string $message, array $options = [], ?string $instanceId = null, ?int $userId = null): array
+    public function sendMessage(string $phoneNumber, string $message, array $options = [], $instance = null, ?int $userId = null): array
     {
         $cleanPhone = $this->formatPhoneNumber($phoneNumber);
-        $schemaName = $this->resolveSchemaName($userId, $instanceId);
+        $schemaName = $this->resolveSchemaName($userId, $instance);
 
         Log::info('Sending WhatsApp message via Unified API', [
             'phone' => $cleanPhone,
@@ -394,15 +394,28 @@ class WaSenderService
     }
 
     /**
-     * Resolve schema name from user ID or instance ID
+     * Resolve schema name for API calls using instance UUID (not user UUID)
      * 
-     * @param int|null $userId User ID
-     * @param string|null $instanceId Instance ID
+     * @param int|null $userId User ID (fallback)
+     * @param WhatsappInstance|string|null $instance WhatsApp instance or legacy instance ID
      * @return string Schema name for the API
      */
-    protected function resolveSchemaName(?int $userId, ?string $instanceId = null): string
+    protected function resolveSchemaName(?int $userId, $instance = null): string
     {
-        // Try to get user UUID from user ID
+        // Priority 1: Use WhatsappInstance UUID if provided
+        if ($instance instanceof \App\Models\WhatsappInstance) {
+            return $instance->uuid;
+        }
+        
+        // Priority 2: If string instance ID provided, find instance and use UUID
+        if (is_string($instance)) {
+            $whatsappInstance = WhatsappInstance::where('instance_id', $instance)->first();
+            if ($whatsappInstance && $whatsappInstance->uuid) {
+                return $whatsappInstance->uuid;
+            }
+        }
+        
+        // Fallback: Try to get user UUID from user ID (for backward compatibility)
         if ($userId) {
             $user = User::find($userId);
             if ($user && $user->uuid) {
@@ -412,20 +425,19 @@ class WaSenderService
             return (string) $userId;
         }
         
-        // Try to extract from instance ID (if it's a user-based instance)
-        if ($instanceId) {
-            $instance = WhatsappInstance::where('instance_id', $instanceId)->first();
-            if ($instance && $instance->user_id) {
-                $user = User::find($instance->user_id);
-                if ($user && $user->uuid) {
-                    return $user->uuid;
-                }
-                return (string) $instance->user_id;
-            }
-        }
-        
-        // Fallback to default schema (you may want to configure this)
+        // Final fallback to default schema
         return config('notifications.defaults.schema_name', 'shulesoft');
+    }
+
+    /**
+     * Get WhatsApp instance by schema name (UUID)
+     * 
+     * @param string $schemaName Instance UUID
+     * @return WhatsappInstance|null
+     */
+    public function getInstanceBySchemaName(string $schemaName): ?WhatsappInstance
+    {
+        return WhatsappInstance::where('uuid', $schemaName)->first();
     }
 
     /**

@@ -369,6 +369,35 @@
         background: white;
         color: #f59e0b;
     }
+    
+    .instance-selector-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+    
+    .instance-select {
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        padding: 10px 15px;
+        font-weight: 500;
+        min-width: 200px;
+    }
+    
+    .instance-select:focus {
+        border-color: #25d366;
+        box-shadow: 0 0 0 0.25rem rgba(37, 211, 102, 0.15);
+    }
+    
+    .instance-info {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #25d366;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -408,6 +437,103 @@
         <a href="{{url('message')}}" class="alert-btn">Send Messages</a>
     </div>
     @endif
+
+    <!-- WhatsApp Instance Selector -->
+    @if(count($whatsapp_instances) > 1)
+    <div class="instance-selector-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1"><i class="fas fa-mobile-alt"></i> WhatsApp Line</h5>
+                <p class="mb-0 text-muted">Choose which WhatsApp line to manage</p>
+            </div>
+            <div>
+                <select id="instanceSelector" class="form-select instance-select">
+                    <option value="">All Lines</option>
+                    @foreach($whatsapp_instances as $instance)
+                        <option value="{{ $instance->id }}" 
+                                {{ $active_instance_id == $instance->id ? 'selected' : '' }}>
+                            {{ $instance->display_name ?: $instance->schema_name }}
+                            @if($instance->is_primary) (Primary) @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        
+        @if($active_instance_id)
+            @php $activeInstance = $whatsapp_instances->firstWhere('id', $active_instance_id); @endphp
+            @if($activeInstance)
+                <div class="instance-info mt-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <strong>{{ $activeInstance->display_name ?: $activeInstance->schema_name }}</strong>
+                            @if($activeInstance->purpose)
+                                <span class="badge bg-light text-dark ms-2">{{ $activeInstance->purpose }}</span>
+                            @endif
+                            @if($activeInstance->description)
+                                <p class="mb-0 mt-1 text-muted small">{{ $activeInstance->description }}</p>
+                            @endif
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showInstanceConfig('{{ $activeInstance->id }}')">
+                                <i class="fas fa-cog"></i> Configure
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endif
+    </div>
+    @endif
+
+    <!-- WhatsApp Instance Selector -->
+    @if(count($whatsapp_instances) > 1)
+    <div class="instance-selector-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1"><i class="fas fa-mobile-alt"></i> WhatsApp Line</h5>
+                <p class="mb-0 text-muted">Choose which WhatsApp line to manage</p>
+            </div>
+            <div>
+                <select id="instanceSelector" class="form-select instance-select">
+                    <option value="">All Lines</option>
+                    @foreach($whatsapp_instances as $instance)
+                        <option value="{{ $instance->id }}" 
+                                {{ $active_instance_id == $instance->id ? 'selected' : '' }}>
+                            {{ $instance->display_name ?: $instance->schema_name }}
+                            @if($instance->is_primary) (Primary) @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        
+        @if($active_instance_id)
+            @php $activeInstance = $whatsapp_instances->firstWhere('id', $active_instance_id); @endphp
+            @if($activeInstance)
+                <div class="instance-info mt-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <strong>{{ $activeInstance->display_name ?: $activeInstance->schema_name }}</strong>
+                            @if($activeInstance->purpose)
+                                <span class="badge bg-light text-dark ms-2">{{ $activeInstance->purpose }}</span>
+                            @endif
+                            @if($activeInstance->description)
+                                <p class="mb-0 mt-1 text-muted small">{{ $activeInstance->description }}</p>
+                            @endif
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showInstanceConfig('{{ $activeInstance->id }}')">
+                                <i class="fas fa-cog"></i> Configure
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endif
+    </div>
+    @endif
+    
     <!-- Key Metrics Row -->
     <div class="row">
         <!-- Subscription Status -->
@@ -902,6 +1028,162 @@ function animateMetrics() {
 window.addEventListener('load', function() {
     setTimeout(animateMetrics, 500);
 });
+
+// WhatsApp Instance Management
+document.addEventListener('DOMContentLoaded', function() {
+    const instanceSelector = document.getElementById('instanceSelector');
+    
+    if (instanceSelector) {
+        instanceSelector.addEventListener('change', function() {
+            const selectedInstanceId = this.value;
+            
+            // Show loading state
+            const originalHtml = instanceSelector.innerHTML;
+            instanceSelector.disabled = true;
+            
+            // Make API call to select instance
+            fetch('/api/whatsapp/instances/select', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    instance_id: selectedInstanceId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to update dashboard with new instance data
+                    window.location.reload();
+                } else {
+                    alert('Error selecting instance: ' + (data.message || 'Unknown error'));
+                    instanceSelector.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error selecting instance');
+                instanceSelector.disabled = false;
+            });
+        });
+    }
+});
+
+function showInstanceConfig(instanceId) {
+    // Create modal for instance configuration
+    const modal = `
+        <div class="modal fade" id="instanceConfigModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-cog"></i> Configure WhatsApp Instance</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="instanceConfigForm">
+                            <div class="mb-3">
+                                <label class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="displayName" placeholder="e.g., Main Business Line">
+                                <small class="form-text text-muted">Friendly name for this WhatsApp line</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Purpose</label>
+                                <select class="form-select" id="purpose">
+                                    <option value="">Select purpose...</option>
+                                    <option value="sales">Sales & Lead Generation</option>
+                                    <option value="support">Customer Support</option>
+                                    <option value="marketing">Marketing & Promotions</option>
+                                    <option value="personal">Personal Use</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="description" rows="3" placeholder="Describe how this line will be used..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveInstanceConfig('${instanceId}')">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('instanceConfigModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // Load current instance data
+    fetch(`/api/whatsapp/instances/${instanceId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const instance = data.instance;
+                document.getElementById('displayName').value = instance.display_name || '';
+                document.getElementById('purpose').value = instance.purpose || '';
+                document.getElementById('description').value = instance.description || '';
+            }
+        })
+        .catch(error => console.error('Error loading instance data:', error));
+    
+    // Show modal
+    const modalInstance = new bootstrap.Modal(document.getElementById('instanceConfigModal'));
+    modalInstance.show();
+}
+
+function saveInstanceConfig(instanceId) {
+    const form = document.getElementById('instanceConfigForm');
+    const formData = {
+        display_name: document.getElementById('displayName').value,
+        purpose: document.getElementById('purpose').value,
+        description: document.getElementById('description').value
+    };
+    
+    // Show loading state
+    const saveBtn = event.target;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.disabled = true;
+    
+    fetch(`/api/whatsapp/instances/${instanceId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('instanceConfigModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error saving configuration: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving configuration');
+    })
+    .finally(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+}
 </script>
 
 @endsection

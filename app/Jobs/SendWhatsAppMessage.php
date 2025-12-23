@@ -30,7 +30,7 @@ class SendWhatsAppMessage implements ShouldQueue
     protected $source;
     protected $userId;
     protected $files;
-    protected $instanceId;
+    protected $instanceId;\n    protected $whatsappInstanceId; // New field for multi-instance support
     protected $provider;
     protected $priority;
     protected $batchId;
@@ -63,6 +63,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $this->userId = $userId;
         $this->files = $files;
         $this->instanceId = $instanceId;
+        $this->whatsappInstanceId = $options['whatsapp_instance_id'] ?? null; // New field
         $this->provider = $options['provider'] ?? 'unified_api';
         $this->priority = $options['priority'] ?? 'normal';
         $this->batchId = $options['batch_id'] ?? null;
@@ -201,6 +202,7 @@ class SendWhatsAppMessage implements ShouldQueue
             'user_id' => $this->userId,
             'events_guest_id' => $eventsGuest ? $eventsGuest->id : null,
             'instance_id' => $this->instanceId,
+            'whatsapp_instance_id' => $this->whatsappInstanceId, // New field
             'phone_number' => $this->phoneNumber,
             'message' => is_array($this->messageData) ? json_encode($this->messageData) : $this->messageData,
             'message_body' => is_array($this->messageData) ? ($this->messageData['message'] ?? json_encode($this->messageData)) : $this->messageData,

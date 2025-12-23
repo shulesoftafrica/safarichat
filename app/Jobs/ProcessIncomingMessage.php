@@ -146,14 +146,15 @@ class ProcessIncomingMessage implements ShouldQueue
             $aiResponse = $this->generateAIResponse($context);
 
             if ($aiResponse) {
-                // Queue the AI response
+                // Queue the AI response with instance tracking
                 SendWhatsAppMessage::dispatch(
                     $aiResponse,
                     $phoneNumber,
                     'whatsapp',
                     $this->whatsappInstance->user_id,
                     null,
-                    $this->instanceId
+                    $this->instanceId,
+                    ['whatsapp_instance_id' => $this->whatsappInstance->id] // Pass instance ID
                 )->delay(now()->addSeconds(2)); // Small delay to feel natural
             }
 

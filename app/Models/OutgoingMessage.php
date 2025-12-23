@@ -10,12 +10,14 @@ class OutgoingMessage extends Model
         'message_id',
         'user_id',
         'instance_id',
+        'whatsapp_instance_id', // New field for multi-instance support
         'events_guest_id',
         'chat_id',
         'phone_number',
         'message',
         'message_body',
-        'message_type',
+        'message_type', // Now also used for system message types
+        'is_system_message', // New field for system message flag
         'media_path',
         'media_url',
         'caption',
@@ -36,6 +38,7 @@ class OutgoingMessage extends Model
 
     protected $casts = [
         'metadata' => 'array',
+        'is_system_message' => 'boolean',
         'scheduled_at' => 'datetime',
         'queued_at' => 'datetime'
     ];
@@ -65,9 +68,17 @@ class OutgoingMessage extends Model
     }
 
     /**
-     * Get the WhatsApp instance
+     * Get the WhatsApp instance (updated for new relationship)
      */
     public function whatsappInstance()
+    {
+        return $this->belongsTo(WhatsappInstance::class, 'whatsapp_instance_id');
+    }
+
+    /**
+     * Get the legacy WhatsApp instance (for backward compatibility)
+     */
+    public function whatsappInstanceLegacy()
     {
         return $this->belongsTo(WhatsappInstance::class, 'instance_id', 'instance_id');
     }
@@ -320,6 +331,68 @@ class OutgoingMessage extends Model
             'delivered' => $query->where('status', 'delivered')->count(),
             'failed' => $query->where('status', 'failed')->count(),
             'pending' => $query->where('status', 'pending')->count(),
+        ];
+    }
+
+    /**
+     * Scope for system messages only
+     */
+    public function scopeSystemMessages($query)
+    {
+        return $query->where('is_system_message', true);
+    }
+
+    /**
+     * Scope for user messages only
+     */
+    public function scopeUserMessages($query)
+    {
+        return $query->where('is_system_message', false);
+    }
+
+    /**
+     * Scope for specific message type
+     */
+    public function scopeByMessageType($query, string $messageType)
+    {
+        return $query->where('message_type', $messageType);
+    }
+
+    /**
+     * Check if this is a system message
+     */
+    public function isSystemMessage(): bool
+    {
+        return $this->is_system_message === true;
+    }
+
+    /**
+     * Get system message statistics
+     */
+    public static function getSystemMessageStats($days = 30): array
+    {
+        $query = self::systemMessages()
+            ->where('created_at', '>=', now()->subDays($days));
+
+        $stats = $query->selectRaw('
+            message_type,
+            COUNT(*) as total,
+            SUM(CASE WHEN status IN ("sent", "delivered") THEN 1 ELSE 0 END) as successful,
+            SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed
+        ')
+        ->groupBy('message_type')
+        ->get()
+        ->keyBy('message_type');
+
+        return [
+            'period_days' => $days,
+            'message_types' => $stats->toArray(),
+            'total_messages' => $stats->sum('total'),
+            'successful_messages' => $stats->sum('successful'),
+            'failed_messages' => $stats->sum('failed'),
+            'success_rate' => $stats->sum('total') > 0 
+                ? round(($stats->sum('successful') / $stats->sum('total')) * 100, 2)
+                : 0
         ];
     }
 }

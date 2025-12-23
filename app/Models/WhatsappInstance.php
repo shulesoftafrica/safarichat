@@ -29,7 +29,17 @@ class WhatsappInstance extends Model
         'last_active_at',
         'platform',
         'device_info',
-        'api_key'
+        'api_key',
+        // Multi-instance support fields
+        'uuid',
+        'purpose',
+        'instance_description',
+        'is_primary',
+        'display_name',
+        // System default instance fields
+        'is_system_default',
+        'usage_scope',
+        'allowed_message_types'
     ];
 
     protected $casts = [
@@ -37,6 +47,9 @@ class WhatsappInstance extends Model
         'device_info' => 'array',
         'webhook_verified' => 'boolean',
         'qr_code_generated' => 'boolean',
+        'is_primary' => 'boolean',
+        'is_system_default' => 'boolean',
+        'allowed_message_types' => 'array',
         'last_seen' => 'datetime',
         'last_message_received' => 'datetime',
         'qr_code_generated_at' => 'datetime',
@@ -44,6 +57,20 @@ class WhatsappInstance extends Model
         'disconnected_at' => 'datetime',
         'last_active_at' => 'datetime'
     ];
+
+    /**
+     * Boot method to generate UUID on creation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     /**
      * Get the user that owns this instance
@@ -69,19 +96,45 @@ class WhatsappInstance extends Model
     }
 
     /**
-     * Get incoming messages for this instance
+     * Get incoming messages for this instance (using new relationship)
      */
     public function incomingMessages()
     {
-        return $this->hasMany(IncomingMessage::class, 'instance_id', 'instance_id');
+        return $this->hasMany(IncomingMessage::class, 'whatsapp_instance_id');
     }
 
     /**
-     * Get outgoing messages for this instance
+     * Get outgoing messages for this instance (using new relationship)
      */
     public function outgoingMessages()
     {
-        return $this->hasMany(OutgoingMessage::class, 'instance_id', 'instance_id');
+        return $this->hasMany(OutgoingMessage::class, 'whatsapp_instance_id');
+    }
+
+    /**
+     * New scopes and methods for multi-instance support
+     */
+    public function scopePrimary($query)
+    {
+        return $query->where('is_primary', true);
+    }
+
+    public function scopeByPurpose($query, $purpose)
+    {
+        return $query->where('purpose', $purpose);
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->attributes['display_name'] ?: $this->phone_number;
+    }
+
+    /**
+     * Schema name for message routing (replaces user UUID)
+     */
+    public function getSchemaNameAttribute()
+    {
+        return $this->uuid;
     }
 
     /**
@@ -257,5 +310,67 @@ class WhatsappInstance extends Model
                 SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending
             ')
             ->first();
+    }
+
+    /**
+     * Get the system default WhatsApp instance
+     */
+    public static function getSystemDefault(): ?WhatsappInstance
+    {
+        return static::where('is_system_default', true)
+            ->where('usage_scope', 'system')
+            ->where('status', 'active') // Use 'status' instead of 'is_active'
+            ->first();
+    }
+    
+    /**
+     * Check if this instance can send specific message type
+     */
+    public function canSendMessageType(string $messageType): bool
+    {
+        if ($this->usage_scope === 'user') {
+            return true; // User instances can send any message
+        }
+        
+        return in_array($messageType, json_decode($this->allowed_message_types, true) ?? []);
+    }
+    
+    /**
+     * Scope for system instances only
+     */
+    public function scopeSystemOnly($query)
+    {
+        return $query->where('usage_scope', 'system');
+    }
+    
+    /**
+     * Scope for user instances only
+     */
+    public function scopeUserOnly($query)
+    {
+        return $query->where('usage_scope', 'user');
+    }
+
+    /**
+     * Check if this is a system default instance
+     */
+    public function isSystemDefault(): bool
+    {
+        return $this->is_system_default === true && $this->usage_scope === 'system';
+    }
+
+    /**
+     * Get available message types for system instances
+     */
+    public static function getSystemMessageTypes(): array
+    {
+        return [
+            'otp_verification' => 'OTP Verification',
+            'welcome_message' => 'Welcome Message',
+            'payment_reminder' => 'Payment Reminder',
+            'system_notification' => 'System Notification',
+            'account_verification' => 'Account Verification',
+            'password_reset' => 'Password Reset'
+        ];
     }
 }

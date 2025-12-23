@@ -115,6 +115,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="<?= url('whatsapp/instances') ?>">
+                                <i class="fas fa-mobile-alt align-middle mr-2" title="WhatsApp Lines"></i>WhatsApp Lines
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/report') ?>">
                                 <i class="fas fa-calendar-alt align-middle mr-2" title="Reports"></i>{{__('reports')}}
                             </a>

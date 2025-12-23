@@ -28,7 +28,7 @@ class AiWhatsAppService
     /**
      * Process incoming WhatsApp message with AI sales agent
      */
-    public function processIncomingWhatsAppMessageWithAI(IncomingMessage $message): array
+    public function processIncomingWhatsAppMessageWithAI(IncomingMessage $message, ?\App\Models\WhatsappInstance $instance = null): array
     {
         try {
             DB::beginTransaction();
@@ -67,13 +67,14 @@ class AiWhatsAppService
             // Determine if this is product-specific conversation
             $product = $this->identifyProduct($message, $lead);
 
-            // Enhanced: Use RAG-augmented AI response
+            // Enhanced: Use RAG-augmented AI response with instance context
             $aiResult = $this->openAiService->generateSalesResponseWithRAG(
                 $message->message_body,
                 $agent,
                 $lead,
                 $conversationHistory,
-                $product
+                $product,
+                $instance // Pass instance for context
             );
 
             if (!$aiResult['success']) {
@@ -617,15 +618,16 @@ class AiWhatsAppService
     }
 
     /**
-     * Send AI response via WhatsApp
+     * Send AI response via WhatsApp with instance support
      */
-    public function sendResponse(string $response, IncomingMessage $originalMessage): bool
+    public function sendResponse(string $response, IncomingMessage $originalMessage, ?\App\Models\WhatsappInstance $instance = null): bool
     {
         try {
-            // Create outgoing message record first
+            // Create outgoing message record first with instance tracking
             $outgoingMessage = OutgoingMessage::create([
                 'user_id' => $originalMessage->user_id,
                 'instance_id' => $originalMessage->instance_id,
+                'whatsapp_instance_id' => $instance?->id ?? $originalMessage->whatsapp_instance_id, // New field
                 'chat_id' => $originalMessage->chat_id,
                 'phone_number' => $originalMessage->phone_number,
                 'message_body' => $response,
@@ -634,13 +636,25 @@ class AiWhatsAppService
                 'is_ai_generated' => true,
             ]);
 
-            // Send via WaSender API
-            $result = $this->waSenderService->sendTextMessage(
-                $originalMessage->phone_number,
-                $response,
-                $originalMessage->instance_id,
-                $originalMessage->user_id
-            );
+            // Send via WaSender API using instance object
+            if ($instance) {
+                // Use new instance-aware method
+                $result = $this->waSenderService->sendMessage(
+                    $originalMessage->phone_number,
+                    $response,
+                    [],
+                    $instance,
+                    $originalMessage->user_id
+                );
+            } else {
+                // Fallback to legacy method
+                $result = $this->waSenderService->sendTextMessage(
+                    $originalMessage->phone_number,
+                    $response,
+                    $originalMessage->instance_id,
+                    $originalMessage->user_id
+                );
+            }
 
             if ($result['success']) {
                 // Update outgoing message as sent

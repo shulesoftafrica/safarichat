@@ -23,7 +23,9 @@ class User extends Authenticatable implements MustVerifyEmail{
         'name', 
         'email', 
         'email_verified_at', 
+        'phone_verified_at',
         'password', 
+        'password_reset_at',
         'remember_token', 
         'created_at', 
         'updated_at', 
@@ -54,6 +56,8 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'phone_verified_at' => 'datetime',
+        'password_reset_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'last_activity_at' => 'datetime',
         'available_credits' => 'integer'

@@ -285,6 +285,11 @@ Route::middleware('auth')->group(function () {
 Route::post('/webhooks/lipa-number', [App\Http\Controllers\WebhookController::class, 'handleLipaNamba'])->name('webhooks.lipa-number');
 Route::post('/webhooks/stripe', [App\Http\Controllers\WebhookController::class, 'handleStripe'])->name('webhooks.stripe');
 
+// WhatsApp Instance Management (web routes)
+Route::middleware('auth')->group(function () {
+    Route::get('/whatsapp/instances', [App\Http\Controllers\WhatsappInstanceController::class, 'indexView'])->name('whatsapp.instances.index');
+});
+
 
 if (createRoute() != NULL) {
     $route = explode('@', createRoute());
