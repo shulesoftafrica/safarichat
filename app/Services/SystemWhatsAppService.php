@@ -136,6 +136,23 @@ class SystemWhatsAppService
     }
     
     /**
+     * Send generic text message via system instance
+     */
+    public function sendGenericMessage(string $phoneNumber, string $message, string $messageType = 'system_notification'): bool
+    {
+        if (!$this->systemInstance) {
+            return false;
+        }
+
+       
+        if (!$this->systemInstance->canSendMessageType($messageType)) {
+            return false;
+        }
+
+        return $this->sendSystemMessage($phoneNumber, $message, $messageType);
+    }
+    
+    /**
      * Core method to send system messages
      */
     private function sendSystemMessage(string $phoneNumber, string $message, string $messageType): bool
@@ -160,11 +177,17 @@ class SystemWhatsAppService
             
             // Queue message using system instance
             SendWhatsAppMessage::dispatch(
-                $phoneNumber,
-                $message,
-                null, // No user_id for system messages
-                $this->systemInstance->id,
-                $messageType
+                $message,                           // messageData
+                $phoneNumber,                       // phoneNumber  
+                'whatsapp',                         // source
+                $this->systemInstance->user_id,     // userId
+                null,                               // files
+                null,                               // instanceId (legacy)
+                [                                   // options array
+                    'whatsapp_instance_id' => $this->systemInstance->id,
+                    'provider' => 'unified_api',
+                    'priority' => 'high'
+                ]
             );
             
             // Record outgoing message

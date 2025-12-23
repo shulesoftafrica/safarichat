@@ -48,9 +48,12 @@ class Controller extends BaseController {
 
 
 
-    public function sendTextMessage($chatId, $text, $source = null,$instance_id = null) {      
-    
-        $action=  (new Message())->send($text, $chatId);
+    public function sendTextMessage($chatId, $text, $source = null, $instance_id = null) {      
+        // Use the Message controller's send method with proper parameters
+        // The 4th parameter can be used to pass message type for system messages
+        $messageType = $instance_id; // instance_id is being used as message type identifier
+        
+        $action = (new Message())->send($text, $chatId, null, $messageType);
          
          if($action){
             return response()->json(['status' => 'success', 'message' => 'Message saved successfully']);

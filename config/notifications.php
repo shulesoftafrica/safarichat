@@ -28,7 +28,7 @@ return [
         'provider' => 'unified_api',
         'channel' => 'whatsapp',
         'priority' => 'normal',
-        'schema_name' => env('UNIFIED_API_DEFAULT_SCHEMA', 'safarichat_default'),
+        'schema_name' => env('UNIFIED_API_DEFAULT_SCHEMA', '75298c45-1441-4cfa-a330-aeadfd47a85f'),
         'rate_limit' => env('NOTIFICATION_RATE_LIMIT', 60), // messages per minute
         'batch_size' => env('BULK_BATCH_SIZE', 50), // messages per batch
         'retry_attempts' => env('NOTIFICATION_RETRY_ATTEMPTS', 3),

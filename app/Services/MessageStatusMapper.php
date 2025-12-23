@@ -59,6 +59,20 @@ class MessageStatusMapper
             'next_possible' => ['delivered', 'error'],
             'local_equivalent' => 'pending'
         ],
+        'sent' => [
+            'description' => 'Message sent by API',
+            'lifecycle_stage' => 'transmitted',
+            'is_final' => false,
+            'next_possible' => ['delivered', 'error'],
+            'local_equivalent' => 'sent'
+        ],
+        'delivered' => [
+            'description' => 'Message delivered by API',
+            'lifecycle_stage' => 'confirmed',
+            'is_final' => false,
+            'next_possible' => ['read_receipt'],
+            'local_equivalent' => 'delivered'
+        ],
         'confirmed' => [
             'description' => 'Message confirmed delivered',
             'lifecycle_stage' => 'confirmed',
@@ -79,6 +93,29 @@ class MessageStatusMapper
             'is_final' => true,
             'next_possible' => ['queued'], // Can retry
             'local_equivalent' => 'failed'
+        ],
+
+        // Common API response statuses that need mapping
+        'message_sent' => [
+            'description' => 'Message sent via API',
+            'lifecycle_stage' => 'transmitted',
+            'is_final' => false,
+            'next_possible' => ['confirmed', 'error'],
+            'local_equivalent' => 'sent'
+        ],
+        'message_delivered' => [
+            'description' => 'Message delivered via API',
+            'lifecycle_stage' => 'confirmed', 
+            'is_final' => false,
+            'next_possible' => ['read_receipt'],
+            'local_equivalent' => 'delivered'
+        ],
+        'message_status' => [
+            'description' => 'Generic message status response',
+            'lifecycle_stage' => 'transmitted',
+            'is_final' => false,
+            'next_possible' => ['confirmed', 'error'],
+            'local_equivalent' => 'sent'
         ]
     ];
 

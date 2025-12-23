@@ -18,10 +18,7 @@ class UnifiedNotificationService
         $this->baseUrl = config('services.unified_notification.base_url', 'https://notifications.shulesoft.africa/api');
         
         // Try multiple configuration sources for the token
-        $this->bearerToken = config('services.unified_notification.token') 
-            ?? config('notifications.unified_api.bearer_token')
-            ?? env('NOTIFICATION_API_TOKEN')
-            ?? env('UNIFIED_NOTIFICATION_TOKEN');
+        $this->bearerToken =  env('UNIFIED_API_BEARER_TOKEN');
             
         // Log token status for debugging (without exposing the actual token)
         Log::debug('UnifiedNotificationService initialized', [
@@ -487,6 +484,7 @@ class UnifiedNotificationService
             'token_configured' => !empty($this->bearerToken)
         ]);
  
+      
         $request = Http::withToken($this->bearerToken)
           ->withHeaders([
                     'Content-Type' => 'application/json',

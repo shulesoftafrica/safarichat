@@ -30,7 +30,8 @@ class SendWhatsAppMessage implements ShouldQueue
     protected $source;
     protected $userId;
     protected $files;
-    protected $instanceId;\n    protected $whatsappInstanceId; // New field for multi-instance support
+    protected $instanceId;
+    protected $whatsappInstanceId; // New field for multi-instance support
     protected $provider;
     protected $priority;
     protected $batchId;
@@ -80,6 +81,7 @@ class SendWhatsAppMessage implements ShouldQueue
      */
     public function handle(WaSenderService $waSenderService, UnifiedNotificationService $unifiedService)
     {
+        
         try {
             Log::info('Processing WhatsApp message job', [
                 'phone' => $this->phoneNumber,
@@ -93,7 +95,7 @@ class SendWhatsAppMessage implements ShouldQueue
             $outgoingMessage = $this->createOrUpdateOutgoingMessage();
 
             $result = null;
-           
+    
             if ($this->provider === 'unified_api') {
                 // Use Unified Notification API
                 $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
@@ -221,9 +223,32 @@ class SendWhatsAppMessage implements ShouldQueue
      */
     private function sendViaUnifiedApi(UnifiedNotificationService $service, OutgoingMessage $message)
     {
-        // Prepare data for unified API
-        $user = User::find($this->userId);
-        $schemaName = $user ? ($user->uuid ?? $user->id) : 'default';
+        // Get WhatsApp instance to extract UUID for schema_name
+        $whatsappInstance = null;
+        if ($this->whatsappInstanceId) {
+            $whatsappInstance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
+        }
+          
+        // Use WhatsApp instance UUID as schema_name (required for multi-tenant messaging)
+        $schemaName = 'default'; // fallback
+        if ($whatsappInstance && $whatsappInstance->uuid) {
+            $schemaName = $whatsappInstance->uuid;
+        } else {
+            // If no instance UUID, try to find user's primary instance
+            $user = User::find($this->userId);
+            if ($user) {
+                $primaryInstance = $user->whatsappInstances()->where('is_primary', true)->first();
+                if ($primaryInstance && $primaryInstance->uuid) {
+                    $schemaName = $primaryInstance->uuid;
+                } else {
+                    // Get any instance from the user
+                    $anyInstance = $user->whatsappInstances()->first();
+                    if ($anyInstance && $anyInstance->uuid) {
+                        $schemaName = $anyInstance->uuid;
+                    }
+                }
+            }
+        }
 
         $apiData = [
             'schema_name' => $schemaName,
@@ -233,7 +258,7 @@ class SendWhatsAppMessage implements ShouldQueue
             'priority' => $this->priority,
             "type"=>"wasender"
         ];
-
+    
         // Add files if present
         if ($this->files && is_array($this->files)) {
             foreach ($this->files as $file) {
@@ -295,7 +320,7 @@ class SendWhatsAppMessage implements ShouldQueue
         if (!$message) return;
 
         $updateData = [
-            'status' => MessageStatusMapper::mapToLocal('message_status', $status),
+            'status' => MessageStatusMapper::mapToLocal($status),
             'sent_at' => now(),
             'retry_count' => $this->attempts()
         ];

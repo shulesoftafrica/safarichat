@@ -136,7 +136,7 @@ class ProcessWebhookNotification implements ShouldQueue
         }
 
         // Map API status to local status
-        $localStatus = $status ? MessageStatusMapper::mapToLocal('message_status', $status) : null;
+        $localStatus = $status ? MessageStatusMapper::mapToLocal($status) : null;
 
         $updateData = [];
 

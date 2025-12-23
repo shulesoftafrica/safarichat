@@ -11,6 +11,7 @@ use \App\Jobs\SendWhatsAppMessage;
 use \App\Jobs\SendWhatsAppMediaMessage;
 use \App\Jobs\ProcessBulkMessages;
 use \App\Services\WaSenderService;
+use \App\Services\SystemWhatsAppService;
 use Illuminate\Support\Arr;
 use Auth;
 use DB;
@@ -157,7 +158,7 @@ class Message extends Controller
           
             if ($user && !empty($user->phone)) {
                 $waMessage = "Hello {$user->name}, your sender name has been created. To complete registration, please submit your NIDA number and an introduction letter for approval.";
-                $this->send($waMessage, $user->phone);
+                $this->send($waMessage, $user->phone, $user->id);
             }
         }
         }  
@@ -772,12 +773,16 @@ class Message extends Controller
                 } else {
                     // Queue the text message via WaSender
                     SendWhatsAppMessage::dispatch(
-                        $personalizedMessage,
-                        $cleanPhone,
-                        'whatsapp',
-                        Auth::id(),
-                        null, // files
-                        $instance->instance_id
+                        $personalizedMessage,    // messageData
+                        $cleanPhone,            // phoneNumber
+                        'whatsapp',             // source
+                        Auth::id(),             // userId
+                        null,                   // files
+                        null,                   // instanceId (legacy)
+                        [                       // options
+                            'whatsapp_instance_id' => $instance->id,
+                            'provider' => 'unified_api'
+                        ]
                     )->delay(now()->addSeconds($delay));
                 }
                 
@@ -934,50 +939,101 @@ class Message extends Controller
     // }
 
 
-    public function send($message, $phoneNumber, $userId = 45)
+    public function send($message, $phoneNumber, $userId = null, $messageTypeHint = null)
     {
-        // This method is now simplified to only handle WhatsApp via WaSender
+        // Determine effective user ID
+        $effectiveUserId = $userId ?? (Auth::check() ? Auth::id() : null);
+        
         try {
             $waSenderService = new WaSenderService();
             
-            // Get user's WhatsApp instance
-
-            $instance = $waSenderService->getUserInstance($userId ?? Auth::id());
-            
+            // First try to get user's WhatsApp instance
+            $instance = null;
+            if ($effectiveUserId) {
+                $instance = $waSenderService->getUserInstance($effectiveUserId);
+            }
+              
+            // If no user instance found, fall back to system default instance
             if (!$instance) {
-                Log::error('No active WhatsApp instance found', [
-                    'user_id' => $userId ?? Auth::id(),
+                Log::info('No user WhatsApp instance found, attempting system default', [
+                    'user_id' => $effectiveUserId,
                     'phone' => $phoneNumber
+                ]);
+                
+                // Try to use system default instance via SystemWhatsAppService
+                $systemService = app(SystemWhatsAppService::class);
+                
+            
+
+                if ($systemService->isAvailable()) {
+                    // Determine message type based on context
+                    $messageType = $this->determineSystemMessageType($message, $effectiveUserId, $messageTypeHint);
+                    
+                    // Get system instance for validation
+                    $systemInstance = \App\Models\WhatsappInstance::getSystemDefault();
+             
+                    if ($messageType && $systemInstance && $systemInstance->canSendMessageType($messageType)) {
+                        // Use appropriate SystemWhatsAppService method based on message type
+                        $result = match($messageType) {
+                            'otp_verification' => $systemService->sendGenericMessage($phoneNumber, $message, 'otp_verification'),
+                            'welcome_message' => $systemService->sendGenericMessage($phoneNumber, $message, 'welcome_message'),
+                            'payment_reminder' => $systemService->sendGenericMessage($phoneNumber, $message, 'payment_reminder'),
+                            'password_reset' => $systemService->sendGenericMessage($phoneNumber, $message, 'password_reset'),
+                            default => $systemService->sendGenericMessage($phoneNumber, $message, 'system_notification')
+                        };
+
+             
+                        Log::info('Message sent via system default WhatsApp instance', [
+                            'phone' => $phoneNumber,
+                            'user_id' => $effectiveUserId,
+                            'message_type' => $messageType,
+                            'result' => $result
+                        ]);
+                        
+                        return [
+                            'success' => $result,
+                            'message' => $result ? 'Message sent via system instance' : 'Failed to send via system instance',
+                            'method' => 'system_default',
+                            'message_type' => $messageType
+                        ];
+                    }
+                }
+                
+                Log::error('No WhatsApp instance available (user or system)', [
+                    'user_id' => $effectiveUserId,
+                    'phone' => $phoneNumber,
+                    'system_available' => $systemService->isAvailable()
                 ]);
                 
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp instance not found or not connected',
-                    'error_code' => 'INSTANCE_NOT_FOUND'
+                    'message' => 'No WhatsApp instance available for messaging',
+                    'error_code' => 'NO_INSTANCE_AVAILABLE'
                 ];
             }
-            
-            // Send the message using WaSender service
+          
+            // Send using user's instance via WaSender service
             $result = $waSenderService->sendTextMessage(
                 $phoneNumber,
                 $message,
                 $instance->instance_id,
-                $userId ?? Auth::id()
+                $effectiveUserId
             );
             
-            Log::info('WhatsApp message sent via WaSender', [
+            Log::info('WhatsApp message sent via user instance', [
                 'phone' => $phoneNumber,
-                'user_id' => $userId ?? Auth::id(),
+                'user_id' => $effectiveUserId,
+                'instance_id' => $instance->instance_id,
                 'result' => $result
             ]);
             
             return $result;
             
         } catch (\Exception $e) {
-            Log::error('Failed to send WhatsApp message via WaSender', [
+            Log::error('Failed to send WhatsApp message', [
                 'phone' => $phoneNumber,
                 'error' => $e->getMessage(),
-                'user_id' => $userId ?? Auth::id()
+                'user_id' => $effectiveUserId
             ]);
             
             return [
@@ -988,6 +1044,109 @@ class Message extends Controller
         }
     }
 
+    /**
+     * Send system message using SystemWhatsAppService with proper message type detection
+     */
+    private function sendSystemMessage($phoneNumber, $message, $userId = null, $messageTypeHint = null)
+    {
+        try {
+            $systemService = app(SystemWhatsAppService::class);
+            
+            if (!$systemService->isAvailable()) {
+                return [
+                    'success' => false,
+                    'message' => 'System WhatsApp instance not available',
+                    'error_code' => 'SYSTEM_INSTANCE_UNAVAILABLE'
+                ];
+            }
+            
+            // Determine message type
+            $messageType = $this->determineSystemMessageType($message, $userId);
+            
+            // Send appropriate message type
+            $result = match($messageType) {
+                'otp_verification' => $systemService->sendSystemNotification($phoneNumber, 'OTP Verification', $message),
+                'welcome_message' => $systemService->sendSystemNotification($phoneNumber, 'Welcome', $message),
+                'payment_reminder' => $systemService->sendSystemNotification($phoneNumber, 'Payment Notice', $message),
+                'password_reset' => $systemService->sendSystemNotification($phoneNumber, 'Password Reset', $message),
+                default => $systemService->sendSystemNotification($phoneNumber, 'Notification', $message)
+            };
+            
+            return [
+                'success' => $result,
+                'message' => $result ? 'Message sent via system instance' : 'Failed to send via system instance',
+                'method' => 'system_default',
+                'message_type' => $messageType
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('System message sending failed', [
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage(),
+                'user_id' => $userId
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error_code' => 'SYSTEM_SEND_FAILED'
+            ];
+        }
+    }
+
+    /**
+     * Determine the appropriate system message type based on context
+     */
+    private function determineSystemMessageType($message, $userId = null, $messageTypeHint = null)
+    {
+        // If a specific message type hint is provided (from sendTextMessage calls), use it
+        if ($messageTypeHint) {
+            // Handle legacy parameter mappings
+            switch ($messageTypeHint) {
+                case 'reset_pass':
+                    return 'password_reset';
+                case 'otp':
+                case 'otp_verification':
+                    return 'otp_verification';
+                case 'welcome':
+                    return 'welcome_message';
+                case 'payment':
+                    return 'payment_reminder';
+                default:
+                    // If it's already a valid system message type, use it
+                    if (in_array($messageTypeHint, ['password_reset', 'otp_verification', 'welcome_message', 'payment_reminder', 'system_notification'])) {
+                        return $messageTypeHint;
+                    }
+            }
+        }
+        
+        // Convert message to lowercase for pattern matching
+        $messageText = strtolower($message);
+        
+        // OTP patterns
+        if (preg_match('/(verification code|otp|verify|code|\d{4,6})/', $messageText)) {
+            return 'otp_verification';
+        }
+        
+        // Welcome patterns
+        if (preg_match('/(welcome|greeting|hello|hi|thank you for joining)/', $messageText)) {
+            return 'welcome_message';
+        }
+        
+        // Payment patterns
+        if (preg_match('/(payment|invoice|bill|amount|due|balance|remind)/', $messageText)) {
+            return 'payment_reminder';
+        }
+        
+        // Password reset patterns
+        if (preg_match('/(password|reset|forgot|change password)/', $messageText)) {
+            return 'password_reset';
+        }
+        
+        // System notification patterns (default)
+        return 'system_notification';
+    }
+    
     /**
      * Send media message via WhatsApp using WaSender
      * 
@@ -1003,15 +1162,25 @@ class Message extends Controller
     {
         try {
             $waSenderService = new WaSenderService();
+            $effectiveUserId = $userId ?? (Auth::check() ? Auth::id() : null);
             
             // Get user's WhatsApp instance
-            $instance = $waSenderService->getUserInstance($userId ?? Auth::id());
+            $instance = null;
+            if ($effectiveUserId) {
+                $instance = $waSenderService->getUserInstance($effectiveUserId);
+            }
             
             if (!$instance) {
+                Log::warning('No user WhatsApp instance for media message, system default not supported for media', [
+                    'user_id' => $effectiveUserId,
+                    'phone' => $phoneNumber,
+                    'media_type' => $mediaType
+                ]);
+                
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp instance not found or not connected',
-                    'error_code' => 'INSTANCE_NOT_FOUND'
+                    'message' => 'No WhatsApp instance available for media messaging',
+                    'error_code' => 'NO_MEDIA_INSTANCE_AVAILABLE'
                 ];
             }
             

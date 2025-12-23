@@ -195,13 +195,13 @@
     </div>
     
     <!-- Current Active Instance -->
-    @if($active_instance)
+    @if($activeInstance)
     <div class="alert alert-info d-flex align-items-center mb-4">
         <i class="fas fa-info-circle me-2"></i>
         <strong>Currently Active:</strong> 
-        <span class="ms-2">{{ $active_instance->display_name ?: $active_instance->schema_name }}</span>
-        @if($active_instance->purpose)
-            <span class="badge bg-light text-dark ms-2">{{ $active_instance->purpose }}</span>
+        <span class="ms-2">{{ $activeInstance->display_name ?: $activeInstance->schema_name }}</span>
+        @if($activeInstance->purpose)
+            <span class="badge bg-light text-dark ms-2">{{ $activeInstance->purpose }}</span>
         @endif
     </div>
     @endif
@@ -210,7 +210,7 @@
     <div class="row">
         @forelse($instances as $instance)
             <div class="col-lg-6 col-xl-4">
-                <div class="instance-card {{ $instance->is_primary ? 'primary' : '' }} {{ $active_instance && $active_instance->id == $instance->id ? 'active' : '' }}">
+                <div class="instance-card {{ $instance->is_primary ? 'primary' : '' }} {{ $activeInstance && $activeInstance->id == $instance->id ? 'active' : '' }}">
                     <div class="instance-header">
                         <div class="flex-grow-1">
                             <h3 class="instance-title">{{ $instance->display_name ?: 'Unnamed Instance' }}</h3>
@@ -241,7 +241,7 @@
                         @if($instance->is_primary)
                             <span class="instance-badge badge-primary">Primary</span>
                         @endif
-                        @if($active_instance && $active_instance->id == $instance->id)
+                        @if($activeInstance && $activeInstance->id == $instance->id)
                             <span class="instance-badge badge-active">Active</span>
                         @endif
                         @if($instance->purpose)
@@ -270,7 +270,7 @@
                     </div>
                     
                     <div class="instance-actions">
-                        @if(!$active_instance || $active_instance->id != $instance->id)
+                        @if(!$activeInstance || $activeInstance->id != $instance->id)
                             <button class="action-btn btn-select" onclick="selectInstance('{{ $instance->id }}')">
                                 <i class="fas fa-check"></i> Select
                             </button>

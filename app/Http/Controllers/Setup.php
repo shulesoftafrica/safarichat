@@ -45,7 +45,7 @@ class Setup extends Controller {
             'code' => bcrypt($verify_code)
             ]);
         }
-        $this->sendTextMessage($phone, $message, 'whatsapp','reset_pass');
+        $this->sendTextMessage($phone, $message, 'whatsapp','otp');
         $this->data['message']='';
 
          return view('auth.verify', $this->data);
@@ -389,7 +389,7 @@ class Setup extends Controller {
         $userDetails .= "Business Type: " . ($data['sp_business_type'] ?? '') . "\n";
         $userDetails .= "Sub Category: " . ($data['sp_sub_category'] ?? '') . "\n";
     }
-    $this->sendTextMessage($adminPhone, $userDetails, 'whatsapp', 'reset_pass');
+    $this->sendTextMessage($adminPhone, $userDetails, 'whatsapp', 'system_notification');
 
         $login=$this->loginUser($user['phone'], $code);
         

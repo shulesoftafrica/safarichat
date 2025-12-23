@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('phone_number', 20);
             $table->string('message_type', 50);
             $table->text('message_content');
-            $table->enum('status', ['sent', 'failed', 'delivered', 'read'])->default('sent');
+            $table->enum('status', ['queued', 'sent', 'failed', 'delivered', 'read'])->default('queued');
             $table->timestamp('sent_at')->useCurrent();
             $table->timestamp('delivered_at')->nullable();
             $table->text('error_message')->nullable();
