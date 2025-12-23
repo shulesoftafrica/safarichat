@@ -147,7 +147,7 @@ class WaSenderService
 
             // Log the message
             $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : 'text';
-            $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instanceId);
+            $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instance);
 
             if ($response->successful() && isset($result['success']) && $result['success']) {
                 Log::info('WhatsApp message sent successfully via Unified API', [
@@ -194,7 +194,7 @@ class WaSenderService
             $this->logOutgoingMessage($cleanPhone, $message, $messageType, [
                 'success' => false,
                 'error' => $e->getMessage()
-            ], $userId, $instanceId, 'failed');
+            ], $userId, $instance, 'failed');
 
             throw $e;
         }
