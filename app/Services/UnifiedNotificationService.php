@@ -502,23 +502,33 @@ class UnifiedNotificationService
     }
 
     /**
-     * Resolve user ID from schema name
+     * Resolve user ID from WhatsApp instance UUID (schema name)
      */
     protected function resolveUserId($schemaName)
     {
-        // Try UUID first
+        // First try to find WhatsApp instance by UUID
+        $instance = \App\Models\WhatsappInstance::where('uuid', $schemaName)->first();
+        
+        if ($instance) {
+            return $instance->user_id;
+        }
+        
+        // Fallback: try to find user by UUID (for backward compatibility)
         $user = \App\Models\User::where('uuid', $schemaName)->first();
         
-        if (!$user && is_numeric($schemaName)) {
-            // Try direct ID
+        if ($user) {
+            return $user->id;
+        }
+        
+        // Last resort: try direct numeric ID lookup
+        if (is_numeric($schemaName)) {
             $user = \App\Models\User::find($schemaName);
+            if ($user) {
+                return $user->id;
+            }
         }
 
-        if (!$user) {
-            throw new \Exception("User not found for schema: {$schemaName}");
-        }
-
-        return $user->id;
+        throw new \Exception("User not found for schema: {$schemaName} (expected WhatsApp instance UUID)");
     }
 
     /**
