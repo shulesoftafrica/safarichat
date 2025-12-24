@@ -884,9 +884,19 @@ class Setup extends Controller {
             $chatId = $messageData['chatId'] ?? $messageData['chat_id'] ?? null;
             $fromMe = $messageData['fromMe'] ?? false;
             $messageBody = $messageData['body'] ?? $messageData['message'] ?? '';
+            
+            // Sanitize message body to prevent UTF-8 encoding issues
+            $messageBody = $this->sanitizeMessageText($messageBody);
+            
             $messageType = $this->determineMessageType($messageData);
             $timestamp = $messageData['timestamp'] ?? time();
             $senderName = $messageData['senderName'] ?? $messageData['sender_name'] ?? null;
+            
+            // Sanitize sender name if provided
+            if ($senderName) {
+                $senderName = $this->sanitizeMessageText($senderName);
+            }
+            
             $isGroup = $messageData['isGroup'] ?? false;
             
             // Skip messages from self
@@ -954,6 +964,43 @@ class Setup extends Controller {
     }
 
     /**
+     * Sanitize message text to prevent UTF-8 encoding errors
+     */
+    private function sanitizeMessageText(string $text): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        // Remove null bytes and other problematic characters
+        $text = str_replace("\0", '', $text);
+        
+        // Convert to UTF-8 and handle encoding issues
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        
+        // Remove control characters but preserve line breaks and tabs
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        
+        // Final validation and cleanup
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            \Log::warning('Webhook message contains invalid UTF-8 characters', [
+                'original_length' => strlen($text),
+                'detected_encoding' => mb_detect_encoding($text)
+            ]);
+            
+            // More aggressive cleaning for severely malformed text
+            $originalEncoding = mb_detect_encoding($text) ?: 'UTF-8';
+            $text = mb_convert_encoding($text, 'UTF-8', $originalEncoding);
+            
+            // Remove any remaining invalid bytes
+            $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+            $text = filter_var($text, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW);
+        }
+        
+        return trim($text);
+    }
+
+    /**
      * Find or create a guest record for the phone number
      */
     private function findOrCreateGuest($userId, $phoneNumber, $senderName = null)
@@ -990,16 +1037,28 @@ class Setup extends Controller {
                 return $guest;
             }
             
-            // Create new guest
+            // Create new guest with business_id
             $guestName = $senderName ?: 'WhatsApp Contact';
             
+            // Get user's business
+            $userBusiness = \App\Models\Business::where('user_id', $userId)->first();
+            if (!$userBusiness) {
+                \Log::error('No business found for user during guest creation', ['user_id' => $userId]);
+                return null;
+            }
+            
             $newGuest = \App\Models\EventsGuest::create([
+                'business_id' => $userBusiness->id, // Critical: Set business_id for interface filtering
+                'user_id' => $userId,
                 'event_id' => $eventId,
                 'guest_name' => $guestName,
                 'guest_phone' => $cleanPhone,
                 'guest_email' => '',
                 'guest_pledge' => 0,
                 'event_guest_category_id' => 1, // Default category
+                'handoff_status' => 'ai', // Default to AI handling
+                'priority_level' => 3, // Normal priority
+                'contacted_for_sales' => false,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);

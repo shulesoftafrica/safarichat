@@ -216,6 +216,17 @@ class ProcessWebhookNotification implements ShouldQueue
             return;
         }
 
+        // Sanitize message text to prevent UTF-8 encoding issues
+        $messageText = $this->sanitizeMessageText($messageText);
+        
+        if (empty($messageText)) {
+            Log::warning('Message text became empty after UTF-8 sanitization', [
+                'from_phone' => $fromPhone,
+                'original_data' => $this->webhookData
+            ]);
+            return;
+        }
+
         // Normalize phone number
         $normalizedPhone = UserResolutionService::normalizePhoneNumber($fromPhone);
 
@@ -318,6 +329,39 @@ class ProcessWebhookNotification implements ShouldQueue
             'status' => $status,
             'updates' => array_keys($updateData)
         ]);
+    }
+
+    /**
+     * Sanitize message text for UTF-8 compliance
+     */
+    private function sanitizeMessageText(string $text): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        // Remove null bytes and control characters
+        $text = str_replace("\0", '', $text);
+        
+        // Convert to UTF-8 and remove invalid sequences  
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        
+        // Remove problematic characters but preserve line breaks
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        
+        // Validate UTF-8 encoding
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            Log::warning('Webhook message contains invalid UTF-8', [
+                'original_length' => strlen($text),
+                'detected_encoding' => mb_detect_encoding($text)
+            ]);
+            
+            // Aggressive cleanup
+            $text = mb_convert_encoding($text, 'UTF-8', mb_detect_encoding($text) ?: 'UTF-8');
+            $text = preg_replace('/[^\x09\x0A\x0D\x20-\x7E\xC0-\xFD]/', '', $text);
+        }
+        
+        return trim($text);
     }
 
     /**

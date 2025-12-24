@@ -20,6 +20,32 @@ class OpenAiService
     }
 
     /**
+     * Clean and sanitize text to ensure valid UTF-8 encoding
+     */
+    private function sanitizeText(string $text): string
+    {
+        // Remove null bytes and other control characters
+        $text = str_replace("\0", '', $text);
+        
+        // Convert to UTF-8 if needed and remove invalid sequences
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        
+        // Remove or replace problematic characters
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        
+        // Ensure the text is valid UTF-8
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            // If still invalid, use a more aggressive approach
+            $text = mb_convert_encoding($text, 'UTF-8', mb_detect_encoding($text));
+            
+            // Final fallback: remove non-UTF-8 characters
+            $text = preg_replace('/[^\x09\x0A\x0D\x20-\x7E\xC0-\xFD]/', '', $text);
+        }
+        
+        return trim($text);
+    }
+
+    /**
      * Generate AI response for sales conversation
      */
     public function generateSalesResponse(
@@ -31,6 +57,17 @@ class OpenAiService
         ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
         try {
+            // Sanitize the customer message to prevent UTF-8 encoding errors
+            $customerMessage = $this->sanitizeText($customerMessage);
+            
+            // Log cleaned message for debugging
+            Log::debug('Message sanitized for OpenAI', [
+                'agent_id' => $agent->id,
+                'lead_id' => $lead->id,
+                'message_length' => strlen($customerMessage),
+                'encoding_valid' => mb_check_encoding($customerMessage, 'UTF-8')
+            ]);
+            
             // Pre-check if message is business-related
             if (!$this->isBusinessRelated($customerMessage, $agent)) {
                 return [
@@ -68,7 +105,9 @@ class OpenAiService
             Log::error('OpenAI API Error: ' . $e->getMessage(), [
                 'agent_id' => $agent->id,
                 'lead_id' => $lead->id,
-                'customer_message' => substr($customerMessage, 0, 100),
+                'customer_message' => substr($this->sanitizeText($customerMessage), 0, 100),
+                'encoding_error' => !mb_check_encoding($customerMessage, 'UTF-8'),
+                'original_length' => strlen($customerMessage)
             ]);
 
             return [

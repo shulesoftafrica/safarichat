@@ -215,7 +215,7 @@ class WebhookProcessorService
     }
 
     /**
-     * Extract message body/content
+     * Extract message body/content with UTF-8 sanitization
      */
     private function extractMessageBody(array $messageData): string
     {
@@ -234,7 +234,45 @@ class WebhookProcessorService
             $body = $messageData['caption'];
         }
 
+        // Sanitize for UTF-8 compliance
+        $body = $this->sanitizeMessageText($body);
+
         return trim($body);
+    }
+
+    /**
+     * Sanitize message text to ensure UTF-8 compliance
+     */
+    private function sanitizeMessageText(string $text): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        // Remove null bytes and control characters
+        $text = str_replace("\0", '', $text);
+        
+        // Convert to UTF-8 and remove invalid sequences
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        
+        // Remove problematic control characters but keep line breaks
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        
+        // Final UTF-8 validation
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            Log::warning('Message contains invalid UTF-8, attempting to fix', [
+                'original_length' => strlen($text),
+                'detected_encoding' => mb_detect_encoding($text)
+            ]);
+            
+            // More aggressive cleaning
+            $text = mb_convert_encoding($text, 'UTF-8', mb_detect_encoding($text) ?: 'UTF-8');
+            
+            // Remove any remaining invalid characters
+            $text = filter_var($text, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
+        }
+        
+        return $text;
     }
 
     /**
