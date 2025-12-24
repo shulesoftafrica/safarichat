@@ -44,6 +44,12 @@
         transform: translateY(0);
     }
 }
+
+/* Lead Status Badge Styles */
+.badge-orange { background-color: #fd7e14; }
+.badge-purple { background-color: #6f42c1; }
+.badge-teal { background-color: #20c997; }
+.badge-indigo { background-color: #6610f2; }
 </style>
 <div class="container-fluid">
     <!-- Page-Title -->
@@ -574,7 +580,7 @@
                                     <th>{{__('phone')}}</th>
                                     <!--<th>{{__('email')}} </th>-->
                                     <th>{{__('date')}}</th>
-                                    <th>{{__('group')}}</th>
+                                    <th>{{__('lead_status')}}</th>
                                     <th>{{__('handoff_status')}}</th>
                                     <th>{{__('priority')}}</th>
                                     <th>{{__('assigned_agent')}}</th>
@@ -601,7 +607,69 @@
                                         <td><span id="guest_phone<?= $guest->id ?>">{{$guest->guest_phone}}</span></td>
                                         <!--<td>{{$guest->guest_email}}</td>-->
                                         <td>{{date('d M Y',strtotime($guest->created_at))}}</td>
-                                        <td>{{isset($guest->eventGuestCategory->name) ?$guest->eventGuestCategory->name:''}}</td>
+                                        <td>
+                                            @php
+                                                $leadStatus = $guest->lead ? $guest->lead->status : 'NEW';
+                                                $statusColors = [
+                                                    'NEW' => 'secondary',
+                                                    'OUTREACHED' => 'info',
+                                                    'REPLIED' => 'primary',
+                                                    'ENGAGED' => 'success',
+                                                    'QUALIFIED' => 'warning',
+                                                    'PITCHED' => 'orange',
+                                                    'DEMO_SCHEDULED' => 'purple',
+                                                    'PROPOSAL_SENT' => 'teal',
+                                                    'NEGOTIATING' => 'indigo',
+                                                    'CLOSED' => 'success',
+                                                    'LOST' => 'danger',
+                                                    'HANDED_OFF' => 'info',
+                                                    'DO_NOT_CONTACT' => 'dark',
+                                                    'NEEDS_ATTENTION' => 'warning',
+                                                    'CONVERTED' => 'success',
+                                                    'CHURNED' => 'danger'
+                                                ];
+                                                $statusIcons = [
+                                                    'NEW' => 'account-plus',
+                                                    'OUTREACHED' => 'send',
+                                                    'REPLIED' => 'reply',
+                                                    'ENGAGED' => 'account-heart',
+                                                    'QUALIFIED' => 'account-check',
+                                                    'PITCHED' => 'presentation',
+                                                    'DEMO_SCHEDULED' => 'calendar-clock',
+                                                    'PROPOSAL_SENT' => 'file-document',
+                                                    'NEGOTIATING' => 'handshake',
+                                                    'CLOSED' => 'check-circle',
+                                                    'LOST' => 'close-circle',
+                                                    'HANDED_OFF' => 'account-arrow-right',
+                                                    'DO_NOT_CONTACT' => 'account-cancel',
+                                                    'NEEDS_ATTENTION' => 'alert',
+                                                    'CONVERTED' => 'trophy',
+                                                    'CHURNED' => 'account-remove'
+                                                ];
+                                                $statusLabels = [
+                                                    'NEW' => 'New Lead',
+                                                    'OUTREACHED' => 'Outreached',
+                                                    'REPLIED' => 'Replied',
+                                                    'ENGAGED' => 'Engaged',
+                                                    'QUALIFIED' => 'Qualified',
+                                                    'PITCHED' => 'Pitched',
+                                                    'DEMO_SCHEDULED' => 'Demo Scheduled',
+                                                    'PROPOSAL_SENT' => 'Proposal Sent',
+                                                    'NEGOTIATING' => 'Negotiating',
+                                                    'CLOSED' => 'Closed Won',
+                                                    'LOST' => 'Closed Lost',
+                                                    'HANDED_OFF' => 'Handed Off',
+                                                    'DO_NOT_CONTACT' => 'Do Not Contact',
+                                                    'NEEDS_ATTENTION' => 'Needs Attention',
+                                                    'CONVERTED' => 'Converted',
+                                                    'CHURNED' => 'Churned'
+                                                ];
+                                            @endphp
+                                            <span class="badge badge-{{ $statusColors[$leadStatus] ?? 'secondary' }}" style="font-size: 0.8em; padding: 5px 8px; min-width: 90px; text-align: center;">
+                                                <i class="mdi mdi-{{ $statusIcons[$leadStatus] ?? 'help' }} mr-1"></i>
+                                                {{ $statusLabels[$leadStatus] ?? $leadStatus }}
+                                            </span>
+                                        </td>
                                         
                                         <!-- Handoff Status Column -->
                                         <td>

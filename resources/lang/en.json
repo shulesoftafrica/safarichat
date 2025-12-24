@@ -298,6 +298,8 @@
   "handed_off": "Handed Off",
   "completed": "Completed",
   "urgent": "Urgent",
+  "group": "Group",
+  "lead_status": "Lead Status",
   "handoff_status": "Handoff Status",
   "priority": "Priority",
   "assigned_agent": "Assigned Agent",
