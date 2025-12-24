@@ -314,14 +314,43 @@ class EventsGuest extends Model
             throw new \Exception("No business found for user ID: {$userId}");
         }
 
+        // Get or create a default event for the user
+        $userEvent = \App\Models\UsersEvent::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        $eventId = null;
+        if (!$userEvent) {
+            // Create a default event if none exists
+            $defaultEvent = \App\Models\Event::firstOrCreate([
+                'name' => 'WhatsApp Contacts',
+                'event_type_id' => 1,
+                'date' => now()->format('Y-m-d')
+            ]);
+            
+            \App\Models\UsersEvent::create([
+                'user_id' => $userId,
+                'event_id' => $defaultEvent->id
+            ]);
+            
+            $eventId = $defaultEvent->id;
+        } else {
+            $eventId = $userEvent->event_id;
+        }
+
         // Find or create guest
         return self::firstOrCreate([
             'business_id' => $userBusiness->id,
             'guest_phone' => $phoneNumber,
         ], [
-            'guest_name' => $name ?: 'Auto-created from API',
+            'user_id' => $userId,
+            'event_id' => $eventId,
+            'guest_name' => $name ?: 'WhatsApp Contact',
             'event_guest_category_id' => 1, // Default category
             'guest_pledge' => 0,
+            'contacted_for_sales' => false,
+            'priority_level' => 3, // Normal priority
+            'handoff_status' => 'ai', // Default to AI handling
         ]);
     }
 
