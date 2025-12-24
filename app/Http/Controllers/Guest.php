@@ -601,13 +601,79 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'Contact not found']);
             }
 
-            // For now, return empty array - will be populated when message tracking is implemented
-            // In the future, this should query a messages table
-            $messages = [];
+            // Get both outgoing and incoming messages for this contact
+            $outgoingMessages = $contact->outgoingMessages()
+                ->with('whatsappInstance')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($message) {
+                    return [
+                        'id' => $message->id,
+                        'type' => 'outgoing',
+                        'message_content' => $message->message_body ?? $message->message,
+                        'status' => $message->status,
+                        'delivery_status' => $message->delivery_status ?? null,
+                        'media_path' => $message->media_path,
+                        'media_url' => $message->media_url,
+                        'caption' => $message->caption,
+                        'sent_at' => $message->sent_at ?? $message->created_at,
+                        'waapi_message_id' => $message->waapi_message_id,
+                        'retry_count' => $message->retry_count ?? 0,
+                        'error_message' => $message->error_message,
+                        'whatsapp_instance' => $message->whatsappInstance ? [
+                            'instance_name' => $message->whatsappInstance->instance_name,
+                            'phone_number' => $message->whatsappInstance->phone_number
+                        ] : null
+                    ];
+                });
+
+            $incomingMessages = $contact->incomingMessages()
+                ->with('whatsappInstance')
+                ->orderBy('message_timestamp', 'desc')
+                ->get()
+                ->map(function ($message) {
+                    return [
+                        'id' => $message->id,
+                        'type' => 'incoming',
+                        'message_content' => $message->message_body,
+                        'sender_name' => $message->sender_name,
+                        'message_type' => $message->message_type,
+                        'media_data' => $message->media_data,
+                        'from_me' => $message->from_me,
+                        'is_group' => $message->is_group,
+                        'status' => $message->status,
+                        'auto_reply' => $message->auto_reply,
+                        'received_at' => $message->message_timestamp,
+                        'waapi_message_id' => $message->message_id,
+                        'whatsapp_instance' => $message->whatsappInstance ? [
+                            'instance_name' => $message->whatsappInstance->instance_name,
+                            'phone_number' => $message->whatsappInstance->phone_number
+                        ] : null
+                    ];
+                });
+
+            // Merge and sort all messages by timestamp
+            $allMessages = $outgoingMessages->concat($incomingMessages)
+                ->sortByDesc(function ($message) {
+                    return $message['type'] === 'outgoing' ? $message['sent_at'] : $message['received_at'];
+                })
+                ->values()
+                ->take(50); // Limit to recent 50 messages for performance
 
             return response()->json([
                 'success' => true,
-                'messages' => $messages
+                'messages' => $allMessages,
+                'contact' => [
+                    'id' => $contact->id,
+                    'name' => $contact->guest_name,
+                    'phone' => $contact->guest_phone,
+                    'email' => $contact->guest_email
+                ],
+                'message_stats' => [
+                    'total_outgoing' => $outgoingMessages->count(),
+                    'total_incoming' => $incomingMessages->count(),
+                    'recent_messages' => $allMessages->count()
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
@@ -647,49 +713,68 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'No valid contacts found']);
             }
 
-            $successCount = 0;
+            $queuedCount = 0;
             $failedCount = 0;
+            $batchId = 'unique_msg_' . uniqid();
 
             foreach ($contacts as $contact) {
                 try {
                     // Format phone number
                     $phone = $this->formatPhoneNumber($contact->guest_phone);
                     
-                    // Prepare message data for WAAPI
-                    $messageData = [
-                        'chatId' => $phone . '@c.us',
-                        'message' => $message
-                    ];
+                    // Create outgoing message record
+                    $outgoingMessage = \App\Models\OutgoingMessage::create([
+                        'user_id' => $user->id,
+                        'events_guest_id' => $contact->id,
+                        'whatsapp_instance_id' => $whatsappInstance->id,
+                        'phone_number' => $phone,
+                        'message' => $message,
+                        'message_body' => $message,
+                        'message_type' => 'text',
+                        'status' => 'pending',
+                        'batch_id' => $batchId,
+                        'provider' => 'waapi',
+                        'priority' => 'normal',
+                        'scheduled_at' => $scheduleDate ? \Carbon\Carbon::parse($scheduleDate) : null,
+                        'queued_at' => now(),
+                        'retry_count' => 0
+                    ]);
 
-                    if ($scheduleDate) {
-                        $messageData['schedule'] = $scheduleDate;
-                    }
-
-                    // Send via WAAPI
-                    $response = \Illuminate\Support\Facades\Http::timeout(30)->withHeaders([
-                        'Authorization' => 'Bearer ' . $whatsappInstance->access_token,
-                        'Content-Type' => 'application/json'
-                    ])->post(
-                        "https://waapi.app/api/v1/instances/{$whatsappInstance->instance_id}/client/action/send-message",
-                        $messageData
+                    // Dispatch to job queue
+                    \App\Jobs\SendWhatsAppMessage::dispatch(
+                        $message,
+                        $phone,
+                        'whatsapp',
+                        $user->id,
+                        null, // no files
+                        $whatsappInstance->instance_id,
+                        [
+                            'whatsapp_instance_id' => $whatsappInstance->id,
+                            'provider' => 'waapi',
+                            'priority' => 'normal',
+                            'batch_id' => $batchId,
+                            'outgoing_message_id' => $outgoingMessage->id,
+                            'scheduled_at' => $scheduleDate
+                        ]
                     );
 
-                    if ($response->successful()) {
-                        $successCount++;
-                        // TODO: Store message in database for tracking
-                    } else {
-                        $failedCount++;
-                    }
+                    $queuedCount++;
                 } catch (\Exception $e) {
+                    \Log::error('Failed to queue message for contact', [
+                        'contact_id' => $contact->id,
+                        'phone' => $contact->guest_phone,
+                        'error' => $e->getMessage()
+                    ]);
                     $failedCount++;
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => "Messages sent: {$successCount}, Failed: {$failedCount}",
-                'sent_count' => $successCount,
-                'failed_count' => $failedCount
+                'message' => "Messages queued: {$queuedCount}, Failed: {$failedCount}",
+                'queued_count' => $queuedCount,
+                'failed_count' => $failedCount,
+                'batch_id' => $batchId
             ]);
 
         } catch (\Exception $e) {
@@ -772,64 +857,51 @@ class Guest extends Controller {
                 try {
                     // Format phone number
                     $phone = $this->formatPhoneNumber($contact->guest_phone);
-                    $chatId = $phone . '@c.us';
                     
-                    // Send text message if provided
-                    if (!empty($message)) {
-                        $messageData = [
-                            'chatId' => $chatId,
-                            'message' => $message
-                        ];
+                    // Create outgoing message record
+                    $outgoingMessage = \App\Models\OutgoingMessage::create([
+                        'user_id' => $user->id,
+                        'events_guest_id' => $contact->id,
+                        'whatsapp_instance_id' => $whatsappInstance->id,
+                        'phone_number' => $phone,
+                        'message' => $message,
+                        'message_body' => $message,
+                        'message_type' => !empty($attachments) ? 'media' : 'text',
+                        'status' => 'pending',
+                        'batch_id' => 'media_msg_' . uniqid(),
+                        'provider' => 'waapi',
+                        'priority' => 'normal',
+                        'scheduled_at' => $scheduleDate ? \Carbon\Carbon::parse($scheduleDate) : null,
+                        'queued_at' => now(),
+                        'retry_count' => 0,
+                        'media_path' => !empty($uploadedFiles) ? implode(',', array_column($uploadedFiles, 'path')) : null,
+                        'caption' => $message
+                    ]);
 
-                        if ($scheduleDate) {
-                            $messageData['schedule'] = $scheduleDate;
-                        }
-
-                        $response = \Illuminate\Support\Facades\Http::timeout(30)->withHeaders([
-                            'Authorization' => 'Bearer ' . $whatsappInstance->access_token,
-                            'Content-Type' => 'application/json'
-                        ])->post(
-                            "https://waapi.app/api/v1/instances/{$whatsappInstance->instance_id}/client/action/send-message",
-                            $messageData
-                        );
-
-                        if (!$response->successful()) {
-                            $failedCount++;
-                            continue;
-                        }
-                    }
-
-                    // Send file attachments
-                    foreach ($uploadedFiles as $file) {
-                        try {
-                            $fileData = [
-                                'chatId' => $chatId,
-                                'caption' => !empty($message) ? '' : $file['filename'] // Use filename as caption if no message
-                            ];
-
-                            $response = \Illuminate\Support\Facades\Http::timeout(60)
-                                ->withHeaders([
-                                    'Authorization' => 'Bearer ' . $whatsappInstance->access_token,
-                                ])
-                                ->attach('file', file_get_contents($file['path']), $file['filename'])
-                                ->post(
-                                    "https://waapi.app/api/v1/instances/{$whatsappInstance->instance_id}/client/action/send-media",
-                                    $fileData
-                                );
-
-                            if (!$response->successful()) {
-                                $failedCount++;
-                                break;
-                            }
-                        } catch (\Exception $e) {
-                            $failedCount++;
-                            break;
-                        }
-                    }
+                    // Dispatch to job queue
+                    \App\Jobs\SendWhatsAppMessage::dispatch(
+                        $message,
+                        $phone,
+                        'whatsapp',
+                        $user->id,
+                        $uploadedFiles, // Pass uploaded files
+                        $whatsappInstance->instance_id,
+                        [
+                            'whatsapp_instance_id' => $whatsappInstance->id,
+                            'provider' => 'waapi',
+                            'priority' => 'normal',
+                            'outgoing_message_id' => $outgoingMessage->id,
+                            'scheduled_at' => $scheduleDate
+                        ]
+                    );
 
                     $successCount++;
-
                 } catch (\Exception $e) {
+                    \Log::error('Failed to queue message with attachments for contact', [
+                        'contact_id' => $contact->id,
+                        'phone' => $contact->guest_phone,
+                        'error' => $e->getMessage()
+                    ]);
                     $failedCount++;
                 }
             }
@@ -847,8 +919,8 @@ class Guest extends Controller {
 
             return response()->json([
                 'success' => true,
-                'message' => "Messages sent: {$successCount}, Failed: {$failedCount}",
-                'sent_count' => $successCount,
+                'message' => "Messages queued: {$successCount}, Failed: {$failedCount}",
+                'queued_count' => $successCount,
                 'failed_count' => $failedCount
             ]);
 
