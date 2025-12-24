@@ -696,4 +696,115 @@ class AiWhatsAppService
             return false;
         }
     }
+
+    /**
+     * Process conversation response from ConversationEngineCommand
+     */
+    public function processConversationResponse(Conversation $conversation, array $response, int $priority = 1): array
+    {
+        try {
+            DB::beginTransaction();
+
+            $lead = $conversation->lead;
+            $messageText = $response['message_text'] ?? '';
+            
+            if (empty($messageText)) {
+                throw new \Exception('Empty response message');
+            }
+
+            // Try to get phone number from lead
+            $phoneNumber = $lead->phone_number ?? $lead->getContactPhone();
+            if (empty($phoneNumber)) {
+                throw new \Exception('Lead phone number is empty');
+            }
+
+            // Create outgoing message record
+            $outgoingMessage = OutgoingMessage::create([
+                'phone_number' => $phoneNumber,
+                'message' => $messageText,
+                'status' => 'pending',
+                'message_type' => 'text',
+                'priority' => $priority
+            ]);
+
+            // Send via WhatsApp using WaSenderService
+            $sendResult = $this->waSenderService->sendMessage(
+                $phoneNumber,
+                $messageText,
+                [], // options
+                $conversation->whatsapp_instance // instance
+            );
+
+            if ($sendResult['success']) {
+                // Update outgoing message status
+                $outgoingMessage->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'whatsapp_message_id' => $sendResult['message_id'] ?? null
+                ]);
+
+                // Update conversation
+                $conversation->update([
+                    'status' => Conversation::STATUS_COMPLETED,
+                    'ai_response' => $messageText,
+                    'last_ai_response' => $messageText,
+                    'completed_at' => now(),
+                    'conversation_state' => $response['new_conversation_state'] ?? $conversation->conversation_state
+                ]);
+
+                // Update lead status if needed
+                if (isset($response['new_lead_status'])) {
+                    $lead->update(['status' => $response['new_lead_status']]);
+                }
+
+                DB::commit();
+
+                Log::info('Conversation response processed successfully', [
+                    'conversation_id' => $conversation->id,
+                    'lead_id' => $lead->id,
+                    'outgoing_message_id' => $outgoingMessage->id
+                ]);
+
+                return [
+                    'success' => true,
+                    'outgoing_message_id' => $outgoingMessage->id,
+                    'conversation_updated' => true
+                ];
+
+            } else {
+                // Mark message as failed
+                $outgoingMessage->update([
+                    'status' => 'failed',
+                    'error_message' => $sendResult['error'] ?? 'Unknown sending error'
+                ]);
+
+                // Update conversation with retry info
+                $conversation->update([
+                    'retry_count' => $conversation->retry_count + 1,
+                    'status' => $conversation->retry_count >= 3 ? Conversation::STATUS_FAILED : Conversation::STATUS_PENDING
+                ]);
+
+                DB::rollback();
+
+                return [
+                    'success' => false,
+                    'error' => $sendResult['error'] ?? 'Failed to send message via WhatsApp'
+                ];
+            }
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            
+            Log::error('Error processing conversation response', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 }

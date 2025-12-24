@@ -17,7 +17,10 @@ class Conversation extends Model
         // New RAG fields
         'rag_sources', 'rag_enhanced', 'customer_message', 'ai_response',
         'sentiment', 'confidence_score', 'tokens_used', 'state', 'summary',
-        'ai_actions', 'conversation_context'
+        'ai_actions', 'conversation_context',
+        // New queue processing fields
+        'status', 'priority', 'processing_started_at', 'processing_timeout_at',
+        'retry_count', 'completed_at', 'last_ai_response'
     ];
 
     protected $casts = [
@@ -32,7 +35,13 @@ class Conversation extends Model
         'confidence_score' => 'decimal:4',
         'tokens_used' => 'integer',
         'ai_actions' => 'array',
-        'conversation_context' => 'array'
+        'conversation_context' => 'array',
+        // Queue processing field casts
+        'priority' => 'integer',
+        'processing_started_at' => 'datetime',
+        'processing_timeout_at' => 'datetime',
+        'retry_count' => 'integer',
+        'completed_at' => 'datetime'
     ];
 
     // Message type constants
@@ -49,6 +58,13 @@ class Conversation extends Model
     const STATE_CLOSED = 'CLOSED';
     const STATE_OBJECTION_HANDLING = 'OBJECTION_HANDLING';
     const STATE_FOLLOW_UP = 'FOLLOW_UP';
+    
+    // Status constants for conversation processing
+    const STATUS_PENDING = 'pending';
+    const STATUS_PROCESSING = 'processing';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_FAILED = 'failed';
+    const STATUS_ACTIVE = 'active'; // Additional status for active conversations
 
     // Relationships
     public function lead()
@@ -64,6 +80,18 @@ class Conversation extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+    
+    /**
+     * Get related conversation messages
+     * For now, this returns the conversation itself as a collection
+     * since each Conversation record represents a single message
+     */
+    public function messages()
+    {
+        // Return other conversations in the same lead conversation thread
+        return $this->where('lead_id', $this->lead_id)
+                   ->orderBy('created_at');
     }
 
     // Scopes

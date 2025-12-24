@@ -120,6 +120,76 @@ class OpenAiService
             ];
         }
     }
+    
+    /**
+     * Generate response for conversation engine (compatible with ConversationEngineCommand)
+     */
+    public function generateResponse(Lead $lead, ?string $customerMessage, array $context, string $currentState = 'INTRO'): array
+    {
+        try {
+            // Handle null or empty customer message
+            if (empty($customerMessage)) {
+                $customerMessage = 'Generate follow-up message based on conversation context';
+            }
+            
+            // Get the AI sales agent for this lead
+            $agent = $lead->aiSalesAgent;
+            if (!$agent) {
+                throw new \Exception('No AI sales agent found for this lead');
+            }
+            
+            // Convert context to conversation history format expected by buildPromptWithAgent
+            $recentMessages = $context['recent_messages'] ?? [];
+            $conversationHistory = [];
+            
+            // Convert simple string messages to the expected format
+            foreach ($recentMessages as $index => $messageContent) {
+                if (is_string($messageContent)) {
+                    $conversationHistory[] = [
+                        'from_customer' => ($index % 2 === 0), // Alternate between customer and agent
+                        'content' => $messageContent
+                    ];
+                } elseif (is_array($messageContent) && isset($messageContent['content'])) {
+                    // If already in expected format, use as-is
+                    $conversationHistory[] = $messageContent;
+                }
+            }
+            
+            // Get the primary product for this conversation
+            $product = $lead->leadProducts()->where('is_primary_product', true)->first()?->product;
+            
+            // Use the existing generateSalesResponse method
+            $response = $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product);
+            
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'message_text' => $response['response'],
+                    'new_conversation_state' => $currentState, // Keep current state for now
+                    'actions' => $response['actions'] ?? [],
+                    'confidence' => $response['confidence'] ?? 0.8,
+                    'tokens_used' => $response['tokens_used'] ?? 0
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => $response['error'] ?? 'Failed to generate response'
+                ];
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Generate Response Error: ' . $e->getMessage(), [
+                'lead_id' => $lead->id,
+                'message' => $customerMessage,
+                'context' => $context
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 
     // === NEW RAG METHODS ===
 

@@ -235,7 +235,7 @@ class Lead extends Model
 
     public function getContactPhone()
     {
-        return $this->contact ? $this->contact->getCleanPhone() : null;
+        return $this->contact ? $this->contact->guest_phone : null;
     }
 
     public function getContactCompany()

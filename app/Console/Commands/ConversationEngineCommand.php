@@ -219,11 +219,14 @@ class ConversationEngineCommand extends Command
             $context = $this->buildConversationContext($conversation);
             
             // Generate AI response
+            $customerMessage = $conversation->customer_message ?? $conversation->message_content ?? '';
+            $conversationState = $conversation->conversation_state ?? 'INTRO';
+            
             $response = $this->openAiService->generateResponse(
                 $lead,
-                $conversation->last_message_content,
+                $customerMessage,
                 $context,
-                $conversation->conversation_stage
+                $conversationState
             );
 
             if (!$response['success']) {
@@ -262,16 +265,27 @@ class ConversationEngineCommand extends Command
     private function buildConversationContext(Conversation $conversation): array
     {
         $lead = $conversation->lead;
+        
+        // Get related conversation messages safely
         $messages = $conversation->messages()->orderBy('created_at')->take(10)->get();
+        
+        // Build message content array safely
+        $messageContents = [];
+        foreach ($messages as $message) {
+            $content = $message->message_content ?? $message->customer_message ?? $message->ai_response ?? '';
+            if (!empty($content)) {
+                $messageContents[] = $content;
+            }
+        }
 
         return [
             'conversation_id' => $conversation->id,
-            'lead_name' => $lead->name,
-            'conversation_stage' => $conversation->conversation_stage,
-            'lead_score' => $lead->lead_score,
-            'recent_messages' => $messages->pluck('content')->toArray(),
+            'lead_name' => $lead->name ?? '',
+            'conversation_stage' => $conversation->conversation_state ?? 'INTRO',
+            'lead_score' => $lead->lead_score ?? 0,
+            'recent_messages' => $messageContents,
             'lead_interests' => $lead->interests ?? [],
-            'conversation_priority' => $conversation->priority
+            'conversation_priority' => $conversation->priority ?? 1
         ];
     }
 
