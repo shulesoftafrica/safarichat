@@ -123,6 +123,10 @@ class ProductController extends Controller
                 $productData['campaign_attachment_path'] = $campaignPath;
             }
             
+            // NOTE: RAG documents are handled separately via ProductAttachmentController
+            // through /api/products/{id}/attachments endpoint after product creation
+            // The frontend JavaScript handles RAG document uploads independently
+            
             // Handle FAQ data - initialize as empty since frontend sends JSON format
             $faqQuestions = [];
             $faqAnswers = [];
@@ -225,7 +229,7 @@ class ProductController extends Controller
     public function show($id)
     {
         try {
-            $product = Product::with('faqs')->forUser(auth()->id())->findOrFail($id);
+            $product = Product::with(['faqs', 'attachments'])->forUser(auth()->id())->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -247,7 +251,7 @@ class ProductController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+         
             $product = Product::forUser(auth()->id())->findOrFail($id);
             $productData = $request->validated();
             
@@ -295,6 +299,10 @@ class ProductController extends Controller
                 $campaignPath = $campaignFile->storeAs('products/campaigns', $campaignFileName, 'public');
                 $productData['campaign_attachment_path'] = $campaignPath;
             }
+            
+            // NOTE: RAG documents are handled separately via ProductAttachmentController
+            // through /api/products/{id}/attachments endpoint after product update
+            // The frontend JavaScript handles RAG document uploads independently
             
             // Handle FAQ data - initialize as empty since frontend sends JSON format
             $faqQuestions = [];
@@ -411,7 +419,7 @@ class ProductController extends Controller
     public function edit($id)
     {
         try {
-            $product = Product::with('faqs')->forUser(auth()->id())->findOrFail($id);
+            $product = Product::with(['faqs', 'attachments'])->forUser(auth()->id())->findOrFail($id);
             
             return response()->json([
                 'success' => true,

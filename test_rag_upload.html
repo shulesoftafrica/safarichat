@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test RAG Upload</title>
+    <meta name="csrf-token" content="test-token">
+</head>
+<body>
+    <h3>RAG Document Upload Test</h3>
+    <input type="file" id="testFile" multiple accept=".pdf,.doc,.docx,.txt">
+    <button onclick="testUpload()">Test Upload</button>
+    <div id="result"></div>
+
+    <script>
+        function testUpload() {
+            const fileInput = document.getElementById('testFile');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                document.getElementById('result').innerHTML = 'Please select files first';
+                return;
+            }
+            
+            console.log('Testing upload with files:', Array.from(files).map(f => f.name));
+            
+            const formData = new FormData();
+            
+            Array.from(files).forEach((file, index) => {
+                formData.append('files[]', file);
+                formData.append('attachment_types[]', 'documentation');
+                formData.append('titles[]', file.name);
+                formData.append('descriptions[]', 'RAG document for AI processing');
+                formData.append('is_public[]', false);
+            });
+            
+            formData.append('process_with_rag', true);
+            
+            // Test with a dummy product ID
+            const testProductId = 1;
+            
+            fetch(`/api/products/${testProductId}/attachments`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': 'test-token',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Response:', data);
+                document.getElementById('result').innerHTML = `<pre>${data}</pre>`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `Error: ${error.message}`;
+            });
+        }
+    </script>
+</body>
+</html>

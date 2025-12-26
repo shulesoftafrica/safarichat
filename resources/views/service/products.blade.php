@@ -609,8 +609,13 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Product Documentation</label>
-                            <input type="file" class="form-control" id="ragDocuments" name="rag_documents[]" multiple accept=".pdf,.doc,.docx,.txt">
+                            <input type="file" class="form-control" id="ragDocuments" name="rag_documents_upload" multiple accept=".pdf,.doc,.docx,.txt" onchange="handleRagDocuments(this)">
                             <small class="text-muted">Max 10MB per file. Supports: PDF, Word Documents, Text files. Multiple files allowed.</small>
+                            <input type="hidden" name="rag_documents_processed" id="ragDocumentsProcessed" value="0">
+                            <!-- Debug button for testing -->
+                            <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="testRagUpload()" style="display: none;" id="testRagBtn">
+                                🔧 Test Upload (Debug)
+                            </button>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -758,6 +763,21 @@
             </div>
             <div class="modal-body" id="productDetailsContent">
                 <!-- Product details will be loaded here -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="productBasicInfo">
+                            <!-- Basic product info will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="productMediaSection">
+                            <!-- Product images or service documents will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                <div id="productAdditionalInfo">
+                    <!-- Additional product details will be loaded here -->
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1389,6 +1409,131 @@
         transform: translateX(5px);
     }
     
+    /* Service Document Styles */
+    .service-documents {
+        background: #f8fafc;
+        border: 2px dashed #10b981;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+    
+    .service-documents h6 {
+        color: #059669;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .document-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .document-item:hover {
+        background: #e8f4ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+    
+    .document-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .document-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .document-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+    
+    .document-icon.pdf {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+    }
+    
+    .document-icon.word {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+    
+    .document-icon.text {
+        background: linear-gradient(135deg, #059669, #047857);
+    }
+    
+    .document-details h6 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .document-meta {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+    
+    .document-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-preview, .btn-download {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        border: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-preview {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-preview:hover {
+        background: #1d4ed8;
+        color: white;
+    }
+    
+    .btn-download {
+        background: #059669;
+        color: white;
+    }
+    
+    .btn-download:hover {
+        background: #047857;
+        color: white;
+    }
+    
+    .no-documents {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+    }
+    
+    .no-documents i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
     @media (max-width: 768px) {
         .page-header {
             flex-direction: column;
@@ -1665,12 +1810,21 @@ function removeSellingPoint(button) {
 
 // RAG document management
 function handleRagDocuments(input) {
+    console.log('=== RAG DOCUMENT HANDLER CALLED ===')
+    console.log('handleRagDocuments called with:', input.files.length, 'files');
     const files = Array.from(input.files);
     const previewContainer = document.getElementById('ragDocumentPreviews');
     
+    // Clear previous uploads
+    uploadedDocuments = [];
+    previewContainer.innerHTML = '';
+    
     files.forEach((file, index) => {
+        console.log(`Processing file ${index + 1}:`, file.name, file.size, file.type);
+        
         // Validate file
         if (!validateRagDocument(file)) {
+            console.warn('File validation failed for:', file.name);
             return;
         }
         
@@ -1678,13 +1832,64 @@ function handleRagDocuments(input) {
         const preview = createDocumentPreview(file, index);
         previewContainer.appendChild(preview);
         
-        // Store file reference
+        // Store file reference with additional metadata
         uploadedDocuments.push({
             file: file,
             index: index,
+            name: file.name,
+            size: file.size,
+            type: file.type,
             processed: false
         });
+        
+        console.log('File added to uploadedDocuments:', file.name);
     });
+    
+    console.log('=== RAG FILES READY ===');
+    console.log('Total files ready for upload:', uploadedDocuments.length);
+    console.log('File names:', uploadedDocuments.map(doc => doc.name));
+    
+    // Update hidden field
+    const processedField = document.getElementById('ragDocumentsProcessed');
+    if (processedField) {
+        processedField.value = uploadedDocuments.length;
+    }
+    
+    // Store files in a persistent way to prevent loss during form submission
+    window.ragDocumentFiles = uploadedDocuments;
+    
+    // Show test button if files are selected (for debugging)
+    const testBtn = document.getElementById('testRagBtn');
+    if (testBtn) {
+        testBtn.style.display = uploadedDocuments.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+// Debug function to test RAG upload directly
+function testRagUpload() {
+    const files = window.ragDocumentFiles || uploadedDocuments;
+    if (files.length === 0) {
+        alert('No files selected for testing');
+        return;
+    }
+    
+    // Use a test product ID (replace with actual ID when editing)
+    const testProductId = currentProductId || 1;
+    console.log('=== TESTING RAG UPLOAD ===');
+    console.log('Test Product ID:', testProductId);
+    console.log('Files to test:', files.map(doc => doc.name));
+    
+    const filesToUpload = files.map(doc => doc.file);
+    
+    uploadRagDocuments(testProductId, filesToUpload)
+        .then(() => {
+            alert('✅ Test upload successful! Check console for details.');
+            console.log('Test upload completed successfully');
+        })
+        .catch(error => {
+            alert('❌ Test upload failed: ' + error.message);
+            console.error('Test upload failed:', error);
+        });
 }
 
 function validateRagDocument(file) {
@@ -2338,6 +2543,23 @@ function saveProduct() {
     }
     console.log('=== END FORMDATA CONTENTS ===');
     
+    // Upload RAG documents if any are selected
+    const ragDocumentsInput = document.getElementById('ragDocuments');
+    let ragUploadPromise = Promise.resolve(); // Default to resolved promise
+    
+    if (ragDocumentsInput && ragDocumentsInput.files.length > 0) {
+        console.log('RAG documents found:', ragDocumentsInput.files.length, 'files');
+        
+        // We'll upload RAG documents after the main product is saved
+        ragUploadPromise = new Promise((resolve, reject) => {
+            // Store the resolve/reject functions to call after product creation
+            window.ragUploadResolve = resolve;
+            window.ragUploadReject = reject;
+        });
+    } else {
+        console.log('No RAG documents to upload');
+    }
+    
     // Process service deliverables and tiers as JSON if they contain structured data
     const serviceDeliverables = document.querySelector('[name="service_deliverables"]')?.value;
     const serviceTiers = document.querySelector('[name="service_tiers"]')?.value;
@@ -2441,89 +2663,194 @@ function saveProduct() {
                 faqData: faqs,
                 sellingPointsData: sellingPoints
             });
-            // Close modal with fallback approaches
-            const modalElem = document.getElementById('addProductModal');
             
-            // Try Bootstrap 5 getInstance first
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal && bootstrap.Modal.getInstance) {
-                const modal = bootstrap.Modal.getInstance(modalElem);
-                if (modal) {
-                    modal.hide();
-                } else {
-                    // Modal instance doesn't exist, create and hide
-                    const newModal = new bootstrap.Modal(modalElem);
-                    newModal.hide();
-                }
-            } else {
-                // Fallback - manually close modal
-                modalElem.classList.remove('show');
-                modalElem.style.display = 'none';
-                modalElem.setAttribute('aria-hidden', 'true');
-                document.body.classList.remove('modal-open');
+            // Process RAG documents if any were selected
+            console.log('=== CHECKING RAG DOCUMENTS FOR UPLOAD ===');
+            const ragDocumentsInput = document.getElementById('ragDocuments');
+            console.log('RAG input element:', ragDocumentsInput);
+            console.log('Files in input:', ragDocumentsInput ? ragDocumentsInput.files.length : 'N/A');
+            console.log('uploadedDocuments array:', uploadedDocuments.length);
+            console.log('window.ragDocumentFiles:', window.ragDocumentFiles ? window.ragDocumentFiles.length : 'N/A');
+            
+            // Try multiple sources for files to upload
+            let filesToUpload = [];
+            let fileSource = 'none';
+            
+            // Method 1: Check file input directly
+            if (ragDocumentsInput && ragDocumentsInput.files.length > 0) {
+                filesToUpload = Array.from(ragDocumentsInput.files);
+                fileSource = 'input';
+                console.log('Using files from input:', filesToUpload.map(f => f.name));
+            }
+            // Method 2: Check uploadedDocuments array
+            else if (uploadedDocuments.length > 0) {
+                filesToUpload = uploadedDocuments.map(doc => doc.file).filter(f => f instanceof File);
+                fileSource = 'array';
+                console.log('Using files from uploadedDocuments:', filesToUpload.map(f => f.name));
+            }
+            // Method 3: Check persistent window storage
+            else if (window.ragDocumentFiles && window.ragDocumentFiles.length > 0) {
+                filesToUpload = window.ragDocumentFiles.map(doc => doc.file).filter(f => f instanceof File);
+                fileSource = 'window';
+                console.log('Using files from window.ragDocumentFiles:', filesToUpload.map(f => f.name));
+            }
+            
+            if (filesToUpload.length > 0) {
+                console.log(`=== STARTING RAG UPLOAD (${filesToUpload.length} files from ${fileSource}) ===`);
+                console.log('Product ID for upload:', data.product.id);
                 
-                // Remove backdrop
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) {
-                    backdrop.remove();
-                }
-            }
-            
-            // Show success message with RAG processing info
-            let message = productId ? 'Product updated successfully!' : 'Product created successfully!';
-            if (uploadedDocuments.length > 0) {
-                message += ` ${uploadedDocuments.length} document(s) are being processed for AI enhancement.`;
-            }
-            
-            showNotification(message, 'success');
-            
-            // Handle onboarding flow for first product
-            if (data.onboarding && data.onboarding.first_product) {
-                setTimeout(() => {
-                    const onboardingModal = document.createElement('div');
-                    onboardingModal.className = 'modal fade show';
-                    onboardingModal.style.display = 'block';
-                    onboardingModal.innerHTML = `
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content" style="border: none; border-radius: 15px;">
-                                <div class="modal-body text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem;">
-                                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
-                                    <h3 style="color: white; margin-bottom: 1rem;">Awesome!</h3>
-                                    <p style="font-size: 1.1rem; margin-bottom: 2rem;">Your first product is set up! Now let's configure your AI Sales Agent to handle customer conversations automatically.</p>
-                                    <div class="d-flex gap-3 justify-content-center">
-                                        <button class="btn btn-light btn-lg" onclick="continueOnboarding('${data.onboarding.next_step_url}')">
-                                            <i class="fas fa-robot"></i>
-                                            Set Up AI Agent
-                                        </button>
-                                        <button class="btn btn-outline-light btn-lg" onclick="skipOnboarding()" style="border-color: rgba(255,255,255,0.5);">
-                                            Skip for Now
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-backdrop fade show"></div>
-                    `;
-                    document.body.appendChild(onboardingModal);
-                }, 1500);
+                uploadRagDocuments(data.product.id, filesToUpload)
+                    .then(() => {
+                        console.log('RAG documents uploaded successfully');
+                        showNotification('Product and documents saved successfully!', 'success');
+                        // Clear the stored files after successful upload
+                        uploadedDocuments = [];
+                        window.ragDocumentFiles = [];
+                        closeModalAndRefresh();
+                    })
+                    .catch(error => {
+                        console.error('RAG upload failed:', error);
+                        console.log(error.message);
+                        showNotification('Product saved but document upload failed: ' + error.message, 'warning');
+                       // closeModalAndRefresh();
+                    });
             } else {
-                // Normal flow - reload the page to show updated data
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                showNotification(data.message || 'Product saved successfully!', 'success');
+                closeModalAndRefresh();
             }
         } else {
-            console.error('Server returned error:', data);
-            showNotification(data.message || 'Error saving product', 'error');
+            throw new Error(data.message || 'Failed to save product');
         }
     })
-    .catch(error => {
-        console.error('Network/Parse Error:', error);
-        showNotification(`Error saving product: ${error.message}`, 'error');
+    .then(data => {
+        // This block handles any additional processing after success
     })
-    .finally(() => {
-        // Restore button state
-        saveButton.innerHTML = originalText;
-        saveButton.disabled = false;
+    .catch(error => {
+        console.error('Error saving product:', error);
+        showNotification('Error saving product: ' + error.message, 'error');
+    });
+}
+
+function closeModalAndRefresh() {
+    // Close modal with fallback approaches
+    const modalElem = document.getElementById('addProductModal');
+    
+    // Try Bootstrap 5 getInstance first
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal && bootstrap.Modal.getInstance) {
+        const modal = bootstrap.Modal.getInstance(modalElem);
+        if (modal) {
+            modal.hide();
+        } else {
+            // Modal instance doesn't exist, create and hide
+            const newModal = new bootstrap.Modal(modalElem);
+            newModal.hide();
+        }
+    } else {
+        // Fallback - manually close modal
+        modalElem.classList.remove('show');
+        modalElem.style.display = 'none';
+        modalElem.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        
+        // Remove backdrop if it exists
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    }
+    
+    // Show success notification
+    showNotification('Product saved successfully!', 'success');
+    
+    // Redirect or refresh based on onboarding state
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('onboarding') === 'true') {
+        setTimeout(() => {
+            window.location.href = '/dashboard?onboarding_completed=products';
+        }, 1500);
+    } else {
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+}
+
+// Upload RAG documents to the API
+function uploadRagDocuments(productId, files) {
+    console.log('=== UPLOAD RAG DOCUMENTS FUNCTION CALLED ===');
+    console.log('Product ID:', productId);
+    console.log('Product ID type:', typeof productId);
+    console.log('Product ID is valid:', productId && productId !== 'undefined' && productId !== 'null');
+    console.log('Files to upload:', files.length);
+    console.log('File details:', Array.from(files).map(f => ({name: f.name, size: f.size, type: f.type})));
+    
+    if (!productId || productId === 'undefined' || productId === 'null') {
+        console.error('CRITICAL: Product ID is invalid:', productId);
+        return Promise.reject(new Error('Invalid product ID: ' + productId));
+    }
+    
+    return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        
+        // Add files to form data
+        Array.from(files).forEach((file, index) => {
+            console.log(`Adding file ${index + 1} to FormData:`, file.name);
+            formData.append('files[]', file);
+            formData.append('attachment_types[]', 'technical_spec'); // Changed from 'documentation' to valid value
+            formData.append('titles[]', file.name);
+            formData.append('descriptions[]', 'RAG document for AI processing');
+            formData.append('is_public[]', '0'); // Use string "0" for false
+        });
+        
+        formData.append('process_with_rag', '0'); // Use string "0" for false
+        
+        // Always use Laravel development server for API calls (force absolute URL)
+        var end_url=`/api/products/${productId}/attachments`
+        const apiUrl = '{{ url('/') }}' + end_url;
+        
+        console.log('Forced API URL to Laravel server:', apiUrl);
+        console.log('FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({key, value: value instanceof File ? `File: ${value.name}` : value})));
+        
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: formData
+        })
+        .then(response => {
+            console.log('Upload response received');
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+            console.log('Response URL:', response.url);
+            
+            if (!response.ok) {
+                console.error('HTTP error! status:', response.status);
+                console.error('Request URL was:', apiUrl);
+                console.error('Product ID was:', productId);
+                return response.text().then(text => {
+                    console.error('Error response body:', text);
+                    throw new Error(`HTTP error! status: ${response.status}, URL: ${apiUrl}, body: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('RAG documents uploaded successfully:', data);
+                resolve(data);
+            } else {
+                console.error('RAG upload failed:', data);
+                reject(new Error(data.message || 'Failed to upload RAG documents'));
+            }
+        })
+        .catch(error => {
+            console.error('RAG upload error:', error);
+            reject(error);
+        });
     });
 }
 
@@ -3265,6 +3592,72 @@ function displayProductDetails(product) {
         `;
     }
     
+    // RAG Documents/Attachments
+    if (product.attachments && product.attachments.length > 0) {
+        hasFiles = true;
+        product.attachments.forEach(attachment => {
+            // Determine file icon based on mime type
+            let iconClass = 'fas fa-file';
+            let iconColor = 'text-secondary';
+            
+            if (attachment.mime_type) {
+                if (attachment.mime_type.includes('pdf')) {
+                    iconClass = 'fas fa-file-pdf';
+                    iconColor = 'text-danger';
+                } else if (attachment.mime_type.includes('word') || attachment.mime_type.includes('document')) {
+                    iconClass = 'fas fa-file-word';
+                    iconColor = 'text-primary';
+                } else if (attachment.mime_type.includes('text')) {
+                    iconClass = 'fas fa-file-alt';
+                    iconColor = 'text-success';
+                } else if (attachment.mime_type.includes('image')) {
+                    iconClass = 'fas fa-file-image';
+                    iconColor = 'text-info';
+                }
+            }
+            
+            // Determine processing status badge
+            let statusBadge = '';
+            if (attachment.processing_status) {
+                const statusColors = {
+                    'pending': 'warning',
+                    'processing': 'info',
+                    'completed': 'success',
+                    'failed': 'danger'
+                };
+                statusBadge = `<span class="badge bg-${statusColors[attachment.processing_status] || 'secondary'} ms-2">${attachment.processing_status}</span>`;
+            }
+            
+            documentsHtml += `
+                <div class="document-item p-3 mb-2 bg-light rounded border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon ${iconColor} me-3" style="font-size: 2rem;">
+                                <i class="${iconClass}"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">${attachment.title || attachment.original_filename}</div>
+                                <small class="text-muted">
+                                    RAG Document • ${attachment.formatted_size || 'Unknown size'} • 
+                                    ${attachment.attachment_type || 'Document'}${statusBadge}
+                                </small>
+                                ${attachment.description ? `<br><small class="text-muted">${attachment.description}</small>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/storage/${attachment.file_path}" target="_blank" class="btn btn-sm btn-outline-primary me-1" title="Preview">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="/storage/${attachment.file_path}" download="${attachment.original_filename}" class="btn btn-sm btn-outline-secondary" title="Download">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
     if (!hasFiles) {
         documentsHtml += '<i class="fas fa-folder-open text-muted"></i><br><span class="text-muted">No files uploaded</span>';
     }
@@ -3385,33 +3778,48 @@ function displayProductDetails(product) {
             </div>
             
             <div class="col-md-4">
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <i class="fas fa-image"></i> Product Image
+                ${product.product_type === 'service' ? `
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-file-alt"></i> Uploaded Documents 
+                            ${product.attachments && product.attachments.length > 0 
+                                ? `<span class="badge bg-primary float-end">${product.attachments.length}</span>` 
+                                : ''
+                            }
+                        </div>
+                        <div class="card-body">
+                            ${documentsHtml}
+                        </div>
                     </div>
-                    <div class="card-body text-center">
-                        ${product.image_url 
-                            ? `<img src="${product.image_url}" class="img-fluid rounded shadow-sm" alt="${product.name}" style="max-height: 300px;">` 
-                            : `<div class="text-muted p-5 bg-light rounded">
-                                <i class="fas fa-image fa-3x mb-3"></i><br>
-                                No image available
-                               </div>`
-                        }
+                ` : `
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-image"></i> Product Image
+                        </div>
+                        <div class="card-body text-center">
+                            ${product.image_url 
+                                ? `<img src="${product.image_url}" class="img-fluid rounded shadow-sm" alt="${product.name}" style="max-height: 300px;">` 
+                                : `<div class="text-muted p-5 bg-light rounded">
+                                    <i class="fas fa-image fa-3x mb-3"></i><br>
+                                    No image available
+                                   </div>`
+                            }
+                        </div>
                     </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <i class="fas fa-file-alt"></i> Uploaded Documents
-                        ${product.attachments && product.attachments.length > 0 
-                            ? `<span class="badge bg-primary float-end">${product.attachments.length}</span>` 
-                            : ''
-                        }
+                    
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-file-alt"></i> Uploaded Documents
+                            ${product.attachments && product.attachments.length > 0 
+                                ? `<span class="badge bg-primary float-end">${product.attachments.length}</span>` 
+                                : ''
+                            }
+                        </div>
+                        <div class="card-body">
+                            ${documentsHtml}
+                        </div>
                     </div>
-                    <div class="card-body">
-                        ${documentsHtml}
-                    </div>
-                </div>
+                `}
             </div>
         </div>
     `;

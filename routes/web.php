@@ -48,6 +48,16 @@ Route::get('/roi-calculator', function() { return view('landing.roi-calculator')
 // Demo and API routes (keeping functional ones)
 Route::post('/demo-chat', [App\Http\Controllers\LandingController::class, 'demoChat'])->name('landing.demo-chat');
 Route::post('/calculate-roi', [App\Http\Controllers\LandingController::class, 'calculateROI'])->name('landing.calculate-roi');
+
+// Direct upload test route
+Route::get('/test-upload', function() {
+    return view('test_direct_upload');
+})->name('test.upload');
+
+// Simple upload test route
+Route::get('/test-simple', function() {
+    return view('test_upload_simple');
+})->name('test.simple');
 Route::get('/api/pricing/{currency}', [App\Http\Controllers\LandingController::class, 'getPricing'])->name('landing.pricing');
 Route::post('/contact-submit', [App\Http\Controllers\LandingController::class, 'contactSubmit'])->name('landing.contact');
 

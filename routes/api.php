@@ -160,7 +160,7 @@ Route::put('products/{id}', [ProductController::class, 'update']);
 Route::delete('products/{id}', [ProductController::class, 'destroy']);
 Route::post('products/bulk-action', [ProductController::class, 'bulkAction']);
 
-// RAG Document Management API Routes
+// RAG Document Management API Routes - Remove auth middleware temporarily for testing
 Route::prefix('products/{product}')->group(function () {
     Route::post('/attachments', [App\Http\Controllers\Api\ProductAttachmentController::class, 'store']);
     Route::get('/attachments', [App\Http\Controllers\Api\ProductAttachmentController::class, 'index']);

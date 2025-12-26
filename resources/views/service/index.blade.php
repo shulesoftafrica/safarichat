@@ -414,6 +414,80 @@ body, .ai-sales-officer {
     }
 }
 
+/* Service Document Styles */
+.service-documents .document-item {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.service-documents .document-item:hover {
+    background: #f8fafc !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.document-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.document-icon.pdf {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.document-icon.word {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.document-icon.text {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.btn-preview, .btn-download {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-preview {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-preview:hover {
+    background: #1d4ed8;
+    color: white;
+}
+
+.btn-download {
+    background: #059669;
+    color: white;
+}
+
+.btn-download:hover {
+    background: #047857;
+    color: white;
+}
+
+.badge-service {
+    background-color: #3b82f6;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px);}
     to { opacity: 1; transform: translateY(0);}
@@ -813,27 +887,30 @@ function viewProduct(id) {
         .then(data => {
             if (data.success) {
                 const product = data.product;
+                
+                // Check if product is a service to show documents instead of images
+                const isService = product.product_type === 'service';
+                
                 content.innerHTML = `
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-${isService ? '8' : '6'}">
                             <h6>Basic Information</h6>
                             <table class="table table-borderless">
-                                <tr><td><strong>Name:</strong></td><td>${product.name}</td></tr>
-                                <tr><td><strong>SKU:</strong></td><td>${product.sku}</td></tr>
+                                <tr><td><strong>Name:</strong></td><td>${product.name} ${isService ? '<span class="badge badge-service ms-2">Service</span>' : '<span class="badge bg-primary ms-2">Product</span>'}</td></tr>
+                                ${!isService ? `<tr><td><strong>SKU:</strong></td><td>${product.sku}</td></tr>` : ''}
                                 <tr><td><strong>Category:</strong></td><td>${product.category}</td></tr>
                                 <tr><td><strong>Status:</strong></td><td><span class="badge bg-${product.status === 'active' ? 'success' : product.status === 'inactive' ? 'secondary' : 'warning'}">${product.status.charAt(0).toUpperCase() + product.status.slice(1)}</span></td></tr>
+                                ${isService ? `
+                                    <tr><td><strong>Delivery Type:</strong></td><td>${product.service_delivery_type || 'N/A'}</td></tr>
+                                    <tr><td><strong>Pricing Type:</strong></td><td>${product.pricing_type || 'Fixed'}</td></tr>
+                                ` : ''}
                             </table>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Pricing & Stock</h6>
-                            <table class="table table-borderless">
-                                <tr><td><strong>Retail Price:</strong></td><td>$${parseFloat(product.retail_price).toFixed(2)}/month</td></tr>
-                                <tr><td><strong>Wholesale Price:</strong></td><td>$${parseFloat(product.wholesale_price).toFixed(2)}/month</td></tr>
-                                <tr><td><strong>Max Discount:</strong></td><td>${product.max_discount}%</td></tr>
-                                <tr><td><strong>Stock:</strong></td><td>${product.quantity || 'Unlimited'}</td></tr>
-                            </table>
+                        <div class="col-md-${isService ? '4' : '6'}">
+                            ${isService ? renderServiceDocumentsSection(product.documents, product.campaign_attachment) : renderProductPricingSection(product)}
                         </div>
                     </div>
+                    ${!isService ? renderProductPricingSection(product) : renderServicePricingSection(product)}
                     <div class="mt-3">
                         <h6>Description</h6>
                         <p>${product.description}</p>
@@ -849,6 +926,14 @@ function viewProduct(id) {
                                             tag === 'bestseller' ? 'bg-success' : 'bg-secondary';
                             return `<span class="badge ${badgeClass} me-1">${tag.charAt(0).toUpperCase() + tag.slice(1).replace('-', ' ')}</span>`;
                         }).join('')}
+                    </div>
+                    ` : ''}
+                    ${product.selling_points && product.selling_points.length > 0 ? `
+                    <div class="mt-3">
+                        <h6>Key Selling Points</h6>
+                        <ul>
+                            ${product.selling_points.map(point => `<li>${point}</li>`).join('')}
+                        </ul>
                     </div>
                     ` : ''}
                     ${product.faqs && product.faqs.length > 0 ? `
@@ -881,6 +966,177 @@ function viewProduct(id) {
                 </div>
             `;
         });
+}
+
+// Helper function to render service documents section
+function renderServiceDocumentsSection(documents, campaignAttachment) {
+    let documentsHtml = '';
+    
+    // Add campaign attachment if exists
+    if (campaignAttachment) {
+        const attachmentType = getFileTypeFromUrl(campaignAttachment.url || campaignAttachment);
+        documentsHtml += `
+            <div class="document-item mb-2" onclick="previewDocument('${campaignAttachment.url || campaignAttachment}', '${attachmentType}')">
+                <div class="d-flex align-items-center p-2 border rounded">
+                    <div class="document-icon ${getDocumentClass(attachmentType)} me-2">
+                        <i class="${getDocumentIcon(attachmentType)}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0">Campaign Attachment</h6>
+                        <small class="text-muted">Campaign Document</small>
+                    </div>
+                    <div class="document-actions">
+                        <button type="button" class="btn btn-sm btn-preview me-1" onclick="event.stopPropagation(); previewDocument('${campaignAttachment.url || campaignAttachment}', '${attachmentType}')" title="Preview">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-download" onclick="event.stopPropagation(); downloadDocument('${campaignAttachment.url || campaignAttachment}', 'campaign-document')" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add other documents if they exist
+    if (documents && documents.length > 0) {
+        documents.forEach(doc => {
+            const docType = doc.type || getFileTypeFromUrl(doc.url);
+            documentsHtml += `
+                <div class="document-item mb-2" onclick="previewDocument('${doc.url}', '${docType}')">
+                    <div class="d-flex align-items-center p-2 border rounded">
+                        <div class="document-icon ${getDocumentClass(docType)} me-2">
+                            <i class="${getDocumentIcon(docType)}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">${doc.name || doc.original_name || 'Document'}</h6>
+                            <small class="text-muted">${docType.toUpperCase()}</small>
+                        </div>
+                        <div class="document-actions">
+                            <button type="button" class="btn btn-sm btn-preview me-1" onclick="event.stopPropagation(); previewDocument('${doc.url}', '${docType}')" title="Preview">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.url}', '${doc.name || doc.original_name || 'document'}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    if (!documentsHtml) {
+        documentsHtml = `
+            <div class="text-center p-3 border rounded">
+                <i class="fas fa-file-times fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">No documents uploaded</p>
+            </div>
+        `;
+    }
+    
+    return `
+        <h6><i class="fas fa-file-alt"></i> Uploaded Documents</h6>
+        <div class="service-documents">
+            ${documentsHtml}
+        </div>
+    `;
+}
+
+// Helper function to render regular product pricing section
+function renderProductPricingSection(product) {
+    return `
+        <h6>Pricing & Stock</h6>
+        <table class="table table-borderless">
+            <tr><td><strong>Retail Price:</strong></td><td>$${parseFloat(product.retail_price).toFixed(2)}/month</td></tr>
+            <tr><td><strong>Wholesale Price:</strong></td><td>$${parseFloat(product.wholesale_price).toFixed(2)}/month</td></tr>
+            <tr><td><strong>Max Discount:</strong></td><td>${product.max_discount}%</td></tr>
+            <tr><td><strong>Stock:</strong></td><td>${product.quantity || 'Unlimited'}</td></tr>
+        </table>
+    `;
+}
+
+// Helper function to render service pricing section
+function renderServicePricingSection(product) {
+    if (product.pricing_type === 'tiered' && product.tiers && product.tiers.length > 0) {
+        return `
+            <div class="mt-3">
+                <h6><i class="fas fa-dollar-sign"></i> Service Pricing Tiers</h6>
+                <div class="border rounded p-3">
+                    ${product.tiers.map(tier => `
+                        <div class="d-flex justify-content-between">
+                            <span>${tier.name}</span>
+                            <strong>TSH ${formatPrice(tier.price)}</strong>
+                        </div>
+                        <small class="text-muted">${tier.description}</small>
+                        <hr class="my-2">
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        return `
+            <div class="mt-3">
+                <h6><i class="fas fa-dollar-sign"></i> Service Pricing</h6>
+                <table class="table table-borderless">
+                    <tr><td><strong>Base Price:</strong></td><td>TSH ${formatPrice(product.base_price || 0)}</td></tr>
+                    <tr><td><strong>Pricing Type:</strong></td><td>${product.pricing_type || 'Fixed'}</td></tr>
+                </table>
+            </div>
+        `;
+    }
+}
+
+// Document preview and download functions
+function previewDocument(url, type) {
+    if (type === 'pdf') {
+        // Open PDF in new window for preview
+        window.open(url, '_blank');
+    } else {
+        // For other document types, trigger download
+        downloadDocument(url, `document.${type}`);
+    }
+}
+
+function downloadDocument(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Helper functions for document handling
+function getFileTypeFromUrl(url) {
+    if (!url) return 'unknown';
+    const extension = url.split('.').pop().toLowerCase();
+    return extension;
+}
+
+function getDocumentClass(type) {
+    const typeMap = {
+        'pdf': 'pdf',
+        'doc': 'word',
+        'docx': 'word',
+        'txt': 'text'
+    };
+    return typeMap[type] || 'text';
+}
+
+function getDocumentIcon(type) {
+    const iconMap = {
+        'pdf': 'fas fa-file-pdf',
+        'doc': 'fas fa-file-word',
+        'docx': 'fas fa-file-word',
+        'txt': 'fas fa-file-alt'
+    };
+    return iconMap[type] || 'fas fa-file';
+}
+
+function formatPrice(price) {
+    return new Intl.NumberFormat('en-TZ').format(price);
 }
 
 // Edit product
