@@ -18,7 +18,7 @@ use App\Services\UserResolutionService;
  * @property string $updated_at
  * @property Business $business
  * @property Message[] $messages
- * @property Payment[] $payments
+ * Event payment system removed - focusing on contact management
  */
 class EventsGuest extends Model
 {
@@ -86,10 +86,7 @@ class EventsGuest extends Model
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function payments()
-    {
-        return $this->hasMany('App\Models\Payment', 'events_guests_id');
-    }
+    // Event payment relationship removed - focusing on contact management
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */

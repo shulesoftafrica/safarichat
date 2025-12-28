@@ -180,7 +180,7 @@ class Home extends Controller
     {
         $this->data['guests'] = EventsGuest::count();
         $this->data['total_pledge'] = EventsGuest::sum('guest_pledge');
-        $this->data['total_payments'] = Payment::sum('amount');
+        // Event payment system removed - focusing on guest/contact management
         exit;
         return view('auth.profile', $this->data);
     }

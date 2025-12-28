@@ -792,7 +792,8 @@ class Message extends Controller
     private function personalizeMessage($message, $user)
     {
         $datediff = time() - strtotime(Auth::user()->event->date);
-        $paid_amount = isset($user->custom) ? 0 : ($user->payments ? $user->payments()->sum('amount') : 0);
+        // Event payment tracking removed - focusing on contact management
+        $paid_amount = 0;
         
         $replacements = [
             '#name' => $user->guest_name ?? 'Valued Customer',

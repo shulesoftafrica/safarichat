@@ -152,13 +152,9 @@ class Guest extends Controller {
                     ]) : $check_guests;
                 $with = '';
                 if (isset($user->contribution) && (int) $user->contribution > 0) {
-                    //check if payment has been uploaded already
-                    $payment = \App\Models\Payment::firstOrCreate([
-                        'events_guests_id' => $event->id,
-                        'amount' => $user->contribution,
-                        'method' => 'Mobile'
-                    ]);
-                    $with = ' With Paid Amount of Tsh ' . $payment->amount;
+                    // Event payment system removed - guest payments no longer tracked
+                    // Focus on guest/contact management instead of event payments
+                    $with = '';
                 }
                 $status .= '<div class="alert alert-success col-lg-12">User ' . $user->name . ' has been uploaded successfully' . $with . '</div><br/>';
                 }
