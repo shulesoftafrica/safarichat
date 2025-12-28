@@ -113,9 +113,7 @@ class User extends Authenticatable implements MustVerifyEmail{
         return $this->hasMany('App\Models\FileAlbum');
     }
     
-    public function discountRequests() {
-          return $this->hasMany('App\Models\DiscountRequest');
-    }
+    // discountRequests relationship removed - table no longer exists
     /**
      * @return message left from the database
      */

@@ -236,10 +236,7 @@ class Setup extends Controller {
             $chat_id = $phone . '@c.us';
             $this->sendTextMessage($chat_id, $message, 1);
         }
-        //check registration if not register
-        in_array($addons->name, ['whatsapp', 'quick-sms']) ? DB::table('admin_integration_requests')->where('user_id', Auth::user()->id)->count() == 1 ? '' :
-                                DB::table('admin_integration_requests')->insert(['user_id' => Auth::user()->id,
-                                    'phone' => $phone]) : '';
+        // Integration requests functionality removed - obsolete
         return view('auth.payment', $this->data);
     }
 
