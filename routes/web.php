@@ -142,9 +142,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');
     Route::get('/guest/available-agents', [App\Http\Controllers\Guest::class, 'getAvailableAgents'])->name('guest.availableAgents');
     
-    // Payment verification route
-    Route::post('/payment/verify', [App\Http\Controllers\Payment::class, 'verify'])->name('payment.verify');
-    Route::get('/payment/subscription', [App\Http\Controllers\Payment::class, 'subscriptionStatus'])->name('payment.subscription');
+    // Payment verification route removed - using new billing system
     
     // AI Sales Agent routes
     Route::prefix('ai-agents')->name('ai-agents.')->group(function () {
@@ -247,24 +245,7 @@ Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function
         ->name('disconnect');
 });
 
-// Subscription Management Routes
-Route::middleware('auth')->group(function () {
-    // Main subscription routes
-    Route::prefix('subscription')->name('subscription.')->group(function () {
-        Route::get('/', [App\Http\Controllers\SubscriptionController::class, 'index'])->name('index');
-        Route::get('/paywall', [App\Http\Controllers\SubscriptionController::class, 'paywall'])->name('paywall');
-        Route::post('/check-payment', [App\Http\Controllers\SubscriptionController::class, 'checkPaymentStatus'])->name('check-payment');
-    });
-    
-    // Payment routes
-    Route::prefix('payment')->name('payment.')->group(function () {
-        Route::post('/initialize', [App\Http\Controllers\PaymentController::class, 'initialize'])->name('initialize');
-        Route::get('/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('success');
-        Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('cancel');
-        Route::post('/check-status', [App\Http\Controllers\PaymentController::class, 'checkStatus'])->name('check-status');
-        Route::post('/topup', [App\Http\Controllers\PaymentController::class, 'topupCredits'])->name('topup');
-    });
-});
+// Subscription Management Routes - Replaced with new billing system
 
 // Webhook routes (no auth required)
 Route::prefix('webhooks')->name('webhooks.')->group(function () {
@@ -272,24 +253,7 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('/stripe', [App\Http\Controllers\WebhookController::class, 'stripe'])->name('stripe');
 });
 
-// Subscription and Payment Management Routes
-Route::middleware('auth')->group(function () {
-    // Subscription management
-    Route::get('/subscription', [App\Http\Controllers\SubscriptionController::class, 'index'])->name('subscription.index');
-    Route::post('/subscription/initiate-payment', [App\Http\Controllers\SubscriptionController::class, 'initiatePayment'])->name('subscription.initiate-payment');
-    Route::get('/subscription/check-payment-status', [App\Http\Controllers\SubscriptionController::class, 'checkPaymentStatus'])->name('subscription.check-payment-status');
-    Route::get('/subscription/billing-history', [App\Http\Controllers\SubscriptionController::class, 'billingHistory'])->name('subscription.billing-history');
-    Route::post('/subscription/upgrade', [App\Http\Controllers\SubscriptionController::class, 'upgrade'])->name('subscription.upgrade');
-    Route::post('/subscription/cancel', [App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('subscription.cancel');
-    
-    // Payment processing
-    Route::get('/payment/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('payment.success');
-    Route::get('/payment/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('payment.cancel');
-    
-    // API routes for frontend
-    Route::get('/api/subscription/status', [App\Http\Controllers\API\SubscriptionController::class, 'getStatus'])->name('api.subscription.status');
-    Route::post('/api/subscription/check-payment', [App\Http\Controllers\API\SubscriptionController::class, 'checkPayment'])->name('api.subscription.check-payment');
-});
+// Subscription and Payment Management Routes - Replaced with new billing system
 
 // Webhook routes (no auth middleware)
 Route::post('/webhooks/lipa-number', [App\Http\Controllers\WebhookController::class, 'handleLipaNamba'])->name('webhooks.lipa-number');

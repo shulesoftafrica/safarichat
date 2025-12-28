@@ -37,10 +37,7 @@ class CreditTransaction extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function adminPayment(): BelongsTo
-    {
-        return $this->belongsTo(AdminPayment::class);
-    }
+    // AdminPayment relationship removed - using new billing system
 
     public function conversation(): BelongsTo
     {

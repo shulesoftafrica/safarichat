@@ -37,10 +37,7 @@ class Subscription extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function adminPackage(): BelongsTo
-    {
-        return $this->belongsTo(AdminPackage::class);
-    }
+    // AdminPackage relationship removed - using new billing system
 
     // Scopes
     public function scopeActive($query)

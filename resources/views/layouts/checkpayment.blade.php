@@ -1,27 +1,24 @@
 <?php 
+// NEW BILLING LOGIC - No more SubscriptionService calls
 $user = Auth::user();
-$subscriptionService = app(\App\Services\SubscriptionService::class);
-$isTrialActive = $subscriptionService->isTrialActive($user);
-$isSubscriptionActive = $subscriptionService->isActive($user);
-$trialEndsAt = $subscriptionService->getTrialEndDate($user);
-$subscriptionEndsAt = $subscriptionService->getSubscriptionEndDate($user);
+$businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no business
 ?>
 
-@if(!$isTrialActive && !$isSubscriptionActive)
-<!-- Payment Required Modal -->
-<div class="modal fade" id="paymentRequiredModal" tabindex="-1" aria-labelledby="paymentRequiredModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+@if(!$user->subscription_status || $user->subscription_status === 'expired')
+<!-- NEW BILLING MODAL - Using boot-once architecture -->
+<div class="modal fade" id="billingRequiredModal" tabindex="-1" aria-labelledby="billingRequiredModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="paymentRequiredModalLabel">
+                <h5 class="modal-title" id="billingRequiredModalLabel">
                     <i class="fas fa-exclamation-triangle"></i> Subscription Required
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info">
-                    <h6><i class="fas fa-info-circle"></i> Your trial period has ended</h6>
-                    <p>To continue using SafariChat, please subscribe for TSH 50,000 per month.</p>
+                    <h6><i class="fas fa-info-circle"></i> Subscription Required</h6>
+                    <p>To continue using SafariChat AI features, please subscribe for TSH 50,000 per month.</p>
                 </div>
                 
                 <div class="row">
@@ -51,7 +48,7 @@ $subscriptionEndsAt = $subscriptionService->getSubscriptionEndDate($user);
                                 <h6 class="mb-0"><i class="fas fa-check-circle"></i> Verify Payment</h6>
                             </div>
                             <div class="card-body">
-                                <form id="paymentVerificationForm">
+                                <form id="newBillingVerificationForm">
                                     @csrf
                                     <div class="mb-3">
                                         <label for="referenceNumber" class="form-label">Reference Number</label>
@@ -73,15 +70,15 @@ $subscriptionEndsAt = $subscriptionService->getSubscriptionEndDate($user);
                 </div>
                 
                 <div class="mt-3">
-                    <button type="button" class="btn btn-info" onclick="checkPaymentStatus()">
-                        <i class="fas fa-refresh"></i> Check Payment Status
+                    <button type="button" class="btn btn-info" onclick="refreshBillingStatus()">
+                        <i class="fas fa-refresh"></i> Check Status
                     </button>
-                    <small class="text-muted ms-2">Click if you've already paid but the modal is still showing</small>
+                    <small class="text-muted ms-2">Click to refresh your subscription status</small>
                 </div>
             </div>
             <div class="modal-footer">
                 <div class="text-muted">
-                    <small><i class="fas fa-clock"></i> Trial ended: {{ $trialEndsAt ? $trialEndsAt->format('M d, Y H:i') : 'N/A' }}</small>
+                    <small><i class="fas fa-clock"></i> Current Status: {{ ucfirst($user->subscription_status ?? 'No subscription') }}</small>
                 </div>
             </div>
         </div>
@@ -89,108 +86,102 @@ $subscriptionEndsAt = $subscriptionService->getSubscriptionEndDate($user);
 </div>
 
 <script>
-// Auto-show payment modal when page loads
+// NEW BILLING JAVASCRIPT - Using boot-once architecture
 document.addEventListener('DOMContentLoaded', function() {
-    const paymentModal = new bootstrap.Modal(document.getElementById('paymentRequiredModal'));
-    paymentModal.show();
-});
-
-// Handle payment verification form
-document.getElementById('paymentVerificationForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+    // Initialize billing cache
+    const customerId = '{{ $businessId }}';
     
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
+    // Auto-show billing modal when page loads if subscription required
+    const billingModal = new bootstrap.Modal(document.getElementById('billingRequiredModal'));
+    billingModal.show();
     
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-    submitBtn.disabled = true;
-    
-    fetch('{{ route('payment.verify') }}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert(data.message || 'Payment verification failed');
-        }
-    })
-    .catch(error => {
-        alert('Error verifying payment. Please try again.');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+    // Handle new billing verification form
+    document.getElementById('newBillingVerificationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        submitBtn.disabled = true;
+        
+        // Use new billing API endpoint (to be implemented)
+        fetch('/api/billing/verify-payment', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Refresh billing cache and reload page
+                refreshBillingStatus();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert(data.message || 'Payment verification failed');
+            }
+        })
+        .catch(error => {
+            alert('Error verifying payment. Please try again.');
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
     });
 });
 
-// Check payment status function
-async function checkPaymentStatus() {
-    const btn = document.querySelector('[onclick="checkPaymentStatus()"]');
+// Refresh billing status function
+async function refreshBillingStatus() {
+    const btn = document.querySelector('[onclick="refreshBillingStatus()"]');
     const originalText = btn.innerHTML;
     
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     btn.disabled = true;
     
     try {
-        const response = await fetch('{{ route('subscription.check-payment-status') }}', {
+        // Call new billing status endpoint
+        const response = await fetch('/api/billing/customers/{{ $businessId }}/complete-status', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         });
         
         const data = await response.json();
         
-        if (data.status === 'active') {
-            alert(data.message);
+        if (data.success && data.data.subscription.active) {
+            alert('Subscription is now active! Refreshing page...');
             location.reload();
         } else {
-            alert(data.message);
+            alert('Subscription not yet active. Please verify your payment or contact support.');
         }
     } catch (error) {
-        alert('Error checking payment status. Please try again.');
+        alert('Error checking status. Please try again.');
         console.error('Error:', error);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
+
+// Initialize SafariChat billing boot process (when billing system is implemented)
+// SafariChatApp.boot('{{ $businessId }}');
 </script>
 
-@elseif($isTrialActive)
-<!-- Trial Status Info (Optional - can be shown in a small banner) -->
+@elseif($user->subscription_status === 'trial')
+<!-- Trial Status Info -->
 <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
     <i class="fas fa-clock"></i> 
-    <strong>Trial Active:</strong> Your trial period ends on {{ $trialEndsAt ? $trialEndsAt->format('M d, Y \a\t H:i') : 'N/A' }}. 
-    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#subscriptionInfoModal">Subscribe now</a> to avoid interruption.
+    <strong>Trial Active:</strong> Your trial is active. Subscribe to continue using all features after trial ends.
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-
-<!-- Subscription Info Modal -->
-<div class="modal fade" id="subscriptionInfoModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Subscription Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Monthly Subscription:</strong> TSH 50,000</p>
-                <p><strong>Payment Method:</strong> LIPA NAMBA to 000-111-222</p>
-                <p><strong>Your trial ends:</strong> {{ $trialEndsAt ? $trialEndsAt->format('M d, Y \a\t H:i') : 'N/A' }}</p>
-                <p>After your trial ends, you'll need to subscribe to continue using SafariChat.</p>
-            </div>
-        </div>
-    </div>
 </div>
 @endif

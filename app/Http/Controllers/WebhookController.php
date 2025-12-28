@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\PaymentGatewayService;
-use App\Services\SubscriptionService;
-use App\Services\CreditService;
+// PaymentGatewayService removed - using new billing system
+// SubscriptionService removed - using new billing system
+// CreditService removed - using new billing system
 use App\Services\SubscriptionNotificationService;
-use App\Models\AdminBooking;
-use App\Models\AdminPayment;
+// AdminBooking removed - using new billing system
+// AdminPayment removed - using new billing system
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,8 +16,8 @@ class WebhookController extends Controller
 {
     public function __construct(
         protected PaymentGatewayService $paymentService,
-        protected SubscriptionService $subscriptionService,
-        protected CreditService $creditService,
+        // SubscriptionService removed - using new billing system
+        // CreditService removed - using new billing system
         protected SubscriptionNotificationService $notificationService
     ) {}
 
@@ -202,7 +202,7 @@ class WebhookController extends Controller
     {
         try {
             // Calculate credits from excess payment
-            $creditData = $this->creditService->calculateCreditsFromPayment($amount, $package);
+            // Credit calculation moved to new billing system
             
             // Update payment with credit information
             $payment->update([
@@ -212,7 +212,7 @@ class WebhookController extends Controller
             ]);
 
             // Activate subscription
-            $this->subscriptionService->activateSubscription($user, $payment);
+            // Subscription activation moved to new billing system
             
             // Add credits if excess payment
             if ($creditData['credits'] > 0) {

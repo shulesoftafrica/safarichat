@@ -234,7 +234,7 @@ Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {
     Route::get('/instances/{instanceId}/status', [App\Http\Controllers\Api\WaSenderApiController::class, 'checkInstanceStatus']);
 });
 
-Route::post('/payment','Setup@apiAcceptPayment');
+// Payment routes removed - using new billing system
 Route::post('/registerBusiness', 'Setup@registerBusiness');
 Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance');
 Route::post('/update-instance-status', 'Setup@updateInstanceStatus');
@@ -242,7 +242,7 @@ Route::get('/user-whatsapp-instances', 'Setup@getUserWhatsappInstances');
 Route::delete('/delete-whatsapp-instance', 'Setup@deleteWhatsappInstance');
 
 
-Route::any('/background', [App\Http\Controllers\Payment::class, 'processPayment']);
+// Background payment processing removed - using new billing system
 
 // WA Sender - QR Code Session Management (API with auth)
 Route::middleware('auth:api')->prefix('whatsapp')->group(function () {

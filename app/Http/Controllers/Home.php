@@ -187,33 +187,11 @@ class Home extends Controller
 
     public function upgrade()
     {
-        $this->data['packages'] = \App\Models\AdminPackage::whereIsAddon(0)->get();
-        $this->data['addon_id'] = request()->segment(3);
-        if (!in_array($this->data['addon_id'], [2, 4])) {
-            redirect()->back()->with('error', 'Invalid Package');
-        }
-        if ($_POST) {
-            $package_id = request()->segment(4);
-            $this->data['booking'] = \App\Models\AdminBooking::where('admin_package_id', $package_id)->where('user_id', Auth::user()->id)->whereNotIn('id', \App\Models\AdminPayment::where('user_id', Auth::user()->id)->get(['admin_booking_id']))->first();
-            $this->data['package'] = \App\Models\AdminPackage::find($package_id);
-            if (empty($this->data['booking'])) {
-
-                $this->data['booking'] =  \App\Models\AdminBooking::create([
-                    'order_id' => time(),
-                    'amount' =>  $this->data['package']->price,
-                    'reference' => substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'), 0, 8),
-                    'methods' => 'online',
-                    'user_id' => Auth::user()->id,
-                    'admin_package_id' => $package_id
-                ]);
-            }
-
-            return view('payment.fullpaymentpage', $this->data);
-        }
-        return view('auth.upgrade', $this->data);
+        // Upgrade functionality moved to new billing system
+        return redirect()->route('dashboard')->with('info', 'Please use the new billing system for upgrades.');
     }
 
-    public function payment() {}
+    // Payment method removed - using new billing system
 
     public function verify()
     {
@@ -381,8 +359,7 @@ class Home extends Controller
         $this->data['available_credits'] = Auth::user()->available_credits;
         $this->data['trial_ends_at'] = Auth::user()->trial_ends_at;
         
-        // Add available packages for upgrade options
-        $this->data['packages'] = \App\Models\AdminPackage::where('is_addon', 0)->get();
+        // Package management moved to new billing system
         return view('auth.settings', $this->data);
     }
 
@@ -443,31 +420,14 @@ class Home extends Controller
    
     public function payments()
     {
-
-        $this->data['payments'] = \App\Models\AdminPayment::all();
-        $this->data['users'] = User::all();
-        if ($_POST) {
-            $data = request()->all();
-            \App\Models\AdminPayment::create($data);
-
-            $user = User::find(request('user_id'));
-            $message = 'Hello ' . $user->name . chr(10) . chr(10) .
-                'Your payment of Tsh :' . request('amount') . chr(10) .
-                'with reference number  : *' . request('transaction_id') . '* ' . chr(10) . chr(10) .
-                'has been received successfully. You can now enjoy using safarichat to give your event a meaning you dream';
-            $chatId = $user->phone . '@c.us';
-
-            $this->sendMessage($user->phone, $message, 'whatsapp');
-            return redirect()->back()->with('success', 'success');
-        }
-        return view('payment.admin', $this->data);
+        // Payments functionality moved to new billing system
+        return redirect()->route('dashboard')->with('info', 'Payment management moved to new billing system.');
     }
 
     public function paymentdestroy()
     {
-        $id = request()->segment(3);
-        \App\Models\AdminPayment::find($id)->delete();
-        return redirect()->back()->with('success', 'success');
+        // Payment deletion moved to new billing system
+        return redirect()->route('dashboard')->with('info', 'Payment management moved to new billing system.');
     }
 
     public function getClient(){
@@ -499,100 +459,7 @@ class Home extends Controller
 
     public function createAddonInvoice()
     {
-        // $packages = \App\Models\AdminPackage::whereIsAddon(0)->get();
-      
-        // $this->data['addon_id'] = $addon_id = request()->segment(3);
-        // if (!in_array($this->data['addon_id'], [2, 4])) {
-        //     redirect()->back()->with('error', 'Invalid Package');
-        // }
-       
-        $prefix = 'SASA96243';
-        $index = collect(DB::connection('shulesoft')->select("select shulesoft.get_unique_invoice_index('theresia')"))->first();
-        $reference = $prefix . $index->get_unique_invoice_index;
-
-
-        $client = $this->getClient();
-
-        $schema_name = strtolower(str_replace(' ', '', trim($client->username)));
-
-        $data = [
-            'schema_name' => $schema_name,
-            'reference' => $reference,
-            'amount' => request('amount'),
-            'client_id' => $client->id,
-            'date' => date('Y-m-d'),
-            'created_at' => now(),
-            'addon_id' => 7, //default addon id for 
-            'prefix' => $prefix,
-        ];
-
-        // Check if the invoice already exists
-        $existingInvoice = DB::connection('shulesoft')->table('admin.addon_invoices')
-            ->where('schema_name', $data['schema_name'])
-            ->where('addon_id', $data['addon_id'])
-            ->where('amount', $data['amount'])
-              ->where('status', 0) // Assuming status 0 means unpaid
-            ->where('client_id', $data['client_id'])
-            ->first();
-
-        if (!$existingInvoice) {
-            DB::connection('shulesoft')->table('admin.addon_invoices')->insert($data);
-        }
-
-
-        $request = request()->segment(3);
-
-
-        // $payment = DB::connection('shulesoft')->table('admin.addon_invoices')->where('client_id', $client->id)->first();
-      
-        // $data1 = [
-        //    'invoice_id' => $payment->id,
-        //     'amount' => $payment->amount,
-        //     'transaction_id' => $payment->reference,
-        //     'note' =>'safarichat addon payment',
-        //     'phone' => Auth::user()->phone,
-        //     'created_at' => now(),
-        //     'status' => 0,
-        //     'method' => 'E-payment',
-        //     'client_id' => $client->id,
-
-        // ];
-    
-        // DB::connection('shulesoft')->table('admin.payments')->insert($data1);
-
-        // Check if a booking already exists for this user, package, and amount
-        $existingBooking = \App\Models\AdminBooking::where([
-            ['user_id', '=', Auth::user()->id],
-            ['admin_package_id', '=', request('package_id')],
-            ['amount', '=', request('amount')],
-        ])->first();
-
-        if (!$existingBooking) {
-            $this->data['booking'] = \App\Models\AdminBooking::create([
-            'order_id' => time(),
-            'amount' => request('amount'),
-            'reference' => $reference,
-            'methods' => 'online',
-            'user_id' => Auth::user()->id,
-            'admin_package_id' => request('package_id'),
-            'status' => 0,
-            ]);
-
-            $user = Auth::user();
-   
-            // Send message to the user
-            $userMessage = "Hello {$user->name},\n\nYour invoice has been created successfully. Reference Number: *{$reference}*.\nThank you for using Safarichat.";
-            $this->sendMessage($user->phone, $userMessage, 'whatsapp');
-
-            // Send message to admin
-            $adminMessage = "New invoice created for user: {$user->name} (ID: {$user->id}, Phone: {$user->phone}). Reference Number: *{$reference}*, Amount: " . request('amount') . ".";
-            $this->notifyAdmin($adminMessage);
-
-        } else {
-            $this->data['booking'] = $existingBooking;
-        }
-        $this->data['transaction'] = $data;
-
-        return view('payment.fullpaymentpage', $this->data);
+        // Addon invoice creation moved to new billing system
+        return redirect()->route('dashboard')->with('info', 'Invoice creation moved to new billing system.');
     }
 }

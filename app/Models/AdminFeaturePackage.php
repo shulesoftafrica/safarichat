@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $updated_at
  * @property string $deleted_at
  * @property AdminFeature $adminFeature
- * @property AdminPackage $adminPackage
+ * AdminPackage relationship removed - using new billing system
  */
 class AdminFeaturePackage extends Model
 {
@@ -32,10 +32,7 @@ class AdminFeaturePackage extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * AdminPackage relationship removed - using new billing system
      */
-    public function adminPackage()
-    {
-        return $this->belongsTo('App\Models\AdminPackage');
-    }
+    // public function adminPackage() - removed
 }

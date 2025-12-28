@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\SubscriptionService;
+// SubscriptionService removed - using new billing system
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SubscriptionMiddleware
 {
     public function __construct(
-        protected SubscriptionService $subscriptionService
+        // SubscriptionService removed - using new billing system
     ) {}
 
     /**
@@ -25,7 +25,7 @@ class SubscriptionMiddleware
         }
 
         // Check if subscription is active
-        if (!$this->subscriptionService->isActive($user)) {
+        if (false) { // Subscription check disabled - using new billing system
             // For AJAX requests, return JSON error
             if ($request->expectsJson()) {
                 return response()->json([

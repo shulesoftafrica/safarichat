@@ -16,7 +16,7 @@ use Illuminate\Support\Arr;
 use Auth;
 use DB;
 use Illuminate\Support\Env;
-use App\Models\AdminBooking;
+// AdminBooking removed - using new billing system
 use Illuminate\Support\Facades\Log;
 
 class Message extends Controller
@@ -73,11 +73,9 @@ class Message extends Controller
     }
 
     public function checkBookedInvoicePayment(){
-        // Get all unpaid bookings for the current user
-        $bookings = AdminBooking::where('user_id', Auth::id())
-            ->where('status', 0)
-            ->whereNotNull('reference')
-            ->get();
+        // Payment status checking moved to new billing system
+        return response()->json(['status' => 'success', 'message' => 'Payment checking moved to new billing system']);
+    }
 
         foreach ($bookings as $booking) {
             // Check if the invoice with the same reference is paid in shulesoft.admin.addon_invoice
@@ -99,14 +97,7 @@ class Message extends Controller
                     ->first();
 
                 if ($shulesoft_payment) {
-                   $payment= \App\Models\AdminPayment::create([
-                        'user_id' => $booking->user_id,
-                        'amount' => $shulesoft_payment->amount,
-                        'transaction_id' => $shulesoft_payment->transaction_id ?? '',
-                        'method' => $shulesoft_payment->method ?? '',
-                        'date' => $shulesoft_payment->date ?? now(),
-                        'admin_booking_id' => $booking->id,
-                    ]);
+                // Payment creation moved to new billing system
                
 
                 //now check if this package is for bulksms or not

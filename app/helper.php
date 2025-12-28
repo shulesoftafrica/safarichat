@@ -193,11 +193,8 @@ function userAccessRole()
         //get package subscribed
         $package = getPackage();
         if (!empty($package)) {
-            //dynamically check features subscribed then show to users
-            $features = \App\Models\AdminFeaturePackage::whereAdminPackageId($package->id)->get();
-            foreach ($features as $feature) {
-                array_push($objet, [$feature->adminFeature->code_name => $feature->value]);
-            }
+            //Feature checking moved to new billing system
+            $objet = array(); // Default empty features
         } else {
             $objet = array();
         }

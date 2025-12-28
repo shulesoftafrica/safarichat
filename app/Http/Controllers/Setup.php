@@ -152,40 +152,8 @@ class Setup extends Controller {
     }
 
     public function apiAcceptPayment() {
-        $transid = request('transid');
-        $order_id = request('order_id');
-        $reference = request('reference');
-        $result = request('result');
-        $payment_status = request('payment_status');
-
-        $book = \App\Models\AdminBooking::where('order_id', $order_id);
-        $valid = $book->first();
-        if (!empty($valid)) {
-            $book->update(['status' => 1, 'reference' => $reference]);
-        }
-        $payment = \App\Models\AdminPayment::create([
-                    'user_id' => $valid->user_id,
-                    'amount' => $valid->amount,
-                    'transaction_id' => $transid,
-                    'method' => request('channel'),
-                    'date' => 'now()',
-                    'admin_booking_id' => $valid->id
-        ]);
-        $event = $book->user->usersEvents()->first();
-        \App\Models\AdminPackagePayment::create([
-            'admin_payment_id' => $payment->id,
-            'admin_package_id' => $valid->admin_package_id,
-            'start_date' => 'now()',
-            'end_date' => !empty($event) ? $event->event->date : 'now()+30 days'
-        ]);
-
-        $subject = 'Safarichat Payment Accepted';
-        $message = 'Hello ' . $book->user->name . ' ,<br/>'
-                . ' Your payment with reference number ' . $valid->token . ' has been accepted successfully.';
-
-        $chat_id = $book->user->phone . '@c.us';
-        $this->sendTextMessage($chat_id, $message, 1);
-        return true;
+        // API payment acceptance moved to new billing system
+        return response()->json(['status' => 'success', 'message' => 'Payment processing moved to new billing system']);
     }
 
     public function liveEvent() {

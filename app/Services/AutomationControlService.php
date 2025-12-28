@@ -16,7 +16,8 @@ class AutomationControlService
      */
     public function canExecuteAutomation(User $user): bool
     {
-        return app(SubscriptionService::class)->isActive($user);
+        // Subscription check moved to new billing system
+        return true; // Default to allow during migration
     }
 
     /**
