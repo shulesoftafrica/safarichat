@@ -20,7 +20,9 @@ class Conversation extends Model
         'ai_actions', 'conversation_context',
         // New queue processing fields
         'status', 'priority', 'processing_started_at', 'processing_timeout_at',
-        'retry_count', 'completed_at', 'last_ai_response'
+        'retry_count', 'completed_at', 'last_ai_response',
+        // New billing fields
+        'input_tokens', 'output_tokens', 'ai_model', 'cost_in_credits'
     ];
 
     protected $casts = [
@@ -41,13 +43,22 @@ class Conversation extends Model
         'processing_started_at' => 'datetime',
         'processing_timeout_at' => 'datetime',
         'retry_count' => 'integer',
-        'completed_at' => 'datetime'
+        'completed_at' => 'datetime',
+        // New billing field casts
+        'input_tokens' => 'integer',
+        'output_tokens' => 'integer',
+        'cost_in_credits' => 'decimal:3'
     ];
 
     // Message type constants
     const TYPE_CUSTOMER = 'CUSTOMER';
     const TYPE_AI_AGENT = 'AI_AGENT';
     const TYPE_HUMAN_AGENT = 'HUMAN_AGENT';
+
+    // Token to credit conversion constants
+    const TOKENS_PER_CREDIT = 3.846;
+    const COST_PER_TOKEN_INPUT = 0.0015; // Example: $0.0015 per 1K input tokens
+    const COST_PER_TOKEN_OUTPUT = 0.002; // Example: $0.002 per 1K output tokens
 
     // Conversation state constants
     const STATE_INTRO = 'INTRO';
@@ -253,5 +264,47 @@ class Conversation extends Model
         return strlen($content) > $maxLength ? 
                substr($content, 0, $maxLength) . '...' : 
                $content;
+    }
+
+    // Calculated billing properties
+    public function getCreditsDeductedAttribute()
+    {
+        $totalTokens = ($this->input_tokens ?? 0) + ($this->output_tokens ?? 0);
+        return $totalTokens > 0 ? (int) ceil($totalTokens / self::TOKENS_PER_CREDIT) : 0;
+    }
+
+    public function getBillingStatusAttribute()
+    {
+        if (!$this->input_tokens && !$this->output_tokens) {
+            return 'no_tokens';
+        }
+        
+        return ($this->cost_in_credits > 0) ? 'processed' : 'pending';
+    }
+
+    public function getTotalTokensAttribute()
+    {
+        return ($this->input_tokens ?? 0) + ($this->output_tokens ?? 0);
+    }
+
+    public function calculateCostInCredits()
+    {
+        $inputCost = ($this->input_tokens ?? 0) * (self::COST_PER_TOKEN_INPUT / 1000);
+        $outputCost = ($this->output_tokens ?? 0) * (self::COST_PER_TOKEN_OUTPUT / 1000);
+        return round($inputCost + $outputCost, 3);
+    }
+
+    // Scope for billing queries
+    public function scopeWithTokens($query)
+    {
+        return $query->where(function($q) {
+            $q->where('input_tokens', '>', 0)
+              ->orWhere('output_tokens', '>', 0);
+        });
+    }
+
+    public function scopeHighTokenUsage($query, $threshold = 1000)
+    {
+        return $query->whereRaw('(COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0)) > ?', [$threshold]);
     }
 }
