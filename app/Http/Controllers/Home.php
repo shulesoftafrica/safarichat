@@ -363,36 +363,7 @@ class Home extends Controller
         return view('auth.settings', $this->data);
     }
 
-    public function support()
-    {
-        // Handle support ticket creation
-        if (request()->isMethod('post') && request()->has(['topic', 'details'])) {
-            \App\Models\AdminSupport::firstOrCreate([
-                'user_id' => Auth::user()->id,
-                'topic' => strip_tags(request('topic')),
-                'details' => strip_tags(request('details'))
-            ]);
-            
-            return redirect()->back()->with('success', 'Support ticket created successfully! Our team will get back to you soon.');
-        }
-        
-        // Show support documentation page
-        $this->data['user'] = Auth::user();
-        
-        // Get user's WhatsApp setup status for contextual help
-        $whatsappInstance = Auth::user()->whatsappInstance();
-       
-        $this->data['has_whatsapp'] = !empty($whatsappInstance);
-        $this->data['whatsapp_connected'] = $whatsappInstance && $whatsappInstance->connect_status == 'ready';
-        
-        // Get basic stats for help context
-        $this->data['total_contacts'] = \App\Models\EventsGuest::whereIn('event_id', 
-            Auth::user()->usersEvents->pluck('event_id'))->count();
-        $this->data['messages_sent'] = \App\Models\OutgoingMessage::where('user_id', Auth::id())->count();
-        $this->data['has_sent_messages'] = $this->data['messages_sent'] > 0;
-        
-        return view('support.index', $this->data);
-    }
+    // Support system removed - use external support tools instead
 
     public function addUser()
     {

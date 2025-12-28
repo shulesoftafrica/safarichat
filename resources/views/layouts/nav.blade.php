@@ -44,8 +44,8 @@
                 <i data-feather="message-circle" class="align-self-center menu-icon icon-md icon-dual mb-4"></i> 
 
             </a>
-            <span>{{__('support')}}</span>
-            <a href="" class="profile"  data-toggle="modal" data-animation="fade"  data-toggle="modal" data-target="#support">
+            <!-- Support link removed - use external support tools -->
+            <!-- <a href="" class="profile"  data-toggle="modal" data-animation="fade"  data-toggle="modal" data-target="#support">
                 <img src="<?= asset(ROOT.'assets/images/users/user-1.jpg') ?>" alt="profile-user" class="rounded-circle thumb-sm"> 
 
             </a> -->
@@ -450,41 +450,4 @@
     </script>
 <?php }
 ?>
-<div class="modal fade" id="support" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" style="display: none;">
-    <div class="modal-dialog" role="document">
-        <form class="modal-content start-here" id="ProfileStep1" action="{{url('home/support/null')}}" method="post">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title mt-0" id="exampleModalLabel">Support Requests</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Tell us a brief about your issue</p>
-                    <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">Main Topic</label>
-                        <select class="form-control" name="topic">
-                            <option value="question">I have a question</option>
-                            <option value="suggestion">I have a suggestion of what needs to be done</option>
-                            <option value="complain">I have a complain</option>
-                            <option value="Others">Others</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="detail" class=" col-form-label text-right">Descriptions</label>
-                        <textarea name="details" id="edit_descriptions" required="" class="form-control" placeholder="Write Clear Descriptions (use English or Swahili)"></textarea>
-                    </div>
-
-                </div>
-                <div class="modal-footer">
-<?= csrf_field() ?>
-                    <input type="hidden" value="<?= time() ?>" name="transaction_id"/>
-                    <span id="add_inputs"></span>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">Save</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+<!-- Support modal removed - use external support tools -->

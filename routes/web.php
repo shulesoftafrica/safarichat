@@ -90,7 +90,7 @@ Route::get('/message', [App\Http\Controllers\Message::class, 'index'])->name('me
 Route::post('/message/store', [App\Http\Controllers\Message::class, 'store'])->name('message.store');
 Route::post('/messages/buy', [App\Http\Controllers\Message::class, 'buy'])->name('messages.buy');
 Route::get('/message/report', [App\Http\Controllers\Message::class, 'report'])->name('message.report');
-Route::any('/support', [App\Http\Controllers\Home::class, 'support'])->name('support');
+// Support system removed - use external support tools
 
 // Service routes
 Route::get('/service', [App\Http\Controllers\Service::class, 'index'])->name('service.index')->middleware('auth');
@@ -119,7 +119,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/home', [App\Http\Controllers\Home::class, 'index'])->name('home');
 Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index']);
-Route::get('/support', [App\Http\Controllers\Home::class, 'support'])->name('support');
+// Support system removed - use external support tools
 
 // Guest management routes
 Route::middleware('auth')->group(function () {
