@@ -141,11 +141,10 @@
                                 <td>{{ \Carbon\Carbon::parse($instance->created_at)->format('Y-m-d') }}</td>
                                 @if($instance->type === 'bulksms')
                                     @php
-                                        $smsStatus = \DB::table('users_sms_status')
-                                            ->where('user_id', $instance->user_id)
-                                            ->first();
+                                        $user = \App\Models\User::find($instance->user_id);
+                                        $messageLeft = $user ? $user->available_credits : 0;
                                     @endphp
-                                    <td>{{ $smsStatus->message_left ?? 0 }}</td>
+                                    <td>{{ $messageLeft }}</td>
                                 @else
                                     <td>{{ $instance->message_balance ?? 0 }}</td>
                                 @endif

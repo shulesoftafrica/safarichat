@@ -121,10 +121,8 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
 
      public function messagesLeft($channel = 'bulksms') {   
-        return \DB::table('users_sms_status')
-            ->where('user_id', $this->id)
-            ->where('channel', $channel)
-            ->value('message_left') ?? 0;
+        // Use the new credits system - return available_credits for all channels
+        return $this->available_credits ?? 0;
     }
 
     /**

@@ -76,54 +76,6 @@ class Message extends Controller
         // Payment status checking moved to new billing system
         return response()->json(['status' => 'success', 'message' => 'Payment checking moved to new billing system']);
     }
-
-        foreach ($bookings as $booking) {
-            // Check if the invoice with the same reference is paid in shulesoft.admin.addon_invoice
-            $invoice = DB::connection('shulesoft')
-                ->table('admin.addon_invoices')
-                ->where('reference', $booking->reference)
-                ->where('status', 1)
-                ->first();
-
-            if ($invoice) {
-                // Mark booking as paid
-                $booking->status = 1;
-                $booking->save();
-
-                // Load payment details from shulesoft.admin.payments where invoice_id = $invoice->id
-                $shulesoft_payment = DB::connection('shulesoft')
-                    ->table('admin.payments')
-                    ->where('invoice_id', $invoice->id)
-                    ->first();
-
-                if ($shulesoft_payment) {
-                // Payment creation moved to new billing system
-               
-
-                //now check if this package is for bulksms or not
-                if ($booking->admin_package_id == 5) {
-                    $admin_packages_payment_id=DB::table('admin_packages_payments')->insertGetId([
-                        'admin_payment_id' => $payment->id,
-                        'admin_package_id' => $booking->admin_package_id,
-                        'start_date' => now(),
-                        'end_date' => now()->addYear()
-                    ]);
-                    DB::table('admin_sms_brought')->insert([
-                        'admin_packages_payment_id' => $admin_packages_payment_id,
-                        'sms_provided' => $invoice->quantity ?? 0,
-                        'user_id' => $booking->user_id
-                    ]);
-                    $user = \App\Models\User::find($booking->user_id);
-                    if ($user) {
-                        // Send a message to the user informing about SMS allocation
-                        $message = "Hello {$user->name}, SMS credits have been allocated to your account. You can now start sending messages using your SafariChat account.";
-                        // Use the send_message method to notify the user via SMS
-                          $this->send($message, $user->phone);
-                }
-                }
-            }
-         }
-        }
     }
 
     public function channel()
@@ -1421,8 +1373,9 @@ class Message extends Controller
             return empty($addons) ? FALSE : ($addons->status == 'active');
         }
         if ($key == 'quick-sms') {
-            $status = DB::table('users_sms_status')->where('user_id', $user_id)->first();
-            return !empty($status) ? $status->message_left : 0;
+            // Use the new credits system
+            $user = \App\Models\User::find($user_id);
+            return $user ? $user->available_credits : 0;
         }
         if ($key == 'phone-sms') {
             //check if mobile app have been downloaded and last active time
