@@ -173,7 +173,7 @@ class Setup extends Controller {
         $code = request('code');
         $guests = \App\Models\EventsGuest::where('code', $code)->first();
         if (!empty($guests)) {
-            DB::table('live_attendees')->insert(['events_guest_id' => $guests->id, 'device' => getDevice()]);
+            // Event attendance tracking removed - focusing on contact management
             return redirect(url('live/' . $code))->with('success', 'welcome');
         } else {
             return redirect()->back()->with('error', 'Invalid code supplied');

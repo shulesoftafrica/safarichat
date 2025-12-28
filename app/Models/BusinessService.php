@@ -37,11 +37,5 @@ class BusinessService extends Model
         return $this->belongsTo('App\Models\Service');
     }
     
-      /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function promotions()
-    {
-        return $this->hasMany('App\Models\Promotion');
-    }
+    // Promotions relationship removed - table no longer exists
 }

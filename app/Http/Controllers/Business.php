@@ -105,14 +105,9 @@ class Business extends Controller {
         $move = $file->move($folder, $name);
         $path = $folder . $name;
         if ($move) {
-            \App\Models\File::firstOrCreate([
-                'mime' => $file->getClientOriginalExtension(),
-                'name' => $name,
-                'size' => $_FILES['file']['size'],
-                'caption' => request('details'),
-                'url' => $path,
-                'file_album_id' => request('album_id')
-            ]);
+            // File management system removed - files saved to filesystem only
+            return redirect()->back()->with('success', 'File uploaded successfully');
+        }
             return redirect()->back()->with('success', 'success');
         } else {
             return redirect()->back()->with('error', 'error: File failed to be uploaded, try again later');
@@ -120,17 +115,8 @@ class Business extends Controller {
     }
 
     public function createAlbum() {
-        $name = request('name');
-        if (strlen($name) > 3) {
-            \App\Models\FileAlbum::firstOrCreate(['name' => trim($name), 'user_id' => Auth::user()->id]);
-            $albums = \App\Models\FileAlbum::whereUserId(Auth::user()->id)->get();
-            $result = ' <select class="form-control select2" name="album_id" id="edit_album" style="width:100%">';
-            foreach ($albums as $album) {
-                $result .= '<option value="' . $album->id . '">' . $album->name . '</option>';
-            }
-            $result .= '</select>';
-            echo $result;
-        }
+        // File album management removed - use external file management solution
+        return response()->json(['status' => 'File album management has been removed']);
     }
 
     public function updateProfile() {
