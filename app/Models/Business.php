@@ -59,6 +59,7 @@ class Business extends Model
     
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @deprecated Use businessContacts() instead
      */
     public function businessGuests()
     {
@@ -67,10 +68,47 @@ class Business extends Model
     
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Business contacts (formerly guests) - main contact management
+     */
+    public function businessContacts()
+    {
+        return $this->hasMany('App\Models\BusinessContact', 'business_id');
+    }
+    
+    /**
+     * Alias for businessContacts for simpler access
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function contacts()
+    {
+        return $this->businessContacts();
+    }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @deprecated Use businessContactCategories() instead
      */
     public function guestCategories()
     {
         return $this->hasMany('App\Models\EventGuestCategory', 'business_id');
+    }
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Business contact categories for organizing contacts
+     */
+    public function businessContactCategories()
+    {
+        return $this->hasMany('App\Models\BusinessContactCategory', 'business_id');
+    }
+    
+    /**
+     * Alias for businessContactCategories for simpler access
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function contactCategories()
+    {
+        return $this->businessContactCategories();
     }
     
     /**
