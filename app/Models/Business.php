@@ -135,6 +135,14 @@ class Business extends Model
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function businessType()
+    {
+        return $this->belongsTo('App\Models\BusinessType', 'business_type_id');
+    }
+
+    /**
      * Check if business has an active campaign
      */
     public function hasActiveCampaign(): bool

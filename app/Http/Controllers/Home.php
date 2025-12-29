@@ -8,6 +8,7 @@ use \App\Models\Payment;
 use \App\Models\User;
 use Auth;
 use DB;
+use Illuminate\Support\Str;
 
 class Home extends Controller
 {
@@ -297,6 +298,67 @@ class Home extends Controller
             ]);
         }
         return redirect()->back()->with('success', 'success');
+    }
+
+    /**
+     * Create business campaign (Phase 2: Business-centric approach)
+     */
+    public function createCampaign()
+    {
+        $this->validate(request(), [
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z\s\-\']+$/',
+                function ($attribute, $value, $fail) {
+                    $sanitized = strip_tags(trim($value));
+                    if ($value !== $sanitized) {
+                        $fail('The '.$attribute.' field contains invalid characters.');
+                    }
+                    if (preg_match('/<[^>]*>/', $value)) {
+                        $fail('The '.$attribute.' field contains HTML tags.');
+                    }
+                },
+            ],
+            "district_id" => "required|min:1",
+            "date" => "date|required",
+            'business_type_id' => 'required|integer'
+        ]);
+
+        // Get or create business for the user
+        $userBusiness = Auth::user()->business;
+        if (!$userBusiness) {
+            $userBusiness = \App\Models\Business::create([
+                'user_id' => Auth::user()->id,
+                'name' => Auth::user()->name . ' Business',
+                'address' => 'Default Address',
+                'descriptions' => 'Auto-created business profile',
+                'ward_id' => 1,
+                'business_type_id' => request('business_type_id')
+            ]);
+        }
+
+        // Update business with campaign information
+        $userBusiness->update([
+            'campaign_name' => request('name'),
+            'campaign_start_date' => now()->toDateString(),
+            'campaign_end_date' => request('date'),
+            'district_id' => request('district_id'),
+            'campaign_uid' => \Str::uuid(),
+            'business_type_id' => request('business_type_id')
+        ]);
+
+        // Create WhatsApp instance
+        $whatsapp_instance = \App\Models\WhatsappInstance::firstOrCreate([
+            'user_id' => Auth::id(),
+            'phone_number' => Auth::user()->phone,
+        ], [
+            'instance_name' => Auth::user()->name,
+            'status' => 'pending'
+        ]);
+
+        return redirect()->back()->with('success', 'Campaign created successfully! Your business profile has been updated.');
     }
 
     public function settings()

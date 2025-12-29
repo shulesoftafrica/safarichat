@@ -24,20 +24,20 @@
                     <h4 class="mt-0 header-title">Compaign Setup</h4>
                     <p class="text-muted mb-3">Setup your Compaign details to easily get started</p>
 
-                    <form class="form-parsley"  novalidate="" action="{{url('home/createEvent')}}" method="post">
+                    <form class="form-parsley"  novalidate="" action="{{url('home/createCampaign')}}" method="post">
                         <div class="form-group">
-                            <label>Compaign Type</label>
-                            <select class="form-control  @error('event_type_id') is-invalid @enderror" name="event_type_id" id="event_type_id" onchange="setCriteria(this.value)">
-                                <option value=""></option>
+                            <label>Business Type</label>
+                            <select class="form-control  @error('business_type_id') is-invalid @enderror" name="business_type_id" id="business_type_id" onchange="setCriteria(this.value)">
+                                <option value="">Select Business Type</option>
                                 <?php
-                                $event_types = \App\Models\EventsType::where('status', 1)->get();
-                                foreach ($event_types as $event_type) {
+                                $business_types = \App\Models\BusinessType::all();
+                                foreach ($business_types as $business_type) {
                                     ?>
-                                    <option value="<?= $event_type->id ?>" data-name="<?= $event_type->name ?>"><?= $event_type->name ?></option>
+                                    <option value="<?= $business_type->id ?>" data-name="<?= $business_type->name ?>"><?= $business_type->name ?></option>
                                 <?php }
                                 ?>
                             </select>
-                            @error('event_type_id')
+                            @error('business_type_id')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
                             </span>
@@ -139,7 +139,7 @@
     partner_name = function () {
         $('#partner_name').keyup(function (e) {
             var val = $(this).val();
-            var event_type = $("#event_type_id option:selected").text();
+            var business_type = $("#business_type_id option:selected").text();
             $('#event_name').val(val + ' & ' + '<?= Auth::user()->name ?>' + ' ' + event_type);
         });
     }

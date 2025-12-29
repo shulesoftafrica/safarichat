@@ -475,10 +475,54 @@ class UserResolutionService
     }
     
     /**
-     * Create a default event for a specific user
+     * Create a default business for a specific user (Phase 2: Business-centric approach)
+     */
+    private static function createDefaultBusinessForUser(int $userId): int
+    {
+        DB::beginTransaction();
+        
+        try {
+            $user = DB::table('users')->where('id', $userId)->first();
+            
+            // Create default business instead of event
+            $businessId = DB::table('businesses')->insertGetId([
+                'user_id' => $userId,
+                'name' => ($user->name ?? 'User') . ' Business',
+                'campaign_name' => 'Default Campaign for Notifications',
+                'business_type_id' => 1, // Default business type
+                'campaign_start_date' => now()->format('Y-m-d'),
+                'ward_id' => 1, // Default ward
+                'address' => 'System Generated',
+                'descriptions' => 'Auto-created business for notifications',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::commit();
+            
+            Log::info('Default business created for user', ['user_id' => $userId, 'business_id' => $businessId]);
+            
+            return $businessId;
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create default business for user', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Legacy: Create a default event for a specific user (keeping for backward compatibility)
      */
     private static function createDefaultEventForUser(int $userId): int
     {
+        // For new implementation, create business instead
+        $businessId = self::createDefaultBusinessForUser($userId);
+        
+        // Still create event for backward compatibility but link to business
         DB::beginTransaction();
         
         try {
@@ -497,7 +541,9 @@ class UserResolutionService
                 'user_id' => $userId,
                 'event_id' => $eventId,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
+                'is_legacy' => true,
+                'migration_notes' => 'Auto-created for backward compatibility - business-centric approach preferred'
             ]);
             
             DB::commit();
