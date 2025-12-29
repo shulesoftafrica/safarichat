@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 class WebhookController extends Controller
 {
     public function __construct(
-        protected PaymentGatewayService $paymentService,
+        // PaymentGatewayService removed - using new billing system
         // SubscriptionService removed - using new billing system
         // CreditService removed - using new billing system
         protected SubscriptionNotificationService $notificationService

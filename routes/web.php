@@ -80,8 +80,18 @@ Route::get('/test-queue', function() {
 Route::get('/privacy', function() { return view('corporate.privacy');});
 Route::get('/live/{event_id?}','Setup@liveEvent');
 Route::post('/resetpassword/resetP','Setup@resetP');
-//Auth::routes();
-Auth::routes(['verify' => true]);
+
+// Custom authentication routes (OTP-based)
+Route::get('/login', 'Setup@businessLogin')->name('login');
+Route::post('/logout', function() {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/');
+})->name('logout');
+Route::get('/register', function() {
+    return view('auth.register');
+})->name('register');
 
 
 

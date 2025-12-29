@@ -76,7 +76,6 @@ class Message extends Controller
         // Payment status checking moved to new billing system
         return response()->json(['status' => 'success', 'message' => 'Payment checking moved to new billing system']);
     }
-    }
 
     public function channel()
     {
@@ -1394,12 +1393,6 @@ class Message extends Controller
                 $when = $try_period == null ? '' : 'Since ' . date('d M Y H:i', strtotime($try_period));
                 return (int) $days > 1 ? 'Seems your mobile phone is not active ' . $when . ', kindly download or OPEN a mobile app and login first before you send message' : TRUE;
             }
-
-            $addons = DB::table('admin_packages_payments')->whereIn('admin_payment_id', \App\Models\AdminPayment::whereUserId($user_id)->get(['id']))
-                ->whereIn('admin_package_id', \App\Models\AdminPackage::whereName('phone-sms')->get(['id']))
-                ->where('end_date', '>=', date('Y-m-d H:i', time()))->first();
-            return empty($addons) ? FALSE : $addons->end_date;
-        }
     }
 
     public function addChannel()
