@@ -400,7 +400,7 @@ Subscriptions must unlock **capability**, not just credits.
 * 1 AI agent WhatsApp channel
 * No Customer Followups
 * No customer categorization
-* 60,000 credits
+* 69,000 credits
 * Credits can roll over ONLY if subscription renews
 
 
@@ -411,19 +411,19 @@ Subscriptions must unlock **capability**, not just credits.
 * 3 Ai Agent WhatsApp channels
 * Customer Followups
 * Customer Categorization
-* 150,000 credits
+* 149,000 credits
 * Sales insights Reports
 * Credits rollover on renewal
 
 
 ### Premium : Premium — 299,000 / month
 
-* 500 contacts
+* 400 contacts
 * 200 products
-* 10 AI agents WhatsApp channels
+* 7 AI agents WhatsApp channels
 * Customer Followups
 * Customer Categorization
-* 350,000 credits
+* 299,000 credits
 * Customer Bookings Calenders
 * Credits rollover on renewal
 * Sales insights Reports

@@ -35,11 +35,5 @@ class District extends Model
     {
         return $this->hasMany('App\Models\Ward');
     }
-      /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function events()
-    {
-        return $this->hasMany('App\Models\Events');
-    }
+      // Events relationship removed - events table no longer exists
 }

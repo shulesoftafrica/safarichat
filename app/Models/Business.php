@@ -58,12 +58,11 @@ class Business extends Model
     }
     
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     * @deprecated Use businessContacts() instead
+     * @deprecated EventsGuest model removed - use businessContacts() instead
      */
     public function businessGuests()
     {
-        return $this->hasMany('App\Models\EventsGuest', 'business_id');
+        throw new \Exception('EventsGuest model has been removed. Use businessContacts() relationship instead.');
     }
     
     /**
@@ -85,12 +84,11 @@ class Business extends Model
     }
     
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     * @deprecated Use businessContactCategories() instead
+     * @deprecated EventGuestCategory model removed - use businessContactCategories() instead
      */
     public function guestCategories()
     {
-        return $this->hasMany('App\Models\EventGuestCategory', 'business_id');
+        throw new \Exception('EventGuestCategory model has been removed. Use businessContactCategories() relationship instead.');
     }
     
     /**

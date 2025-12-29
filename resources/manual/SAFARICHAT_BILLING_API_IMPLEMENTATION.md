@@ -107,29 +107,65 @@ Content-Type: application/json
         "max_contacts": 10,
         "max_products": 1,
         "max_outgoing_messages": 50,
-        "ai_credits": 10000
-      }
+        "whatsapp_channels": 1,
+        "customer_followups": false,
+        "customer_categorization": false,
+        "booking_calendars": false,
+        "sales_reports": false,
+        "ai_credits": 0
+      },
+      "credits_rollover": false
     },
     "starter": {
       "price": 69000,
       "currency": "TZS",
+      "billing_cycle": "monthly",
       "limits": {
         "max_contacts": 50,
         "max_products": 5,
-        "ai_credits": 60000,
+        "whatsapp_channels": 1,
+        "customer_followups": false,
+        "customer_categorization": false,
+        "booking_calendars": false,
+        "sales_reports": false,
+        "ai_credits": 69000,
         "unlimited_messages": true
-      }
+      },
+      "credits_rollover": true
     },
     "pro": {
       "price": 149000,
       "currency": "TZS", 
+      "billing_cycle": "monthly",
       "limits": {
         "max_contacts": 150,
         "max_products": 50,
-        "ai_credits": 150000,
-        "unlimited_messages": true,
-        "advanced_features": true
-      }
+        "whatsapp_channels": 3,
+        "customer_followups": true,
+        "customer_categorization": true,
+        "booking_calendars": false,
+        "sales_reports": true,
+        "ai_credits": 149000,
+        "unlimited_messages": true
+      },
+      "credits_rollover": true
+    },
+    "premium": {
+      "price": 299000,
+      "currency": "TZS",
+      "billing_cycle": "monthly",
+      "limits": {
+        "max_contacts": 400,
+        "max_products": 200,
+        "whatsapp_channels": 7,
+        "customer_followups": true,
+        "customer_categorization": true,
+        "booking_calendars": true,
+        "sales_reports": true,
+        "ai_credits": 299000,
+        "unlimited_messages": true
+      },
+      "credits_rollover": true
     }
   },
   "token_pricing": {
@@ -1511,4 +1547,417 @@ Route::middleware('web')->group(function() {
 - Performance metrics
 - Billing status monitoring
 
-This gives you a **complete admin interface** that's simple to deploy and maintain, perfect for managing SafariChat operations! 🚀
+---
+
+## 14. SPECIFIC CONTROL POINT IMPLEMENTATIONS
+
+### 14.1 Contact Limit Control (max_contacts)
+
+**Frontend Contact Addition (Customer Page):**
+```javascript
+// Before adding new contact via interface
+function addNewContact(contactData) {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  const validation = LocalBillingValidator.canAddContact(billingStatus);
+  
+  if (!validation.allowed) {
+    if (validation.reason === 'limit_reached') {
+      showUpgradeModal({
+        title: '⚠️ Contact Limit Reached',
+        message: `You've reached your ${billingStatus.limits.contacts.max} contact limit.`,
+        upgradeTo: billingStatus.subscription.plan === 'trial' ? 'starter' : 'pro'
+      });
+    }
+    return false;
+  }
+  
+  // Proceed with contact creation
+  return createContact(contactData);
+}
+```
+
+**Backend WhatsApp Message Handler (AI Agent Background):**
+```php
+// app/Services/WhatsAppMessageHandler.php
+class WhatsAppMessageHandler {
+  
+  public function handleIncomingMessage($message) {
+    $customerId = $this->getCustomerFromPhone($message->business_phone);
+    $billingStatus = BillingService::getCachedStatus($customerId);
+    
+    // Check if this is a new contact
+    if ($this->isNewContact($message->from)) {
+      if (!$this->canAddContact($billingStatus)) {
+        // DON'T create contact - notify owner instead
+        $this->notifyOwnerContactLimitReached($customerId, $message);
+        
+        // Send generic response to customer (don't reveal limit issue)
+        $this->sendCustomerResponse($message->from, 
+          "Thank you for your message. We'll get back to you shortly! 🙏"
+        );
+        return;
+      }
+    }
+    
+    // Process normally if within limits
+    $this->processMessage($message);
+  }
+  
+  private function notifyOwnerContactLimitReached($customerId, $message) {
+    $notification = [
+      'title' => '⚠️ Contact Limit Reached',
+      'message' => "A new customer tried to reach you, but you've hit your contact limit.\n\n" .
+                   "Customer: {$message->from}\n" .
+                   "Message: " . Str::limit($message->body, 100) . "\n\n" .
+                   "Upgrade now to accept unlimited contacts and never miss a customer again!",
+      'action_url' => '/billing/upgrade',
+      'urgency' => 'high'
+    ];
+    
+    NotificationService::send($customerId, $notification);
+  }
+}
+```
+
+### 14.2 Product Limit Control (max_products)
+
+**Frontend Product Creation Interface:**
+```javascript
+// resources/js/product-management.js
+function showAddProductButton() {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  const addBtn = document.getElementById('add-product-btn');
+  
+  if (!LocalBillingValidator.canAddProduct(billingStatus).allowed) {
+    addBtn.disabled = true;
+    addBtn.innerHTML = `🔒 Upgrade to add more products (${billingStatus.limits.products.current}/${billingStatus.limits.products.max})`;
+    addBtn.onclick = () => showUpgradeModal('You need to upgrade to add more products');
+  }
+}
+
+// Before product creation
+function createProduct(productData) {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  const validation = LocalBillingValidator.canAddProduct(billingStatus);
+  
+  if (!validation.allowed) {
+    showUpgradeModal({
+      title: 'Product Limit Reached',
+      message: `Your ${billingStatus.subscription.plan} plan allows ${billingStatus.limits.products.max} products. Upgrade for more!`,
+      limits: {
+        current: billingStatus.limits.products.current,
+        max: billingStatus.limits.products.max
+      }
+    });
+    return false;
+  }
+  
+  return submitProduct(productData);
+}
+```
+
+**Backend Product Controller:**
+```php
+// app/Http/Controllers/ProductController.php
+public function store(Request $request) {
+  $billingStatus = BillingService::getCachedStatus(auth()->user()->customer_id);
+  
+  if (!BillingValidator::canAddProduct($billingStatus)) {
+    return response()->json([
+      'error' => 'Product limit reached',
+      'current' => $billingStatus['limits']['products']['current'],
+      'max' => $billingStatus['limits']['products']['max'],
+      'upgrade_required' => true
+    ], 403);
+  }
+  
+  // Create product normally
+  return $this->createProduct($request);
+}
+```
+
+### 14.3 WhatsApp Channels Limit (whatsapp_channels)
+
+**Channel Creation Interface:**
+```javascript
+// During WhatsApp channel setup
+function addWhatsAppChannel(channelData) {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  
+  if (billingStatus.limits.whatsapp_channels.current >= billingStatus.limits.whatsapp_channels.max) {
+    showUpgradeModal({
+      title: 'WhatsApp Channel Limit Reached',
+      message: `Your ${billingStatus.subscription.plan} plan allows ${billingStatus.limits.whatsapp_channels.max} WhatsApp channels.`,
+      feature: 'Multiple WhatsApp channels',
+      upgrade_to: billingStatus.subscription.plan === 'starter' ? 'pro' : 'premium'
+    });
+    return false;
+  }
+  
+  return createWhatsAppChannel(channelData);
+}
+```
+
+### 14.4 Customer Followups Control (Cronjob)
+
+**Followup Cronjob Handler:**
+```php
+// app/Console/Commands/ProcessCustomerFollowups.php
+class ProcessCustomerFollowups extends Command {
+  
+  public function handle() {
+    $businesses = Business::where('followups_enabled', true)->get();
+    
+    foreach ($businesses as $business) {
+      $billingStatus = BillingService::getCachedStatus($business->customer_id);
+      
+      // Check if customer followups are allowed in their plan
+      if (!$billingStatus['permissions']['customer_followups']) {
+        // Log missed followup for revenue tracking
+        $this->logMissedAutomation($business->customer_id, 'followup', 
+          "Customer followups are not available in {$billingStatus['subscription']['plan']} plan");
+        
+        // Notify owner about missed opportunity
+        $this->notifyOwnerFeatureBlocked($business->customer_id, 'followups');
+        continue;
+      }
+      
+      // Process followups normally
+      $this->processFollowupsForBusiness($business);
+    }
+  }
+  
+  private function notifyOwnerFeatureBlocked($customerId, $feature) {
+    NotificationService::send($customerId, [
+      'title' => "⚠️ Missed {$feature}",
+      'message' => "SafariChat was supposed to process customer {$feature}, but your plan doesn't include this feature. Upgrade to unlock automated {$feature}!",
+      'action' => 'upgrade'
+    ]);
+  }
+}
+```
+
+### 14.5 Customer Categorization Control (Cronjob)
+
+**Categorization Cronjob:**
+```php
+// app/Console/Commands/CategorizeCustomers.php
+class CategorizeCustomers extends Command {
+  
+  public function handle() {
+    $businesses = Business::all();
+    
+    foreach ($businesses as $business) {
+      $billingStatus = BillingService::getCachedStatus($business->customer_id);
+      
+      if (!$billingStatus['permissions']['customer_categorization']) {
+        $this->logMissedAutomation($business->customer_id, 'categorization',
+          "Customer categorization blocked by {$billingStatus['subscription']['plan']} plan limits");
+        continue;
+      }
+      
+      // Process categorization
+      $this->categorizeBusinessContacts($business);
+    }
+  }
+}
+```
+
+### 14.6 Sales Reports Control (Cronjob)
+
+**Sales Reports Generation:**
+```php
+// app/Console/Commands/GenerateSalesReports.php  
+class GenerateSalesReports extends Command {
+  
+  public function handle() {
+    $businesses = Business::all();
+    
+    foreach ($businesses as $business) {
+      $billingStatus = BillingService::getCachedStatus($business->customer_id);
+      
+      if (!$billingStatus['permissions']['sales_reports']) {
+        // Don't generate report, notify about missed insights
+        NotificationService::send($business->customer_id, [
+          'title' => '📊 Sales Insights Available',
+          'message' => 'Upgrade to Pro or Premium to get automated sales reports and business insights!',
+          'type' => 'upgrade_prompt'
+        ]);
+        continue;
+      }
+      
+      // Generate and send reports
+      $this->generateSalesReport($business);
+    }
+  }
+}
+```
+
+### 14.7 Booking Calendar Control (Interface)
+
+**Booking Calendar Feature (To Be Implemented):**
+```javascript
+// resources/js/booking-calendar.js
+function initializeBookingCalendar() {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  const calendarContainer = document.getElementById('booking-calendar');
+  
+  if (!billingStatus.permissions.booking_calendars) {
+    calendarContainer.innerHTML = `
+      <div class="feature-locked">
+        <h3>🗓️ Booking Calendar</h3>
+        <p>Customer booking calendars are available in Premium plan.</p>
+        <button onclick="showUpgradeModal('booking_calendar')" class="upgrade-btn">
+          Upgrade to Premium
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  // Initialize calendar normally
+  loadBookingCalendar();
+}
+```
+
+**Booking Calendar Backend:**
+```php
+// app/Http/Controllers/BookingController.php
+class BookingController extends Controller {
+  
+  public function index() {
+    $billingStatus = BillingService::getCachedStatus(auth()->user()->customer_id);
+    
+    if (!$billingStatus['permissions']['booking_calendars']) {
+      return view('booking.upgrade-required', [
+        'feature' => 'Booking Calendars',
+        'current_plan' => $billingStatus['subscription']['plan'],
+        'required_plan' => 'premium'
+      ]);
+    }
+    
+    return view('booking.calendar', $this->getCalendarData());
+  }
+}
+```
+
+### 14.8 AI Credits Control (Usage Control)
+
+**Enhanced AI Usage Control:**
+```javascript
+// Before every AI operation
+async function callAIAgent(message, conversationId) {
+  const billingStatus = BillingCacheManager.getCache(customerId);
+  
+  // Estimate credits needed
+  const estimatedCredits = Math.ceil(message.length * 1.3 / 3.846);
+  
+  // CRITICAL: Check if enough credits
+  const validation = await LocalBillingValidator.canUseAI(billingStatus, estimatedCredits);
+  
+  if (!validation.allowed) {
+    if (validation.reason === 'insufficient_credits') {
+      // Show credit purchase modal
+      showCreditPurchaseModal({
+        current_credits: billingStatus.limits.ai_credits.balance,
+        needed_credits: estimatedCredits,
+        message: 'Not enough credits for AI response'
+      });
+    } else if (validation.reason === 'subscription_inactive') {
+      // Show subscription reactivation
+      showSubscriptionModal('AI agent is paused - reactivate subscription');
+    }
+    
+    return { error: validation.reason };
+  }
+  
+  // Reserve credits before AI call
+  const reservation = await LocalCreditManager.reserveCredits(customerId, estimatedCredits);
+  
+  try {
+    const aiResponse = await callAI(message);
+    
+    // Use actual tokens for final credit calculation
+    const actualCredits = Math.ceil(aiResponse.usage.total_tokens / 3.846);
+    await LocalCreditManager.finalizeCredits(customerId, reservation.id, actualCredits);
+    
+    // Update UI with new credit balance
+    updateCreditDisplay(billingStatus.limits.ai_credits.balance - actualCredits);
+    
+    return aiResponse;
+  } catch (error) {
+    // Release reserved credits on failure
+    await LocalCreditManager.releaseReservation(customerId, reservation.id);
+    throw error;
+  }
+}
+```
+
+**AI Credit Low Warning:**
+```php
+// app/Services/CreditMonitorService.php
+class CreditMonitorService {
+  
+  public static function checkCreditLevels($customerId) {
+    $billingStatus = BillingService::getCachedStatus($customerId);
+    $credits = $billingStatus['limits']['ai_credits']['balance'];
+    
+    // Warn at 20% remaining
+    if ($credits <= ($billingStatus['limits']['ai_credits']['max'] * 0.2)) {
+      NotificationService::send($customerId, [
+        'title' => '⚠️ Credits Running Low',
+        'message' => "You have {$credits} credits remaining. Top up now to avoid AI interruptions!",
+        'action' => 'buy_credits',
+        'urgency' => 'medium'
+      ]);
+    }
+    
+    // Alert at 5% remaining  
+    if ($credits <= ($billingStatus['limits']['ai_credits']['max'] * 0.05)) {
+      NotificationService::send($customerId, [
+        'title' => '🚨 Credits Almost Depleted',
+        'message' => "URGENT: Only {$credits} credits left! AI responses will stop when credits are exhausted.",
+        'action' => 'buy_credits', 
+        'urgency' => 'high'
+      ]);
+    }
+  }
+}
+```
+
+### 14.9 Integration Points Summary
+
+**Files to Modify for Control Implementation:**
+
+```php
+// Frontend JavaScript Files:
+resources/js/contact-management.js      // Contact limit controls
+resources/js/product-management.js      // Product limit controls  
+resources/js/whatsapp-channels.js       // Channel limit controls
+resources/js/booking-calendar.js        // Calendar feature locks
+resources/js/ai-agent.js               // AI credit controls
+
+// Backend Controllers:
+app/Http/Controllers/ContactController.php        // Contact creation limits
+app/Http/Controllers/ProductController.php        // Product creation limits
+app/Http/Controllers/WhatsAppController.php       // Channel setup limits
+app/Http/Controllers/BookingController.php        // Calendar feature access
+
+// Background Jobs/Commands:
+app/Console/Commands/ProcessCustomerFollowups.php    // Followup feature control
+app/Console/Commands/CategorizeCustomers.php        // Categorization control
+app/Console/Commands/GenerateSalesReports.php       // Report generation control
+
+// Service Classes:
+app/Services/WhatsAppMessageHandler.php   // Contact limit during AI processing
+app/Services/BillingService.php           // Central billing validation
+app/Services/CreditMonitorService.php     // AI credit monitoring
+app/Services/NotificationService.php      // Owner notifications
+
+// Middleware (Optional):
+app/Http/Middleware/CheckBillingLimits.php  // Route-level billing checks
+```
+
+This comprehensive integration ensures **every control point** is properly implemented with **revenue protection** and **user experience optimization**! 🛡️
+
+---

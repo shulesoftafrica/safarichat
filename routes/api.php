@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CrmSyncApiController;
 use App\Http\Controllers\Api\CrmImportController;
 use App\Http\Controllers\WaSenderController;
 use App\Http\Controllers\Auth\WhatsAppRegistrationController;
+use App\Http\Controllers\Api\BillingApiController;
 
 /*
   |--------------------------------------------------------------------------
@@ -22,6 +23,19 @@ use App\Http\Controllers\Auth\WhatsAppRegistrationController;
   | is assigned the "api" middleware group. Enjoy building your API!
   |
  */
+
+// Billing API Routes (Revenue Protected)
+Route::prefix('billing')->name('api.billing.')->group(function () {
+    // Configuration (setup only)
+    Route::post('/configure-product', [BillingApiController::class, 'configureProduct'])->name('configure_product');
+    
+    // Runtime operations
+    Route::get('/customers/{customerId}/complete-status', [BillingApiController::class, 'getCompleteStatus'])->name('complete_status');
+    Route::post('/sync-credits', [BillingApiController::class, 'syncCredits'])->name('sync_credits');
+    Route::post('/verify-credits', [BillingApiController::class, 'verifyCredits'])->name('verify_credits');
+    Route::post('/refresh-status', [BillingApiController::class, 'refreshStatus'])->name('refresh_status');
+    Route::post('/emergency-refresh', [BillingApiController::class, 'emergencyRefresh'])->name('emergency_refresh');
+});
 
 // WhatsApp Registration Routes (Public)
 Route::prefix('auth')->name('api.auth.')->group(function () {
