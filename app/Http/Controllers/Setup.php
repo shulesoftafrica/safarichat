@@ -115,18 +115,8 @@ class Setup extends Controller {
 
 
     public function aunthenticateMobile() {
-        $code = request()->segment(3);
-        $ime = request()->segment(4);
-        $model = request()->segment(5);
-        $verify = DB::table('users_keys')->where('api_key', $code)->where('type', 'phone-sms')->first();
-        if (!empty($verify)) {
-            DB::table('users_keys')->where('api_key', $code)->update(['device' => $ime, 'others' => $model, 'last_active' => 'now()']);
-            $status = 1;
-        } else {
-            $status = 0;
-            $code = '';
-        }
-        echo json_encode(['data' => [['code' => $code, 'status' => $status]]]);
+        // Mobile SMS authentication removed - users_keys table no longer exists
+        echo json_encode(['data' => [['code' => '', 'status' => 0]]]);
     }
 
     public function updatestatus() {
@@ -139,16 +129,8 @@ class Setup extends Controller {
     }
 
     public function smsReport() {
-        $code = request()->segment(3);
-        $verify = DB::table('users_keys')->where('api_key', $code)->where('type', 'phone-sms')->first();
-        if (!empty($verify)) {
-            $sent_sms = \App\Models\MessageSentby::where('channel', 'phone-sms')->whereNotNull('return_code')->whereIn('message_id', \App\Models\Message::whereUserId($verify->user_id)->get(['id']))->count();
-            $pending_sms = \App\Models\MessageSentby::where('channel', 'phone-sms')->whereNull('return_code')->whereIn('message_id', \App\Models\Message::whereUserId($verify->user_id)->get(['id']))->count();
-        } else {
-            $sent_sms = 0;
-            $pending_sms = 0;
-        }
-        echo json_encode(['reports' => [['sent' => $sent_sms, 'pending' => $pending_sms]]]);
+        // SMS reporting removed - users_keys table no longer exists
+        echo json_encode(['sent' => 0, 'pending' => 0]);
     }
 
     public function apiAcceptPayment() {

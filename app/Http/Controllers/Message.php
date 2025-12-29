@@ -1379,8 +1379,9 @@ class Message extends Controller
             return $user ? $user->available_credits : 0;
         }
         if ($key == 'phone-sms') {
-            //check if mobile app have been downloaded and last active time
-            $verify = DB::table('users_keys')->where('user_id', $user_id)->where('type', 'phone-sms')->first();
+            // Mobile SMS functionality removed - users_keys table no longer exists
+            return 'Mobile SMS functionality has been removed';
+        }
             if (empty($verify)) {
                 return $message = 'Seems your mobile phone is not active, kindly download a mobile app and login first before you send message';
             } else {
