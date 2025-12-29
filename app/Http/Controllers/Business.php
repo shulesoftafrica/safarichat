@@ -107,8 +107,6 @@ class Business extends Controller {
         if ($move) {
             // File management system removed - files saved to filesystem only
             return redirect()->back()->with('success', 'File uploaded successfully');
-        }
-            return redirect()->back()->with('success', 'success');
         } else {
             return redirect()->back()->with('error', 'error: File failed to be uploaded, try again later');
         }
