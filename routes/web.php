@@ -49,15 +49,9 @@ Route::get('/roi-calculator', function() { return view('landing.roi-calculator')
 Route::post('/demo-chat', [App\Http\Controllers\LandingController::class, 'demoChat'])->name('landing.demo-chat');
 Route::post('/calculate-roi', [App\Http\Controllers\LandingController::class, 'calculateROI'])->name('landing.calculate-roi');
 
-// Direct upload test route
-Route::get('/test-upload', function() {
-    return view('test_direct_upload');
-})->name('test.upload');
 
-// Simple upload test route
-Route::get('/test-simple', function() {
-    return view('test_upload_simple');
-})->name('test.simple');
+
+
 Route::get('/api/pricing/{currency}', [App\Http\Controllers\LandingController::class, 'getPricing'])->name('landing.pricing');
 Route::post('/contact-submit', [App\Http\Controllers\LandingController::class, 'contactSubmit'])->name('landing.contact');
 
@@ -73,10 +67,7 @@ Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('das
 Route::get('/terms', function() { return view('auth.legal.terms_of_service');});
 Route::get('/terms/use', function() { return view('auth.legal.terms_of_use');});
 
-// Queue testing route (for development)
-Route::get('/test-queue', function() {
-    return view('test-queue');
-})->name('test.queue');
+
 Route::get('/privacy', function() { return view('corporate.privacy');});
 Route::get('/live/{event_id?}','Setup@liveEvent');
 Route::post('/resetpassword/resetP','Setup@resetP');
@@ -272,6 +263,22 @@ Route::post('/webhooks/stripe', [App\Http\Controllers\WebhookController::class, 
 // WhatsApp Instance Management (web routes)
 Route::middleware('auth')->group(function () {
     Route::get('/whatsapp/instances', [App\Http\Controllers\WhatsappInstanceController::class, 'indexView'])->name('whatsapp.instances.index');
+});
+
+// Admin Dashboard Routes
+Route::get('/admin', [App\Http\Controllers\AdminController::class, 'showLogin'])->name('admin.login');
+Route::post('/admin/login', [App\Http\Controllers\AdminController::class, 'login']);
+Route::middleware('auth.admin')->group(function() {
+    Route::get('/admin/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/admin/logout', [App\Http\Controllers\AdminController::class, 'logout']);
+    Route::post('/admin/update-pricing', [App\Http\Controllers\AdminController::class, 'updatePricing']);
+    Route::post('/admin/clear-cache', [App\Http\Controllers\AdminController::class, 'clearCache']);
+    
+    // Billing API sync routes
+    Route::get('/admin/sync-from-billing-api', [App\Http\Controllers\AdminController::class, 'syncFromBillingAPI']);
+    Route::get('/admin/test-billing-api', [App\Http\Controllers\AdminController::class, 'testBillingAPI']);
+    Route::post('/admin/sync-all-customers', [App\Http\Controllers\AdminController::class, 'syncAllCustomers']);
+    Route::post('/admin/refresh-billing-cache', [App\Http\Controllers\AdminController::class, 'refreshBillingCache']);
 });
 
 

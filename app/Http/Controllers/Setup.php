@@ -6,6 +6,7 @@ use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use App\Services\BillingService;
 
 class Setup extends Controller {
 
@@ -18,7 +19,23 @@ class Setup extends Controller {
             return redirect('/home');
         }
         
-        return view('auth.login');
+        // Load pricing plans from billing service (excluding free trial)
+        $products = BillingService::getProducts();
+        $pricingPlans = [];
+        
+        if ($products['success'] && !empty($products['data'])) {
+            // Filter out free trial packages (price = 0) and only show packages with price > 0
+            
+            $pricingPlans = collect($products['data']['products'][0]['plans'] ?? [])
+                ->filter(function($plan) {
+                    return isset($plan['price']) && $plan['price'] > 0;
+                })
+                ->values()
+                ->toArray();
+             
+        }
+      
+        return view('auth.login', ['pricingPlans' => $pricingPlans]);
     }
 
 
@@ -305,15 +322,7 @@ class Setup extends Controller {
         ]);
 
 
-        if (isset($data['politician_type']) && isset($data['party'])) {
-            DB::table('users_political_parties')->insert([
-                'user_id' => $userId,
-                'party_id' => $data['party'],
-                'created_at' => now(),
-                'updated_at' => now(),
-                'username' => strtolower(str_replace(' ', '', trim($data['name'] . $data['sp_whatsapp']))),
-            ]);
-        }else{
+        {
             if (!empty($data['sp_business_type']) && !empty($data['sp_sub_category'])) {
                 DB::table('user_sub_category')->insert([
                     'user_id' => $userId,
@@ -408,11 +417,6 @@ class Setup extends Controller {
             ->orderBy('name')
             ->get(['id', 'name']);
         return response()->json($subCategories);
-    }
-
-    public function parties(){
-        $parties = \App\Models\PoliticalParty::all(['id', 'name']);
-        return response()->json($parties);
     }
 
     public function registerBusiness(){

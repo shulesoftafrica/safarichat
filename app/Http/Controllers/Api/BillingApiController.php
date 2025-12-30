@@ -67,6 +67,102 @@ class BillingApiController extends Controller
     }
     
     /**
+     * Get products catalog - returns configured product with plans and pricing
+     */
+    public function getProducts(Request $request)
+    {
+        try {
+            $productCode = $request->get('product_code', 'safarichat');
+            $currency = $request->get('currency', 'TZS');
+            $activeOnly = $request->get('active_only', true);
+            
+            // Get cached configuration
+            $config = Cache::get('safarichat_billing_config');
+            if (!$config) {
+                // Fallback to config file
+                $config = config('safarichat_billing');
+            }
+            
+            if (!$config) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product configuration not found. Please configure billing first.'
+                ], 404);
+            }
+            
+            // Build product response matching the POSTMAN API format
+            $product = [
+                'product_code' => $productCode,
+                'name' => 'SafariChat Business Communication Platform',
+                'description' => 'Complete WhatsApp business communication and customer management platform',
+                'default_currency' => $currency,
+                'subscription_enabled' => true,
+                'wallet_enabled' => true,
+                'plans' => [],
+                'wallet_types' => ['ai_credits', 'sms', 'whatsapp_messages'],
+                'entitlements' => [
+                    'max_contacts' => 400,
+                    'max_products' => 200,
+                    'max_channels' => 7,
+                    'storage_gb' => 50,
+                    'api_calls_per_month' => 50000
+                ],
+                'metadata' => [
+                    'category' => 'business_communication',
+                    'target_market' => 'SME businesses',
+                    'region' => 'East Africa'
+                ]
+            ];
+            
+            // Add plans from configuration
+            if (isset($config['plans'])) {
+                foreach ($config['plans'] as $planCode => $planConfig) {
+                    if (!$activeOnly || ($planConfig['active'] ?? true)) {
+                        $product['plans'][$planCode] = [
+                            'name' => ucfirst($planCode) . ' Plan',
+                            'price' => $planConfig['price'] ?? 0,
+                            'currency' => $planConfig['currency'] ?? $currency,
+                            'billing_cycle' => $planConfig['billing_cycle'] ?? 'monthly',
+                            'features' => $this->getPlanFeatures($planCode),
+                            'limits' => $planConfig['limits'] ?? []
+                        ];
+                    }
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'products' => [$product]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get products catalog: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve products catalog'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Get plan features based on plan code
+     */
+    private function getPlanFeatures($planCode)
+    {
+        $features = [
+            'trial' => ['basic_messaging', 'contact_management', 'single_channel'],
+            'starter' => ['unlimited_messaging', 'contact_management', 'single_channel', 'basic_ai'],
+            'pro' => ['unlimited_messaging', 'contact_management', 'multi_channel', 'advanced_ai', 'customer_followups', 'sales_reports'],
+            'premium' => ['unlimited_messaging', 'contact_management', 'multi_channel', 'advanced_ai', 'customer_followups', 'sales_reports', 'booking_calendars', 'custom_integrations']
+        ];
+        
+        return $features[$planCode] ?? $features['trial'];
+    }
+    
+    /**
      * BOOT-TIME: Get complete customer billing status
      */
     public function getCompleteStatus($customerId)

@@ -26,6 +26,9 @@ use App\Http\Controllers\Api\BillingApiController;
 
 // Billing API Routes (Revenue Protected)
 Route::prefix('billing')->name('api.billing.')->group(function () {
+    // Product catalog endpoints
+    Route::get('/products', [BillingApiController::class, 'getProducts'])->name('products');
+    
     // Configuration (setup only)
     Route::post('/configure-product', [BillingApiController::class, 'configureProduct'])->name('configure_product');
     
@@ -205,13 +208,6 @@ Route::get('/wasender/user-instances', [WaSenderController::class, 'getUserInsta
 Route::post('/wasender/send-test-message', [WaSenderController::class, 'sendTestMessage']);
 Route::post('/wasender/test-qr-generation', [WaSenderController::class, 'testQRGeneration']);
 
-// Queue testing routes
-Route::post('/wasender/test-queue-message', 'WaSenderController@testQueueMessage');
-Route::post('/wasender/test-incoming-message', 'WaSenderController@testIncomingMessage');
-Route::get('/wasender/queue-stats', 'WaSenderController@getQueueStats');
-Route::post('/wasender/clear-failed-jobs', 'WaSenderController@clearFailedJobs');
-Route::post('/wasender/retry-failed-jobs', 'WaSenderController@retryFailedJobs');
-
 // WaSender Incoming Message Processing (Updated for UUID-based routing)
 Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook')->middleware(['throttle:webhooks']); // Legacy route
 Route::post('/webhook/whatsapp/{instanceUuid}', 'WaSenderController@handleWebhookByUuid')->middleware(['throttle:webhooks']); // New UUID-based route
@@ -330,3 +326,9 @@ Route::middleware('auth:sanctum')->prefix('crm/import')->name('api.crm.import.')
 });
 
 // Subscription API Routes - REMOVED (using new billing API architecture)
+
+// Corporate API Routes (Public)
+Route::prefix('corporate')->name('api.corporate.')->group(function () {
+    Route::post('/proposal-request', [App\Http\Controllers\Api\CorporateApiController::class, 'submitProposalRequest'])->name('proposal_request');
+    Route::post('/strategy-session', [App\Http\Controllers\Api\CorporateApiController::class, 'submitStrategySession'])->name('strategy_session');
+});

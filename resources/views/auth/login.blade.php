@@ -2755,56 +2755,162 @@
             </div>
             
             <div class="pricing-grid">
-                <div class="pricing-card">
-                    <div class="pricing-badge">Starter</div>
-                    <div class="free-trial-label">🎁 3 Days Free Trial</div>
-                    <h3 class="pricing-title">Winga</h3>
-                    <div class="pricing-amount" data-base-price="49700"><span class="currency-symbol">TSh</span> <span class="price-value">49,700</span></div>
-                    <div class="pricing-period">497 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">100</span>/message</div>
-                    <ul class="pricing-features">
-                        <li>Perfect for startups & small shops</li>
-                        <li>Basic sales conversations</li>
-                        <li>1 WhatsApp instance</li>
-                        <li>Email support</li>
-                        <li>Multi-language support</li>
-                        <li>Real-time analytics</li>
-                    </ul>
-                    <button class="btn-pricing">Start Working Now</button>
-                </div>
-                
-                <div class="pricing-card featured">
-                    <div class="pricing-badge popular">⭐ Most Popular</div>
-                    <div class="free-trial-label">🎁 3 Days Free Trial</div>
-                    <h3 class="pricing-title">Pro</h3>
-                    <div class="pricing-amount" data-base-price="93700"><span class="currency-symbol">TSh</span> <span class="price-value">93,700</span></div>
-                    <div class="pricing-period">1,041 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">90</span>/message</div>
-                    <ul class="pricing-features">
-                        <li>Growing businesses & schools</li>
-                        <li>Advanced conversation handling</li>
-                        <li>2 WhatsApp instances</li>
-                        <li>Phone + email support</li>
-                        <li>CRM integration</li>
-                        <li>Performance reporting</li>
-                    </ul>
-                    <button class="btn-pricing">Start Working Now</button>
-                </div>
-                
-                <div class="pricing-card">
-                    <div class="pricing-badge best-value">🏆 Best Value</div>
-                    <div class="free-trial-label">🎁 3 Days Free Trial</div>
-                    <h3 class="pricing-title">Enterprise</h3>
-                    <div class="pricing-amount" data-base-price="123600"><span class="currency-symbol">TSh</span> <span class="price-value">123,600</span></div>
-                    <div class="pricing-period">1,545 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">80</span>/message</div>
-                    <ul class="pricing-features">
-                        <li>High-volume organizations</li>
-                        <li>Full sales automation</li>
-                        <li>5 WhatsApp instances</li>
-                        <li>Priority phone support</li>
-                        <li>Custom training</li>
-                        <li>2-hour SLA</li>
-                    </ul>
-                    <button class="btn-pricing">Start Working Now</button>
-                </div>
+                @if(!empty($pricingPlans))
+                    @foreach($pricingPlans as $index => $product)
+                        <div class="pricing-card {{ $index == 1 ? 'featured' : '' }}">
+                            <div class="pricing-badge {{ $index == 1 ? 'popular' : ($index == 0 ? '' : 'best-value') }}">
+                                {{ $index == 1 ? '⭐ Most Popular' : ($index == 0 ? 'Starter' : '🏆 Best Value') }}
+                            </div>
+                            <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                            <h3 class="pricing-title">{{ $product['name'] ?? 'Plan' }}</h3>
+                            <div class="pricing-amount" data-base-price="{{ $product['price'] ?? 0 }}">
+                                <span class="currency-symbol">TSh</span> 
+                                <span class="price-value">{{ number_format($product['price'] ?? 0) }}</span>
+                            </div>
+                            <div class="pricing-period">
+                                @if(isset($product['billing_cycle']))
+                                    {{ ucfirst($product['billing_cycle']) }} Plan
+                                @endif
+                                @if(isset($product['limits']['ai_credits']))
+                                    • {{ number_format($product['limits']['ai_credits']) }} AI credits/month
+                                @endif
+                            </div>
+                            <ul class="pricing-features">
+                                @if(isset($product['limits']))
+                                    @php
+                                        $limits = $product['limits'];
+                                        $features = $product['features'] ?? [];
+                                    @endphp
+                                    
+                                    {{-- Contact and Product Limits --}}
+                                    @if(isset($limits['max_contacts']))
+                                        <li>Up to {{ number_format($limits['max_contacts']) }} contacts</li>
+                                    @endif
+                                    
+                                    @if(isset($limits['max_products']))
+                                        <li>Up to {{ number_format($limits['max_products']) }} products</li>
+                                    @endif
+                                    
+                                    {{-- WhatsApp Channels --}}
+                                    @if(isset($limits['whatsapp_channels']))
+                                        <li>{{ $limits['whatsapp_channels'] }} WhatsApp {{ $limits['whatsapp_channels'] == 1 ? 'channel' : 'channels' }}</li>
+                                    @endif
+                                    
+                                    {{-- Messaging Features --}}
+                                    @if(in_array('unlimited_messaging', $features) || ($limits['unlimited_messages'] ?? false))
+                                        <li>Unlimited messaging</li>
+                                    @endif
+                                    
+                                    {{-- AI Features --}}
+                                    @if(in_array('basic_ai', $features))
+                                        <li>Basic AI conversations</li>
+                                    @elseif(in_array('advanced_ai', $features))
+                                        <li>Advanced AI conversations</li>
+                                    @endif
+                                    
+                                    {{-- Contact Management --}}
+                                    @if(in_array('contact_management', $features))
+                                        <li>Contact management</li>
+                                    @endif
+                                    
+                                    {{-- Channel Types --}}
+                                    @if(in_array('single_channel', $features))
+                                        <li>Single channel support</li>
+                                    @elseif(in_array('multi_channel', $features))
+                                        <li>Multi-channel support</li>
+                                    @endif
+                                    
+                                    {{-- Customer Features --}}
+                                    @if($limits['customer_followups'] ?? false)
+                                        <li>Customer follow-ups</li>
+                                    @endif
+                                    
+                                    @if($limits['customer_categorization'] ?? false)
+                                        <li>Customer categorization</li>
+                                    @endif
+                                    
+                                    {{-- Business Features --}}
+                                    @if($limits['booking_calendars'] ?? false)
+                                        <li>Booking calendars</li>
+                                    @endif
+                                    
+                                    @if($limits['sales_reports'] ?? false)
+                                        <li>Sales reports & analytics</li>
+                                    @endif
+                                    
+                                    {{-- Support Level --}}
+                                    @if($index == 0)
+                                        <li>Email support</li>
+                                    @elseif($index == 1)
+                                        <li>Phone + email support</li>
+                                    @else
+                                        <li>Priority phone support</li>
+                                    @endif
+                                @else
+                                    {{-- Fallback to displaying raw features if no limits --}}
+                                    @if(isset($product['features']) && is_array($product['features']))
+                                        @foreach($product['features'] as $feature)
+                                            <li>{{ str_replace('_', ' ', ucwords($feature, '_')) }}</li>
+                                        @endforeach
+                                    @endif
+                                @endif
+                            </ul>
+                            <button class="btn-pricing" onclick="document.getElementById('phone2').focus(); document.getElementById('phone2').scrollIntoView({behavior: 'smooth', block: 'center'});">Start Working Now</button>
+                        </div>
+                    @endforeach
+                @else
+                    <!-- Fallback to hardcoded pricing if BillingService fails -->
+                    <div class="pricing-card">
+                        <div class="pricing-badge">Starter</div>
+                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <h3 class="pricing-title">Winga</h3>
+                        <div class="pricing-amount" data-base-price="49700"><span class="currency-symbol">TSh</span> <span class="price-value">49,700</span></div>
+                        <div class="pricing-period">497 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">100</span>/message</div>
+                        <ul class="pricing-features">
+                            <li>Perfect for startups & small shops</li>
+                            <li>Basic sales conversations</li>
+                            <li>1 WhatsApp instance</li>
+                            <li>Email support</li>
+                            <li>Multi-language support</li>
+                            <li>Real-time analytics</li>
+                        </ul>
+                        <button class="btn-pricing" onclick="document.getElementById('phone2').focus(); document.getElementById('phone2').scrollIntoView({behavior: 'smooth', block: 'center'});">Start Working Now</button>
+                    </div>
+                    
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge popular">⭐ Most Popular</div>
+                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <h3 class="pricing-title">Pro</h3>
+                        <div class="pricing-amount" data-base-price="93700"><span class="currency-symbol">TSh</span> <span class="price-value">93,700</span></div>
+                        <div class="pricing-period">1,041 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">90</span>/message</div>
+                        <ul class="pricing-features">
+                            <li>Growing businesses & schools</li>
+                            <li>Advanced conversation handling</li>
+                            <li>2 WhatsApp instances</li>
+                            <li>Phone + email support</li>
+                            <li>CRM integration</li>
+                            <li>Performance reporting</li>
+                        </ul>
+                        <button class="btn-pricing" onclick="document.getElementById('phone2').focus(); document.getElementById('phone2').scrollIntoView({behavior: 'smooth', block: 'center'});">Start Working Now</button>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <div class="pricing-badge best-value">🏆 Best Value</div>
+                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <h3 class="pricing-title">Enterprise</h3>
+                        <div class="pricing-amount" data-base-price="123600"><span class="currency-symbol">TSh</span> <span class="price-value">123,600</span></div>
+                        <div class="pricing-period">1,545 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">80</span>/message</div>
+                        <ul class="pricing-features">
+                            <li>High-volume organizations</li>
+                            <li>Full sales automation</li>
+                            <li>5 WhatsApp instances</li>
+                            <li>Priority phone support</li>
+                            <li>Custom training</li>
+                            <li>2-hour SLA</li>
+                        </ul>
+                        <button class="btn-pricing" onclick="document.getElementById('phone2').focus(); document.getElementById('phone2').scrollIntoView({behavior: 'smooth', block: 'center'});">Start Working Now</button>
+                    </div>
+                @endif
             </div>
             
             <!-- Corporate Package Section -->

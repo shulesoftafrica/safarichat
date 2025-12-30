@@ -18,8 +18,18 @@ class BillingService
     const CACHE_PREFIX = 'billing_status_';
     const CACHE_DURATION = 7200; // 2 hours in seconds
     const FALLBACK_DURATION = 1800; // 30 minutes for emergency fallbacks
+    const PRODUCT_CODE = 'safarichat'; // Default product code
     
-    private static $billingApiBase = 'http://localhost/safarichat/api/billing';
+    private static function getBillingApiBase()
+    {
+        // For local development, use localhost URL
+        if (config('app.env') === 'local' || str_contains(request()->getHost() ?? '', 'localhost')) {
+            return 'http://localhost/safarichat/api/billing';
+        }
+        
+        // For production, use the configured app URL
+        return config('app.url') . '/api/billing';
+    }
     
     /**
      * Get cached billing status for customer
@@ -46,7 +56,10 @@ class BillingService
     public static function loadCompleteStatus($customerId)
     {
         try {
-            $response = Http::timeout(10)->get(self::$billingApiBase . "/customers/{$customerId}/complete-status");
+            $response = Http::timeout(10)->withHeaders([
+                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'Accept' => 'application/json'
+            ])->get(self::getBillingApiBase() . "/customers/{$customerId}/complete-status");
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -284,5 +297,107 @@ class BillingService
         ];
         
         return $planLimits[$plan] ?? $planLimits['trial'];
+    }
+    
+    /**
+     * Get products catalog from billing system
+     * 
+     * @param array $params Query parameters (product_code, currency, active_only)
+     * @return array Product catalog data or error
+     */
+    public static function getProducts($params = [])
+    {
+        try {
+            // Set default parameters
+            $queryParams = array_merge([
+                'product_code' => self::PRODUCT_CODE,
+                'currency' => 'TZS',
+                'active_only' => true
+            ], $params);
+            
+            $response = Http::timeout(10)->withHeaders([
+                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'Accept' => 'application/json'
+            ])->get(self::getBillingApiBase() . "/products", $queryParams);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['success']) && $data['success']) {
+                    Log::info("Products catalog fetched successfully", ['product_code' => $queryParams['product_code']]);
+                    return [
+                        'success' => true,
+                        'data' => $data['data'] ?? []
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error("Failed to fetch products catalog: " . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'data' => []
+            ];
+        }
+    }
+    
+    /**
+     * Get specific product details from billing system
+     * 
+     * @param string|null $productCode Product code (defaults to PRODUCT_CODE constant)
+     * @param string $currency Currency code (defaults to TZS)
+     * @return array Product details or error
+     */
+    public static function getProductDetails($productCode = null, $currency = 'TZS')
+    {
+        try {
+            $productCode = $productCode ?? self::PRODUCT_CODE;
+            
+            $response = Http::timeout(10)->withHeaders([
+                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'Accept' => 'application/json'
+            ])->get(self::getBillingApiBase() . "/products", [
+                'product_code' => $productCode,
+                'currency' => $currency
+            ]);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['success']) && $data['success']) {
+                    Log::info("Product details fetched successfully", ['product_code' => $productCode]);
+                    return [
+                        'success' => true,
+                        'data' => $data['data'] ?? null
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error("Failed to fetch product details for {$productCode}: " . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+    
+    /**
+     * Get SafariChat product configuration with all plans
+     * Convenience method specifically for SafariChat product
+     * 
+     * @return array SafariChat product details
+     */
+    public static function getSafariChatProduct()
+    {
+        return self::getProductDetails('safarichat');
     }
 }

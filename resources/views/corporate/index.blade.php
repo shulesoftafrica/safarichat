@@ -697,6 +697,230 @@
         text-decoration: none;
     }
 
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 2% auto;
+        padding: 0;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        color: white;
+        padding: 25px 30px;
+        border-radius: 15px 15px 0 0;
+        position: relative;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .close {
+        position: absolute;
+        right: 25px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    .close:hover {
+        color: var(--secondary);
+    }
+
+    .modal-body {
+        padding: 30px;
+        position: relative;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--gray-700);
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.1);
+    }
+
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .helper-text {
+        font-size: 0.85rem;
+        color: var(--gray-500);
+        margin-top: 5px;
+    }
+
+    .error-text {
+        font-size: 0.85rem;
+        color: #dc3545;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        color: white;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(31, 122, 140, 0.3);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .payment-section {
+        background: var(--gray-50);
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        border: 2px solid var(--gray-200);
+    }
+
+    .payment-section h4 {
+        color: var(--primary);
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+    }
+
+    .price-display {
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--primary);
+        text-align: center;
+        margin: 15px 0;
+    }
+
+    .payment-methods {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 15px 0;
+    }
+
+    .payment-method {
+        padding: 8px 16px;
+        border: 2px solid var(--gray-300);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        background: white;
+    }
+
+    .payment-method.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .benefits-list {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+    }
+
+    .benefits-list h4 {
+        color: var(--primary);
+        margin-bottom: 15px;
+    }
+
+    .benefits-list ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .benefits-list li {
+        padding: 8px 0;
+        padding-left: 25px;
+        position: relative;
+        color: var(--gray-700);
+    }
+
+    .benefits-list li::before {
+        content: '✓';
+        color: var(--success);
+        font-weight: bold;
+        position: absolute;
+        left: 0;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .nav-container {
@@ -960,7 +1184,7 @@
                 <blockquote class="pricing-message">
                     "Corporate pricing is customized based on your message volume, number of departments, and required integrations. You only pay for the value you receive — and the ROI is immediate."
                 </blockquote>
-                <button class="btn-corporate-proposal">Request a Corporate Proposal</button>
+                <button class="btn-corporate-proposal" onclick="openProposalModal()">Request a Corporate Proposal</button>
             </div>
         </div>
     </section>
@@ -973,8 +1197,8 @@
                 Corporates that adopt AI today will dominate the next decade — those that delay will lose customers to faster competitors.
             </p>
             <div class="final-cta-buttons">
-                <a href="mailto:corporate@safarichat.com" class="btn-corporate-meeting">🚀 Book a Corporate Strategy Meeting</a>
-                <a href="tel:+255123456789" class="btn-corporate-consultant">📩 Talk to an AI Sales Consultant</a>
+                <button class="btn-corporate-meeting" onclick="openStrategyModal()">🚀 Paid Corporate AI Strategy Session</button>
+                <a href="https://wa.me/255655406004" target="_blank" class="btn-corporate-consultant">📩 Talk to an AI Sales Consultant</a>
             </div>
         </div>
     </section>
@@ -992,5 +1216,433 @@
         </div>
     </footer>
 </div>
+
+<!-- Corporate Proposal Modal -->
+<div id="proposalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Request Corporate Proposal</h2>
+            <span class="close" onclick="closeModal('proposalModal')">&times;</span>
+        </div>
+        <div class="modal-body" id="proposalModalBody">
+            <div class="status-message" id="proposalStatusMessage"></div>
+            <form id="proposalForm">
+                <div class="form-group">
+                    <label for="companyName">Company Name *</label>
+                    <input type="text" id="companyName" name="companyName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="country">Country *</label>
+                    <select id="country" name="country" required>
+                        <option value="">Select Country</option>
+                        <option value="Tanzania">Tanzania</option>
+                        <option value="Kenya">Kenya</option>
+                        <option value="Uganda">Uganda</option>
+                        <option value="Rwanda">Rwanda</option>
+                        <option value="Nigeria">Nigeria</option>
+                        <option value="South Africa">South Africa</option>
+                        <option value="Ghana">Ghana</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="officialEmail">Official Company Email *</label>
+                    <input type="email" id="officialEmail" name="officialEmail" required>
+                    <div class="helper-text">We only accept official company emails</div>
+                    <div class="error-text" id="emailError">Public emails (Gmail, Yahoo, etc.) are not accepted</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="adoptionTimeline">How Quick Do You Want to Adopt AI Solution? *</label>
+                    <select id="adoptionTimeline" name="adoptionTimeline" required>
+                        <option value="">Select Timeline</option>
+                        <option value="very_soon">Very Soon (Within 2 weeks)</option>
+                        <option value="within_month">Within a Month</option>
+                        <option value="within_3months">Within 3 Months</option>
+                        <option value="within_6months">Within 6 Months</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customMessage">Custom Message (Optional)</label>
+                    <textarea id="customMessage" name="customMessage" placeholder="Please explain your specific requirements, current challenges, or any questions you have..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn-submit" id="proposalSubmitBtn">Submit Request</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Strategy Session Modal -->
+<div id="strategyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Book Paid AI Strategy Session</h2>
+            <span class="close" onclick="closeModal('strategyModal')">&times;</span>
+        </div>
+        <div class="modal-body" id="strategyModalBody">
+            <div class="status-message" id="strategyStatusMessage"></div>
+            <div class="benefits-list">
+                <h4>You'll receive:</h4>
+                <ul>
+                    <li>AI sales opportunity assessment</li>
+                    <li>Actionable roadmap</li>
+                    <li>Post-meeting summary</li>
+                </ul>
+            </div>
+            
+            <form id="strategyForm">
+                <div class="form-group">
+                    <label for="strategyCompanyName">Company Name *</label>
+                    <input type="text" id="strategyCompanyName" name="companyName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="strategyCountry">Country *</label>
+                    <select id="strategyCountry" name="country" required>
+                        <option value="">Select Country</option>
+                        <option value="Tanzania">Tanzania</option>
+                        <option value="Kenya">Kenya</option>
+                        <option value="Uganda">Uganda</option>
+                        <option value="Rwanda">Rwanda</option>
+                        <option value="Nigeria">Nigeria</option>
+                        <option value="South Africa">South Africa</option>
+                        <option value="Ghana">Ghana</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="strategyEmail">Official Company Email *</label>
+                    <input type="email" id="strategyEmail" name="email" required>
+                    <div class="helper-text">We only accept official company emails</div>
+                    <div class="error-text" id="strategyEmailError">Public emails (Gmail, Yahoo, etc.) are not accepted</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="strategyPhone">Phone Number *</label>
+                    <input type="tel" id="strategyPhone" name="phone" required placeholder="+255XXXXXXXXX">
+                    <div class="helper-text">Include country code (e.g., +255XXXXXXXXX)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="meetingLength">Meeting Length *</label>
+                    <select id="meetingLength" name="meetingLength" required onchange="updatePrice()">
+                        <option value="">Select Duration</option>
+                        <option value="30" data-price="150">30 Minutes - $150</option>
+                        <option value="60" data-price="300">60 Minutes - $300</option>
+                        <option value="90" data-price="450">90 Minutes - $450</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="proposedDateTime">Proposed Date and Time *</label>
+                    <input type="datetime-local" id="proposedDateTime" name="proposedDateTime" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="meetingAgendas">Meeting Agendas *</label>
+                    <textarea id="meetingAgendas" name="meetingAgendas" required placeholder="List your questions and concepts you want to discuss..."></textarea>
+                </div>
+                
+                <div class="payment-section" id="paymentSection" style="display: none;">
+                    <h4>Payment Required</h4>
+                    <div class="price-display" id="priceDisplay">$0</div>
+                    
+                    <div class="form-group">
+                        <label>Choose Payment Method *</label>
+                        <div class="payment-methods">
+                            <div class="payment-method" onclick="selectPaymentMethod('flutterwave')">Flutterwave</div>
+                            <div class="payment-method" onclick="selectPaymentMethod('stripe')">Stripe</div>
+                            <div class="payment-method" onclick="selectPaymentMethod('ucn')">UCN</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedPaymentMethod" name="paymentMethod">
+                </div>
+                
+                <button type="submit" class="btn-submit" id="strategySubmitBtn">Proceed to Payment</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set minimum date to tomorrow for strategy session
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('proposedDateTime');
+    if (dateInput) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+        
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        const hours = String(tomorrow.getHours()).padStart(2, '0');
+        const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+        
+        const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        dateInput.setAttribute('min', minDateTime);
+    }
+});
+
+// Form loading and status management
+function showLoading(formId, buttonId, loadingText = 'Processing...') {
+    const form = document.getElementById(formId);
+    const button = document.getElementById(buttonId);
+    const statusDiv = document.getElementById(formId.replace('Form', 'StatusMessage'));
+    
+    if (form) form.classList.add('loading');
+    if (button) {
+        button.disabled = true;
+        button.classList.add('loading');
+        button.dataset.originalText = button.textContent;
+        button.textContent = loadingText;
+    }
+    if (statusDiv) {
+        statusDiv.classList.remove('show', 'success', 'error');
+    }
+}
+
+function hideLoading(formId, buttonId) {
+    const form = document.getElementById(formId);
+    const button = document.getElementById(buttonId);
+    
+    if (form) form.classList.remove('loading');
+    if (button) {
+        button.disabled = false;
+        button.classList.remove('loading');
+        if (button.dataset.originalText) {
+            button.textContent = button.dataset.originalText;
+        }
+    }
+}
+
+function showStatus(messageId, text, type = 'success') {
+    const statusDiv = document.getElementById(messageId);
+    if (statusDiv) {
+        // Remove checkmark from text since CSS will add it for success
+        const cleanText = text.replace(/[\u2705\u274c]\s*/, '');
+        statusDiv.textContent = cleanText;
+        statusDiv.className = `status-message ${type} show`;
+        
+        // Auto-hide success messages after 4 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                statusDiv.classList.remove('show');
+            }, 4000);
+        }
+    }
+}
+
+// Modal functions
+function openProposalModal() {
+    document.getElementById('proposalModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function openStrategyModal() {
+    document.getElementById('strategyModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // Reset form states when closing
+    const formId = modalId.replace('Modal', 'Form');
+    const buttonId = modalId.includes('proposal') ? 'proposalSubmitBtn' : 'strategySubmitBtn';
+    hideLoading(formId, buttonId);
+    
+    // Clear status messages
+    const statusId = modalId.replace('Modal', 'StatusMessage');
+    const statusDiv = document.getElementById(statusId);
+    if (statusDiv) {
+        statusDiv.classList.remove('show', 'success', 'error');
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        const modalId = event.target.id;
+        closeModal(modalId);
+    }
+}
+
+// Email validation for official emails
+function validateOfficialEmail(email) {
+    const publicDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'live.com'];
+    const domain = email.split('@')[1]?.toLowerCase();
+    return !publicDomains.includes(domain);
+}
+
+// Update price based on meeting length
+function updatePrice() {
+    const meetingLength = document.getElementById('meetingLength');
+    const selectedOption = meetingLength.options[meetingLength.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+    
+    if (price) {
+        document.getElementById('priceDisplay').textContent = '$' + price;
+        document.getElementById('paymentSection').style.display = 'block';
+    } else {
+        document.getElementById('paymentSection').style.display = 'none';
+    }
+}
+
+// Select payment method
+function selectPaymentMethod(method) {
+    // Remove selected class from all payment methods
+    document.querySelectorAll('.payment-method').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked method
+    event.target.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('selectedPaymentMethod').value = method;
+}
+
+// Handle proposal form submission
+document.getElementById('proposalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Show loading state
+    showLoading('proposalForm', 'proposalSubmitBtn', 'Submitting Request...');
+    
+    const email = document.getElementById('officialEmail').value;
+    const errorDiv = document.getElementById('emailError');
+    
+    // Validate official email
+    if (!validateOfficialEmail(email)) {
+        errorDiv.style.display = 'block';
+        hideLoading('proposalForm', 'proposalSubmitBtn');
+        showStatus('proposalStatusMessage', 'Please use your official company email address.', 'error');
+        return;
+    } else {
+        errorDiv.style.display = 'none';
+    }
+    
+    // Collect form data
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // Submit to server
+    fetch('/api/corporate/proposal-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        hideLoading('proposalForm', 'proposalSubmitBtn');
+        
+        if (result.success) {
+            showStatus('proposalModalBody', 
+                'Your proposal request has been submitted successfully! We will contact you within 24 hours.',
+                'success'
+            );
+            this.reset();
+            
+            // Close modal after 5 seconds
+            setTimeout(() => {
+                closeModal('proposalModal');
+            }, 6000);
+        } else {
+            const errorMessage = result.message || 'Error submitting request. Please try again.';
+            showStatus('proposalStatusMessage', '❌ ' + errorMessage, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        hideLoading('proposalForm', 'proposalSubmitBtn');
+        showStatus('proposalStatusMessage', '❌ Network error. Please check your connection and try again.', 'error');
+    });
+});
+
+// Handle strategy form submission
+document.getElementById('strategyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const paymentMethod = document.getElementById('selectedPaymentMethod').value;
+    if (!paymentMethod) {
+        showStatus('strategyStatusMessage', '❌ Please select a payment method', 'error');
+        return;
+    }
+    
+    // Validate official email
+    const email = document.getElementById('strategyEmail').value;
+    const strategyEmailError = document.getElementById('strategyEmailError');
+    
+    if (!validateOfficialEmail(email)) {
+        strategyEmailError.style.display = 'block';
+        showStatus('strategyStatusMessage', 'Please use your official company email address.', 'error');
+        return;
+    } else {
+        strategyEmailError.style.display = 'none';
+    }
+    
+    // Show loading state
+    showLoading('strategyForm', 'strategySubmitBtn', 'Processing Payment...');
+    
+    // Collect form data
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // Submit to server
+    fetch('/api/corporate/strategy-session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        hideLoading('strategyForm', 'strategySubmitBtn');
+        
+        if (result.success) {
+            if (result.payment_url) {
+                showStatus('strategyStatusMessage', 
+                    'Request submitted! Redirecting to payment...', 
+                    'success'
+                );
+                setTimeout(() => {
+                    window.location.href = result.payment_url;
+                }, 3000);
+            } else {
+                showStatus('strategyModalBody', 
+                    'Your strategy session request has been submitted! Payment instructions will be sent to you within 1 hour.',
+                    'success'
+                );
+                this.reset();
+                
+                // Close modal after 5 seconds
+                setTimeout(() => {
+                    closeModal('strategyModal');
+                }, 5000);
+            }
+        } else {
+            const errorMessage = result.message || 'Error submitting request. Please try again.';
+            showStatus('strategyStatusMessage', '❌ ' + errorMessage, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        hideLoading('strategyForm', 'strategySubmitBtn');
+        showStatus('strategyStatusMessage', '❌ Network error. Please check your connection and try again.', 'error');
+    });
+});
+</script>
 
 @endsection
