@@ -50,9 +50,18 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('conversations', function (Blueprint $table) {
-            // Drop indexes first
-            $table->dropIndex('idx_conversations_billing');
-            $table->dropIndex('idx_conversations_tokens_date');
+            // Drop indexes first (if they exist)
+            try {
+                $table->dropIndex('idx_conversations_billing');
+            } catch (Exception $e) {
+                // Index doesn't exist, continue
+            }
+            
+            try {
+                $table->dropIndex('idx_conversations_tokens_date');
+            } catch (Exception $e) {
+                // Index doesn't exist, continue
+            }
             
             // Drop columns
             if (Schema::hasColumn('conversations', 'billing_status')) {
