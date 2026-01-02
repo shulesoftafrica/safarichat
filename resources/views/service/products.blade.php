@@ -258,21 +258,25 @@
                             </td>
                             <td>
                                 <div class="leads-engagement">
-                                    <div class="leads-count-circle bg-{{ $product->lead_products_count > 0 ? 'primary' : 'light' }}">
-                                        <span class="leads-number">{{ $product->lead_products_count ?? 0 }}</span>
+                                    <div class="leads-count-circle bg-{{ $product->distinct_leads_count > 0 ? 'primary' : 'light' }}">
+                                        <span class="leads-number">{{ $product->distinct_leads_count ?? 0 }}</span>
                                     </div>
                                     <div class="leads-label">Leads</div>
-                                    @if($product->lead_products_count > 0)
+                                    @if($product->distinct_leads_count > 0)
                                         <div class="engagement-level mt-1">
-                                            @if($product->lead_products_count >= 10)
+                                            @if($product->distinct_leads_count >= 10)
                                                 <span class="engagement-badge high">High</span>
-                                            @elseif($product->lead_products_count >= 5)
+                                            @elseif($product->distinct_leads_count >= 5)
                                                 <span class="engagement-badge medium">Good</span>
                                             @else
                                                 <span class="engagement-badge low">Active</span>
                                             @endif
                                         </div>
                                     @endif
+                                    <small class="text-muted d-block mt-1">
+                                        {{ $product->lead_products_count ?? 0 }} relationships
+                                    </small>
+                                </div>
                                 </div>
                             </td>
                             <td>

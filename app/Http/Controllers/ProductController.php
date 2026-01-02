@@ -26,7 +26,14 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('faqs')->withCount('leadProducts')->forUser(auth()->id());
+        $query = Product::with('faqs')
+            ->withCount([
+                'leadProducts as lead_products_count',
+                'leadProducts as distinct_leads_count' => function ($query) {
+                    $query->selectRaw('COUNT(DISTINCT lead_id)');
+                }
+            ])
+            ->forUser(auth()->id());
         
         // Search functionality
         if ($request->has('search') && !empty($request->search)) {

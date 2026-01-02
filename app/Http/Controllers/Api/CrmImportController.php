@@ -210,7 +210,7 @@ class CrmImportController extends Controller
             
             $lead = Lead::firstOrCreate(
                 [
-                    'events_guest_id' => $contact->id,
+                    'business_contact_id' => $contact->id,
                     'user_id' => Auth::id()
                 ],
                 [

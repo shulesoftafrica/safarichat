@@ -31,7 +31,7 @@ class LeadApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'events_guest_id' => 'required|exists:events_guests,id',
+                'business_contact_id' => 'required|exists:business_contacts,id',
                 'ai_sales_agent_id' => 'nullable|exists:ai_sales_agents,id',
                 'product_ids' => 'required|array|min:1',
                 'product_ids.*' => 'exists:products,id',
@@ -64,7 +64,7 @@ class LeadApiController extends Controller
             }
 
             // Check if lead already exists for this contact with any of these products
-            $existingLead = Lead::where('events_guest_id', $request->events_guest_id)
+            $existingLead = Lead::where('business_contact_id', $request->business_contact_id)
                               ->whereHas('leadProducts', function($query) use ($request) {
                                   $query->whereIn('product_id', $request->product_ids);
                               })
@@ -82,7 +82,7 @@ class LeadApiController extends Controller
 
             // Create the lead
             $lead = Lead::create([
-                'events_guest_id' => $request->events_guest_id,
+                'business_contact_id' => $request->business_contact_id,
                 'ai_sales_agent_id' => $request->ai_sales_agent_id ?? $this->getDefaultAiAgent(),
                 'user_id' => Auth::id(),
                 'business_id' => $contact->business_id,
@@ -435,7 +435,7 @@ class LeadApiController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'leads' => 'required|array|min:1|max:50',
-                'leads.*.events_guest_id' => 'required|exists:events_guests,id',
+                'leads.*.business_contact_id' => 'required|exists:business_contacts,id',
                 'leads.*.product_ids' => 'required|array|min:1',
                 'leads.*.product_ids.*' => 'exists:products,id',
                 'leads.*.company_name' => 'nullable|string|max:255',
@@ -471,7 +471,7 @@ class LeadApiController extends Controller
                     }
 
                     // Check for existing active leads
-                    $existingLead = Lead::where('events_guest_id', $leadData['events_guest_id'])
+                    $existingLead = Lead::where('business_contact_id', $leadData['business_contact_id'])
                                       ->whereHas('leadProducts', function($query) use ($leadData) {
                                           $query->whereIn('product_id', $leadData['product_ids']);
                                       })
@@ -485,7 +485,7 @@ class LeadApiController extends Controller
 
                     // Create lead
                     $lead = Lead::create([
-                        'events_guest_id' => $leadData['events_guest_id'],
+                        'business_contact_id' => $leadData['business_contact_id'],
                         'ai_sales_agent_id' => $this->getDefaultAiAgent(),
                         'user_id' => $userId,
                         'business_id' => $contact->business_id,

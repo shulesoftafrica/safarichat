@@ -803,4 +803,114 @@ class AiWhatsAppService
             ];
         }
     }
+
+    /**
+     * Send outreach message to lead (used by daily outreach command)
+     */
+    public function sendOutreachMessage(Lead $lead, string $message, AiSalesAgent $agent): array
+    {
+        try {
+            // Get lead's contact information
+            $contact = $lead->contact;
+            if (!$contact || !$contact->guest_phone) {
+                return [
+                    'success' => false,
+                    'error' => 'No phone number found for lead'
+                ];
+            }
+
+            // Get user's WhatsApp instance
+            $instance = \App\Models\WhatsappInstance::where('user_id', $agent->user_id)
+                                                   ->where('status', 'connected')
+                                                   ->first();
+
+            if (!$instance) {
+                return [
+                    'success' => false,
+                    'error' => 'No active WhatsApp instance found'
+                ];
+            }
+
+            // Create outgoing message record
+            $outgoingMessage = OutgoingMessage::create([
+                'user_id' => $agent->user_id,
+                'phone_number' => $contact->guest_phone,
+                'message_body' => $message,
+                'message_type' => 'text',
+                'status' => 'pending',
+                'metadata' => [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'campaign' => 'daily_outreach'
+                ]
+            ]);
+
+            // Send via WaSender
+            $result = $this->waSenderService->sendMessage(
+                $contact->guest_phone,
+                $message,
+                ['type' => 'text'],
+                $instance,
+                $agent->user_id
+            );
+
+            if ($result['success']) {
+                $outgoingMessage->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'external_message_id' => $result['message_id'] ?? null
+                ]);
+
+                // Create conversation record
+                Conversation::create([
+                    'lead_id' => $lead->id,
+                    'ai_sales_agent_id' => $agent->id,
+                    'message_type' => Conversation::TYPE_AI_AGENT,
+                    'message_content' => $message,
+                    'conversation_state' => 'OUTREACH',
+                    'sender_type' => 'ai_outreach',
+                    'is_active' => true,
+                    'metadata' => [
+                        'campaign' => 'daily_outreach',
+                        'outgoing_message_id' => $outgoingMessage->id
+                    ]
+                ]);
+
+                Log::info('Outreach message sent successfully', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'phone' => $contact->guest_phone
+                ]);
+
+                return [
+                    'success' => true,
+                    'message_id' => $result['message_id'] ?? null,
+                    'outgoing_message_id' => $outgoingMessage->id
+                ];
+            } else {
+                $outgoingMessage->update([
+                    'status' => 'failed',
+                    'error_message' => $result['error'] ?? 'Unknown error'
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Failed to send message'
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error sending outreach message', [
+                'lead_id' => $lead->id,
+                'agent_id' => $agent->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 }

@@ -1897,12 +1897,17 @@ class Message extends Controller
                 if ($aiAgent) {
                               // Find or create lead for this guest
                 $lead = \App\Models\Lead::firstOrCreate(
-                    ['events_guest_id' => $guest->id],
+                    ['business_contact_id' => $guest->id],
                     [
                         'business_id' => $guest->business_id,
                         'source' => 'event_guest',
-                        'status' => 'new',
-                        'ai_sales_agent_id'=>$aiAgent->id
+                        'status' => 'NEW',
+                        'ai_sales_agent_id'=>$aiAgent->id,
+                        'last_interaction_at' => now(),
+                        'conversion_probability' => 0,
+                        'lead_score' => 0,
+                        'is_churned' => false,
+                        'win_back_attempts' => 0
                     ]
                 );
 
