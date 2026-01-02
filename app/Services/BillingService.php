@@ -97,31 +97,34 @@ class BillingService
             $plan = $business->subscription_plan;
         }
         
+        // Get actual AI credits from database instead of hardcoded values
+        $actualAiCredits = $user->ai_credits ?? $business->ai_credits ?? 0;
+        
         // Conservative limits - protect revenue while allowing minimal usage
         $fallbackLimits = [
             'trial' => [
                 'contacts' => ['current' => 0, 'max' => 5, 'canAdd' => true],
                 'products' => ['current' => 0, 'max' => 1, 'canAdd' => true],
                 'whatsapp_channels' => ['current' => 0, 'max' => 1, 'canAdd' => true],
-                'ai_credits' => ['balance' => 50, 'canUse' => true] // Very limited
+                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
             ],
             'starter' => [
                 'contacts' => ['current' => 0, 'max' => 20, 'canAdd' => true], // Reduced from 50
                 'products' => ['current' => 0, 'max' => 2, 'canAdd' => true], // Reduced from 5
                 'whatsapp_channels' => ['current' => 0, 'max' => 1, 'canAdd' => true],
-                'ai_credits' => ['balance' => 1000, 'canUse' => true] // Heavily reduced
+                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
             ],
             'pro' => [
                 'contacts' => ['current' => 0, 'max' => 50, 'canAdd' => true], // Reduced from 150
                 'products' => ['current' => 0, 'max' => 10, 'canAdd' => true], // Reduced from 50
                 'whatsapp_channels' => ['current' => 0, 'max' => 2, 'canAdd' => true], // Reduced from 3
-                'ai_credits' => ['balance' => 5000, 'canUse' => true] // Heavily reduced
+                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
             ],
             'premium' => [
                 'contacts' => ['current' => 0, 'max' => 100, 'canAdd' => true], // Reduced from 400
                 'products' => ['current' => 0, 'max' => 25, 'canAdd' => true], // Reduced from 200
                 'whatsapp_channels' => ['current' => 0, 'max' => 3, 'canAdd' => true], // Reduced from 7
-                'ai_credits' => ['balance' => 10000, 'canUse' => true] // Heavily reduced
+                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
             ]
         ];
         
