@@ -7,6 +7,8 @@ use App\Models\Conversation;
 use App\Models\Lead;
 use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -166,6 +168,23 @@ class ConversationApiController extends Controller
             $lead = Lead::where('user_id', Auth::id())
                        ->where('id', $request->lead_id)
                        ->firstOrFail();
+
+            // FEATURE GATE: Check if trying to schedule a follow-up
+            if (!empty($request->followup_attempt_at)) {
+                $customerId = Auth::user()->customer_id ?? Auth::id();
+                $billingStatus = BillingService::getCachedStatus($customerId);
+                
+                if (!$billingStatus['permissions']['customer_followups']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Customer follow-up scheduling is not available in your current plan',
+                        'upgrade_required' => true,
+                        'feature' => 'customer_followups',
+                        'current_plan' => $billingStatus['subscription']['plan'],
+                        'required_plan' => 'pro'
+                    ], 403);
+                }
+            }
 
             // Create conversation entry
             $conversation = Conversation::create([
@@ -516,6 +535,21 @@ class ConversationApiController extends Controller
     {
         try {
             $userId = Auth::id();
+            $customerId = Auth::user()->customer_id ?? $userId;
+            
+            // FEATURE GATE: Check if customer followups are allowed in current subscription plan
+            $billingStatus = BillingService::getCachedStatus($customerId);
+            
+            if (!$billingStatus['permissions']['customer_followups']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer follow-ups are not available in your current plan',
+                    'upgrade_required' => true,
+                    'feature' => 'customer_followups',
+                    'current_plan' => $billingStatus['subscription']['plan'],
+                    'required_plan' => 'pro'
+                ], 403);
+            }
 
             $followUps = Conversation::whereHas('lead', function($query) use ($userId) {
                 $query->where('user_id', $userId);

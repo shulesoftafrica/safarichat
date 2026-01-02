@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\EventsGuest;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,43 @@ class ContactApiController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            // Check billing limits first
+            $billingStatus = BillingService::getBillingStatus(Auth::id());
+            if (!$billingStatus || !isset($billingStatus['limits']['contacts'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to verify subscription limits',
+                    'upgrade_required' => true,
+                    'feature' => 'contacts'
+                ], 402);
+            }
+
+            $contactLimits = $billingStatus['limits']['contacts'];
+            if ($contactLimits['current'] >= $contactLimits['max']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Contact limit reached. Your {$billingStatus['subscription']['plan']} plan allows {$contactLimits['max']} contacts.",
+                    'upgrade_required' => true,
+                    'feature' => 'contacts',
+                    'current_limit' => $contactLimits['max'],
+                    'current_usage' => $contactLimits['current']
+                ], 402);
+            }
+
+            // FEATURE GATE: Check if customer categorization is allowed when assigning category
+            if (!empty($request->event_guest_category_id)) {
+                if (!$billingStatus['permissions']['customer_categorization']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Customer categorization is not available in your current plan',
+                        'upgrade_required' => true,
+                        'feature' => 'customer_categorization',
+                        'current_plan' => $billingStatus['subscription']['plan'],
+                        'required_plan' => 'pro'
+                    ], 403);
+                }
+            }
+
             $validator = Validator::make($request->all(), [
                 'guest_name' => 'required|string|max:255',
                 'guest_phone' => 'required|string|max:20',
@@ -84,6 +123,49 @@ class ContactApiController extends Controller
     public function bulkStore(Request $request): JsonResponse
     {
         try {
+            // Check billing limits first
+            $billingStatus = BillingService::getBillingStatus(Auth::id());
+            if (!$billingStatus || !isset($billingStatus['limits']['contacts'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to verify subscription limits',
+                    'upgrade_required' => true,
+                    'feature' => 'contacts'
+                ], 402);
+            }
+
+            $contactLimits = $billingStatus['limits']['contacts'];
+            $requestedContacts = count($request->input('contacts', []));
+            $newTotal = $contactLimits['current'] + $requestedContacts;
+            
+            if ($newTotal > $contactLimits['max']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot add {$requestedContacts} contacts. Your {$billingStatus['subscription']['plan']} plan allows {$contactLimits['max']} contacts. You have {$contactLimits['current']} contacts and can add " . ($contactLimits['max'] - $contactLimits['current']) . " more.",
+                    'upgrade_required' => true,
+                    'feature' => 'contacts',
+                    'current_limit' => $contactLimits['max'],
+                    'current_usage' => $contactLimits['current'],
+                    'requested_count' => $requestedContacts
+                ], 402);
+            }
+
+            // FEATURE GATE: Check if customer categorization is allowed when any contact has category
+            $hasCategories = collect($request->input('contacts', []))->some(function($contact) {
+                return !empty($contact['event_guest_category_id']);
+            });
+            
+            if ($hasCategories && !$billingStatus['permissions']['customer_categorization']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer categorization is not available in your current plan',
+                    'upgrade_required' => true,
+                    'feature' => 'customer_categorization',
+                    'current_plan' => $billingStatus['subscription']['plan'],
+                    'required_plan' => 'pro'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'contacts' => 'required|array|min:1|max:100',
                 'contacts.*.guest_name' => 'required|string|max:255',

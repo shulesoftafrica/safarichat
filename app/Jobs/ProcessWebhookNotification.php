@@ -247,7 +247,7 @@ class ProcessWebhookNotification implements ShouldQueue
         // Create incoming message record
         $incomingMessage = IncomingMessage::create([
             'user_id' => $instance ? $instance->user_id : null,
-            'events_guest_id' => $contact->id,
+            'business_contact_id' => $contact->id,
             'instance_id' => $sessionId,
             'phone_number' => $normalizedPhone,
             'message_body' => $messageText,

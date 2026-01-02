@@ -61,7 +61,7 @@ class Lead extends Model
     // Relationships
     public function contact()
     {
-        return $this->belongsTo(EventsGuest::class, 'events_guest_id');
+        return $this->belongsTo(BusinessContact::class, 'business_contact_id');
     }
 
     public function business()

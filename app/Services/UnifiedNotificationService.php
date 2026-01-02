@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\OutgoingMessage;
 use App\Models\WhatsappInstance;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
+use App\Services\UserResolutionService;
 
 class UnifiedNotificationService
 {
@@ -532,16 +533,20 @@ class UnifiedNotificationService
     }
 
     /**
-     * Find or create EventsGuest for notification
+     * Find or create BusinessContact for notification
      */
     protected function findOrCreateGuest($schemaName, $phoneNumber)
     {
         try {
             $userId = $this->resolveUserId($schemaName);
-            $guest = EventsGuest::findOrCreateForNotification($userId, $phoneNumber);
-            return $guest->id;
+            $contact = UserResolutionService::resolveOrCreateContact([
+                'phone' => $phoneNumber,
+                'name' => 'Notification Contact',
+                'user_id' => $userId
+            ]);
+            return $contact->id;
         } catch (\Exception $e) {
-            Log::warning('Could not find/create guest', [
+            Log::warning('Could not find/create business contact', [
                 'schema_name' => $schemaName,
                 'phone_number' => $phoneNumber,
                 'error' => $e->getMessage()

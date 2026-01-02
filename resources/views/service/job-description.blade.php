@@ -40,9 +40,9 @@
                             <i class="fas fa-magic"></i>
                         </div>
                         <div class="header-text">
-                            <h1 class="page-title">Create AI Sales Agent</h1>
+                            <h1 class="page-title">Configure Sales Settings</h1>
                             <p class="page-subtitle">
-                                Set up your intelligent assistant with personality, knowledge, and sales capabilities
+                                Set up your sales agent's rules, negotiation, and fallback options. The agent name is set when you create a WhatsApp instance.
                             </p>
                         </div>
                     </div>
@@ -98,10 +98,10 @@
                 <div class="form-container">
                     <div class="form-header">
                         <h2 id="form-title">
-                            {{ isset($existingAgent) && $existingAgent ? 'Edit AI Sales Agent' : 'Create AI Sales Agent' }}
+                            Configure Sales Settings
                         </h2>
                         <p id="form-subtitle">
-                            {{ isset($existingAgent) && $existingAgent ? 'Update your AI assistant configuration' : 'Set up your intelligent sales assistant with custom personality and capabilities' }}
+                            Define how this WhatsApp number (Sales Agent) will handle sales, negotiation, and fallback.
                         </p>
                     </div>
 
@@ -125,6 +125,18 @@
                         </div>
                     </div>
 
+                    <!-- Show validation errors if present -->
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <strong>There were some problems with your input:</strong>
+                            <ul class="mb-0 mt-2">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form id="ai-agent-form" method="POST" action="{{ isset($existingAgent) && $existingAgent ? route('ai-agents.update', $existingAgent->uuid) : route('ai-agents.store') }}">
                         @csrf
                         @if(isset($existingAgent) && $existingAgent)
@@ -137,14 +149,6 @@
                             <p class="step-subtitle">Let's start with the basic details of your AI sales assistant</p>
                             
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Assistant Name *</label>
-                                    <input type="text" class="form-control" name="assistant_name" 
-                                           value="{{ old('assistant_name', $existingAgent->assistant_name ?? '') }}" 
-                                           placeholder="e.g., Sarah, Alex, or ChatBot" required>
-                                    <small class="form-hint">Choose a friendly name for your AI assistant</small>
-                                </div>
-                                
                                 <div class="form-group">
                                     <label class="form-label">Company Name</label>
                                     <input type="text" class="form-control" name="company_name" 

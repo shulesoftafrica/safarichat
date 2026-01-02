@@ -159,8 +159,8 @@ class Setup extends Controller {
         $event_uid = request()->segment(2);
         $this->data['noevent'] = 0;
         if (strlen($event_uid) > 4) {
-            $this->data['guest'] = $guest = \App\Models\EventsGuest::where('code', $event_uid)->firstOrFail();
-            $this->data['event'] = $guest->event;
+            $this->data['guest'] = $guest = \App\Models\BusinessContact::where('code', $event_uid)->firstOrFail();
+            $this->data['event'] = $guest->business;
             return view('event.live', $this->data);
         } else {
             $this->data['noevent'] = 1;
@@ -170,7 +170,7 @@ class Setup extends Controller {
 
     public function verifyCode() {
         $code = request('code');
-        $guests = \App\Models\EventsGuest::where('code', $code)->first();
+        $guests = \App\Models\BusinessContact::where('code', $code)->first();
         if (!empty($guests)) {
             // Event attendance tracking removed - focusing on contact management
             return redirect(url('live/' . $code))->with('success', 'welcome');
@@ -185,12 +185,12 @@ class Setup extends Controller {
         if (!is_array($phone)) {
             die('Invalid Phone Number, please enter a valid number');
         }
-        $guests = \App\Models\EventsGuest::where('guest_phone', $phone[1])->first();
+        $guests = \App\Models\BusinessContact::where('guest_phone', $phone[1])->first();
         if (!empty($guests)) {
             $verify_code = rand(192, 9999) . substr(str_shuffle('abcdefghkmnpqrst'), 0, 4);
             $message = 'Hello, Your Verification Code is ' . $verify_code;
             $messages = \App\Models\Message::firstOrCreate([
-                        'body' => $message, 'user_id' => $guests->event->usersEvents()->first()->user->id, 'phone' => str_replace('@c.us', NULL, $phone[1])
+                        'body' => $message, 'user_id' => $guests->business->user_id, 'phone' => str_replace('@c.us', NULL, $phone[1])
             ]);
             \App\Models\MessageSentby::create(['message_id' => $messages->id, 'channel' => 'phone-sms']);
             echo "Success: Code has been resent, kindly check your phone within 5 min";
@@ -203,7 +203,7 @@ class Setup extends Controller {
     public function getPayment() {
         $amount = request('amount');
         $code = request()->segment(2);
-        $guest = \App\Models\EventsGuest::where('code', $code)->firstOrFail();
+        $guest = \App\Models\BusinessContact::where('code', $code)->firstOrFail();
 
         $user_phone = $guest->guest_phone;
 
@@ -880,7 +880,7 @@ class Setup extends Controller {
                 'user_id' => $whatsappInstance->user_id,
                 'instance_id' => $whatsappInstance->instance_id,
                 'message_id' => $messageId,
-                'events_guest_id' => $guest ? $guest->id : null,
+                'business_contact_id' => $guest ? $guest->id : null,
                 'chat_id' => $chatId,
                 'phone_number' => $phoneNumber,
                 'sender_name' => $senderName,
@@ -972,7 +972,7 @@ class Setup extends Controller {
             $cleanPhone = $this->formatPhoneNumber($phoneNumber);
             
             // Try to find existing guest
-            $guest = \App\Models\EventsGuest::where('event_id', $eventId)
+            $guest = \App\Models\BusinessContact::where('business_id', $userBusiness->id)
                 ->where(function($query) use ($cleanPhone, $phoneNumber) {
                     $query->where('guest_phone', $cleanPhone)
                           ->orWhere('guest_phone', $phoneNumber)
@@ -998,15 +998,14 @@ class Setup extends Controller {
                 return null;
             }
             
-            $newGuest = \App\Models\EventsGuest::create([
+            $newGuest = \App\Models\BusinessContact::create([
                 'business_id' => $userBusiness->id, // Critical: Set business_id for interface filtering
                 'user_id' => $userId,
-                'event_id' => $eventId,
                 'guest_name' => $guestName,
                 'guest_phone' => $cleanPhone,
                 'guest_email' => '',
                 'guest_pledge' => 0,
-                'event_guest_category_id' => 1, // Default category
+                'contact_category_id' => 1, // Default category
                 'handoff_status' => 'ai', // Default to AI handling
                 'priority_level' => 3, // Normal priority
                 'contacted_for_sales' => false,

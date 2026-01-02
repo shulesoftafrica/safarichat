@@ -6,7 +6,7 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Illuminate\Support\Facades\DB;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\IncomingMessage;
 use App\Models\WhatsappInstance;
 use App\Models\User;
@@ -59,10 +59,10 @@ try {
     $incomingMessage = IncomingMessage::create($messageData);
     echo "✓ IncomingMessage created successfully with ID: {$incomingMessage->id}\n";
 
-    // Test 2: EventsGuest query with guest_phone column
-    echo "\n2. Testing EventsGuest query with guest_phone:\n";
-    $eventsGuest = EventsGuest::where('guest_phone', $incomingMessage->phone_number)->first();
-    echo "✓ EventsGuest query with guest_phone executed successfully\n";
+    // Test 2: BusinessContact query with guest_phone column
+    echo "\n2. Testing BusinessContact query with guest_phone:\n";
+    $businessContact = BusinessContact::where('guest_phone', $incomingMessage->phone_number)->first();
+    echo "✓ BusinessContact query with guest_phone executed successfully\n";
 
     // Test 3: Update message status to valid values
     echo "\n3. Testing status updates:\n";

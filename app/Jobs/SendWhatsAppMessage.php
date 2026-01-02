@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\Message;
 use App\Models\MessageSentby;
 use App\Models\OutgoingMessage;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\User;
 use App\Services\WaSenderService;
 use App\Services\UnifiedNotificationService;
@@ -190,9 +190,9 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         // Resolve or create contact
-        $eventsGuest = null;
+        $businessContact = null;
         if ($this->userId) {
-            $eventsGuest = UserResolutionService::resolveOrCreateContact([
+            $businessContact = UserResolutionService::resolveOrCreateContact([
                 'phone' => $this->phoneNumber,
                 'name' => 'Auto-created from job',
                 'user_id' => $this->userId
@@ -202,7 +202,7 @@ class SendWhatsAppMessage implements ShouldQueue
         // Create new OutgoingMessage record
         return OutgoingMessage::create([
             'user_id' => $this->userId,
-            'events_guest_id' => $eventsGuest ? $eventsGuest->id : null,
+            'business_contact_id' => $businessContact ? $businessContact->id : null,
             'instance_id' => $this->instanceId,
             'whatsapp_instance_id' => $this->whatsappInstanceId, // New field
             'phone_number' => $this->phoneNumber,

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
 use App\Services\LocalCreditManager;
@@ -182,7 +184,7 @@ class BillingApiController extends Controller
             // Get current usage counts from database
             $contactsCount = DB::table('business_contacts')->where('business_id', $business->id)->count();
             $productsCount = DB::table('products')->where('business_id', $business->id)->count();
-            $channelsCount = DB::table('whatsapp_channels')->where('business_id', $business->id)->count() ?: 1;
+            $channelsCount = DB::table('whatsapp_instances')->where('user_id', $user->id)->count() ?: 1;
             
             // Get AI credits from user wallet or business
             $aiCredits = $user->ai_credits ?? $business->ai_credits ?? 0;
@@ -510,5 +512,328 @@ class BillingApiController extends Controller
         $expiryDate = $user->subscription_expires_at ?? $business->subscription_expires_at;
         
         return $expiryDate ? $expiryDate->toISOString() : now()->addDays(3)->toISOString(); // Default 3 days for trial
+    }
+    
+    /**
+     * Upgrade user to a new plan
+     */
+    public function upgradePlan(Request $request)
+    {
+        $user = Auth::user();
+        $planCode = $request->input('plan_code');
+        $amount = $request->input('amount');
+        $feature = $request->input('feature');
+        
+        try {
+            // Validate plan code
+            $validPlans = ['starter', 'pro', 'premium'];
+            if (!in_array($planCode, $validPlans)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid plan selected'
+                ], 400);
+            }
+            
+            // Check if this is actually an upgrade
+            $currentPlan = $user->subscription_plan ?? 'trial';
+            $planHierarchy = ['trial' => 0, 'starter' => 1, 'pro' => 2, 'premium' => 3];
+            
+            if ($planHierarchy[$planCode] <= $planHierarchy[$currentPlan]) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected plan is not an upgrade from your current plan'
+                ], 400);
+            }
+            
+            // Call billing API to create plan upgrade invoice
+            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
+            $apiKey = config('services.billing.api_key');
+            
+            $invoiceData = [
+                'product_code' => 'safarichat',
+                'invoice_type' => 'plan_upgrade',
+                'customer' => [
+                    'name' => $user->business->name ?? $user->name,
+                    'phone' => $user->business->phone ?? $user->phone ?? '',
+                    'email' => $user->email 
+                        ?? $user->business->email 
+                        ?? ('safarichat.' . $user->id . '@safarichat.africa')
+                ],
+                'amount' => $amount,
+                'currency' => 'TZS',
+                'old_plan_code' => $currentPlan,
+                'new_plan_code' => $planCode,
+                'feature_code' => $feature ?? 'core',
+                'proration_credit' => 0, // Calculate if needed
+                'success_url' => route('billing.success', ['plan' => $planCode]),
+                'cancel_url' => route('billing.cancel'),
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'business_id' => $user->business_id ?? null,
+                    'upgrade_timestamp' => now()->toISOString()
+                ]
+            ];
+
+            $response = Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($billingApiUrl . '/create-invoice', $invoiceData);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                
+                Log::info('Plan upgrade invoice created successfully', [
+                    'user_id' => $user->id,
+                    'old_plan' => $currentPlan,
+                    'new_plan' => $planCode,
+                    'invoice_id' => $responseData['data']['invoice_id'] ?? 'unknown',
+                    'amount' => $amount
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Invoice created for {$planCode} plan upgrade",
+                    'payment_url' => $responseData['data']['payment_url'] ?? route('billing.payment', [
+                        'plan_code' => $planCode,
+                        'amount' => $amount,
+                        'feature' => $feature
+                    ]),
+                    'invoice_id' => $responseData['data']['invoice_id'] ?? null,
+                    'plan' => $planCode,
+                    'amount' => $amount
+                ]);
+            } else {
+                // Billing API failed, fall back to local payment page
+                Log::warning('Billing API failed, using local payment flow', [
+                    'user_id' => $user->id,
+                    'api_response' => $response->body(),
+                    'status_code' => $response->status()
+                ]);
+
+                $paymentUrl = route('billing.payment', [
+                    'plan_code' => $planCode,
+                    'amount' => $amount,
+                    'feature' => $feature
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Redirecting to payment for {$planCode} plan upgrade",
+                    'payment_url' => $paymentUrl,
+                    'plan' => $planCode,
+                    'amount' => $amount
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Plan upgrade initiation failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fall back to local payment page on error
+            $paymentUrl = route('billing.payment', [
+                'plan_code' => $planCode,
+                'amount' => $amount,
+                'feature' => $feature
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Redirecting to payment for {$planCode} plan upgrade",
+                'payment_url' => $paymentUrl,
+                'plan' => $planCode,
+                'amount' => $amount
+            ]);
+        }
+    }
+    
+    /**
+     * Purchase additional credits
+     */
+    public function purchaseCredits(Request $request)
+    {
+        $user = Auth::user();
+        $amount = $request->input('amount');
+        
+        try {
+            // Validate amount
+            if (!$amount || $amount < 1000) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Minimum credit amount is TZS 1,000'
+                ], 400);
+            }
+            
+            // Calculate credits (1 TZS = 1 credit for simplicity)
+            $credits = $amount;
+            
+            // Add credits to user
+            $user->increment('ai_credits', $credits);
+            
+            // Also update business if exists
+            if ($user->business) {
+                $user->business->increment('ai_credits', $credits);
+            }
+            
+            Log::info('Credits purchased', [
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'credits_added' => $credits
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully added {$credits} AI credits!",
+                'credits_added' => $credits,
+                'new_balance' => $user->ai_credits
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Credit purchase failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to purchase credits. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get current user's billing status (for /api/billing/status endpoint)
+     */
+    public function getBillingStatus(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $customerId = $user->customer_id ?? $user->id;
+            
+            // Use the existing getCompleteStatus method
+            return $this->getCompleteStatus($customerId);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get billing status', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve billing status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available product plans (for /api/billing/plans endpoint)
+     */
+    public function getProductInfo(Request $request)
+    {
+        try {
+            $plans = [
+                'trial' => [
+                    'name' => 'Trial Plan',
+                    'price' => 0,
+                    'currency' => 'TZS',
+                    'duration_days' => 3,
+                    'features' => [
+                        'max_contacts' => 10,
+                        'max_products' => 1,
+                        'whatsapp_channels' => 1,
+                        'ai_credits' => 1000,
+                        'customer_followups' => false,
+                        'customer_categorization' => false,
+                        'booking_calendars' => false,
+                        'sales_reports' => false
+                    ]
+                ],
+                'starter' => [
+                    'name' => 'Starter Plan',
+                    'price' => 69000,
+                    'currency' => 'TZS',
+                    'billing_cycle' => 'monthly',
+                    'features' => [
+                        'max_contacts' => 50,
+                        'max_products' => 5,
+                        'whatsapp_channels' => 1,
+                        'ai_credits' => 69000,
+                        'customer_followups' => false,
+                        'customer_categorization' => false,
+                        'booking_calendars' => false,
+                        'sales_reports' => false,
+                        'unlimited_messages' => true
+                    ]
+                ],
+                'pro' => [
+                    'name' => 'Pro Plan',
+                    'price' => 149000,
+                    'currency' => 'TZS',
+                    'billing_cycle' => 'monthly',
+                    'features' => [
+                        'max_contacts' => 150,
+                        'max_products' => 50,
+                        'whatsapp_channels' => 3,
+                        'ai_credits' => 149000,
+                        'customer_followups' => true,
+                        'customer_categorization' => true,
+                        'booking_calendars' => false,
+                        'sales_reports' => true,
+                        'unlimited_messages' => true
+                    ]
+                ],
+                'premium' => [
+                    'name' => 'Premium Plan',
+                    'price' => 299000,
+                    'currency' => 'TZS',
+                    'billing_cycle' => 'monthly',
+                    'features' => [
+                        'max_contacts' => 400,
+                        'max_products' => 200,
+                        'whatsapp_channels' => 7,
+                        'ai_credits' => 299000,
+                        'customer_followups' => true,
+                        'customer_categorization' => true,
+                        'booking_calendars' => true,
+                        'sales_reports' => true,
+                        'unlimited_messages' => true
+                    ]
+                ]
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'plans' => $plans,
+                    'product_code' => 'safarichat',
+                    'token_pricing' => [
+                        'tokens_per_credit' => 3.846,
+                        'cost_per_token_input' => 0.0015,
+                        'cost_per_token_output' => 0.002
+                    ]
+                ],
+                'message' => 'Plans retrieved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get product info', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve plan information'
+            ], 500);
+        }
     }
 }

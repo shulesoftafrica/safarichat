@@ -36,6 +36,6 @@ class Reminder extends Model
     }
     
     public function guests() {
-        return  \App\Models\EventsGuest::whereIn('id',explode(',', $this->attributes['users']))->get(['guest_name']);
+        return  \App\Models\BusinessContact::whereIn('id',explode(',', $this->attributes['users']))->get(['guest_name']);
     }
 }

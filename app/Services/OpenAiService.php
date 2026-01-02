@@ -7,6 +7,8 @@ use App\Models\AiSalesAgent;
 use App\Models\Product;
 use App\Models\Lead;
 use App\Models\Conversation;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Illuminate\Support\Facades\Log;
 
 class OpenAiService
@@ -127,6 +129,31 @@ class OpenAiService
     public function generateResponse(Lead $lead, ?string $customerMessage, array $context, string $currentState = 'INTRO'): array
     {
         try {
+            // FEATURE GATE: Check AI credits before making API call
+            $userId = $lead->user_id ?? auth()->id();
+            $customerId = \App\Models\User::find($userId)?->customer_id ?? $userId;
+            $billingStatus = BillingService::getCachedStatus($customerId);
+            
+            // Estimate credits needed (rough calculation)
+            $estimatedTokens = strlen($customerMessage ?? '') * 1.3 + 500; // Base + message length
+            $estimatedCredits = max(1, ceil($estimatedTokens / 3.846));
+            
+            if (!$billingStatus['permissions']['use_ai'] || ($billingStatus['limits']['ai_credits']['balance'] ?? 0) < $estimatedCredits) {
+                Log::info('AI usage blocked due to insufficient credits', [
+                    'user_id' => $userId,
+                    'estimated_credits' => $estimatedCredits,
+                    'available_credits' => $billingStatus['limits']['ai_credits']['balance'] ?? 0,
+                    'subscription_plan' => $billingStatus['subscription']['plan'] ?? 'unknown'
+                ]);
+                
+                return [
+                    'success' => false,
+                    'error' => 'insufficient_ai_credits',
+                    'available_credits' => $billingStatus['limits']['ai_credits']['balance'] ?? 0,
+                    'needed_credits' => $estimatedCredits
+                ];
+            }
+            
             // Handle null or empty customer message
             if (empty($customerMessage)) {
                 $customerMessage = 'Generate follow-up message based on conversation context';
@@ -162,13 +189,36 @@ class OpenAiService
             $response = $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product);
             
             if ($response['success']) {
+                // REVENUE PROTECTION: Deduct actual credits used
+                $tokensUsed = $response['tokens_used'] ?? $estimatedTokens;
+                $actualCredits = max(1, ceil($tokensUsed / 3.846));
+                
+                // Deduct credits from user account
+                $user = \App\Models\User::find($userId);
+                if ($user && $user->ai_credits >= $actualCredits) {
+                    $user->decrement('ai_credits', $actualCredits);
+                    
+                    // Also deduct from business if exists
+                    if ($user->business) {
+                        $user->business->decrement('ai_credits', $actualCredits);
+                    }
+                    
+                    Log::info('AI credits deducted', [
+                        'user_id' => $userId,
+                        'credits_deducted' => $actualCredits,
+                        'tokens_used' => $tokensUsed,
+                        'remaining_credits' => $user->fresh()->ai_credits
+                    ]);
+                }
+                
                 return [
                     'success' => true,
                     'message_text' => $response['response'],
                     'new_conversation_state' => $currentState, // Keep current state for now
                     'actions' => $response['actions'] ?? [],
                     'confidence' => $response['confidence'] ?? 0.8,
-                    'tokens_used' => $response['tokens_used'] ?? 0
+                    'tokens_used' => $tokensUsed,
+                    'credits_used' => $actualCredits
                 ];
             } else {
                 return [
@@ -402,10 +452,16 @@ class OpenAiService
     ?Product $product,
     ?\App\Models\WhatsappInstance $instance = null
 ): string {
+
     $businessName = $agent->user?->business?->name ?? 'our company';
 
     // === CORE IDENTITY ===
-    $prompt = "You are {$agent->assistant_name}, a senior sales consultant at {$businessName}. ";
+    if ($instance && !empty($instance->instance_name)) {
+        $displayName = $instance->instance_name;
+    } else {
+        $displayName = $agent->assistant_name;
+    }
+    $prompt = "You are {$displayName}, a senior sales consultant at {$businessName}. ";
     $prompt .= "You speak in first person, sound human, confident, and consultative. ";
     $prompt .= "Your responsibility is to guide prospects from interest to activation or purchase.";
 

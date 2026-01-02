@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lead;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\Conversation;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;

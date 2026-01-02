@@ -111,7 +111,7 @@
                         </li>
                          <li class="nav-item">
                             <a class="nav-link" href="<?= url('ai-agents') ?>">
-                                <i class="fas fa-robot align-middle mr-2" title="AI Sales Officer"></i>{{__('AI Sales Officer')}}
+                                <i class="fas fa-robot align-middle mr-2" title="Sales Agents"></i>{{__('Sales Agents')}}
                             </a>
                         </li>
                         <!-- <li class="nav-item">

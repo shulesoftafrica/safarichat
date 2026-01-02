@@ -506,7 +506,63 @@
                 WhatsApp Message Composer
             </h1>
             <p class="compose-subtitle">Send personalized WhatsApp messages to your contacts instantly</p>
+                        <div class="card shadow-sm border-0 my-4" style="background:linear-gradient(90deg,#fffbe6 60%,#fff 100%);border-radius:18px;">
+                            <div class="card-body d-flex flex-column flex-md-row align-items-center justify-content-between p-4" style="gap:18px;">
+                                <div class="d-flex align-items-center" style="gap:18px;">
+                                    <div style="background:#fff3cd;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px #ffe082;">
+                                        <i class="fas fa-exclamation-triangle" style="color:#f59e42;font-size:2rem;"></i>
+                                    </div>
+                                    <div style="max-width:600px;">
+                                        <div style="font-size:1.15rem;font-weight:600;color:#b45309;">WhatsApp Compliance Notice</div>
+                                        <div style="font-size:1rem;color:#7c2d12;line-height:1.6;margin-top:2px;">
+                                            <b>Do <u>NOT</u> use this page for BULK-SMS or mass promotional messages. Only send messages to numbers belonging to people who know you.</b><br>
+                                            This tool is strictly for WhatsApp messaging. Using it for bulk SMS can result in <b>account flagging or blocking</b>.<br>
+                                            <span style="color:#b91c1c;font-weight:500;">For important compliance guidance,</span> <span class="d-inline d-md-none"><br></span>
+                                            <button type="button" class="btn btn-sm btn-outline-warning ml-1" data-toggle="modal" data-target="#complianceModal" style="font-size:1rem;font-weight:600;vertical-align:middle;">
+                                                <i class="fas fa-info-circle"></i> Read More
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
         </div>
+
+                <!-- Compliance Modal -->
+                <div class="modal fade" id="complianceModal" tabindex="-1" role="dialog" aria-labelledby="complianceModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content" style="border-radius:18px;overflow:hidden;">
+                            <div class="modal-header" style="background:#f3f4f6;">
+                                <h5 class="modal-title" id="complianceModalLabel" style="font-weight:700;color:#166534;">
+                                    <i class="fas fa-shield-alt text-success"></i> WhatsApp Messaging Compliance Guidance
+                                </h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body" style="background:#fffbe6;">
+                                <div style="font-size:1.1rem;color:#7c2d12;margin-bottom:10px;">
+                                    <b>Never use this tool for SMS or mass promotional messaging.</b> WhatsApp has strict policies to prevent spam and protect user privacy. Violating these can result in your account being flagged or permanently blocked.
+                                </div>
+                                <ul style="font-size:1rem;color:#92400e;line-height:1.7;">
+                                    <li>Only send messages to users who have <b>opted in</b> to receive WhatsApp communications from you.</li>
+                                    <li>Do <b>not</b> send unsolicited or bulk promotional messages.</li>
+                                    <li>Personalize your messages and avoid generic mass content.</li>
+                                    <li>Monitor your account for warnings or restrictions from WhatsApp.</li>
+                                    <li>Review the full compliance guide here:<br>
+                                        <a href="https://wasenderapi.com/help/messaging/key-compliance-points-avoid-account-flagging-blocking" target="_blank" rel="noopener" style="word-break:break-all;color:#166534;font-weight:600;">https://wasenderapi.com/help/messaging/key-compliance-points-avoid-account-flagging-blocking</a>
+                                    </li>
+                                </ul>
+                                <div class="alert alert-danger mt-4" style="font-size:1rem;font-weight:600;border-radius:12px;">
+                                    <i class="fas fa-ban"></i> Failure to comply may result in your WhatsApp account being <span style="color:#b91c1c;">flagged, restricted, or banned</span>.
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="background:#f3f4f6;">
+                                <button type="button" class="btn btn-success" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
         
         <div class="compose-main">
             <!-- Error Display Section -->

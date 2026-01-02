@@ -6,6 +6,8 @@ use App\Models\Product;
 use App\Models\ProductFaq;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -81,8 +83,30 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
-        
         try {
+            // Check billing limits first
+            $billingStatus = BillingService::getBillingStatus(Auth::id());
+            if (!$billingStatus || !isset($billingStatus['limits']['products'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to verify subscription limits',
+                    'upgrade_required' => true,
+                    'feature' => 'products'
+                ], 402);
+            }
+
+            $productLimits = $billingStatus['limits']['products'];
+            if ($productLimits['current'] >= $productLimits['max']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Product limit reached. Your {$billingStatus['subscription']['plan']} plan allows {$productLimits['max']} products.",
+                    'upgrade_required' => true,
+                    'feature' => 'products',
+                    'current_limit' => $productLimits['max'],
+                    'current_usage' => $productLimits['current']
+                ], 402);
+            }
+
             DB::beginTransaction();
             
             $productData = $request->validated();

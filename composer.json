@@ -20,6 +20,7 @@
         "maatwebsite/excel": "^3.1",
         "openai-php/client": "^0.18.0",
         "predis/predis": "^2.0",
+        "ramsey/uuid": "^4.9",
         "sentry/sentry-laravel": "^4.0",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.0",

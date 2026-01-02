@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\WhatsappInstance;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -10,25 +12,50 @@ use Illuminate\Support\Facades\Validator;
 class WhatsappInstanceController extends Controller
 {
     /**
-     * Display the instance management page (web view)
+     * Update the specified WhatsApp instance.
      */
-    public function indexView()
+    public function update(Request $request, $id)
     {
-        $user = Auth::user();
-        
-        $instances = WhatsappInstance::where('user_id', $user->id)
-            ->orderBy('is_primary', 'desc')
-            ->orderBy('created_at')
-            ->get();
-            
-        $activeInstanceId = session('active_whatsapp_instance_id');
-        $activeInstance = $activeInstanceId 
-            ? $instances->firstWhere('id', $activeInstanceId)
-            : null;
-            
-        return view('whatsapp.instances.index', compact('instances', 'activeInstance'));
+        $instance = WhatsappInstance::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'instance_name' => 'nullable|string|max:255',
+            'display_name' => 'nullable|string|max:255',
+            'phone_number' => 'nullable|string|max:32',
+            'instance_description' => 'nullable|string',
+            'is_primary' => 'nullable|boolean',
+        ]);
+
+        $instance->instance_name = $validated['instance_name'] ?? $instance->instance_name;
+        $instance->display_name = $validated['display_name'] ?? $instance->display_name;
+        $instance->phone_number = $validated['phone_number'] ?? $instance->phone_number;
+        $instance->instance_description = $validated['instance_description'] ?? $instance->instance_description;
+        $instance->is_primary = $request->has('is_primary') ? 1 : 0;
+        $instance->save();
+
+        // If set as primary, unset primary for other instances
+        if ($instance->is_primary) {
+            WhatsappInstance::where('user_id', auth()->id())
+                ->where('id', '!=', $instance->id)
+                ->update(['is_primary' => 0]);
+        }
+
+        return redirect()->route('ai-agents.index')->with('success', 'WhatsApp instance updated successfully.');
     }
-    
+
+    /**
+     * Show the form for editing the specified WhatsApp instance.
+     */
+    public function edit($id)
+    {
+        $instance = WhatsappInstance::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+        return view('whatsapp.instances.edit', compact('instance'));
+    }
+
     /**
      * Get user's WhatsApp instances (API)
      */
@@ -235,7 +262,7 @@ class WhatsappInstanceController extends Controller
                 ->distinct('phone_number')
                 ->count(),
             'messages' => \App\Models\IncomingMessage::where('whatsapp_instance_id', $instance->id)->count(),
-            'contacts' => \App\Models\Guest::whereHas('incomingMessages', function($query) use ($instance) {
+            'contacts' => \App\Models\BusinessContact::whereHas('incomingMessages', function($query) use ($instance) {
                 $query->where('whatsapp_instance_id', $instance->id);
             })->count()
         ];
@@ -245,6 +272,53 @@ class WhatsappInstanceController extends Controller
             'instance' => $instance,
             'stats' => $stats
         ]);
+    }
+
+    /**
+     * Reconnect WhatsApp instance (generate new QR code)
+     */
+    public function reconnect($id)
+    {
+        // Verify user owns this instance
+        $instance = WhatsappInstance::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$instance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instance not found or access denied'
+            ], 404);
+        }
+
+        try {
+            // Reset connection status
+            $instance->update([
+                'is_active' => false,
+                'connection_status' => 'disconnected',
+                'last_seen' => null
+            ]);
+
+            // Here you would typically:
+            // 1. Call WaSender API to restart the instance
+            // 2. Generate a new QR code
+            // 3. Reset session data
+            
+            // For now, we'll return a success response with QR generation instructions
+            return response()->json([
+                'success' => true,
+                'message' => 'Instance reconnection initiated. Please scan the new QR code.',
+                'instance' => $instance->fresh(),
+                'qr_code_url' => null, // This would be populated by WaSender API
+                'reconnection_status' => 'pending'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reconnecting instance: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -302,6 +376,29 @@ class WhatsappInstanceController extends Controller
         }
 
         try {
+            // Check billing limits first
+            $billingStatus = BillingService::getBillingStatus($user->id);
+            if (!$billingStatus || !isset($billingStatus['limits']['whatsapp_channels'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to verify subscription limits',
+                    'upgrade_required' => true,
+                    'feature' => 'whatsapp_channels'
+                ], 402);
+            }
+
+            $channelLimits = $billingStatus['limits']['whatsapp_channels'];
+            if ($channelLimits['current'] >= $channelLimits['max']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "WhatsApp channel limit reached. Your {$billingStatus['subscription']['plan']} plan allows {$channelLimits['max']} WhatsApp channels.",
+                    'upgrade_required' => true,
+                    'feature' => 'whatsapp_channels',
+                    'current_limit' => $channelLimits['max'],
+                    'current_usage' => $channelLimits['current']
+                ], 402);
+            }
+
             // Create new instance
             $instance = WhatsappInstance::create([
                 'user_id' => $user->id,

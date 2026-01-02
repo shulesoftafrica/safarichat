@@ -42,7 +42,7 @@ class Message extends Model
      */
     public function eventsGuest()
     {
-        return $this->belongsTo('App\Models\EventsGuest', 'events_guests_id');
+        return $this->belongsTo('App\Models\BusinessContact', 'events_guests_id');
     }
 
     /**

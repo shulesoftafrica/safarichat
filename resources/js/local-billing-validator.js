@@ -199,7 +199,7 @@ class LocalBillingValidator {
      */
     static async verifyCreditsServerSide(customerId, creditsNeeded) {
         try {
-            const response = await fetch('/api/billing/verify-credits', {
+            const response = await fetch(`${window.API_BASE_URL}/billing/verify-credits`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

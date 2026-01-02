@@ -180,15 +180,15 @@
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="page-title">
-                    <i class="fab fa-whatsapp"></i> WhatsApp Instance Management
+                    <i class="fab fa-whatsapp"></i> Sales Agents
                 </h1>
                 <p class="page-description">
-                    Manage your WhatsApp business lines. Each instance can have its own purpose, AI behavior, and configuration.
+                    Each WhatsApp instance is now a Sales Agent. Name your agent when creating a WhatsApp instance. Configure sales settings for each agent below.
                 </p>
             </div>
             <div class="col-md-4 text-end">
                 <button class="create-instance-btn" onclick="showCreateInstanceModal()">
-                    <i class="fas fa-plus"></i> Add New Instance
+                    <i class="fas fa-plus"></i> Add New Sales Agent
                 </button>
             </div>
         </div>
@@ -213,7 +213,7 @@
                 <div class="instance-card {{ $instance->is_primary ? 'primary' : '' }} {{ $activeInstance && $activeInstance->id == $instance->id ? 'active' : '' }}">
                     <div class="instance-header">
                         <div class="flex-grow-1">
-                            <h3 class="instance-title">{{ $instance->display_name ?: 'Unnamed Instance' }}</h3>
+                            <h3 class="instance-title">{{ $instance->display_name ?: 'Unnamed Sales Agent' }}</h3>
                             <p class="instance-schema">{{ $instance->schema_name }}</p>
                         </div>
                         <div class="dropdown">
@@ -226,6 +226,9 @@
                                 </a></li>
                                 <li><a class="dropdown-item" href="#" onclick="configureInstance('{{ $instance->id }}')">
                                     <i class="fas fa-cog"></i> Configure
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="viewInstanceStats('{{ $instance->id }}')">
+                                    <i class="fas fa-chart-bar"></i> View Performance
                                 </a></li>
                                 @if(!$instance->is_primary)
                                 <li><hr class="dropdown-divider"></li>
@@ -246,6 +249,14 @@
                         @endif
                         @if($instance->purpose)
                             <span class="instance-badge badge-purpose">{{ ucfirst($instance->purpose) }}</span>
+                        @endif
+                        <span class="instance-badge" style="background:{{ $instance->connect_status === 'connected' ? '#dcfce7' : '#fee2e2' }};color:{{ $instance->connect_status === 'connected' ? '#16a34a' : '#b91c1c' }};">
+                            {{ $instance->connect_status === 'connected' ? 'Connected' : 'Not Connected' }}
+                        </span>
+                        @if($instance->connect_status !== 'connected')
+                            <span class="instance-badge btn btn-link p-0" style="color:#0d6efd;cursor:pointer;" onclick="showReconnectModal('{{ $instance->id }}')">
+                                <i class="fas fa-qrcode"></i> Reconnect
+                            </span>
                         @endif
                     </div>
                     
@@ -281,6 +292,9 @@
                         @endif
                         <button class="action-btn btn-configure" onclick="configureInstance('{{ $instance->id }}')">
                             <i class="fas fa-cog"></i> Configure
+                        </button>
+                        <button class="action-btn btn-configure" onclick="viewInstanceStats('{{ $instance->id }}')">
+                            <i class="fas fa-chart-bar"></i> View
                         </button>
                     </div>
                 </div>
@@ -384,6 +398,36 @@
                 <button type="button" class="btn btn-primary" onclick="updateInstance()">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reconnect Modal -->
+<div class="modal fade" id="reconnectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-qrcode"></i> Reconnect WhatsApp Instance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reconnectModalBody">
+                <!-- QR code will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instance Performance Modal -->
+<div class="modal fade" id="instanceStatsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-bar"></i> Instance Performance Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="instanceStatsModalBody">
+                <!-- Stats will be loaded here -->
             </div>
         </div>
     </div>
@@ -548,28 +592,77 @@ function updateInstance() {
 }
 
 function deleteInstance(instanceId) {
-    if (!confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
-        return;
-    }
-    
-    fetch(`/api/whatsapp/instances/${instanceId}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert('Error deleting instance: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting instance');
-    });
+    // Check if only one instance exists before allowing deletion
+    fetch('/api/whatsapp/instances/count')
+        .then(response => response.json())
+        .then(data => {
+            if (data.count <= 1) {
+                alert('You must have at least one WhatsApp instance. Deletion is not allowed.');
+                return;
+            }
+            if (!confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
+                return;
+            }
+            fetch(`/api/whatsapp/instances/${instanceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting instance: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting instance');
+            });
+        });
+}
+
+function showReconnectModal(instanceId) {
+    // Load QR code for reconnecting
+    fetch(`/api/whatsapp/instances/${instanceId}/reconnect`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.qr_code) {
+                document.getElementById('reconnectModalBody').innerHTML = `<div class='text-center'><img src='${data.qr_code}' alt='QR Code' style='max-width:300px;'><p class='mt-3'>Scan this QR code with your WhatsApp to reconnect.</p></div>`;
+            } else {
+                document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Unable to load QR code. Please try again later.</div>`;
+            }
+            new bootstrap.Modal(document.getElementById('reconnectModal')).show();
+        })
+        .catch(error => {
+            document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Error loading QR code.</div>`;
+            new bootstrap.Modal(document.getElementById('reconnectModal')).show();
+        });
+}
+
+function viewInstanceStats(instanceId) {
+    // Load instance performance summary
+    fetch(`/api/whatsapp/instances/${instanceId}/performance`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.stats) {
+                let html = `<ul class='list-group'>`;
+                for (const [key, value] of Object.entries(data.stats)) {
+                    html += `<li class='list-group-item d-flex justify-content-between align-items-center'><span>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span><span class='fw-bold'>${value}</span></li>`;
+                }
+                html += `</ul>`;
+                document.getElementById('instanceStatsModalBody').innerHTML = html;
+            } else {
+                document.getElementById('instanceStatsModalBody').innerHTML = `<div class='alert alert-danger'>Unable to load performance data.</div>`;
+            }
+            new bootstrap.Modal(document.getElementById('instanceStatsModal')).show();
+        })
+        .catch(error => {
+            document.getElementById('instanceStatsModalBody').innerHTML = `<div class='alert alert-danger'>Error loading performance data.</div>`;
+            new bootstrap.Modal(document.getElementById('instanceStatsModal')).show();
+        });
 }
 </script>
 

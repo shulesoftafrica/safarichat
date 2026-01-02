@@ -222,7 +222,7 @@ class ProcessBulkMessages implements ShouldQueue
         $phoneNumber = $this->extractPhoneNumber($recipient);
         
         // Resolve or create contact
-        $eventsGuest = null;
+        $businessContact = null;
         if ($this->userId && $phoneNumber) {
             $contactData = [
                 'phone' => $phoneNumber,
@@ -230,12 +230,12 @@ class ProcessBulkMessages implements ShouldQueue
                 'user_id' => $this->userId
             ];
             
-            $eventsGuest = UserResolutionService::resolveOrCreateContact($contactData);
+            $businessContact = UserResolutionService::resolveOrCreateContact($contactData);
         }
 
         return OutgoingMessage::create([
             'user_id' => $this->userId,
-            'events_guest_id' => $eventsGuest ? $eventsGuest->id : null,
+            'business_contact_id' => $businessContact ? $businessContact->id : null,
             'phone_number' => $phoneNumber,
             'message' => $personalizedMessage,
             'message_body' => $personalizedMessage,

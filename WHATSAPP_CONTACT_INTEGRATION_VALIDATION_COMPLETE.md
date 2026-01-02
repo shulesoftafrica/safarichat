@@ -84,3 +84,20 @@ When a **new WhatsApp number contacts** the system:
 ✅ **New WhatsApp contacts appear with correct default status and are ready for automated sales processing**
 
 The system now handles WhatsApp contacts seamlessly from first contact through lead conversion and AI-driven sales automation.
+
+  <div class="action-buttons">
+                                    <button class="btn-action primary" onclick="viewAgent('{{ $agent->uuid }}')" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-action warning" onclick="editAgent('{{ $agent->uuid }}')" title="Edit Agent">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action {{ $agent->status === 'active' ? 'danger' : 'success' }}" 
+                                            onclick="toggleStatus('{{ $agent->uuid }}')" 
+                                            title="{{ $agent->status === 'active' ? 'Deactivate' : 'Activate' }} Agent">
+                                        <i class="fas fa-{{ $agent->status === 'active' ? 'pause' : 'play' }}"></i>
+                                    </button>
+                                    <button class="btn-action danger" onclick="deleteAgent('{{ $agent->uuid }}')" title="Delete Agent">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>

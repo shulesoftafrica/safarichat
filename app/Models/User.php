@@ -78,26 +78,22 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function usersEvents() {
-        return $this->hasMany('App\Models\UsersEvent');
+        return $this->hasOne('App\Models\Business', 'user_id');
     }
 
     /**
-     * Get the active event associated with the user.
+     * Get the active business campaign associated with the user.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOneThrough|null
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne|null
      */
     public function event() {
-        return $this->hasOneThrough(
-            'App\Models\Event',
-            'App\Models\UsersEvent',
-            'user_id',      // Foreign key on UsersEvent table...
-            'id',           // Foreign key on Event table...
-            'id',           // Local key on User table...
-            'event_id'      // Local key on UsersEvent table...
-        )->where('users_events.status', 1);
+        return $this->hasOne('App\Models\Business', 'user_id')
+            ->whereNotNull('campaign_name')
+            ->where('campaign_end_date', '>=', now())
+            ->orWhereNull('campaign_end_date');
     }
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
@@ -131,6 +127,7 @@ class User extends Authenticatable implements MustVerifyEmail{
         // Get ready instance first
         $readyInstance = \App\Models\WhatsappInstance::where('user_id', $this->id)
             ->where('status', 'connected')
+            ->orderBy('is_primary', 'desc')
             ->first();
             
         if ($readyInstance) {

@@ -118,15 +118,19 @@ class AiSalesAgentController extends Controller
                 'request_method' => $request->method(),
                 'is_ajax' => $request->ajax(),
             ]);
-            
+
             // Ensure the agent belongs to the current user
             if ($aiSalesAgent->user_id !== Auth::id()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized access to this AI sales agent.'
-                ], 403);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized access to this AI sales agent.'
+                    ], 403);
+                } else {
+                    return redirect()->back()->withErrors(['general' => 'Unauthorized access to this AI sales agent.'])->withInput();
+                }
             }
-            
+
             // Log request data for debugging
             Log::info('Request data before validation', [
                 'all_data' => $request->all(),
@@ -135,49 +139,58 @@ class AiSalesAgentController extends Controller
                 'primary_language' => $request->input('primary_language'),
                 'always_available' => $request->input('always_available')
             ]);
-            
+
             $validatedData = $this->validateAgentData($request);
-            
+
             Log::info('Agent found and data validated', [
                 'agent_id' => $aiSalesAgent->id,
                 'agent_name' => $aiSalesAgent->assistant_name
             ]);
-            
+
             DB::beginTransaction();
-            
+
             // Update terms acceptance if changed
             if ($request->accepted_terms && !$aiSalesAgent->accepted_terms) {
                 $validatedData['terms_accepted_at'] = now();
             }
-            
+
             $aiSalesAgent->update($validatedData);
-            
+
             DB::commit();
-            
+
             Log::info('AI Sales Agent updated successfully', ['agent_id' => $aiSalesAgent->id]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'AI Sales Agent configuration updated successfully!',
-                'agent' => [
-                    'id' => $aiSalesAgent->id,
-                    'uuid' => $aiSalesAgent->uuid,
-                    'assistant_name' => $aiSalesAgent->assistant_name,
-                    'status' => $aiSalesAgent->status
-                ]
-            ]);
-            
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'AI Sales Agent configuration updated successfully!',
+                    'agent' => [
+                        'id' => $aiSalesAgent->id,
+                        'uuid' => $aiSalesAgent->uuid,
+                        'assistant_name' => $aiSalesAgent->assistant_name,
+                        'status' => $aiSalesAgent->status
+                    ]
+                ]);
+            } else {
+                return redirect()->route('ai-agents.edit', $aiSalesAgent->uuid)
+                    ->with('success', 'AI Sales Agent configuration updated successfully!');
+            }
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning('AI Sales Agent not found', [
                 'agent_uuid' => isset($aiSalesAgent->uuid) ? $aiSalesAgent->uuid : 'unknown',
                 'user_id' => Auth::id()
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'AI Sales Agent not found or you do not have permission to edit it.'
-            ], 404);
-            
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'AI Sales Agent not found or you do not have permission to edit it.'
+                ], 404);
+            } else {
+                return redirect()->back()->withErrors(['general' => 'AI Sales Agent not found or you do not have permission to edit it.'])->withInput();
+            }
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('AI Sales Agent validation failed', [
@@ -186,13 +199,17 @@ class AiSalesAgentController extends Controller
                 'errors' => $e->errors(),
                 'all_errors' => json_encode($e->errors())
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed. Please check your input.',
-                'errors' => $e->errors()
-            ], 422);
-            
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed. Please check your input.',
+                    'errors' => $e->errors()
+                ], 422);
+            } else {
+                return redirect()->back()->withErrors($e->errors())->withInput();
+            }
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('AI Sales Agent update failed: ' . $e->getMessage(), [
@@ -201,12 +218,16 @@ class AiSalesAgentController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update configuration. Please try again.',
-                'errors' => ['general' => [$e->getMessage()]]
-            ], 422);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update configuration. Please try again.',
+                    'errors' => ['general' => [$e->getMessage()]]
+                ], 422);
+            } else {
+                return redirect()->back()->withErrors(['general' => 'Failed to update configuration. Please try again.'])->withInput();
+            }
         }
     }
 

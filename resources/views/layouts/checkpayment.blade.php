@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
         
         // Use new billing API endpoint (to be implemented)
-        fetch('/api/billing/verify-payment', {
+        fetch('{{ url("/api/billing/verify-payment") }}', {
             method: 'POST',
             body: formData,
             headers: {
@@ -147,7 +147,7 @@ async function refreshBillingStatus() {
     
     try {
         // Call new billing status endpoint
-        const response = await fetch('/api/billing/customers/{{ $businessId }}/complete-status', {
+        const response = await fetch('{{ url("/api/billing/customers/") }}{{ $businessId }}/complete-status', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',

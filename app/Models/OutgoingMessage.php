@@ -11,7 +11,7 @@ class OutgoingMessage extends Model
         'user_id',
         'instance_id',
         'whatsapp_instance_id', // New field for multi-instance support
-        'events_guest_id',
+        'business_contact_id',
         'chat_id',
         'phone_number',
         'message',
@@ -64,7 +64,7 @@ class OutgoingMessage extends Model
      */
     public function guest()
     {
-        return $this->belongsTo(EventsGuest::class, 'events_guest_id');
+        return $this->belongsTo(BusinessContact::class, 'business_contact_id');
     }
 
     /**
@@ -288,7 +288,7 @@ class OutgoingMessage extends Model
             'metadata' => $data['metadata'] ?? null,
             'batch_id' => $data['batch_id'] ?? null,
             'scheduled_at' => $data['scheduled_at'] ?? null,
-            'events_guest_id' => $data['events_guest_id'] ?? null,
+            'events_guest_id' => $data['business_contact_id'] ?? $data['events_guest_id'] ?? null,
             'media_path' => $data['attachment_path'] ?? null,
             'caption' => $data['caption'] ?? null,
         ]);

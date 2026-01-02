@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 
-<div class="ai-sales-officer">
+<div class="sales-agents">
     <div class="container-fluid">
         <!-- Header -->
         <div class="reports-header mb-4">
@@ -9,7 +9,7 @@
                 <div class="col-md-8">
                     <h1 class="reports-title">
                         <i class="fas fa-robot"></i>
-                        AI Sales Officer
+                        Sales Agents
                         <span class="ai-badge ms-3">
                             <i class="fas fa-brain me-1"></i>
                             AI Powered
@@ -262,13 +262,13 @@
 </div>
 <style>
 /* Use the application's base font and sizing for consistency */
-body, .ai-sales-officer {
+    body, .sales-agents {
     font-family: inherit !important;
     font-size: 1rem;
     background: #f8fafc;
 }
 
-.ai-sales-officer {
+    .sales-agents {
     min-height: 100vh;
     padding-bottom: 24px;
 }

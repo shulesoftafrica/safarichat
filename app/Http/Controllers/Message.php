@@ -3,15 +3,19 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use \App\Models\EventGuestCategory;
+use \App\Models\BusinessContactCategory;
+use \App\Models\BusinessContactCategory as EventGuestCategory;
 use \App\Models\Message as SMS;
-use \App\Models\EventsGuest;
+use \App\Models\BusinessContact;
+use \App\Models\BusinessContact as EventsGuest;
 use \App\Models\OutgoingMessage;
 use \App\Jobs\SendWhatsAppMessage;
 use \App\Jobs\SendWhatsAppMediaMessage;
 use \App\Jobs\ProcessBulkMessages;
 use \App\Services\WaSenderService;
 use \App\Services\SystemWhatsAppService;
+use \App\Services\BillingService;
+use \App\Services\LocalBillingValidator;
 use Illuminate\Support\Arr;
 use Auth;
 use DB;
@@ -180,7 +184,7 @@ class Message extends Controller
     public function schedule()
     {
 
-     $this->data['usertypes'] = \App\Models\EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
+     $this->data['usertypes'] = \App\Models\BusinessContactCategory::where('business_id', Auth::user()->business->id)->get();
 
         if ($_POST) {
             $category_id = request('category_id');
@@ -260,6 +264,18 @@ class Message extends Controller
 
     public function report()
     {
+        // FEATURE GATE: Check if sales reports are allowed in current subscription plan
+        $customerId = Auth::user()->customer_id ?? Auth::id();
+        $billingStatus = BillingService::getCachedStatus($customerId);
+        
+        if (!$billingStatus['permissions']['sales_reports']) {
+            return view('message.report-upgrade-required', [
+                'feature' => 'Sales Reports & Analytics',
+                'current_plan' => $billingStatus['subscription']['plan'],
+                'required_plan' => 'premium'
+            ]);
+        }
+        
         $business_id = Auth::user()->business->id;
         $user_id = Auth::id();
 
@@ -303,7 +319,7 @@ class Message extends Controller
             ->count();
         
         // Customer engagement metrics
-        $this->data['total_contacts'] = \App\Models\EventsGuest::where('business_id', Auth::user()->business->id)->count();
+        $this->data['total_contacts'] = \App\Models\BusinessContact::where('business_id', Auth::user()->business->id)->count();
         $this->data['contacts_messaged'] = \App\Models\OutgoingMessage::where('user_id', $user_id)
             ->distinct('phone_number')
             ->count();
@@ -403,28 +419,28 @@ class Message extends Controller
         switch ($criteria) {
             case 1:
                 //All
-                $users = \App\Models\EventsGuest::where('business_id', $business_id);
+                $users = \App\Models\BusinessContact::where('business_id', $business_id);
                 break;
 
             case 2:
                 //Select Guest Category
-                $users = $request <> null ? \App\Models\EventsGuest::where('business_id', $business_id)->where('event_guest_category_id', $request->event_guest_category_id) : [];
+                $users = $request <> null ? \App\Models\BusinessContact::where('business_id', $business_id)->where('contact_category_id', $request->event_guest_category_id) : [];
                 break;
 
             case 3:
                 //Full Paid Guest
 
-                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\BusinessContact::where('business_id', $business_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 4:
                 //Non Paid Guest
-                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\BusinessContact::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 5:
                 //Partially Paid Guest
-                $users = \App\Models\EventsGuest::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
+                $users = \App\Models\BusinessContact::where('business_id', $business_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']));
                 break;
 
             case 6:
@@ -1417,7 +1433,7 @@ class Message extends Controller
         if ($channel == null) {
             $this->data['messages'] = \App\Models\Message::whereUserId(Auth::user()->id)->get();
         } else {
-            $this->data['guests'] = \App\Models\EventsGuest::where('business_id', Auth::user()->business->id)->get();
+            $this->data['guests'] = \App\Models\BusinessContact::where('business_id', Auth::user()->business->id)->get();
             $this->data['messages'] = \App\Models\Message::whereUserId(Auth::user()->id)->where('type', $channel)->get();
         }
 
@@ -1859,7 +1875,7 @@ class Message extends Controller
     {
         try {
             // Get event guests that haven't been contacted for sales yet
-            $newGuests = \App\Models\EventsGuest::where(function($query) {
+            $newGuests = \App\Models\BusinessContact::where(function($query) {
                     $query->where('contacted_for_sales', false)
                           ->orWhereNull('contacted_for_sales');
                 })

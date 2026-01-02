@@ -70,7 +70,7 @@ class Ibada extends Database {
             //switch criteria to see how the best we can allign as follows
             if ($schedule->criteria == 6 || (int) $schedule->criteria == 0) {
                 //This is custom selection, so take users in the array lists
-                $users = \App\Models\EventsGuest::whereIn('id', $users_list)->get();
+                $users = \App\Models\BusinessContact::whereIn('id', $users_list)->get();
             } else {
                 //take event guest lists, and then excluse what is in the array 
                 $event_id = \App\Models\User::find($schedule->user_id)->usersEvents()->orderBy('id', 'desc')->first()->event_id;
@@ -98,19 +98,19 @@ class Ibada extends Database {
         switch ($criteria) {
             case 1:
                 //All
-                $users = \App\Models\EventsGuest::where('event_id', $event_id);
+                $users = \App\Models\BusinessContact::where('event_id', $event_id);
                 break;
             case 3:
                 //Full Paid Guest
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
+                $users = \App\Models\BusinessContact::where('event_id', $event_id)->whereIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
                 break;
             case 4:
                 //Non Paid Guest
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
+                $users = \App\Models\BusinessContact::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
                 break;
             case 5:
                 //Partially Paid Guest
-                $users = \App\Models\EventsGuest::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
+                $users = \App\Models\BusinessContact::where('event_id', $event_id)->whereNotIn('id', \App\Models\Payment::get(['events_guests_id']))->whereNotIn('id', $exclude_lists);
                 break;
             default:
                 break;

@@ -75,7 +75,7 @@ class CrmPhase1ApiTester
         echo "\n📝 Testing Lead Creation...\n";
 
         $leadData = [
-            'events_guest_id' => $this->contactId,
+            'business_contact_id' => $this->contactId,
             'product_ids' => [$this->productIds[0], $this->productIds[1]],
             'primary_product_id' => $this->productIds[0],
             'company_name' => 'Test Company Ltd',
@@ -185,7 +185,7 @@ class CrmPhase1ApiTester
         $bulkData = [
             'leads' => [
                 [
-                    'events_guest_id' => $contact2Id,
+                    'business_contact_id' => $contact2Id,
                     'product_ids' => [$this->productIds[0]],
                     'company_name' => 'Bulk Test Company',
                     'source' => 'api'

@@ -5,7 +5,7 @@ $app = require_once 'bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 use Illuminate\Support\Facades\Auth;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\User;
 
 // Get current user data
@@ -24,12 +24,12 @@ if ($user) {
         echo "Event ID: " . $userEvent->event_id . "\n";
         
         // Check how many guests in this event
-        $totalGuests = EventsGuest::where('event_id', $userEvent->event_id)->count();
+        $totalGuests = BusinessContact::where('event_id', $userEvent->event_id)->count();
         echo "Total Guests in Event: " . $totalGuests . "\n";
         
         if ($totalGuests > 0) {
             echo "\nFirst 3 guests:\n";
-            $guests = EventsGuest::where('event_id', $userEvent->event_id)->limit(3)->get();
+            $guests = BusinessContact::where('event_id', $userEvent->event_id)->limit(3)->get();
             foreach ($guests as $guest) {
                 echo "- Guest ID: {$guest->id}, Name: {$guest->guest_name}, Phone: {$guest->guest_phone}\n";
             }
@@ -37,7 +37,7 @@ if ($user) {
         
         // Test criteria 1 (All users)
         echo "\n=== Testing Criteria 1 (All Users) ===\n";
-        $allUsers = EventsGuest::where('event_id', $userEvent->event_id)->get();
+        $allUsers = BusinessContact::where('event_id', $userEvent->event_id)->get();
         echo "Query result count: " . $allUsers->count() . "\n";
         
         // Test criteria 6 (Custom numbers)

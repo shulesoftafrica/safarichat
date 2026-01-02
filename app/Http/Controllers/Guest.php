@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use \App\Models\EventsGuest;
-use \App\Models\EventGuestCategory;
+use App\Models\BusinessContact;
+use App\Models\BusinessContact as EventsGuest;
+use App\Models\BusinessContactCategory;
+use App\Models\BusinessContactCategory as EventGuestCategory;
+use App\Services\BillingService;
+use App\Services\LocalBillingValidator;
 use Auth;
 
 class Guest extends Controller {
@@ -25,7 +29,7 @@ class Guest extends Controller {
         }
         
         // Get paginated guests data with handoff information
-        $this->data['guests'] = EventsGuest::with(['eventGuestCategory', 'assignedAgent'])
+        $this->data['guests'] = EventsGuest::with(['contactCategory', 'assignedAgent'])
             ->where('business_id', $business_id)
             ->limit(1000)
             ->get();
@@ -344,14 +348,35 @@ class Guest extends Controller {
 
     public function guestcategory() {
         $id = request()->segment(3);
-        $find = \App\Models\EventGuestCategory::find($id);
+        $find = \App\Models\BusinessContactCategory::find($id);
         if (!empty($find)) {
-            !empty($find->event->eventsGuests()->get()) ? $find->delete() : 'You cannot delete this Category, there are guest available ';
+            !empty($find->businessContacts()->get()) ? $find->delete() : 'You cannot delete this Category, there are guest available ';
         }
         return redirect()->back()->with('success', 'success');
     }
 
     public function addguestcategory() {
+        // FEATURE GATE: Check if customer categorization is allowed in current subscription plan
+        $customerId = Auth::user()->customer_id ?? Auth::id();
+        $billingStatus = BillingService::getCachedStatus($customerId);
+        
+        if (!$billingStatus['permissions']['customer_categorization']) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer categorization is not available in your current plan',
+                    'upgrade_required' => true,
+                    'feature' => 'customer_categorization',
+                    'current_plan' => $billingStatus['subscription']['plan'],
+                    'required_plan' => 'pro'
+                ], 403);
+            }
+            
+            // For non-AJAX requests, return HTML error
+            echo '<div class="alert alert-warning">Customer categorization is not available in your current plan. <a href="#" onclick="showUpgradeModal(\'customer_categorization\')">Upgrade to Pro</a></div>';
+            return;
+        }
+        
         $business_id = Auth::user()->business->id;
         if (strlen(request('name')) > 2) {
             \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $business_id]);
@@ -505,14 +530,14 @@ class Guest extends Controller {
                         'guest_phone' => $clean_phone,
                         'guest_email' => $primary_email ?: '',
                         'guest_pledge' => 0,
-                        'event_id' => $event_id,
+                        'business_id' => $business_id,
                         'event_guest_category_id' => 1, // Default category
                         'created_at' => now(),
                         'updated_at' => now()
                     ];
 
                     // Check if contact already exists for this event
-                    $existing = \App\Models\EventsGuest::where('event_id', $event_id)
+                    $existing = \App\Models\EventsGuest::where('business_id', $business_id)
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
@@ -785,8 +810,7 @@ class Guest extends Controller {
     {
         try {
             $user = Auth::user();
-            $user_events = $user->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = $user->business->id;
             
             // Handle both JSON and FormData requests
             $contactIds = $request->input('contact_ids');
@@ -803,16 +827,27 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'Missing required data']);
             }
 
-            // Get user's WhatsApp instance
-            $whatsappInstance = $user->whatsappInstance();
-            
+            // Get user's WhatsApp instance (connected and ready)
+            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $user->id)
+                ->where('status', 'connected')
+                ->where('connect_status', 'ready')
+                ->first();
+
+            // Fallback to system default instance if user instance not found
             if (!$whatsappInstance) {
-                return response()->json(['success' => false, 'message' => 'No WhatsApp instance found']);
+                $whatsappInstance = \App\Models\WhatsappInstance::where('is_system_default', 1)
+                    ->where('status', 'connected')
+                    ->where('connect_status', 'ready')
+                    ->first();
+            }
+
+            if (!$whatsappInstance) {
+                return response()->json(['success' => false, 'message' => 'No WhatsApp instance found (user or system default)']);
             }
 
             // Get contacts
             $contacts = EventsGuest::whereIn('id', $contactIds)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->get();
 
             if ($contacts->isEmpty()) {
@@ -931,8 +966,7 @@ class Guest extends Controller {
     public function bulkDelete(Request $request)
     {
         try {
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = Auth::user()->business->id;
             
             $contactIds = $request->input('contact_ids', []);
             
@@ -941,7 +975,7 @@ class Guest extends Controller {
             }
 
             $deletedCount = EventsGuest::whereIn('id', $contactIds)
-                ->where('event_id', $event_id)
+                ->where('business_id', $business_id)
                 ->delete();
 
             return response()->json([
@@ -1137,10 +1171,10 @@ class Guest extends Controller {
             $guest = EventsGuest::findOrFail($request->guest_id);
             
             // Ensure guest belongs to user's business
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            // event_id removed due to schema change
             
-            if ($guest->event_id !== $event_id) {
+            $business_id = Auth::user()->business->id;
+            if ($guest->business_id !== $business_id) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized access']);
             }
 
@@ -1169,10 +1203,10 @@ class Guest extends Controller {
             $guest = EventsGuest::findOrFail($request->guest_id);
             
             // Ensure guest belongs to user's business
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            // event_id removed due to schema change
             
-            if ($guest->event_id !== $event_id) {
+            $business_id = Auth::user()->business->id;
+            if ($guest->business_id !== $business_id) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized access']);
             }
 
@@ -1193,21 +1227,20 @@ class Guest extends Controller {
     public function getHandoffDashboard()
     {
         try {
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-            $event_id = $user_events ? $user_events->event_id : null;
+            $business_id = Auth::user()->business->id;
 
             // Get handoff statistics
             $stats = [
-                'total_guests' => EventsGuest::where('event_id', $event_id)->count(),
-                'ai_handled' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('ai')->count(),
-                'pending_handoff' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('pending_handoff')->count(),
-                'handed_off' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('handed_off')->count(),
-                'completed' => EventsGuest::where('event_id', $event_id)->byHandoffStatus('completed')->count(),
-                'urgent_cases' => EventsGuest::where('event_id', $event_id)->urgent()->count()
+                'total_guests' => EventsGuest::where('business_id', $business_id)->count(),
+                'ai_handled' => EventsGuest::where('business_id', $business_id)->byHandoffStatus('ai')->count(),
+                'pending_handoff' => EventsGuest::where('business_id', $business_id)->byHandoffStatus('pending_handoff')->count(),
+                'handed_off' => EventsGuest::where('business_id', $business_id)->byHandoffStatus('handed_off')->count(),
+                'completed' => EventsGuest::where('business_id', $business_id)->byHandoffStatus('completed')->count(),
+                'urgent_cases' => EventsGuest::where('business_id', $business_id)->urgent()->count()
             ];
 
             // Get recent handoff activities
-            $recentHandoffs = EventsGuest::where('event_id', $event_id)
+            $recentHandoffs = EventsGuest::where('business_id', $business_id)
                 ->whereIn('handoff_status', ['pending_handoff', 'handed_off'])
                 ->with(['assignedAgent', 'eventGuestCategory'])
                 ->orderBy('handoff_requested_at', 'desc')

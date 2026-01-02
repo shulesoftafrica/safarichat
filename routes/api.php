@@ -222,7 +222,25 @@ Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whats
     Route::put('/{id}', 'WhatsappInstanceController@updateInstance');
     Route::delete('/{id}', 'WhatsappInstanceController@destroy');
     Route::get('/{id}/stats', 'WhatsappInstanceController@getInstanceStats');
+    Route::get('/{id}/reconnect', 'WhatsappInstanceController@reconnect');
     Route::get('/purposes', 'WhatsappInstanceController@getPurposes');
+});
+
+// Additional routes with web auth for Blade templates
+Route::middleware('auth')->group(function () {
+    Route::get('/whatsapp/instances/{id}/stats', 'WhatsappInstanceController@getInstanceStats');
+    Route::get('/whatsapp/instances/{id}/reconnect', 'WhatsappInstanceController@reconnect');
+    Route::get('/whatsapp/instances/count', function() {
+        return response()->json(['count' => \App\Models\WhatsappInstance::where('user_id', auth()->id())->count()]);
+    });
+    
+    // Pricing Controls API endpoints (web session and API token authentication)
+    Route::middleware(['auth:web,sanctum'])->prefix('billing')->group(function () {
+        Route::get('/status', [BillingApiController::class, 'getBillingStatus']);
+        Route::get('/plans', [BillingApiController::class, 'getProductInfo']);
+        Route::post('/upgrade', [BillingApiController::class, 'upgradePlan']);
+        Route::post('/credits', [BillingApiController::class, 'purchaseCredits']);
+    });
 });
 
 // WaSender API endpoints for sending messages

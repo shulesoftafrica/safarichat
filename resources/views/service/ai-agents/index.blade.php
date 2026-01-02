@@ -6,37 +6,93 @@
         <!-- Modern Header -->
         <div class="page-header">
             <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div class="header-content">
+                <div class="col-md-12 d-flex align-items-center">
+                    <div class="header-content flex-grow-1">
                         <div class="header-icon">
                             <i class="fas fa-robot"></i>
                         </div>
                         <div class="header-text">
-                            <h1 class="page-title">AI Sales Agents</h1>
+                            <h1 class="page-title">Sales Settings</h1>
                             <p class="page-subtitle">
-                                Create and manage intelligent WhatsApp sales assistants to automate customer conversations
+                                Configure your WhatsApp sales automation and manage your sales agent settings here.
                             </p>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4 text-end">
-                    @if($agents->count() === 0)
-                        <a href="{{ route('ai-agents.create') }}" class="btn btn-create">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            Create AI Agent
-                        </a>
-                    @endif
+                    <div class="header-actions ms-auto" style="display: flex; gap: 0.75rem; align-items: center;">
+                        @php
+                            $user = Auth::user();
+                            $customerId = $user->customer_id ?? $user->id;
+                            // Get subscription info - in real implementation, this would come from BillingService
+                            $subscriptionPlan = $user->subscription_plan ?? 'trial';
+                            $aiCredits = $user->ai_credits ?? 0;
+                        @endphp
+                        
+                        <!-- Compact Subscription Plan Badge -->
+                        <div class="plan-badge-compact">
+                            <span class="badge plan-badge" data-plan="{{ $subscriptionPlan }}">
+                                {{ strtoupper($subscriptionPlan) }} PLAN
+                            </span>
+                        </div>
+                        
+                        <!-- Compact AI Credits with Quick Actions -->
+                        <div class="credits-section-compact">
+                            <div class="credits-display-compact">
+                                <i class="fas fa-coins"></i>
+                                <div class="credits-info">
+                                    <span class="credits-number">{{ number_format($aiCredits) }}</span>
+                                    <span class="credits-label">AI Credits</span>
+                                </div>
+                            </div>
+                            <div class="credits-actions">
+                                <button class="btn-mini success" onclick="showPurchaseCreditsModal()" title="Add Credits">
+                                    <i class="fas fa-plus"></i>
+                                    Add Credits
+                                </button>
+                                @if($subscriptionPlan !== 'premium')
+                                    <button class="btn-mini primary" onclick="showUpgradeModal('general')" title="Upgrade Plan">
+                                        <i class="fas fa-arrow-up"></i>
+                                        Upgrade
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons-group">
+                            <button class="btn-action primary" onclick="viewAgent('{{ optional($agents->first())->uuid }}')" title="View Sales Settings" aria-label="View Sales Settings" @if($agents->count() === 0) disabled @endif>
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-action warning" onclick="editAgent('{{ optional($agents->first())->uuid }}')" title="Click here to manage Sales Setting" aria-label="Click here to manage Sales Setting" @if($agents->count() === 0) disabled @endif>
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        @if($agents->count() === 0)
+                            <a href="{{ route('ai-agents.create') }}" class="btn btn-create ms-2">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Create AI Agent
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="content-wrapper">
+            <div class="mb-4">
+                <h2 class="mb-2" style="font-weight:700; color:#4b3fa7;">Configure and Manage New Sales Agents</h2>
+                <p class="mb-3" style="color:#6c757d;">This section allows you to add, configure, and manage your WhatsApp sales agents. Each agent can automate and personalize your customer conversations.</p>
+                <button id="createAgentBtn" class="btn btn-primary-lg" onclick="handleCreateAgent()">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Create New Sales Agent
+                </button>
+            </div>
             @if($agents->count() > 0)
                 <!-- Agents Grid View -->
                 <div class="agents-grid">
                     @foreach($agents as $agent)
                         <div class="agent-card">
+                            <!-- ...existing code... -->
                             <div class="agent-card-header">
                                 <div class="agent-avatar">
                                     <i class="fas fa-robot"></i>
@@ -45,85 +101,176 @@
                                     <span class="status-badge {{ $agent->status === 'active' ? 'active' : 'inactive' }}">
                                         {{ ucfirst($agent->status) }}
                                     </span>
-                                 
                                 </div>
                             </div>
-                            
                             <div class="agent-card-body">
-                                <h3 class="agent-name">{{ $agent->assistant_name }}</h3>
-                                <p class="agent-company">{{ $agent->company_name ?? 'No company specified' }}</p>
-                                <p class="agent-description">
-                                    {{ Str::limit($agent->personality_description, 100) }}
-                                </p>
-                                
-                                <div class="agent-details">
-                                    <div class="detail-item">
-                                        <span class="label">Language:</span>
-                                        <span class="value">{{ ucfirst($agent->primary_language ?? 'English') }}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span class="label">Industry:</span>
-                                        <span class="value">{{ ucfirst($agent->company_industry ?? 'General') }}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span class="label">Created:</span>
-                                        <span class="value">{{ $agent->created_at->format('M d, Y') }}</span>
-                                    </div>
-                                </div>
-
                                 @php
                                     $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())->first();
                                 @endphp
                                 @if($whatsappInstance)
-                                <div class="whatsapp-info">
-                                    <div class="detail-item">
-                                        <span class="label"><i class="fab fa-whatsapp me-1"></i>Phone:</span>
-                                        <span class="value">{{ $whatsappInstance->phone_number ?? 'Not configured' }}</span>
+                                    <h3 class="agent-name">{{ $whatsappInstance->display_name ?? $whatsappInstance->instance_name ?? 'Unnamed Instance' }}</h3>
+                                    <p class="agent-company">WhatsApp Instance</p>
+                                    <div class="agent-details">
+                                        <div class="detail-item">
+                                            <span class="label">Phone:</span>
+                                            <span class="value">{{ $whatsappInstance->phone_number ?? 'Not configured' }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="label">Instance Name:</span>
+                                            <span class="value">{{ $whatsappInstance->instance_name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="label">Status:</span>
+                                            <span class="value">
+                                                @if($whatsappInstance->connect_status === 'connected')
+                                                    <span class="badge bg-success">Connected</span>
+                                                @else
+                                                    <span class="badge bg-danger">Not Connected</span>
+                                                    <button class="btn btn-link p-0 ms-2" style="color:#0d6efd; font-size:0.9rem;" onclick="showReconnectModal('{{ $whatsappInstance->id }}')">
+                                                        <i class="fas fa-qrcode"></i> Reconnect
+                                                    </button>
+                                                @endif
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="detail-item">
-                                        <span class="label">Instance:</span>
-                                        <span class="value">{{ $whatsappInstance->instance_name ?? 'N/A' }}</span>
+                                    <div class="agent-details">
+                                        <div class="detail-item">
+                                            <span class="label">Created:</span>
+                                            <span class="value">{{ $whatsappInstance->created_at ? $whatsappInstance->created_at->format('M d, Y') : 'N/A' }}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                @else
+                                    <h3 class="agent-name">No WhatsApp Instance</h3>
+                                    <p class="agent-company">Please create a WhatsApp instance to enable this agent.</p>
                                 @endif
-                                
-                                @php
-                                    $userTypes = $agent->getTargetUserTypeNames();
-                                @endphp
-                                @if(!empty($userTypes))
-                                    <div class="agent-tags">
-                                        @foreach(array_slice($userTypes, 0, 3) as $userType)
-                                            <span class="tag">{{ $userType }}</span>
-                                        @endforeach
-                                        @if(count($userTypes) > 3)
-                                            <span class="tag more">+{{ count($userTypes) - 3 }} more</span>
-                                        @endif
-                                    </div>
-                                @endif
+                                {{-- Optionally, show more WhatsApp instance details or tags here --}}
                             </div>
-                            
                             <div class="agent-card-footer">
-                                <div class="action-buttons">
-                                    <button class="btn-action primary" onclick="viewAgent('{{ $agent->uuid }}')" title="View Details">
-                                        <i class="fas fa-eye"></i>
+                                <div class="action-buttons" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button class="btn-action primary" onclick="viewInstanceStats('{{ $whatsappInstance->id ?? '' }}')" title="View Instance Performance" aria-label="View Instance Performance" @if(!$whatsappInstance) disabled @endif>
+                                        <i class="fas fa-chart-bar"></i>
                                     </button>
-                                    <button class="btn-action warning" onclick="editAgent('{{ $agent->uuid }}')" title="Edit Agent">
+                                    <button class="btn-action warning" onclick="editWhatsappInstance('{{ $whatsappInstance->id ?? '' }}')" title="Edit WhatsApp Instance" aria-label="Edit WhatsApp Instance" @if(!$whatsappInstance) disabled @endif>
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn-action {{ $agent->status === 'active' ? 'danger' : 'success' }}" 
-                                            onclick="toggleStatus('{{ $agent->uuid }}')" 
-                                            title="{{ $agent->status === 'active' ? 'Deactivate' : 'Activate' }} Agent">
-                                        <i class="fas fa-{{ $agent->status === 'active' ? 'pause' : 'play' }}"></i>
-                                    </button>
-                                    <button class="btn-action danger" onclick="deleteAgent('{{ $agent->uuid }}')" title="Delete Agent">
+                                    <button class="btn-action danger" onclick="deleteWhatsappInstance('{{ $whatsappInstance->id ?? '' }}')" title="Delete WhatsApp Instance" @if(!$whatsappInstance) disabled @endif>
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                <!-- Reconnect Modal -->
+                            
+
+                              
+                                </div>
+                                <!-- Move JS to global script block below -->
+                                            </div>
+
+                                            
+                                            <script>
+                                            function showReconnectModal(instanceId) {
+                                                fetch(`{{ url('/api/whatsapp/instances') }}/${instanceId}/reconnect`)
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.success && data.instance && data.instance.qr_code) {
+                                                            // Create proper data URL for base64 QR code
+                                                            const qrCodeUrl = `data:image/png;base64,${data.instance.qr_code}`;
+                                                            document.getElementById('reconnectModalBody').innerHTML = `
+                                                                <div class='text-center'>
+                                                                    <img src='${qrCodeUrl}' alt='QR Code' style='max-width:300px; border: 1px solid #ddd; padding: 10px;'>
+                                                                    <p class='mt-3'>Scan this QR code with your WhatsApp to reconnect.</p>
+                                                                    <small class='text-muted'>QR code generated at: ${new Date(data.instance.qr_code_generated_at).toLocaleString()}</small>
+                                                                </div>
+                                                            `;
+                                                        } else {
+                                                            document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Unable to load QR code. Please try again later.</div>`;
+                                                        }
+                                                        new bootstrap.Modal(document.getElementById('reconnectModal')).show();
+                                                    })
+                                                    .catch(error => {
+                                                        console.error('Reconnect error:', error);
+                                                        document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Error loading QR code.</div>`;
+                                                        new bootstrap.Modal(document.getElementById('reconnectModal')).show();
+                                                    });
+                                            }
+
+                                            function viewInstanceStats(instanceId) {
+                                                var modalEl = document.getElementById('instanceStatsModal');
+                                                // Hide any open modals and remove modal-backdrop if present
+                                                $(modalEl).modal('hide');
+                                                $('.modal-backdrop').remove();
+                                                document.body.classList.remove('modal-open');
+                                                document.body.style.paddingRight = '';
+                                                // Reset modal content
+                                                document.getElementById('instanceStatsModalBody').innerHTML = '';
+                                                fetch(`{{ url('/whatsapp/instances') }}/${instanceId}/stats`, {
+                                                    method: 'GET',
+                                                    headers: {
+                                                        'Accept': 'application/json',
+                                                        'Content-Type': 'application/json',
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content')
+                                                    },
+                                                    credentials: 'same-origin'
+                                                })
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.success && data.stats) {
+                                                            let html = `<ul class='list-group'>`;
+                                                            for (const [key, value] of Object.entries(data.stats)) {
+                                                                html += `<li class='list-group-item d-flex justify-content-between align-items-center'><span>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span><span class='fw-bold'>${value}</span></li>`;
+                                                            }
+                                                            html += `</ul>`;
+                                                            document.getElementById('instanceStatsModalBody').innerHTML = html;
+                                                        } else {
+                                                            document.getElementById('instanceStatsModalBody').innerHTML = `<div class='alert alert-danger'>Unable to load performance data.</div>`;
+                                                        }
+                                                        $(modalEl).modal('show');
+                                                    })
+                                                    .catch(error => {
+                                                        document.getElementById('instanceStatsModalBody').innerHTML = `<div class='alert alert-danger'>Error loading performance data.</div>`;
+                                                        $(modalEl).modal('show');
+                                                    });
+                                            }
+
+                                            function editWhatsappInstance(instanceId) {
+                                                window.location.href = `{{ url('/whatsapp/instances') }}/${instanceId}/edit`;
+                                            }
+
+                                            function deleteWhatsappInstance(instanceId) {
+                                                fetch('{{ url('/api/whatsapp/instances/count') }}')
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.count <= 1) {
+                                                            alert('You must have at least one WhatsApp instance. Deletion is not allowed.');
+                                                            return;
+                                                        }
+                                                        if (!confirm('Are you sure you want to delete this WhatsApp instance? This action cannot be undone.')) {
+                                                            return;
+                                                        }
+                                                        fetch(`{{ url('/api/whatsapp/instances') }}/${instanceId}`, {
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                            }
+                                                        })
+                                                        .then(response => response.json())
+                                                        .then(data => {
+                                                            if (data.success) {
+                                                                location.reload();
+                                                            } else {
+                                                                alert('Error deleting WhatsApp instance: ' + (data.message || 'Unknown error'));
+                                                            }
+                                                        })
+                                                        .catch(error => {
+                                                            console.error('Error:', error);
+                                                            alert('Error deleting WhatsApp instance');
+                                                        });
+                                                    });
+                                            }
+                                            </script>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-
                 <!-- Statistics Cards -->
                 <div class="stats-row">
                     <div class="stat-card primary">
@@ -172,10 +319,10 @@
                     <h2>No AI Sales Agents Yet</h2>
                     <p>Create your first intelligent sales assistant to start automating customer conversations on WhatsApp.</p>
                     <div class="empty-actions">
-                        <a href="{{ route('ai-agents.create') }}" class="btn btn-primary-lg">
+                        <button id="createAgentBtn" class="btn btn-primary-lg" onclick="handleCreateAgent()">
                             <i class="fas fa-plus-circle me-2"></i>
                             Create Your First Agent
-                        </a>
+                        </button>
                     </div>
                     <div class="empty-features">
                         <div class="feature-item">
@@ -196,13 +343,26 @@
     </div>
 </div>
 
-<!-- Agent Details Modal -->
+    <div class="modal fade" id="reconnectModal" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><i class="fas fa-qrcode"></i> Reconnect WhatsApp Instance</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body" id="reconnectModalBody">
+                                                <!-- QR code will be loaded here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+<!-- Agent Details Modal (single instance, outside loop) -->
 <div class="modal fade" id="agentModal" tabindex="-1" aria-labelledby="agentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="agentModalLabel">
-                    <i class="fas fa-robot me-2"></i>Agent Details
+                    <i class="fas fa-robot me-2"></i>Sales Agent Settings
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -212,7 +372,20 @@
         </div>
     </div>
 </div>
-
+  <!-- Instance Performance Modal -->
+                                <div class="modal" id="instanceStatsModal" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><i class="fas fa-chart-bar"></i> Instance Performance Summary</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body" id="instanceStatsModalBody">
+                                                <!-- Stats will be loaded here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 <style>
 /* Modern AI Agents Management Styles */
 .ai-agents-management {
@@ -648,6 +821,187 @@
         margin-bottom: 1rem;
     }
 }
+/* Compact Billing Information Styles */
+.plan-badge-compact {
+    margin-right: 0.5rem;
+}
+
+.plan-badge {
+    padding: 0.25rem 0.75rem !important;
+    border-radius: 15px !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+}
+
+.plan-badge[data-plan="premium"] {
+    background: linear-gradient(45deg, #6f42c1, #8b5cf6) !important;
+    color: white !important;
+}
+
+.plan-badge[data-plan="pro"] {
+    background: linear-gradient(45deg, #28a745, #34ce57) !important;
+    color: white !important;
+}
+
+.plan-badge[data-plan="starter"] {
+    background: linear-gradient(45deg, #fd7e14, #ffa726) !important;
+    color: white !important;
+}
+
+.plan-badge[data-plan="trial"] {
+    background: linear-gradient(45deg, #6c757d, #868e96) !important;
+    color: white !important;
+}
+
+.credits-section-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e3e6f0;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.credits-display-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.credits-display-compact i {
+    color: #ffc107;
+    font-size: 1rem;
+}
+
+.credits-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.credits-number {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.credits-label {
+    font-size: 0.65rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.credits-actions {
+    display: flex;
+    gap: 0.3rem;
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid #dee2e6;
+}
+
+.btn-mini {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-mini.success {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+}
+
+.btn-mini.success:hover {
+    background: linear-gradient(45deg, #20c997, #28a745);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-mini.primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+}
+
+.btn-mini.primary:hover {
+    background: linear-gradient(45deg, #0056b3, #007bff);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+}
+
+.action-buttons-group {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .credits-section-compact {
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.5rem;
+    }
+    
+    .credits-actions {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid #dee2e6;
+        padding-top: 0.4rem;
+    }
+    
+    .btn-mini {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem !important;
+    }
+    
+    .credits-section-compact {
+        order: 1;
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .action-buttons-group {
+        order: 2;
+        margin-left: 0;
+    }
+    
+    .plan-badge-compact {
+        order: 0;
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Remove old billing styles that are no longer needed */
+.billing-info-section,
+.plan-badge .badge,
+.credits-display,
+.credit-package,
+.current-balance {
+    display: none;
+}
 </style>
 
 <script>
@@ -669,7 +1023,7 @@ function editAgent(uuid) {
 
 function toggleStatus(uuid) {
     if (confirm('Are you sure you want to change the agent status?')) {
-        fetch(`/ai-agents/${uuid}/toggle-status`, {
+        fetch(`{{ url('/ai-agents') }}/${uuid}/toggle-status`, {
             method: 'PATCH',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -689,7 +1043,7 @@ function toggleStatus(uuid) {
 
 function deleteAgent(uuid) {
     if (confirm('Are you sure you want to delete this agent? This action cannot be undone.')) {
-        fetch(`/ai-agents/${uuid}`, {
+        fetch(`{{ url('/ai-agents') }}/${uuid}`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -743,6 +1097,149 @@ function generateAgentDetails(agent) {
         </div>
         ` : ''}
     `;
+}
+
+// Check user package/plan and agent creation limits
+function userCanCreateAgent() {
+    // Get current user's billing status
+    const subscriptionPlan = '{{ $subscriptionPlan ?? "trial" }}';
+    const currentAgentCount = {{ $agents->count() }};
+    
+    // Define WhatsApp channels limits per plan (since agents are tied to WhatsApp instances)
+    const planLimits = {
+        'trial': 1,
+        'starter': 1,
+        'pro': 3,
+        'premium': 7
+    };
+    
+    const maxAllowed = planLimits[subscriptionPlan] || 1;
+    return currentAgentCount < maxAllowed;
+}
+
+function handleCreateAgent() {
+    if (userCanCreateAgent()) {
+        window.location.href = "{{ route('ai-agents.create') }}";
+    } else {
+        // Show the upgrade modal instead of a simple alert
+        if (typeof showUpgradeModal === 'function') {
+            showUpgradeModal('whatsapp_channels');
+        } else {
+            // Fallback if upgrade modal is not available
+            const subscriptionPlan = '{{ $subscriptionPlan ?? "trial" }}';
+            const requiredPlan = subscriptionPlan === 'trial' || subscriptionPlan === 'starter' ? 'pro' : 'premium';
+            
+            alert(`Your ${subscriptionPlan.toUpperCase()} plan does not allow creating more WhatsApp Sales Agents. Please upgrade to ${requiredPlan.toUpperCase()} to add more agents.`);
+        }
+    }
+}
+
+// Function to show purchase credits modal
+function showPurchaseCreditsModal() {
+    // Check if the global pricing controls modal exists
+    if (typeof showUpgradeModal === 'function') {
+        // Use the existing upgrade modal with credits parameter
+        showUpgradeModal('credits');
+    } else {
+        // Fallback to a simple modal or redirect
+        const currentCredits = parseInt('{{ $aiCredits ?? 0 }}');
+        const creditPackages = [
+            { credits: 1000, price: 'TZS 2,600', value: 1000 },
+            { credits: 5000, price: 'TZS 13,000', value: 5000 },
+            { credits: 10000, price: 'TZS 25,000', value: 10000 },
+            { credits: 50000, price: 'TZS 120,000', value: 50000 }
+        ];
+        
+        let modalHTML = `
+            <div class="modal fade" id="purchaseCreditsModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-coins text-warning me-2"></i>Purchase AI Credits
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="current-balance mb-3 p-3" style="background: #f8f9fa; border-radius: 8px;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-wallet text-primary me-2"></i>
+                                    <div>
+                                        <strong>Current Balance: ${currentCredits.toLocaleString()} AI Credits</strong>
+                                        <small class="d-block text-muted">Each credit allows ~3.8 AI tokens</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <h6 class="mb-3">Select a Credit Package:</h6>
+                            <div class="row">`;
+        
+        creditPackages.forEach(pkg => {
+            modalHTML += `
+                <div class="col-md-6 mb-3">
+                    <div class="credit-package p-3 border rounded" style="cursor: pointer;" onclick="purchaseCredits(${pkg.value})">
+                        <div class="text-center">
+                            <h6 class="text-primary">${pkg.credits.toLocaleString()} Credits</h6>
+                            <p class="mb-0 fw-bold">${pkg.price}</p>
+                            <small class="text-muted">~${Math.round(pkg.credits * 3.8).toLocaleString()} AI tokens</small>
+                        </div>
+                    </div>
+                </div>`;
+        });
+        
+        modalHTML += `
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        
+        // Remove existing modal if present
+        const existingModal = document.getElementById('purchaseCreditsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to DOM and show
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('purchaseCreditsModal'));
+        modal.show();
+    }
+}
+
+// Function to handle credit purchase
+function purchaseCredits(amount) {
+    if (confirm(`Purchase ${amount.toLocaleString()} AI credits?`)) {
+        fetch('{{ url('/api/billing/credits') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Successfully purchased ${amount.toLocaleString()} AI credits!`);
+                location.reload(); // Refresh to show updated credits
+            } else {
+                alert('Credit purchase failed: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to purchase credits. Please try again.');
+        });
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseCreditsModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
 }
 </script>
 

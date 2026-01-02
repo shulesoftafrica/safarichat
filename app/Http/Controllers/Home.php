@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use \App\Models\EventsGuest;
+use \App\Models\BusinessContact;
 use \App\Models\Payment;
 use \App\Models\User;
 use Auth;
@@ -104,7 +104,7 @@ class Home extends Controller
         };
         
         // Total WhatsApp contacts (guests)
-        $this->data['guests'] = EventsGuest::where('business_id', $business_id)->count();
+        $this->data['guests'] = BusinessContact::where('business_id', $business_id)->count();
         
         // Instance-aware active conversations
         $this->data['active_conversations'] = $messageQuery(\App\Models\IncomingMessage::class)
@@ -179,8 +179,8 @@ class Home extends Controller
 
     public function profile()
     {
-        $this->data['guests'] = EventsGuest::count();
-        $this->data['total_pledge'] = EventsGuest::sum('guest_pledge');
+        $this->data['guests'] = BusinessContact::count();
+        $this->data['total_pledge'] = BusinessContact::sum('guest_pledge');
         // Event payment system removed - focusing on guest/contact management
         exit;
         return view('auth.profile', $this->data);
@@ -409,7 +409,7 @@ class Home extends Controller
         }
 
         // Get categories for this business, including legacy null business_id records
-        $this->data['categories'] = \App\Models\EventGuestCategory::with('business')
+        $this->data['categories'] = \App\Models\BusinessContactCategory::with('business')
             ->where(function($query) use ($userBusiness) {
                 $query->where('business_id', $userBusiness->id)
                       ->orWhereNull('business_id');

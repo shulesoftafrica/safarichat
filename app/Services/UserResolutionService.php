@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\WhatsappInstance;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -71,9 +71,9 @@ class UserResolutionService
     }
 
     /**
-     * Resolve or create EventsGuest contact
+     * Resolve or create BusinessContact contact
      */
-    public static function resolveOrCreateContact(array $contactData): EventsGuest
+    public static function resolveOrCreateContact(array $contactData): BusinessContact
     {
         // Normalize phone number first
         $normalizedPhone = self::normalizePhoneNumber($contactData['phone'] ?? '');
@@ -98,7 +98,7 @@ class UserResolutionService
     /**
      * Find contact by multiple identification methods
      */
-    public static function findContactByMultipleMethods(array $identifiers): ?EventsGuest
+    public static function findContactByMultipleMethods(array $identifiers): ?BusinessContact
     {
         $queries = [];
         
@@ -111,7 +111,7 @@ class UserResolutionService
         }
 
         foreach ($queries as $query) {
-            $contact = EventsGuest::where($query[0], $query[1], $query[2])->first();
+            $contact = BusinessContact::where($query[0], $query[1], $query[2])->first();
             if ($contact) {
                 return $contact;
             }
@@ -195,21 +195,21 @@ class UserResolutionService
     /**
      * Find contact by fuzzy name matching
      */
-    private static function findContactByFuzzyName(string $name): ?EventsGuest
+    private static function findContactByFuzzyName(string $name): ?BusinessContact
     {
         // Try exact match first
-        $contact = EventsGuest::where('guest_name', $name)->first();
+        $contact = BusinessContact::where('guest_name', $name)->first();
         if ($contact) return $contact;
         
         // Try case-insensitive match
-        $contact = EventsGuest::whereRaw('LOWER(guest_name) = LOWER(?)', [$name])->first();
+        $contact = BusinessContact::whereRaw('LOWER(guest_name) = LOWER(?)', [$name])->first();
         if ($contact) return $contact;
         
         // Try partial match on each word
         $words = explode(' ', $name);
         foreach ($words as $word) {
             if (strlen($word) >= 3) { // Only search words with 3+ characters
-                $contact = EventsGuest::where('guest_name', 'LIKE', '%' . $word . '%')->first();
+                $contact = BusinessContact::where('guest_name', 'LIKE', '%' . $word . '%')->first();
                 if ($contact) return $contact;
             }
         }
@@ -220,7 +220,7 @@ class UserResolutionService
     /**
      * Update existing contact with new data
      */
-    private static function updateContactWithNewData(EventsGuest $contact, array $newData): EventsGuest
+    private static function updateContactWithNewData(BusinessContact $contact, array $newData): BusinessContact
     {
         $updated = false;
         
@@ -256,26 +256,31 @@ class UserResolutionService
     /**
      * Create new contact with normalized data
      */
-    private static function createNewContact(array $contactData, string $normalizedPhone): EventsGuest
+    private static function createNewContact(array $contactData, string $normalizedPhone): BusinessContact
     {
         // Get the user ID for whom we're creating the contact
         $userId = $contactData['created_by'] ?? $contactData['user_id'] ?? auth()->id();
         
-        // Get or create an event for this user
-        $eventId = self::getUserEventId($userId, $contactData['event_id'] ?? null);
+        // Get user's business instead of event
+        $userBusiness = \App\Models\Business::where('user_id', $userId)->first();
+        if (!$userBusiness) {
+            \Log::error('No business found for user during contact creation', ['user_id' => $userId]);
+            throw new \Exception('No business found for user');
+        }
         
-        $contact = EventsGuest::create([
+        $contact = BusinessContact::create([
             'guest_name' => $contactData['name'] ?? self::generateNameFromPhone($normalizedPhone),
             'guest_phone' => $normalizedPhone,
             'guest_email' => $contactData['email'] ?? null,
-            'type' => $contactData['type'] ?? 'notification_contact',
-            'event_id' => $eventId,
-            'event_guest_category_id' => 1, // Default category
+            'business_id' => $userBusiness->id,
+            'user_id' => $userId,
+            'contact_category_id' => 1, // Default category
             'guest_pledge' => 0,
-            'created_by' => $userId,
+            'handoff_status' => 'ai', // Default to AI handling
+            'priority_level' => 3, // Normal priority
         ]);
         
-        Log::info('New contact created', ['contact_id' => $contact->id, 'phone' => $normalizedPhone, 'event_id' => $eventId]);
+        Log::info('New contact created', ['contact_id' => $contact->id, 'phone' => $normalizedPhone, 'business_id' => $userBusiness->id]);
         
         return $contact;
     }
@@ -340,7 +345,7 @@ class UserResolutionService
     /**
      * Resolve contact with comprehensive data merging
      */
-    public static function resolveContactWithMerging(array $sources): EventsGuest
+    public static function resolveContactWithMerging(array $sources): BusinessContact
     {
         $mergedData = self::mergeContactDataFromSources($sources);
         return self::resolveOrCreateContact($mergedData);
@@ -399,10 +404,10 @@ class UserResolutionService
     public static function getResolutionStats(): array
     {
         return [
-            'total_contacts' => EventsGuest::count(),
-            'contacts_with_phone' => EventsGuest::whereNotNull('phone')->count(),
-            'contacts_with_email' => EventsGuest::whereNotNull('email')->count(),
-            'contacts_with_both' => EventsGuest::whereNotNull('phone')
+            'total_contacts' => BusinessContact::count(),
+            'contacts_with_phone' => BusinessContact::whereNotNull('phone')->count(),
+            'contacts_with_email' => BusinessContact::whereNotNull('email')->count(),
+            'contacts_with_both' => BusinessContact::whereNotNull('phone')
                 ->whereNotNull('email')->count(),
             'duplicate_phones' => self::getDuplicatePhoneCount(),
             'invalid_phones' => self::getInvalidPhoneCount()
@@ -414,7 +419,7 @@ class UserResolutionService
      */
     private static function getDuplicatePhoneCount(): int
     {
-        return EventsGuest::selectRaw('phone, COUNT(*) as count')
+        return BusinessContact::selectRaw('phone, COUNT(*) as count')
             ->whereNotNull('phone')
             ->groupBy('phone')
             ->having('count', '>', 1)
@@ -426,7 +431,7 @@ class UserResolutionService
      */
     private static function getInvalidPhoneCount(): int
     {
-        $contacts = EventsGuest::whereNotNull('phone')->get();
+        $contacts = BusinessContact::whereNotNull('phone')->get();
         $invalidCount = 0;
         
         foreach ($contacts as $contact) {

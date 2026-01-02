@@ -77,4 +77,10 @@ return [
         'webhook_secret' => env('LIPA_NUMBER_WEBHOOK_SECRET'),
     ],
 
+    'billing' => [
+        'api_url' => env('BILLING_API_URL', 'http://localhost/shulesoft_newversion/api/billing'),
+        'api_key' => env('BILLING_API_KEY','Dp77IDXdqtBuB2zLvYovj2QmAK'),
+        'timeout' => env('BILLING_API_TIMEOUT', 30),
+    ],
+
 ];

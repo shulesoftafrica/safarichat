@@ -47,7 +47,7 @@ class IncomingMessage extends Model
      */
     public function guest()
     {
-        return $this->belongsTo(EventsGuest::class, 'events_guest_id');
+        return $this->belongsTo(BusinessContact::class, 'business_contact_id');
     }
 
     /**

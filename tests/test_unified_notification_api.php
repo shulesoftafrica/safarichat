@@ -113,24 +113,24 @@ class UnifiedNotificationApiTester
             $instances = App\Models\WhatsappInstance::active()->get();
             $this->recordResult('whatsapp_instance_scope', true, 'Found ' . $instances->count() . ' active WhatsApp instances');
             
-            // Test EventsGuest model
+            // Test BusinessContact model
             try {
-                $guest = App\Models\EventsGuest::create([
+                $guest = App\Models\BusinessContact::create([
                     'phone' => '+254700000002',
                     'name' => 'Test Guest',
                     'email' => 'test@example.com'
                 ]);
-                $this->recordResult('events_guest_method', true, 'EventsGuest creation working. ID: ' . $guest->id);
+                $this->recordResult('business_contact_method', true, 'BusinessContact creation working. ID: ' . $guest->id);
                 
                 // Test basic model functionality instead of specific methods
-                $guestCount = App\Models\EventsGuest::count();
-                $this->recordResult('events_guest_count', true, 'EventsGuest model accessible. Total records: ' . $guestCount);
+                $guestCount = App\Models\BusinessContact::count();
+                $this->recordResult('business_contact_count', true, 'BusinessContact model accessible. Total records: ' . $guestCount);
                 
                 // Clean up
                 $guest->delete();
                 
             } catch (Exception $e) {
-                $this->recordResult('events_guest_method', false, 'EventsGuest error: ' . $e->getMessage());
+                $this->recordResult('business_contact_method', false, 'BusinessContact error: ' . $e->getMessage());
             }
             
             // Clean up

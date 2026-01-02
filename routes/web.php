@@ -262,7 +262,18 @@ Route::post('/webhooks/stripe', [App\Http\Controllers\WebhookController::class, 
 
 // WhatsApp Instance Management (web routes)
 Route::middleware('auth')->group(function () {
-    Route::get('/whatsapp/instances', [App\Http\Controllers\WhatsappInstanceController::class, 'indexView'])->name('whatsapp.instances.index');
+    Route::get('/whatsapp/instances/{id}/edit', [App\Http\Controllers\WhatsappInstanceController::class, 'edit'])->name('whatsapp.instances.edit');
+    Route::post('/whatsapp/instances/{id}/update', [App\Http\Controllers\WhatsappInstanceController::class, 'update'])->name('whatsapp.instances.update');
+    Route::get('/whatsapp/instances/{id}/stats', [App\Http\Controllers\WhatsappInstanceController::class, 'getInstanceStats'])->name('whatsapp.instances.stats');
+});
+
+// Billing Web Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/billing/payment', [App\Http\Controllers\BillingController::class, 'showPayment'])->name('billing.payment');
+    Route::post('/billing/process-payment', [App\Http\Controllers\BillingController::class, 'processPayment'])->name('billing.process-payment');
+    Route::get('/billing/success', [App\Http\Controllers\BillingController::class, 'paymentSuccess'])->name('billing.success');
+    Route::get('/billing/cancel', [App\Http\Controllers\BillingController::class, 'paymentCancel'])->name('billing.cancel');
+    Route::get('/billing/ucn-instructions/{reference}', [App\Http\Controllers\BillingController::class, 'showUCNInstructions'])->name('billing.ucn-instructions');
 });
 
 // Admin Dashboard Routes

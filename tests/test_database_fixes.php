@@ -6,7 +6,7 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Illuminate\Support\Facades\DB;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\IncomingMessage;
 
 $app = require_once __DIR__ . '/bootstrap/app.php';
@@ -14,13 +14,13 @@ $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 echo "Testing database fixes...\n";
 
-// Test 1: EventsGuest query with guest_phone column
-echo "\n1. Testing EventsGuest query with guest_phone column:\n";
+// Test 1: BusinessContact query with guest_phone column
+echo "\n1. Testing BusinessContact query with guest_phone column:\n";
 try {
-    $guest = EventsGuest::where('guest_phone', '1234567890')->first();
-    echo "✓ EventsGuest query with guest_phone works\n";
+    $guest = BusinessContact::where('guest_phone', '1234567890')->first();
+    echo "✓ BusinessContact query with guest_phone works\n";
 } catch (Exception $e) {
-    echo "✗ EventsGuest query failed: " . $e->getMessage() . "\n";
+    echo "✗ BusinessContact query failed: " . $e->getMessage() . "\n";
 }
 
 // Test 2: IncomingMessage status update with valid status

@@ -6,7 +6,7 @@ use App\Models\AiSalesAgent;
 use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Conversation;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
 use App\Models\Handoff;
@@ -136,28 +136,24 @@ class AiWhatsAppService
      */
     private function findOrCreateLead(IncomingMessage $message): Lead
     {
-        // First check if there's an existing EventsGuest
-        $eventsGuest = EventsGuest::where('guest_phone', $message->phone_number)->first();
+        // First check if there's an existing BusinessContact
+        $businessContact = BusinessContact::where('guest_phone', $message->phone_number)->first();
 
-        // Create EventsGuest if it doesn't exist
-        if (!$eventsGuest) {
-            $firstEvent = \App\Models\Event::where('user_id', $message->user_id)->first();
-            
-            $eventsGuest = EventsGuest::create([
-                'event_id' => $firstEvent?->id,
-                'guest_phone' => $message->phone_number,
-                'guest_name' => $message->sender_name ?? 'Unknown',
-                'source' => 'whatsapp',
-                'status' => 'pending',
+        // Create BusinessContact if it doesn't exist
+        if (!$businessContact) {
+            $businessContact = UserResolutionService::resolveOrCreateContact([
+                'phone' => $message->phone_number,
+                'name' => $message->sender_name ?? 'WhatsApp Contact',
+                'user_id' => $message->user_id
             ]);
         }
 
         // Look for existing lead
-        $lead = Lead::where('events_guest_id', $eventsGuest->id)->first();
+        $lead = Lead::where('business_contact_id', $businessContact->id)->first();
 
         if (!$lead) {
             $lead = Lead::create([
-            'events_guest_id' => $eventsGuest->id,
+            'business_contact_id' => $businessContact->id,
             'ai_sales_agent_id' => AiSalesAgent::where('user_id', $message->user_id)->first()?->id,
             'source' => 'whatsapp',
             'status' => Lead::STATUS_NEW,
@@ -222,10 +218,10 @@ class AiWhatsAppService
      */
     private function isAgentSuitableForLead(AiSalesAgent $agent, Lead $lead): bool
     {
-        // Check target user types if lead has events_guest
-        if ($lead->eventsGuest && $agent->target_user_types) {
+        // Check target user types if lead has business_contact
+        if ($lead->businessContact && $agent->target_user_types) {
             $targetTypes = $agent->target_user_types;
-            if (!empty($targetTypes) && !in_array($lead->eventsGuest->user_type_id, $targetTypes)) {
+            if (!empty($targetTypes) && !in_array($lead->businessContact->user_type_id ?? 1, $targetTypes)) {
                 return false;
             }
         }

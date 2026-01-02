@@ -11,13 +11,13 @@ echo "Final verification of database fixes...\n";
 
 // Test the two specific errors that were in the logs:
 
-echo "\n1. Testing EventsGuest query with guest_phone (was: phone_number):\n";
+echo "\n1. Testing BusinessContact query with guest_phone (was: phone_number):\n";
 try {
     // This was the original failing query from AiWhatsAppService.php:138
-    $guest = App\Models\EventsGuest::where('guest_phone', '1234567890')->first();
-    echo "✓ EventsGuest::where('guest_phone', ...) query works\n";
+    $guest = App\Models\BusinessContact::where('guest_phone', '1234567890')->first();
+    echo "✓ BusinessContact::where('guest_phone', ...) query works\n";
 } catch (Exception $e) {
-    echo "✗ EventsGuest query failed: " . $e->getMessage() . "\n";
+    echo "✗ BusinessContact query failed: " . $e->getMessage() . "\n";
 }
 
 echo "\n2. Testing IncomingMessage status constraint (was: needs_attention):\n";
@@ -58,8 +58,8 @@ if (strpos($controllerContent, "'status' => 'processed'") !== false &&
 
 echo "\n🎯 Database Error Resolution Summary:\n";
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-echo "Error 1: Column 'phone_number' does not exist in events_guests table\n";
-echo "Fix: Changed EventsGuest::where('phone_number') to where('guest_phone')\n";
+echo "Error 1: Column 'phone_number' does not exist in business_contacts table\n";
+echo "Fix: Changed BusinessContact::where('phone_number') to where('guest_phone')\n";
 echo "Location: app/Services/AiWhatsAppService.php line 138\n\n";
 echo "Error 2: Check constraint violation for status 'needs_attention'\n"; 
 echo "Fix: Changed status from 'needs_attention' to 'processed'\n";

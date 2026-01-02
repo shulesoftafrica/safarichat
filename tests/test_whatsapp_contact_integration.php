@@ -3,7 +3,7 @@
  * Test WhatsApp Contact Integration & Customer List Display
  * 
  * This test verifies that:
- * 1. New WhatsApp numbers are properly registered in EventsGuest
+ * 1. New WhatsApp numbers are properly registered in BusinessContact
  * 2. Contacts appear in customer list with default status and lead stage
  * 3. Lead records are created for WhatsApp contacts
  * 4. Customer list displays handoff status, priority level, and contact status
@@ -12,7 +12,7 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../bootstrap/app.php';
 
-use App\Models\EventsGuest;
+use App\Models\BusinessContact;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\Business;
@@ -50,7 +50,7 @@ class WhatsAppContactIntegrationTest
             echo "\n✅ ALL TESTS PASSED! WhatsApp contact integration is working correctly.\n\n";
             
             echo "📋 SUMMARY:\n";
-            echo "• New WhatsApp contacts are properly registered in EventsGuest table\n";
+            echo "• New WhatsApp contacts are properly registered in BusinessContact table\n";
             echo "• Contacts appear in customer list with handoff status and priority\n";
             echo "• Lead records are automatically created for contacts\n";
             echo "• Customer list shows all required status fields clearly\n";
@@ -114,10 +114,10 @@ class WhatsAppContactIntegrationTest
         echo "\n📞 Testing New WhatsApp Contact Creation...\n";
         
         // Clean up any existing test contact
-        EventsGuest::where('guest_phone', $this->testPhoneNumber)->delete();
+        BusinessContact::where('guest_phone', $this->testPhoneNumber)->delete();
         
         // Test the findOrCreateForNotification method (used by webhook processing)
-        $contact = EventsGuest::findOrCreateForNotification(
+        $contact = BusinessContact::findOrCreateForNotification(
             $this->testUserId,
             $this->testPhoneNumber,
             'Test WhatsApp Contact'
@@ -157,7 +157,7 @@ class WhatsAppContactIntegrationTest
         echo "\n📋 Testing Customer List Display...\n";
         
         // Test that contact appears in customer list query
-        $contacts = EventsGuest::where('business_id', $this->testBusinessId)
+        $contacts = BusinessContact::where('business_id', $this->testBusinessId)
             ->with(['business', 'event', 'category'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -205,7 +205,7 @@ class WhatsAppContactIntegrationTest
     {
         echo "\n🎯 Testing Lead Creation from WhatsApp Contact...\n";
         
-        $contact = EventsGuest::where('guest_phone', $this->testPhoneNumber)->first();
+        $contact = BusinessContact::where('guest_phone', $this->testPhoneNumber)->first();
         
         // Test manual lead creation (as done by processEventGuestsForSales)
         $aiAgent = AiSalesAgent::where('user_id', $this->testUserId)->where('status', 'active')->first();
@@ -215,7 +215,7 @@ class WhatsAppContactIntegrationTest
         }
         
         $lead = Lead::firstOrCreate(
-            ['events_guest_id' => $contact->id],
+            ['business_contact_id' => $contact->id],
             [
                 'business_id' => $contact->business_id,
                 'phone_number' => $contact->guest_phone,
@@ -247,7 +247,7 @@ class WhatsAppContactIntegrationTest
         $messageController = new Message();
         
         // Get contact before processing
-        $contact = EventsGuest::where('guest_phone', $this->testPhoneNumber)->first();
+        $contact = BusinessContact::where('guest_phone', $this->testPhoneNumber)->first();
         $originalContactedStatus = $contact->contacted_for_sales;
         
         // Mark as not contacted to test the automation
@@ -270,7 +270,7 @@ class WhatsAppContactIntegrationTest
         }
         
         // Verify lead exists and has AI agent
-        $lead = Lead::where('events_guest_id', $contact->id)->first();
+        $lead = Lead::where('business_contact_id', $contact->id)->first();
         
         if ($lead && $lead->ai_sales_agent_id) {
             echo "✓ Lead has AI sales agent assigned\n";
@@ -325,7 +325,7 @@ class WhatsAppContactIntegrationTest
         echo "\n🧹 Cleaning up test data...\n";
         
         // Clean up test data
-        EventsGuest::where('guest_phone', $this->testPhoneNumber)->delete();
+        BusinessContact::where('guest_phone', $this->testPhoneNumber)->delete();
         Lead::where('phone_number', $this->testPhoneNumber)->delete();
         IncomingMessage::where('phone_number', $this->testPhoneNumber)->delete();
         
