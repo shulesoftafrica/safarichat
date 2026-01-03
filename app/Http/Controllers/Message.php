@@ -1255,16 +1255,46 @@ class Message extends Controller
             foreach ($pending as $message) {
                 if ($message->channel <> 'email') {
                     $chat_id = validate_phone_number($message->phone)[1] ;
-                    $this->send($message->body, $chat_id,$message->user_id);
+                    
+                    try {
+                        $result = $this->send($message->body, $chat_id, $message->user_id);
+                        
+                        // Update return_code based on send result
+                        $returnCode = $result['success'] ? 'sent' : 'failed';
+                        
+                        DB::update('UPDATE messages_sentby SET return_code = ?, updated_at = ? WHERE id = ?', [
+                            $returnCode,
+                            now(),
+                            $message->message_sentby_id
+                        ]);
+                        
+                        \Log::info('Message processed', [
+                            'message_sentby_id' => $message->message_sentby_id,
+                            'phone' => $message->phone,
+                            'status' => $returnCode,
+                            'success' => $result['success']
+                        ]);
+                        
+                    } catch (\Exception $e) {
+                        // Mark as failed if exception occurs
+                        DB::update('UPDATE messages_sentby SET return_code = ?, updated_at = ? WHERE id = ?', [
+                            'error',
+                            now(),
+                            $message->message_sentby_id
+                        ]);
+                        
+                        \Log::error('Failed to process message', [
+                            'message_sentby_id' => $message->message_sentby_id,
+                            'phone' => $message->phone,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
             }
         }
         
-        // Process event guests for sales outreach
-        $this->processEventGuestsForSales();
-        
-        // Process follow-up messages and reminders
-        $this->processScheduledFollowUps();
+        // Note: Sales outreach is now handled by DailyOutreachCommand (scheduled twice daily)
+        // Note: Follow-ups are now handled by dedicated scheduled-followups task
     }
 
     /**

@@ -55,7 +55,8 @@ class Kernel extends ConsoleKernel {
                 throw $e;
             }
         })->everyMinute()
-          ->name('message-processing');
+          ->name('message-processing')
+          ->withoutOverlapping();
         
         // AI Sales Agent scheduled tasks
         $this->scheduleAiTasks($schedule);
