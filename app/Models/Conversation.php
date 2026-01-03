@@ -13,6 +13,7 @@ class Conversation extends Model
     protected $fillable = [
         'lead_id', 'ai_sales_agent_id', 'product_id', 'message', 'message_type', 'sender_type',
         'message_content', 'conversation_state', 'ai_metadata', 'followup_attempt_at', 
+        'followup_scheduled_at', 'followup_sent', 'followup_message',
         'context_data', 'is_active', 'sentiment_score', 'language_detected',
         // New RAG fields
         'rag_sources', 'rag_enhanced', 'customer_message', 'ai_response',
@@ -29,6 +30,8 @@ class Conversation extends Model
         'ai_metadata' => 'array',
         'context_data' => 'array',
         'followup_attempt_at' => 'datetime',
+        'followup_scheduled_at' => 'datetime',
+        'followup_sent' => 'boolean',
         'sentiment_score' => 'decimal:2',
         'is_active' => 'boolean',
         // RAG field casts
@@ -149,10 +152,18 @@ class Conversation extends Model
     }
 
     // Business Logic Methods
-    public function scheduleFollowup($hours = 24)
+    public function scheduleFollowup($followupTime = null, $message = null)
     {
+        // Accept either hours (int) or Carbon instance
+        if (is_numeric($followupTime)) {
+            $followupTime = Carbon::now()->addHours($followupTime);
+        } elseif ($followupTime === null) {
+            $followupTime = Carbon::now()->addHours(24);
+        }
+        
         $this->update([
-            'followup_attempt_at' => Carbon::now()->addHours($hours)
+            'followup_scheduled_at' => $followupTime,
+            'followup_sent' => false
         ]);
 
         return $this;

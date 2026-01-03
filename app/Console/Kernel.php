@@ -349,24 +349,50 @@ class Kernel extends ConsoleKernel {
                     $followupMessage = $conversation->followup_message ?: 
                         "Hi! Following up on our conversation. Any questions I can help with?";
 
-                    // Create a mock incoming message for context
+                    // Get the lead and ensure we have proper contact info
+                    $conversation = $conversation->load('lead.contact', 'lead.aiSalesAgent');
+                    $lead = $conversation->lead;
+                    
+                    if (!$lead || !$lead->contact || !$lead->contact->guest_phone) {
+                        \Illuminate\Support\Facades\Log::warning('Skipping followup - no contact phone', [
+                            'conversation_id' => $conversation->id,
+                            'lead_id' => $lead?->id
+                        ]);
+                        continue;
+                    }
+
+                    // Get user's WhatsApp instance
+                    $userId = $lead->aiSalesAgent?->user_id ?? $lead->user_id ?? 1;
+                    $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $userId)
+                                                                   ->where('status', 'connected')
+                                                                   ->first();
+                    
+                    if (!$whatsappInstance) {
+                        \Illuminate\Support\Facades\Log::warning('Skipping followup - no WhatsApp instance', [
+                            'conversation_id' => $conversation->id,
+                            'user_id' => $userId
+                        ]);
+                        continue;
+                    }
+
+                    // Create a properly configured mock incoming message
                     $mockMessage = new \App\Models\IncomingMessage([
-                        'phone_number' => $conversation->lead->phone_number,
+                        'phone_number' => $lead->contact->guest_phone,
                         'message_body' => 'FOLLOWUP_TRIGGER',
-                        'user_id' => 1, // Default user - adjust as needed
-                        'instance_id' => 'default',
+                        'user_id' => $userId,
+                        'instance_id' => $whatsappInstance->instance_id,
+                        'whatsapp_instance_id' => $whatsappInstance->id,
                         'message_id' => 'followup_' . uniqid(),
-                        'chat_id' => $conversation->lead->phone_number . '@c.us',
+                        'chat_id' => $lead->contact->guest_phone . '@c.us',
                         'message_timestamp' => now(),
                         'status' => 'received',
                     ]);
 
-                    $sent = $aiWhatsAppService->sendResponse($followupMessage, $mockMessage);
+                    $sent = $aiWhatsAppService->sendResponse($followupMessage, $mockMessage, $whatsappInstance);
 
                     if ($sent) {
                         $conversation->update([
-                            'followup_sent' => true,
-                            'followup_sent_at' => now(),
+                            'followup_sent' => true
                         ]);
                     }
 
