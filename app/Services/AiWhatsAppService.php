@@ -153,15 +153,17 @@ class AiWhatsAppService
 
         if (!$lead) {
             $lead = Lead::create([
-            'business_contact_id' => $businessContact->id,
-            'ai_sales_agent_id' => AiSalesAgent::where('user_id', $message->user_id)->first()?->id,
-            'source' => 'whatsapp',
-            'status' => Lead::STATUS_NEW,
-            'last_interaction_at' => now(),
-            'conversion_probability' => 0,
-            'lead_score' => 0,
-            'is_churned' => false,
-            'win_back_attempts' => 0,
+                'business_contact_id' => $businessContact->id,
+                'business_id' => $businessContact->business_id,
+                'user_id' => $message->user_id,
+                'ai_sales_agent_id' => AiSalesAgent::where('user_id', $message->user_id)->first()?->id,
+                'source' => 'whatsapp',
+                'status' => Lead::STATUS_NEW,
+                'last_interaction_at' => now(),
+                'conversion_probability' => 0,
+                'lead_score' => 0,
+                'is_churned' => false,
+                'win_back_attempts' => 0,
             ]);
         } else {
             // Update last activity

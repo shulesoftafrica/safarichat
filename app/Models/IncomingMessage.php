@@ -11,7 +11,7 @@ class IncomingMessage extends Model
         'instance_id',
         'whatsapp_instance_id', // New field for multi-instance support
         'message_id',
-        'events_guest_id',
+        'business_contact_id',
         'chat_id',
         'phone_number',
         'sender_name',
