@@ -280,8 +280,8 @@ class NotificationService
 
             $stats = [
                 'total' => $handoffs->count(),
-                'urgent' => $handoffs->where('priority', 'urgent')->count(),
-                'high' => $handoffs->where('priority', 'high')->count(),
+                'urgent' => $handoffs->where('priority_level', 'urgent')->count(),
+                'high' => $handoffs->where('priority_level', 'high')->count(),
                 'resolved' => $handoffs->where('status', 'resolved')->count(),
                 'pending' => $handoffs->where('status', 'pending')->count(),
             ];

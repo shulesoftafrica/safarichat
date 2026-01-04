@@ -23,6 +23,9 @@ class Kernel extends ConsoleKernel {
         Commands\NoReplyChaseCommand::class,
         Commands\SlaMonitorCommand::class,
         Commands\CronMonitorCommand::class,
+        Commands\SendDailySummaries::class,
+        Commands\SyncCreditsCommand::class,
+        Commands\ProcessNotifications::class,
     ];
     public $emails;
 
@@ -35,6 +38,9 @@ class Kernel extends ConsoleKernel {
     protected function schedule(Schedule $schedule) {
         // Log cron scheduler start
         $this->logCronActivity($schedule, 'Cron scheduler started');
+        $schedule->call(function () {
+            $this->logCronActivity(null, 'Current datetime: ' . now()->toDateTimeString());
+        })->everyMinute()->name('log-current-datetime');
 
         $schedule->command('inspire')
                 ->hourly()
@@ -291,6 +297,47 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'SLA monitoring failed', 'error');
+            });
+
+        // === Business Operations Commands ===
+        
+        // Send daily summaries to inactive users - daily at 7 AM
+        $schedule->command('summaries:send-daily')
+            ->dailyAt('07:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/daily-summaries.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Daily summaries sent successfully');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Daily summaries failed', 'error');
+            });
+
+        // Sync credits with billing system - every hour
+        $schedule->command('billing:sync-credits')
+            ->hourly()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/credit-sync.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Credit synchronization completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Credit synchronization failed', 'error');
+            });
+
+        // Process notification queue - every 10 minutes
+        $schedule->command('notifications:process')
+            ->everyTenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/notifications.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Notification processing completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Notification processing failed', 'error');
             });
     }
 
