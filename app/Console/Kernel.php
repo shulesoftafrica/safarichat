@@ -390,7 +390,17 @@ class Kernel extends ConsoleKernel {
                 ->limit(50)
                 ->get();
 
+            $this->logCronActivity(null, "Found {$dueFollowups->count()} due followups to process");
+            
+            if ($dueFollowups->isEmpty()) {
+                $this->logCronActivity(null, "No due followups found - all caught up!");
+                return;
+            }
+
             $aiWhatsAppService = app(\App\Services\AiWhatsAppService::class);
+            $successCount = 0;
+            $skipCount = 0;
+            $errorCount = 0;
 
             foreach ($dueFollowups as $conversation) {
                 try {
@@ -406,6 +416,8 @@ class Kernel extends ConsoleKernel {
                             'conversation_id' => $conversation->id,
                             'lead_id' => $lead?->id
                         ]);
+                        $this->logCronActivity(null, "Skipped followup {$conversation->id} - no contact phone");
+                        $skipCount++;
                         continue;
                     }
 
@@ -420,6 +432,8 @@ class Kernel extends ConsoleKernel {
                             'conversation_id' => $conversation->id,
                             'user_id' => $userId
                         ]);
+                        $this->logCronActivity(null, "Skipped followup {$conversation->id} - no WhatsApp instance for user {$userId}");
+                        $skipCount++;
                         continue;
                     }
 
@@ -442,6 +456,11 @@ class Kernel extends ConsoleKernel {
                         $conversation->update([
                             'followup_sent' => true
                         ]);
+                        $this->logCronActivity(null, "Sent followup for conversation {$conversation->id} to {$lead->contact->guest_phone}");
+                        $successCount++;
+                    } else {
+                        $this->logCronActivity(null, "Failed to send followup for conversation {$conversation->id}");
+                        $errorCount++;
                     }
 
                 } catch (\Exception $e) {
@@ -449,11 +468,16 @@ class Kernel extends ConsoleKernel {
                         'conversation_id' => $conversation->id,
                         'error' => $e->getMessage(),
                     ]);
+                    $this->logCronActivity(null, "Error sending followup {$conversation->id}: {$e->getMessage()}");
+                    $errorCount++;
                 }
             }
+            
+            $this->logCronActivity(null, "Followup processing summary - Success: {$successCount}, Skipped: {$skipCount}, Errors: {$errorCount}");
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Followup processing failed: ' . $e->getMessage());
+            $this->logCronActivity(null, "Followup processing failed: {$e->getMessage()}");
         }
     }
 
