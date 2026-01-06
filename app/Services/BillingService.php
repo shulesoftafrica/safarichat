@@ -22,13 +22,8 @@ class BillingService
     
     private static function getBillingApiBase()
     {
-        // For local development, use localhost URL
-        if (config('app.env') === 'local' || str_contains(request()->getHost() ?? '', 'localhost')) {
-            return 'http://localhost/safarichat/api/billing';
-        }
-        
-        // For production, use the configured app URL
-        return config('app.url') . '/api/billing';
+        // Use the configured billing API URL from services config
+        return config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
     }
     
     /**
@@ -57,7 +52,7 @@ class BillingService
     {
         try {
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'X-API-Key' => config('services.billing.api_key'),
                 'Accept' => 'application/json'
             ])->get(self::getBillingApiBase() . "/customers/{$customerId}/complete-status");
             
@@ -318,10 +313,16 @@ class BillingService
                 'active_only' => true
             ], $params);
             
+            $apiUrl = self::getBillingApiBase() . "/products";
+            Log::info("Fetching products catalog", [
+                'api_url' => $apiUrl,
+                'query_params' => $queryParams
+            ]);
+            
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'X-API-Key' => config('services.billing.api_key'),
                 'Accept' => 'application/json'
-            ])->get(self::getBillingApiBase() . "/products", $queryParams);
+            ])->get($apiUrl, $queryParams);
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -338,7 +339,12 @@ class BillingService
             throw new \Exception('API returned error: ' . $response->body());
             
         } catch (\Exception $e) {
-            Log::error("Failed to fetch products catalog: " . $e->getMessage());
+            Log::error("Failed to fetch products catalog", [
+                'error' => $e->getMessage(),
+                'api_url' => self::getBillingApiBase(),
+                'query_params' => $queryParams ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return [
                 'success' => false,
@@ -361,7 +367,7 @@ class BillingService
             $productCode = $productCode ?? self::PRODUCT_CODE;
             
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => 'Dp77IDXdqtBuB2zLvYovj2QmAK',
+                'X-API-Key' => config('services.billing.api_key'),
                 'Accept' => 'application/json'
             ])->get(self::getBillingApiBase() . "/products", [
                 'product_code' => $productCode,

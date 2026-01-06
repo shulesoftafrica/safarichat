@@ -233,7 +233,7 @@ function createRoute()
     $controller = isset($url_param[2]) && !empty($url_param[2]) ? $url_param[2] . '' : 'home';
     
     if ($controller == 'api') {
-       // return NULL;
+        return NULL;
     }
     
     $method = isset($url_param[3]) && !empty($url_param[3]) ? $url_param[3] : 'index';

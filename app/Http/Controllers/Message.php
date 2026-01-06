@@ -2330,68 +2330,18 @@ class Message extends Controller
     }
     
     /**
-     * Process scheduled follow-ups and reminders
+     * Process scheduled follow-ups and reminders using smart AI
      */
     private function processScheduledFollowUps()
     {
         try {
-            // Process leads that need follow-up
-            $leadsNeedingFollowUp = \App\Models\Lead::where('status', 'contacted')
-                                                  ->where('last_contact_at', '<', now()->subDays(3))
-                                                  ->whereNull('follow_up_sent_at')
-                                                  ->limit(20)
-                                                  ->get();
-                                                  
-            foreach ($leadsNeedingFollowUp as $lead) {
-                $aiAgent = \App\Models\AiSalesAgent::find($lead->ai_sales_agent_id);
-                if ($aiAgent && $aiAgent->auto_followup) {
-                    $this->sendFollowUpMessage($lead, $aiAgent);
-                }
-            }
+            $smartFollowupService = app(\App\Services\SmartFollowupService::class);
+            $smartFollowupService->processSmartFollowups();
         } catch (\Exception $e) {
-            \Log::error('Error processing follow-ups', [
+            \Log::error('Error processing smart follow-ups', [
                 'error' => $e->getMessage()
             ]);
         }
     }
     
-    /**
-     * Send follow-up message to a lead
-     */
-    private function sendFollowUpMessage($lead, $aiAgent)
-    {
-        $followUpMessage = $aiAgent->followup_message ?? 
-            "Hi {$lead->name}! Just following up on our previous conversation. Is there anything else I can help you with today?";
-            
-        // Replace placeholders
-        $personalizedMessage = str_replace('{name}', $lead->name, $followUpMessage);
-        
-        // Create conversation record
-        \App\Models\Conversation::create([
-            'lead_id' => $lead->id,
-            'ai_sales_agent_id' => $aiAgent->id,
-            'message' => $personalizedMessage,
-            'message_type' => 'outbound',
-            'sender_type' => 'ai_agent_followup',
-            'created_at' => now()
-        ]);
-        
-        // Get WhatsApp instance and send
-        $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $aiAgent->user_id)
-                                                       ->where('status', 'active')
-                                                       ->first();
-                                                       
-        if ($whatsappInstance) {
-            \App\Jobs\SendWhatsAppMessage::dispatch(
-                $personalizedMessage,
-                $lead->phone_number,
-                'whatsapp',
-                $aiAgent->user_id,
-                null,
-                $whatsappInstance->instance_id
-            );
-            
-            $lead->update(['follow_up_sent_at' => now()]);
-        }
-    }
 }

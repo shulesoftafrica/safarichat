@@ -78,7 +78,7 @@ return [
     ],
 
     'billing' => [
-        'api_url' => env('BILLING_API_URL', 'http://localhost/shulesoft_newversion/api/billing'),
+        'api_url' => env('BILLING_API_URL', 'https://notifications.shulesoft.africa/api/billing'),
         'api_key' => env('BILLING_API_KEY','Dp77IDXdqtBuB2zLvYovj2QmAK'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
     ],

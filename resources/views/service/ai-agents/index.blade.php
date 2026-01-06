@@ -1002,6 +1002,742 @@
 .current-balance {
     display: none;
 }
+
+/* Dark Mode Styles */
+.dark-mode .ai-agents-management {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+}
+
+.dark-mode .page-header {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    color: #f7fafc;
+}
+
+.dark-mode .page-title {
+    background: linear-gradient(135deg, #90cdf4 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dark-mode .page-subtitle {
+    color: #a0aec0;
+}
+
+.dark-mode .content-wrapper {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    color: #f7fafc;
+}
+
+.dark-mode .content-wrapper h2 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .content-wrapper p {
+    color: #a0aec0 !important;
+}
+
+.dark-mode .agent-card {
+    background: #4a5568;
+    border: 1px solid #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .agent-card:hover {
+    background: #718096;
+}
+
+.dark-mode .agent-name {
+    color: #f7fafc;
+}
+
+.dark-mode .agent-company {
+    color: #a0aec0;
+}
+
+.dark-mode .agent-description {
+    color: #e2e8f0;
+}
+
+.dark-mode .detail-item .label {
+    color: #a0aec0;
+}
+
+.dark-mode .detail-item .value {
+    color: #f7fafc;
+}
+
+.dark-mode .agent-card-footer {
+    border-top: 1px solid #718096;
+}
+
+.dark-mode .stat-card {
+    border: 1px solid #718096;
+}
+
+.dark-mode .empty-state h2 {
+    color: #f7fafc;
+}
+
+.dark-mode .empty-state p {
+    color: #a0aec0;
+}
+
+.dark-mode .feature-item span {
+    color: #a0aec0;
+}
+
+.dark-mode .breadcrumb-item a {
+    color: #a0aec0;
+}
+
+.dark-mode .breadcrumb-item a:hover {
+    color: #f7fafc;
+}
+
+/* Dark mode for modals */
+.dark-mode .modal-content {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    color: #f7fafc;
+}
+
+.dark-mode .modal-header {
+    border-bottom: 1px solid #4a5568;
+    color: #f7fafc;
+}
+
+.dark-mode .modal-title {
+    color: #f7fafc;
+}
+
+.dark-mode .modal-body {
+    color: #f7fafc;
+}
+
+.dark-mode .modal-footer {
+    border-top: 1px solid #4a5568;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1);
+}
+
+/* Dark mode for forms and inputs */
+.dark-mode .form-control {
+    background: #4a5568;
+    border: 1px solid #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .form-control:focus {
+    background: #4a5568;
+    border-color: #90cdf4;
+    color: #f7fafc;
+    box-shadow: 0 0 0 0.2rem rgba(144, 205, 244, 0.25);
+}
+
+.dark-mode .form-control::placeholder {
+    color: #a0aec0;
+}
+
+.dark-mode .form-select {
+    background: #4a5568;
+    border: 1px solid #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .form-select:focus {
+    background: #4a5568;
+    border-color: #90cdf4;
+    color: #f7fafc;
+    box-shadow: 0 0 0 0.2rem rgba(144, 205, 244, 0.25);
+}
+
+/* Dark mode for badges */
+.dark-mode .badge {
+    background: #4a5568 !important;
+    color: #f7fafc !important;
+    border: 1px solid #718096;
+}
+
+.dark-mode .badge.bg-success {
+    background: #38a169 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .badge.bg-danger {
+    background: #e53e3e !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .badge.bg-warning {
+    background: #d69e2e !important;
+    color: #2d3748 !important;
+}
+
+.dark-mode .badge.bg-info {
+    background: #3182ce !important;
+    color: #f7fafc !important;
+}
+
+/* Dark mode for buttons */
+.dark-mode .btn-secondary {
+    background: #4a5568;
+    border-color: #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .btn-secondary:hover {
+    background: #718096;
+    border-color: #a0aec0;
+    color: #f7fafc;
+}
+
+.dark-mode .btn-outline-secondary {
+    color: #a0aec0;
+    border-color: #718096;
+}
+
+.dark-mode .btn-outline-secondary:hover {
+    background: #718096;
+    border-color: #a0aec0;
+    color: #f7fafc;
+}
+
+/* Dark mode for alerts */
+.dark-mode .alert {
+    background: #4a5568;
+    border: 1px solid #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .alert-danger {
+    background: #742a2a;
+    border-color: #e53e3e;
+    color: #fed7d7;
+}
+
+.dark-mode .alert-success {
+    background: #276749;
+    border-color: #38a169;
+    color: #c6f6d5;
+}
+
+.dark-mode .alert-warning {
+    background: #975a16;
+    border-color: #d69e2e;
+    color: #faf089;
+}
+
+.dark-mode .alert-info {
+    background: #2c5282;
+    border-color: #3182ce;
+    color: #bee3f8;
+}
+
+/* Dark mode for list groups */
+.dark-mode .list-group-item {
+    background: #4a5568;
+    border-color: #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .list-group-item:hover {
+    background: #718096;
+}
+
+/* Dark mode for tables */
+.dark-mode .table {
+    color: #f7fafc;
+}
+
+.dark-mode .table th {
+    border-color: #4a5568;
+    color: #f7fafc;
+}
+
+.dark-mode .table td {
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > td,
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > th {
+    background: rgba(74, 85, 104, 0.5);
+}
+
+/* Dark mode for billing components */
+.dark-mode .credits-section-compact {
+    background: rgba(74, 85, 104, 0.95);
+    border-color: #718096;
+    color: #f7fafc;
+}
+
+.dark-mode .credits-number {
+    color: #f7fafc;
+}
+
+.dark-mode .credits-label {
+    color: #a0aec0;
+}
+
+.dark-mode .credits-actions {
+    border-left-color: #718096;
+}
+
+/* Dark mode for status badges */
+.dark-mode .status-badge.active {
+    background: #276749;
+    color: #c6f6d5;
+}
+
+.dark-mode .status-badge.inactive {
+    background: #975a16;
+    color: #faf089;
+}
+
+/* Dark mode for tag elements */
+.dark-mode .tag {
+    background: #4a5568;
+    color: #90cdf4;
+    border: 1px solid #718096;
+}
+
+.dark-mode .tag.more {
+    background: #718096;
+    color: #a0aec0;
+}
+
+/* Dark mode for text muted elements */
+.dark-mode .text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for small text */
+.dark-mode small {
+    color: #a0aec0;
+}
+
+/* Dark mode for credit package cards (in modals) */
+.dark-mode .credit-package {
+    background: #4a5568 !important;
+    border-color: #718096 !important;
+    color: #f7fafc;
+}
+
+.dark-mode .credit-package:hover {
+    background: #718096 !important;
+}
+
+.dark-mode .current-balance {
+    background: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .current-balance strong {
+    color: #f7fafc !important;
+}
+
+.dark-mode .current-balance .text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for definition lists */
+.dark-mode dl dt {
+    color: #a0aec0;
+}
+
+.dark-mode dl dd {
+    color: #f7fafc;
+}
+
+/* Dark mode for pricing/upgrade modals */
+.dark-mode .pricing-card,
+.dark-mode .plan-card {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .pricing-card.recommended,
+.dark-mode .plan-card.recommended {
+    background: #553c9a !important;
+    border: 2px solid #805ad5 !important;
+}
+
+.dark-mode .pricing-card h3,
+.dark-mode .plan-card h3,
+.dark-mode .pricing-card h4,
+.dark-mode .plan-card h4 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .pricing-card .price,
+.dark-mode .plan-card .price {
+    color: #90cdf4 !important;
+    font-weight: 700;
+}
+
+.dark-mode .pricing-card .price-period,
+.dark-mode .plan-card .price-period {
+    color: #a0aec0 !important;
+}
+
+.dark-mode .pricing-card ul li,
+.dark-mode .plan-card ul li {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .pricing-card .feature-list li,
+.dark-mode .plan-card .feature-list li {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .pricing-card .feature-list li::before,
+.dark-mode .plan-card .feature-list li::before {
+    color: #68d391 !important;
+}
+
+/* Dark mode for current plan section */
+.dark-mode .current-plan-section,
+.dark-mode .current-plan-card {
+    background: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .current-plan-badge {
+    background: #4a5568 !important;
+    color: #a0aec0 !important;
+    border: 1px solid #718096;
+}
+
+.dark-mode .current-plan-features {
+    color: #a0aec0 !important;
+}
+
+.dark-mode .plan-expiry,
+.dark-mode .plan-remaining {
+    color: #fbb6ce !important;
+}
+
+/* Dark mode for recommended badge */
+.dark-mode .recommended-badge {
+    background: #805ad5 !important;
+    color: #f7fafc !important;
+}
+
+/* Dark mode for purchase credits section */
+.dark-mode .credits-purchase-section {
+    background: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .credits-input-group {
+    background: #4a5568 !important;
+}
+
+.dark-mode .credits-input-group input {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .credits-input-group input:focus {
+    background: #4a5568 !important;
+    border-color: #90cdf4 !important;
+    color: #f7fafc !important;
+    box-shadow: 0 0 0 0.2rem rgba(144, 205, 244, 0.25) !important;
+}
+
+.dark-mode .credits-input-group input::placeholder {
+    color: #a0aec0 !important;
+}
+
+.dark-mode .credits-currency {
+    background: #718096 !important;
+    color: #f7fafc !important;
+    border: 1px solid #718096 !important;
+}
+
+.dark-mode .credits-minimum {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for upgrade buttons */
+.dark-mode .btn-upgrade {
+    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-upgrade:hover {
+    background: linear-gradient(45deg, #5a6fd8, #6a4190) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-upgrade-outline {
+    background: transparent !important;
+    border: 2px solid #667eea !important;
+    color: #90cdf4 !important;
+}
+
+.dark-mode .btn-upgrade-outline:hover {
+    background: #667eea !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-buy-credits {
+    background: #38a169 !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-buy-credits:hover {
+    background: #2f855a !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode for modal backdrop overlay */
+.dark-mode .modal-backdrop {
+    background-color: rgba(45, 55, 72, 0.8) !important;
+}
+
+/* Dark mode for pricing modal specific elements */
+.dark-mode .pricing-modal .modal-content {
+    background: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+}
+
+.dark-mode .pricing-modal .modal-header {
+    border-bottom: 1px solid #4a5568 !important;
+    background: #2d3748 !important;
+}
+
+.dark-mode .pricing-modal .modal-body {
+    background: #2d3748 !important;
+}
+
+.dark-mode .pricing-modal .modal-footer {
+    border-top: 1px solid #4a5568 !important;
+    background: #2d3748 !important;
+}
+
+/* Dark mode for feature icons */
+.dark-mode .feature-icon {
+    color: #68d391 !important;
+}
+
+.dark-mode .feature-check {
+    color: #68d391 !important;
+}
+
+/* Dark mode for price display */
+.dark-mode .price-display {
+    color: #90cdf4 !important;
+}
+
+.dark-mode .price-currency {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for plan titles */
+.dark-mode .plan-title {
+    color: #f7fafc !important;
+    font-weight: 700;
+}
+
+.dark-mode .plan-subtitle {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for upgrade modal lock icon */
+.dark-mode .upgrade-lock-icon {
+    color: #fbb6ce !important;
+}
+
+/* Dark mode for feature restrictions text */
+.dark-mode .feature-restriction-text {
+    color: #a0aec0 !important;
+}
+
+/* Dark mode for billing period selectors */
+.dark-mode .billing-period-selector {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .billing-period-selector.active {
+    background: #667eea !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode for specific pricing modal IDs */
+.dark-mode #pricingControlsModal .modal-content {
+    background: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .modal-header {
+    border-bottom: 1px solid #4a5568 !important;
+}
+
+.dark-mode #pricingControlsModal .modal-body {
+    background: #2d3748 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .card {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .card-title {
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .card-body {
+    background: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .text-muted {
+    color: #a0aec0 !important;
+}
+
+.dark-mode #pricingControlsModal .badge {
+    background: #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .form-control {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .form-control:focus {
+    background: #4a5568 !important;
+    border-color: #90cdf4 !important;
+    color: #f7fafc !important;
+    box-shadow: 0 0 0 0.2rem rgba(144, 205, 244, 0.25) !important;
+}
+
+.dark-mode #pricingControlsModal .form-control::placeholder {
+    color: #a0aec0 !important;
+}
+
+.dark-mode #pricingControlsModal .input-group-text {
+    background: #718096 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .btn-outline-secondary {
+    background: transparent !important;
+    border: 1px solid #718096 !important;
+    color: #a0aec0 !important;
+}
+
+.dark-mode #pricingControlsModal .btn-outline-secondary:hover {
+    background: #718096 !important;
+    border-color: #a0aec0 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .btn-success {
+    background: #38a169 !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode #pricingControlsModal .btn-success:hover {
+    background: #2f855a !important;
+    color: #ffffff !important;
+}
+
+.dark-mode #pricingControlsModal .btn-primary {
+    background: #667eea !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode #pricingControlsModal .btn-primary:hover {
+    background: #5a6fd8 !important;
+    color: #ffffff !important;
+}
+
+.dark-mode #pricingControlsModal .spinner-border {
+    color: #90cdf4 !important;
+}
+
+.dark-mode #pricingControlsModal small {
+    color: #a0aec0 !important;
+}
+
+.dark-mode #pricingControlsModal .fw-bold {
+    color: #f7fafc !important;
+}
+
+/* Dark mode for plan cards when they load */
+.dark-mode #availablePlans .card {
+    background: #4a5568 !important;
+    border: 1px solid #718096 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #availablePlans .card.border-primary {
+    border-color: #667eea !important;
+    background: #553c9a !important;
+}
+
+.dark-mode #availablePlans .card-header {
+    background: #718096 !important;
+    border-bottom: 1px solid #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode #availablePlans .list-group-item {
+    background: #4a5568 !important;
+    border-color: #718096 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #availablePlans .text-success {
+    color: #68d391 !important;
+}
+
+.dark-mode #availablePlans .text-primary {
+    color: #90cdf4 !important;
+}
+
+.dark-mode #availablePlans h5 {
+    color: #f7fafc !important;
+}
+
+.dark-mode #availablePlans h6 {
+    color: #f7fafc !important;
+}
+
+/* Dark mode for feature restriction elements */
+.dark-mode .fas.fa-lock {
+    color: #fbb6ce !important;
+}
+
+.dark-mode h5 {
+    color: #f7fafc !important;
+}
+
+.dark-mode p {
+    color: #e2e8f0 !important;
+}
 </style>
 
 <script>

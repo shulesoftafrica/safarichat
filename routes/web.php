@@ -64,8 +64,8 @@ Route::post('/api/track-interaction', [App\Http\Controllers\Api\LandingApiContro
 
 // Original routes (keeping for existing functionality)
 Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard')->middleware('onboarding.complete');
-Route::get('/terms', function() { return view('auth.legal.terms_of_service');});
-Route::get('/terms/use', function() { return view('auth.legal.terms_of_use');});
+Route::get('/terms', function() { return view('auth.termsandconditions'); });
+Route::get('/terms/use', function() { return view('auth.termsandconditions'); });
 
 
 Route::get('/privacy', function() { return view('corporate.privacy');});
@@ -298,7 +298,8 @@ if (createRoute() != NULL) {
     $file = app_path() . DIRECTORY_SEPARATOR . 'Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . $route[0] . '.php';
 
     if (file_exists($file)) {
-        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute());
+        // Exclude API routes from this wildcard route
+        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute())->where('controller', '^(?!api).*');
     }
 }
 

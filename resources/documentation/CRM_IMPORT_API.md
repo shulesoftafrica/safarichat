@@ -1,280 +1,264 @@
-# CRM Import API Documentation
+## Postman Collection: CRM Import API Endpoints & Parameters
 
-## Overview
-Simple APIs to import contacts and conversation context from external CRM systems into SafariChat.
+Below is a summary of the main endpoints and parameters for the SafariChat CRM Import API, formatted for easy use in Postman.
 
-## Endpoints
+---
 
-### 1. Import Contacts
-**POST** `/api/crm/import/contacts`
+## Authentication Setup
 
-Import contacts from external CRM into SafariChat.
+Before using any API endpoints, you need to obtain a USER_TOKEN for authentication using your phone number and User UUID.
 
-#### Headers
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
+### **Get USER_TOKEN (CRM API Authentication)**
 
-#### Request Body
-```json
-{
-  "contacts": [
-    {
-      "crm_id": "CRM-12345",
-      "name": "John Doe",
+**Step 1: Request Access Information**
+- **Method:** `POST`
+- **URL:** `/api/crm-auth/request-access`
+- **Headers:**
+  - `Content-Type: application/json`
+- **Body (JSON):**
+  ```json
+  {
+    "phone": "+1234567890"
+  }
+  ```
+  **Note:** Phone number supports both local format (e.g., "0714852469") and international format (e.g., "+255714852469").
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Account found. Use your phone number and user UUID for authentication.",
+    "data": {
       "phone": "+1234567890",
-      "email": "john@example.com",
-      "company": "Acme Corp",
-      "industry": "Technology",
-      "crm_status": "qualified",
-      "tags": ["vip", "enterprise"],
-      "custom_fields": {
-        "budget": "$50,000",
-        "decision_maker": true
-      },
-      "created_in_crm": "2024-01-15T10:00:00Z",
-      "updated_in_crm": "2024-01-20T15:30:00Z"
+      "user_exists": true,
+      "instruction": "Find your User UUID in the Settings page of your dashboard"
     }
-  ]
-}
-```
+  }
+  ```
 
-#### Response
-```json
-{
-  "success": true,
-  "data": {
-    "imported": [
+**Step 2: Authenticate with Phone + UUID**
+- **Method:** `POST`
+- **URL:** `/api/crm-auth/authenticate-user`
+- **Headers:**
+  - `Content-Type: application/json`
+- **Body (JSON):**
+  ```json
+  {
+    "phone": "+1234567890",
+    "user_uuid": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+  **Note:** Phone number supports both local format (e.g., "0714852469") and international format (e.g., "+255714852469").
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "access_token": "your_token_here",
+    "token_type": "Bearer",
+    "user": {
+      "id": 1,
+      "name": "User Name",
+      "phone": "+1234567890",
+      "uuid": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "message": "Authentication successful",
+    "permissions": [
+      "crm:import:contacts",
+      "crm:import:conversations",
+      "crm:export:data"
+    ]
+  }
+  ```
+
+**Note:** 
+- Copy the `access_token` value and use it as `{{USER_TOKEN}}` in subsequent API calls.
+- Your User UUID can be found in the Settings page of your SafariChat dashboard.
+- The authentication token has specific CRM permissions for security.
+
+---
+
+### 1. **Create API Key**
+
+- **Method:** `POST`
+- **URL:** `/api/api-keys`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer {{USER_TOKEN}}`
+- **Body (JSON):**
+  ```json
+  {
+    "name": "CRM Integration - Production",
+    "permissions": [
+      "crm:import:contacts",
+      "crm:import:conversations",
+      "crm:export:data"
+    ],
+    "expires_at": "2025-12-31T23:59:59Z",
+    "metadata": {
+      "integration": "hubspot",
+      "environment": "production"
+    }
+  }
+  ```
+
+---
+
+### 2. **Import Contacts**
+
+- **Method:** `POST`
+- **URL:** `/api/crm/import/contacts`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer {{API_KEY}}`
+- **Body (JSON):**
+  ```json
+  {
+    "contacts": [
       {
-        "id": 123,
         "crm_id": "CRM-12345",
         "name": "John Doe",
         "phone": "+1234567890",
-        "email": "john@example.com"
-      }
-    ],
-    "skipped": [],
-    "imported_count": 1,
-    "skipped_count": 0,
-    "error_count": 0,
-    "errors": [],
-    "total_processed": 1
-  },
-  "message": "Contact import completed"
-}
-```
-
-### 2. Import Conversation Context
-**POST** `/api/crm/import/context`
-
-Import conversation history and context for a contact from external CRM.
-
-#### Headers
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-#### Request Body
-```json
-{
-  "contact_crm_id": "CRM-12345",
-  "conversations": [
-    {
-      "message_content": "Hi, I'm interested in your products.",
-      "sender_type": "customer",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "crm_conversation_id": "CONV-001",
-      "metadata": {
-        "channel": "email",
-        "priority": "high"
-      },
-      "tags": ["inquiry", "product_interest"]
-    },
-    {
-      "message_content": "Thank you for your interest. Let me help you with that.",
-      "sender_type": "agent",
-      "timestamp": "2024-01-15T10:45:00Z",
-      "crm_conversation_id": "CONV-002"
-    }
-  ],
-  "contact_background": {
-    "company_size": "500+ employees",
-    "previous_purchases": ["Product A", "Product B"]
-  },
-  "previous_interactions": [
-    {
-      "type": "demo",
-      "date": "2024-01-10",
-      "outcome": "interested"
-    }
-  ],
-  "customer_preferences": {
-    "contact_method": "email",
-    "best_time": "morning"
-  }
-}
-```
-
-#### Response
-```json
-{
-  "success": true,
-  "data": {
-    "contact": {
-      "id": 123,
-      "crm_id": "CRM-12345",
-      "name": "John Doe"
-    },
-    "lead": {
-      "id": 456,
-      "status": "new"
-    },
-    "imported_conversations": [
-      {
-        "id": 789,
-        "crm_conversation_id": "CONV-001",
-        "message_type": "CUSTOMER",
-        "sender_type": "customer",
-        "timestamp": "2024-01-15T10:30:00Z",
-        "message_preview": "Hi, I'm interested in your products..."
-      }
-    ],
-    "imported_count": 2,
-    "error_count": 0,
-    "errors": [],
-    "context_data": {
-      "contact_background": true,
-      "previous_interactions": true,
-      "customer_preferences": true
-    }
-  },
-  "message": "Context import completed successfully"
-}
-```
-
-### 3. Get Contact Context
-**GET** `/api/crm/import/contacts/{crm_id}/context`
-
-Retrieve imported contact with full conversation context.
-
-#### Headers
-```
-Authorization: Bearer {token}
-```
-
-#### Response
-```json
-{
-  "success": true,
-  "data": {
-    "contact": {
-      "id": 123,
-      "crm_id": "CRM-12345",
-      "name": "John Doe",
-      "phone": "+1234567890",
-      "email": "john@example.com",
-      "crm_data": {
+        "email": "john@example.com",
         "company": "Acme Corp",
         "industry": "Technology",
-        "context_imported": true,
-        "conversation_count": 2
-      }
-    },
-    "lead": {
-      "id": 456,
-      "status": "new",
-      "lead_score": 50,
-      "metadata": {
-        "crm_imported": true,
-        "contact_background": {...},
-        "previous_interactions": [...],
-        "customer_preferences": {...}
-      }
-    },
-    "conversations": [
-      {
-        "id": 789,
-        "message_type": "CUSTOMER",
-        "sender_type": "customer",
-        "message_content": "Hi, I'm interested in your products.",
-        "conversation_state": "INTRO",
-        "is_imported": true,
-        "original_timestamp": "2024-01-15T10:30:00Z",
-        "created_at": "2024-01-15T10:30:00Z"
+        "crm_status": "qualified",
+        "tags": ["vip", "enterprise"],
+        "custom_fields": {
+          "budget": "$50,000",
+          "decision_maker": true
+        },
+        "created_in_crm": "2024-01-15T10:00:00Z",
+        "updated_in_crm": "2024-01-20T15:30:00Z"
       }
     ]
-  },
-  "message": "Contact context retrieved successfully"
-}
-```
-
-## Field Mappings
-
-### Contact Fields
-- `crm_id` → Unique identifier from external CRM
-- `name` → Contact's full name
-- `phone` → Primary phone number
-- `email` → Primary email address
-- `company` → Company/organization name
-- `industry` → Business industry
-- `crm_status` → Status in external CRM
-- `tags` → Array of tags/labels
-- `custom_fields` → Custom data from CRM
-- `created_in_crm` → Original creation date
-- `updated_in_crm` → Last update date
-
-### Conversation Fields
-- `message_content` → Full message text
-- `sender_type` → Who sent the message:
-  - `customer` → Contact/customer message
-  - `agent` → Human agent message
-  - `system` → System/automated message
-- `timestamp` → When message was sent
-- `crm_conversation_id` → Reference ID from CRM
-- `metadata` → Additional message data
-- `tags` → Message tags/labels
-
-## Error Handling
-
-### Validation Errors (422)
-```json
-{
-  "success": false,
-  "message": "Validation failed",
-  "errors": {
-    "contacts.0.name": ["The name field is required."]
   }
-}
-```
+  ```
 
-### Contact Not Found (404)
-```json
-{
-  "success": false,
-  "message": "Contact not found. Please import the contact first."
-}
-```
+---
 
-### Server Error (500)
-```json
-{
-  "success": false,
-  "message": "Error importing contacts"
-}
-```
+### 3. **Import Conversation Context**
 
-## Usage Notes
+- **Method:** `POST`
+- **URL:** `/api/crm/import/context`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer {{API_KEY}}`
+- **Body (JSON):**
+  ```json
+  {
+    "contact_crm_id": "CRM-12345",
+    "conversations": [
+      {
+        "message_content": "Hi, I'm interested in your products.",
+        "sender_type": "customer",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "crm_conversation_id": "CONV-001",
+        "metadata": {
+          "channel": "email",
+          "priority": "high"
+        },
+        "tags": ["inquiry", "product_interest"]
+      }
+    ],
+    "contact_background": {
+      "company_size": "500+ employees",
+      "previous_purchases": ["Product A", "Product B"]
+    },
+    "previous_interactions": [
+      {
+        "type": "demo",
+        "date": "2024-01-10",
+        "outcome": "interested"
+      }
+    ],
+    "customer_preferences": {
+      "contact_method": "email",
+      "best_time": "morning"
+    }
+  }
+  ```
 
-1. **Contact Import First**: Always import contacts before importing their conversation context.
+---
 
-2. **Batch Limits**: 
-   - Contacts: Maximum 1000 per request
-   - Conversations: Maximum 500 per request
+### 4. **Get Contact Context**
 
-3. **Duplicate Handling**: Contacts are skipped if they already exist (matched by phone or CRM ID).
+- **Method:** `GET`
+- **URL:** `/api/crm/import/contacts/{{crm_id}}/context`
+- **Headers:**
+  - `Authorization: Bearer {{API_KEY}}`
 
-4. **Data Preservation**: All imported conversations are marked as historical (not active) and preserve original timestamps.
+---
 
-5. **Lead Creation**: A lead is automatically created or found for each contact when importing context.
+### 5. **Create Webhook Endpoint**
+
+- **Method:** `POST`
+- **URL:** `/api/crm/webhooks`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer {{API_KEY}}`
+- **Body (JSON):**
+  ```json
+  {
+    "webhook_url": "https://your-crm.com/api/webhooks/safarichat",
+    "events": [
+      "conversation.new_message",
+      "conversation.status_changed",
+      "lead.updated",
+      "conversation.completed"
+    ],
+    "secret": "your-webhook-secret-key",
+    "active": true
+  }
+  ```
+
+---
+
+### 6. **API Key Management**
+
+- **List API Keys**
+  - **Method:** `GET`
+  - **URL:** `/api/api-keys`
+  - **Headers:** `Authorization: Bearer {{USER_TOKEN}}`
+
+- **Update API Key**
+  - **Method:** `PUT`
+  - **URL:** `/api/api-keys/{{id}}`
+  - **Headers:**
+    - `Authorization: Bearer {{USER_TOKEN}}`
+    - `Content-Type: application/json`
+  - **Body (JSON):**
+    ```json
+    {
+      "name": "Updated Name",
+      "permissions": ["crm:import:contacts"],
+      "expires_at": "2026-01-01T00:00:00Z"
+    }
+    ```
+
+- **Test API Key**
+  - **Method:** `GET`
+  - **URL:** `/api/api-keys/{{id}}/test`
+  - **Headers:** `Authorization: Bearer {{API_KEY}}`
+
+- **Revoke API Key**
+  - **Method:** `DELETE`
+  - **URL:** `/api/api-keys/{{id}}`
+  - **Headers:** `Authorization: Bearer {{USER_TOKEN}}`
+
+---
+
+### **Variables**
+
+- `{{USER_TOKEN}}`: Your user authentication token (for API key management)
+- `{{API_KEY}}`: The generated API key (for CRM import endpoints)
+- `{{crm_id}}`: The CRM contact ID
+- `{{id}}`: API key ID
+
+---
+
+**Base URLs:**
+- Production: `https://safarichat.africa/api`
+- Development: `http://localhost:8000/api`
+
+---
+
+**Tip:** You can import these endpoints into Postman as a collection and use variables for tokens and IDs.

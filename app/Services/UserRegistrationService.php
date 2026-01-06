@@ -225,6 +225,68 @@ class UserRegistrationService
     }
     
     /**
+     * Send OTP for user login
+     */
+    public function sendLoginOtp(string $phoneNumber): array
+    {
+        // Generate 6-digit OTP
+        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        // Store OTP in cache for 10 minutes
+        $cacheKey = "login_otp:{$phoneNumber}";
+        Cache::put($cacheKey, [
+            'code' => $otpCode,
+            'phone' => $phoneNumber,
+            'created_at' => now()
+        ], now()->addMinutes(10));
+        
+        // Attempt to send OTP via system WhatsApp instance
+        try {
+            $sent = $this->systemWhatsApp->sendLoginOtp($phoneNumber, $otpCode);
+            
+            if ($sent) {
+                return [
+                    'success' => true,
+                    'message' => 'Login OTP sent via WhatsApp',
+                    'method' => 'whatsapp',
+                    'expires_in' => '10 minutes',
+                    'expires_at' => now()->addMinutes(10)->toISOString()
+                ];
+            }
+        } catch (Exception $e) {
+            \Log::warning('WhatsApp login OTP failed, attempting SMS fallback', [
+                'error' => $e->getMessage(),
+                'phone' => $phoneNumber
+            ]);
+        }
+        
+        // Fallback to SMS if WhatsApp fails
+        return $this->sendOtpViaSms($phoneNumber, $otpCode, 'login');
+    }
+    
+    /**
+     * Verify login OTP code
+     */
+    public function verifyLoginOtp(string $phoneNumber, string $otpCode): bool
+    {
+        $cacheKey = "login_otp:{$phoneNumber}";
+        $otpData = Cache::get($cacheKey);
+        
+        if (!$otpData) {
+            return false; // OTP expired or doesn't exist
+        }
+        
+        $isValid = $otpData['code'] === $otpCode;
+        
+        // Clear OTP from cache after verification (prevent reuse)
+        if ($isValid) {
+            Cache::forget($cacheKey);
+        }
+        
+        return $isValid;
+    }
+    
+    /**
      * Get registration statistics
      */
     public function getRegistrationStats($days = 30): array

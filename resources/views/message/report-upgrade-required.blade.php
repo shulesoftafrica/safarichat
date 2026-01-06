@@ -129,5 +129,220 @@
     margin-bottom: 0;
     font-size: 0.9rem;
 }
+
+/* Dark Mode Styles */
+.dark-mode .page-content-wrapper {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-mode .page-content {
+    background-color: #1a1a1a;
+}
+
+.dark-mode .container-fluid {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-mode .page-title-box {
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.dark-mode .page-title {
+    color: #ffffff !important;
+}
+
+.dark-mode .breadcrumb {
+    background-color: transparent;
+}
+
+.dark-mode .breadcrumb-item a {
+    color: #007bff;
+}
+
+.dark-mode .breadcrumb-item.active {
+    color: #cccccc;
+}
+
+.dark-mode .card {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+}
+
+.dark-mode .card-body {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+.dark-mode h2 {
+    color: #ffffff !important;
+}
+
+.dark-mode .text-primary {
+    color: #4a90ff !important;
+}
+
+.dark-mode .lead {
+    color: #e0e0e0 !important;
+}
+
+.dark-mode .text-muted {
+    color: #cccccc !important;
+}
+
+.dark-mode .feature-preview {
+    background-color: #404040;
+    border-radius: 8px;
+    border: 1px solid #606060;
+}
+
+.dark-mode .feature-preview h5 {
+    color: #ffffff !important;
+}
+
+.dark-mode .feature-preview p {
+    color: #cccccc !important;
+}
+
+.dark-mode .text-success {
+    color: #28a745 !important;
+}
+
+.dark-mode .text-info {
+    color: #17a2b8 !important;
+}
+
+.dark-mode .text-warning {
+    color: #ffc107 !important;
+}
+
+.dark-mode .text-danger {
+    color: #dc3545 !important;
+}
+
+.dark-mode .plan-comparison {
+    color: #ffffff;
+}
+
+.dark-mode .badge-light {
+    background-color: #6c757d;
+    color: #ffffff;
+}
+
+.dark-mode .badge-primary {
+    background-color: #007bff;
+    color: #ffffff;
+}
+
+.dark-mode .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #ffffff;
+}
+
+.dark-mode .btn-primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+.dark-mode .btn-outline-secondary {
+    color: #ffffff;
+    border-color: #6c757d;
+}
+
+.dark-mode .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+.dark-mode .border-top {
+    border-color: #606060 !important;
+}
+
+.dark-mode small {
+    color: #cccccc !important;
+}
+
+.dark-mode a {
+    color: #4a90ff;
+}
+
+.dark-mode a:hover {
+    color: #6ab7ff;
+}
+
+/* Icon styling in dark mode */
+.dark-mode .fas {
+    opacity: 1;
+}
+
+.dark-mode .fa-chart-line {
+    color: #4a90ff !important;
+}
+
+.dark-mode .fa-lock {
+    color: #4a90ff !important;
+}
+
+.dark-mode .fa-chart-bar {
+    color: #28a745 !important;
+}
+
+.dark-mode .fa-users {
+    color: #17a2b8 !important;
+}
+
+.dark-mode .fa-calendar-alt {
+    color: #ffc107 !important;
+}
+
+.dark-mode .fa-download {
+    color: #dc3545 !important;
+}
+
+.dark-mode .fa-rocket {
+    color: #ffffff !important;
+}
+
+.dark-mode .fa-arrow-left {
+    color: #ffffff !important;
+}
+
+.dark-mode .fa-arrow-right {
+    color: #cccccc !important;
+}
+
+/* Responsive adjustments for dark mode */
+@media (max-width: 768px) {
+    .dark-mode .feature-preview {
+        margin-bottom: 1rem;
+    }
+    
+    .dark-mode .plan-comparison {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .dark-mode .action-buttons .btn {
+        display: block;
+        margin: 0.5rem 0;
+        width: 100%;
+    }
+}
+
+/* Enhanced contrast for better readability */
+.dark-mode strong {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.dark-mode .lead strong {
+    color: #4a90ff !important;
+}
 </style>
 @endsection

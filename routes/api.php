@@ -40,19 +40,61 @@ Route::prefix('billing')->name('api.billing.')->group(function () {
     Route::post('/emergency-refresh', [BillingApiController::class, 'emergencyRefresh'])->name('emergency_refresh');
 });
 
-// WhatsApp Registration Routes (Public)
-Route::prefix('auth')->name('api.auth.')->group(function () {
+// CRM API Authentication Routes (Public and Protected)
+Route::prefix('crm-auth')->name('api.crm.auth.')->group(function () {
+    // CRM API Authentication using phone + UUID
+    Route::post('/request-access', [\App\Http\Controllers\Api\AuthController::class, 'requestAccess'])->name('request_access');
+    Route::post('/authenticate-user', [\App\Http\Controllers\Api\AuthController::class, 'authenticateUser'])->name('authenticate_user');
+    
+    // WhatsApp Registration Routes (Public)
     Route::post('/check-phone', [WhatsAppRegistrationController::class, 'checkPhone'])->name('check_phone');
     Route::post('/send-otp', [WhatsAppRegistrationController::class, 'sendOtp'])->name('send_otp');
     Route::post('/register', [WhatsAppRegistrationController::class, 'register'])->name('register');
     Route::post('/resend-otp', [WhatsAppRegistrationController::class, 'resendOtp'])->name('resend_otp');
     Route::post('/forgot-password', [WhatsAppRegistrationController::class, 'sendPasswordResetOtp'])->name('forgot_password');
     Route::post('/reset-password', [WhatsAppRegistrationController::class, 'resetPassword'])->name('reset_password');
+    
+    // Protected API Auth Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->name('logout');
+        Route::get('/user', [\App\Http\Controllers\Api\AuthController::class, 'user'])->name('user');
+        Route::post('/refresh', [\App\Http\Controllers\Api\AuthController::class, 'refresh'])->name('refresh');
+    });
 });
 
 // Registration Stats (Admin only)
 Route::middleware('auth:sanctum')->prefix('admin')->name('api.admin.')->group(function () {
     Route::get('/registration-stats', [WhatsAppRegistrationController::class, 'getStats'])->name('registration_stats');
+});
+
+// API Key Management Routes
+Route::middleware('auth:sanctum')->prefix('api-keys')->name('api.keys.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ApiKeyController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\Api\ApiKeyController::class, 'store'])->name('store');
+    Route::get('/{apiKey}', [\App\Http\Controllers\Api\ApiKeyController::class, 'show'])->name('show');
+    Route::put('/{apiKey}', [\App\Http\Controllers\Api\ApiKeyController::class, 'update'])->name('update');
+    Route::delete('/{apiKey}', [\App\Http\Controllers\Api\ApiKeyController::class, 'destroy'])->name('destroy');
+});
+
+// API Key Test Route (for testing authentication)
+Route::middleware('api.key')->get('/test', [\App\Http\Controllers\Api\ApiKeyController::class, 'test'])->name('api.test');
+
+// CRM Import API Routes (API Key Protected)
+Route::middleware('api.key')->prefix('crm')->name('api.crm.')->group(function () {
+    // Contact import with specific permission
+    Route::post('/import/contacts', [\App\Http\Controllers\Api\CrmImportContactsController::class, 'importContacts'])
+         ->middleware('api.key:crm:import:contacts')
+         ->name('import.contacts');
+    
+    // Context import with specific permission  
+    Route::post('/import/context', [\App\Http\Controllers\Api\CrmImportContactsController::class, 'importContext'])
+         ->middleware('api.key:crm:import:conversations')
+         ->name('import.context');
+    
+    // Get contact context
+    Route::get('/import/contacts/{crm_id}/context', [\App\Http\Controllers\Api\CrmImportContactsController::class, 'getContactContext'])
+         ->middleware('api.key:crm:import:contacts')
+         ->name('import.contacts.context');
 });
 
 //DB::table('api_requests')->insert(['content'=> json_encode(request()->all()),'url'=>url()->current()]);

@@ -7,12 +7,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail{
 
     use HasFactory,
         Notifiable,
         HasApiTokens;
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($user) {
+            if (empty($user->uuid)) {
+                $user->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -36,7 +51,8 @@ class User extends Authenticatable implements MustVerifyEmail{
         'country_code',
         'available_credits',
         'whatsapp_number',
-        'last_activity_at'
+        'last_activity_at',
+        'uuid'
     ];
 
     /**
@@ -234,5 +250,10 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function assignedHandoffs()
     {
         return $this->hasMany(Handoff::class, 'human_agent_id');
+    }
+
+    public function apiKeys()
+    {
+        return $this->hasMany(ApiKey::class);
     }
 }

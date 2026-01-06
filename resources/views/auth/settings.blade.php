@@ -1,6 +1,429 @@
 @extends('layouts.app')
 @section('content')
 
+<style>
+/* Dark Mode Styles for Settings Page */
+.dark-mode .container-fluid {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-mode .page-title-box {
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.dark-mode .page-title,
+.dark-mode .header-title {
+    color: #ffffff;
+}
+
+.dark-mode .breadcrumb {
+    background-color: transparent;
+}
+
+.dark-mode .breadcrumb-item a {
+    color: #007bff;
+}
+
+.dark-mode .breadcrumb-item.active {
+    color: #cccccc;
+}
+
+.dark-mode .card {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+}
+
+.dark-mode .card-body {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+.dark-mode .text-muted {
+    color: #cccccc !important;
+}
+
+/* Navigation Pills */
+.dark-mode .nav-pills .nav-link {
+    background-color: #404040;
+    border: 1px solid #606060;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.dark-mode .nav-pills .nav-link:hover {
+    background-color: #505050;
+    color: #ffffff;
+}
+
+.dark-mode .nav-pills .nav-link.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #ffffff;
+}
+
+/* Tab Content */
+.dark-mode .tab-content {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+.dark-mode .tab-pane {
+    color: #ffffff;
+}
+
+/* Tables */
+.dark-mode .table {
+    color: #ffffff;
+    background-color: #2d2d2d;
+}
+
+.dark-mode .table thead th {
+    background-color: #404040;
+    border-color: #606060;
+    color: #ffffff;
+}
+
+.dark-mode .table-bordered {
+    border: 1px solid #606060;
+}
+
+.dark-mode .table-bordered th,
+.dark-mode .table-bordered td {
+    border: 1px solid #606060;
+}
+
+.dark-mode .thead-light th {
+    background-color: #404040;
+    border-color: #606060;
+    color: #ffffff;
+}
+
+.dark-mode .table-responsive {
+    background-color: #2d2d2d;
+}
+
+/* Forms */
+.dark-mode .form-control {
+    background-color: #404040;
+    border: 1px solid #606060;
+    color: #ffffff;
+}
+
+.dark-mode .form-control:focus {
+    background-color: #404040;
+    border-color: #007bff;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.dark-mode .form-control::placeholder {
+    color: #999999;
+}
+
+.dark-mode label {
+    color: #ffffff;
+}
+
+/* Modals */
+.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    border: 1px solid #606060;
+}
+
+.dark-mode .modal-header {
+    background-color: #404040;
+    border-bottom: 1px solid #606060;
+    color: #ffffff;
+}
+
+.dark-mode .modal-title {
+    color: #ffffff;
+}
+
+.dark-mode .modal-body {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+.dark-mode .modal-footer {
+    background-color: #404040;
+    border-top: 1px solid #606060;
+}
+
+.dark-mode .close {
+    color: #ffffff;
+    opacity: 0.8;
+}
+
+.dark-mode .close:hover {
+    color: #ffffff;
+    opacity: 1;
+}
+
+/* Buttons */
+.dark-mode .btn-secondary {
+    background-color: #606060;
+    border-color: #606060;
+    color: #ffffff;
+}
+
+.dark-mode .btn-secondary:hover {
+    background-color: #707070;
+    border-color: #707070;
+}
+
+.dark-mode .btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.dark-mode .btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.dark-mode .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.dark-mode .btn-primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+/* Alerts */
+.dark-mode .alert-info {
+    background-color: #1f4e79;
+    border-color: #2e5f8a;
+    color: #b3d4fc;
+}
+
+.dark-mode .alert-warning {
+    background-color: #856404;
+    border-color: #d39e00;
+    color: #fff3cd;
+}
+
+.dark-mode .alert-danger {
+    background-color: #721c24;
+    border-color: #d6336c;
+    color: #f5c6cb;
+}
+
+/* Progress bars */
+.dark-mode .progress {
+    background-color: #404040;
+}
+
+.dark-mode .progress-bar {
+    background-color: #007bff;
+}
+
+/* List groups */
+.dark-mode .list-group-item {
+    background-color: #404040;
+    border: 1px solid #606060;
+    color: #ffffff;
+}
+
+.dark-mode .list-group-item:hover {
+    background-color: #505050;
+}
+
+/* Badges */
+.dark-mode .badge-success {
+    background-color: #28a745;
+    color: #ffffff;
+}
+
+.dark-mode .badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.dark-mode .badge-primary {
+    background-color: #007bff;
+    color: #ffffff;
+}
+
+/* Input groups */
+.dark-mode .input-group-text {
+    background-color: #404040;
+    border: 1px solid #606060;
+    color: #ffffff;
+}
+
+/* Custom subscription cards */
+.dark-mode .subscription-status-card {
+    background-color: #404040;
+    border: 1px solid #606060;
+}
+
+.dark-mode .subscription-info {
+    color: #ffffff;
+}
+
+.dark-mode .credit-counter {
+    background-color: #1a1a1a;
+    border: 1px solid #606060;
+    color: #ffffff;
+}
+
+/* Notification styles */
+.dark-mode .alert-dismissible {
+    background-color: #856404;
+    border-color: #d39e00;
+    color: #fff3cd;
+}
+
+/* Table hover effects */
+.dark-mode .table-hover tbody tr:hover {
+    background-color: #404040;
+}
+
+/* Dropdown menus */
+.dark-mode .dropdown-menu {
+    background-color: #2d2d2d;
+    border: 1px solid #606060;
+}
+
+.dark-mode .dropdown-item {
+    color: #ffffff;
+}
+
+.dark-mode .dropdown-item:hover {
+    background-color: #404040;
+    color: #ffffff;
+}
+
+/* Status indicators */
+.dark-mode .status-active {
+    color: #28a745;
+}
+
+.dark-mode .status-inactive {
+    color: #dc3545;
+}
+
+.dark-mode .status-pending {
+    color: #ffc107;
+}
+
+/* Improve text readability - fix blurry/dim text */
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6 {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.dark-mode .text-muted,
+.dark-mode p.text-muted {
+    color: #e0e0e0 !important;
+    opacity: 1;
+}
+
+/* Section headers and titles */
+.dark-mode .header-title {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.dark-mode .page-title {
+    color: #ffffff !important;
+}
+
+/* Tab content headers */
+.dark-mode .tab-pane h4,
+.dark-mode .tab-pane h5 {
+    color: #ffffff !important;
+}
+
+/* Package table headers */
+.dark-mode .table th {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.dark-mode .table td {
+    color: #e0e0e0 !important;
+}
+
+/* Quick Actions and other section labels */
+.dark-mode .col-lg-4 h5,
+.dark-mode .col-md-6 h6,
+.dark-mode .subscription-section h5,
+.dark-mode .billing-section h6 {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+/* Card titles and content */
+.dark-mode .card-title {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.dark-mode .card-text {
+    color: #e0e0e0 !important;
+}
+
+/* Improve paragraph text */
+.dark-mode p {
+    color: #e0e0e0 !important;
+}
+
+/* Package information text */
+.dark-mode .package-info,
+.dark-mode .billing-info {
+    color: #ffffff !important;
+}
+
+/* Labels and form text */
+.dark-mode label,
+.dark-mode .form-label {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+/* Available credits text */
+.dark-mode .credit-info,
+.dark-mode .credit-text {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+/* Subscription status text */
+.dark-mode .subscription-text {
+    color: #ffffff !important;
+}
+
+/* General text improvements */
+.dark-mode span,
+.dark-mode small,
+.dark-mode .small {
+    color: #e0e0e0 !important;
+}
+
+/* Fix any remaining dim text */
+.dark-mode * {
+    text-shadow: none !important;
+}
+
+.dark-mode .text-dark {
+    color: #ffffff !important;
+}
+
+.dark-mode .text-secondary {
+    color: #cccccc !important;
+}
+</style>
+
 <div class="container-fluid">
     <!-- Page-Title -->
     <div class="row">
@@ -111,8 +534,13 @@
                                                         <div class="alert alert-success">
                                                             <h6><i class="las la-check-circle"></i> Active Subscription</h6>
                                                             @php $activeSubscription = Auth::user()->activeSubscription; @endphp
-                                                            <p>Plan: <strong>{{ $activeSubscription->adminPackage->name ?? 'N/A' }}</strong></p>
-                                                            <p>Next billing: {{ $activeSubscription->ends_at ? $activeSubscription->ends_at->format('M d, Y') : 'N/A' }}</p>
+                                                            @if($activeSubscription)
+                                                                <p>Plan: <strong>{{ $activeSubscription->adminPackage->name ?? 'N/A' }}</strong></p>
+                                                                <p>Next billing: {{ $activeSubscription->ends_at ? $activeSubscription->ends_at->format('M d, Y') : 'N/A' }}</p>
+                                                            @else
+                                                                <p>Plan: <strong>N/A</strong></p>
+                                                                <p>Next billing: N/A</p>
+                                                            @endif
                                                         </div>
                                                     @else
                                                         <div class="alert alert-warning">
@@ -389,6 +817,19 @@
                             <input type="text" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" class="form-control" placeholder="Phone">
 
                         </div>                                                    
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity" class=" col-form-label text-right">User UUID (for API access)</label>
+                        <div class="input-group">
+                            <input type="text" id="user-uuid" value="<?= Auth::user()->uuid ?>" class="form-control" readonly>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyUUID()" title="Copy UUID">
+                                    <i class="las la-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Use this UUID with your phone number for CRM API authentication</small>                                                    
                     </div>
 
 
@@ -746,6 +1187,30 @@ function buyCreditPackage() {
     
     if (confirm(`Purchase ${amount} credits for $${price}?`)) {
         initiatePayment('credit_topup', price);
+    }
+}
+
+function copyUUID() {
+    const uuidField = document.getElementById('user-uuid');
+    uuidField.select();
+    uuidField.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        // Show success message
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="las la-check"></i>';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    } catch (err) {
+        alert('Unable to copy UUID. Please select and copy manually.');
     }
 }
 </script>

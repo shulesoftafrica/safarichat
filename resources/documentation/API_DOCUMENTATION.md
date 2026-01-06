@@ -15,13 +15,37 @@ Development: http://localhost/safarichat/public/api
 All API endpoints require Bearer token authentication using Laravel Sanctum.
 
 ### Getting an API Token
+
+Step 1: Send login OTP
+```bash
+POST /api/auth/send-login-otp
+Content-Type: application/json
+
+{
+  "phone": "+1234567890"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "message": "OTP sent to your phone number",
+  "data": {
+    "phone": "+1234567890",
+    "otp_expires_at": "2026-01-04T10:30:00.000000Z"
+  }
+}
+```
+
+Step 2: Login with OTP
 ```bash
 POST /api/auth/login
 Content-Type: application/json
 
 {
-  "email": "your@email.com",
-  "password": "your_password"
+  "phone": "+1234567890",
+  "otp_code": "123456"
 }
 ```
 
@@ -29,7 +53,13 @@ Response:
 ```json
 {
   "access_token": "your_token_here",
-  "token_type": "Bearer"
+  "token_type": "Bearer",
+  "user": {
+    "id": 1,
+    "name": "User Name", 
+    "phone": "+1234567890"
+  },
+  "message": "Login successful"
 }
 ```
 
@@ -38,6 +68,12 @@ Include the token in the Authorization header:
 ```
 Authorization: Bearer your_token_here
 ```
+
+### Other Authentication Endpoints
+- `POST /api/auth/send-login-otp` - Send login OTP to phone number
+- `POST /api/auth/logout` - Logout (revoke current token)
+- `GET /api/auth/user` - Get current user details
+- `POST /api/auth/refresh` - Refresh current token
 
 ## Rate Limiting
 

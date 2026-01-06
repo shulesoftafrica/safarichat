@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel {
         Commands\SendDailySummaries::class,
         Commands\SyncCreditsCommand::class,
         Commands\ProcessNotifications::class,
+        Commands\SmartFollowupCommand::class,
     ];
     public $emails;
 
@@ -378,106 +379,21 @@ class Kernel extends ConsoleKernel {
     }
 
     /**
-     * Process scheduled followups
+     * Process scheduled followups using smart AI service
      */
     protected function processScheduledFollowups()
     {
         try {
-            $dueFollowups = \App\Models\Conversation::where('followup_scheduled_at', '<=', now())
-                ->whereNotNull('followup_scheduled_at')
-                ->where('followup_sent', false)
-                ->with(['lead', 'product'])
-                ->limit(50)
-                ->get();
-
-            $this->logCronActivity(null, "Found {$dueFollowups->count()} due followups to process");
+            $this->logCronActivity(null, "Starting smart followup processing");
             
-            if ($dueFollowups->isEmpty()) {
-                $this->logCronActivity(null, "No due followups found - all caught up!");
-                return;
-            }
-
-            $aiWhatsAppService = app(\App\Services\AiWhatsAppService::class);
-            $successCount = 0;
-            $skipCount = 0;
-            $errorCount = 0;
-
-            foreach ($dueFollowups as $conversation) {
-                try {
-                    $followupMessage = $conversation->followup_message ?: 
-                        "Hi! Following up on our conversation. Any questions I can help with?";
-
-                    // Get the lead and ensure we have proper contact info
-                    $conversation = $conversation->load('lead.contact', 'lead.aiSalesAgent');
-                    $lead = $conversation->lead;
-                    
-                    if (!$lead || !$lead->contact || !$lead->contact->guest_phone) {
-                        \Illuminate\Support\Facades\Log::warning('Skipping followup - no contact phone', [
-                            'conversation_id' => $conversation->id,
-                            'lead_id' => $lead?->id
-                        ]);
-                        $this->logCronActivity(null, "Skipped followup {$conversation->id} - no contact phone");
-                        $skipCount++;
-                        continue;
-                    }
-
-                    // Get user's WhatsApp instance
-                    $userId = $lead->aiSalesAgent?->user_id ?? $lead->user_id ?? 1;
-                    $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $userId)
-                                                                   ->where('status', 'connected')
-                                                                   ->first();
-                    
-                    if (!$whatsappInstance) {
-                        \Illuminate\Support\Facades\Log::warning('Skipping followup - no WhatsApp instance', [
-                            'conversation_id' => $conversation->id,
-                            'user_id' => $userId
-                        ]);
-                        $this->logCronActivity(null, "Skipped followup {$conversation->id} - no WhatsApp instance for user {$userId}");
-                        $skipCount++;
-                        continue;
-                    }
-
-                    // Create a properly configured mock incoming message
-                    $mockMessage = new \App\Models\IncomingMessage([
-                        'phone_number' => $lead->contact->guest_phone,
-                        'message_body' => 'FOLLOWUP_TRIGGER',
-                        'user_id' => $userId,
-                        'instance_id' => $whatsappInstance->instance_id,
-                        'whatsapp_instance_id' => $whatsappInstance->id,
-                        'message_id' => 'followup_' . uniqid(),
-                        'chat_id' => $lead->contact->guest_phone . '@c.us',
-                        'message_timestamp' => now(),
-                        'status' => 'received',
-                    ]);
-
-                    $sent = $aiWhatsAppService->sendResponse($followupMessage, $mockMessage, $whatsappInstance);
-
-                    if ($sent) {
-                        $conversation->update([
-                            'followup_sent' => true
-                        ]);
-                        $this->logCronActivity(null, "Sent followup for conversation {$conversation->id} to {$lead->contact->guest_phone}");
-                        $successCount++;
-                    } else {
-                        $this->logCronActivity(null, "Failed to send followup for conversation {$conversation->id}");
-                        $errorCount++;
-                    }
-
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to send followup', [
-                        'conversation_id' => $conversation->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $this->logCronActivity(null, "Error sending followup {$conversation->id}: {$e->getMessage()}");
-                    $errorCount++;
-                }
-            }
+            $smartFollowupService = app(\App\Services\SmartFollowupService::class);
+            $smartFollowupService->processSmartFollowups();
             
-            $this->logCronActivity(null, "Followup processing summary - Success: {$successCount}, Skipped: {$skipCount}, Errors: {$errorCount}");
+            $this->logCronActivity(null, "Smart followup processing completed successfully");
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Followup processing failed: ' . $e->getMessage());
-            $this->logCronActivity(null, "Followup processing failed: {$e->getMessage()}");
+            \Illuminate\Support\Facades\Log::error('Smart followup processing failed: ' . $e->getMessage());
+            $this->logCronActivity(null, "Smart followup processing failed: {$e->getMessage()}");
         }
     }
 

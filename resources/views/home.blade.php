@@ -38,6 +38,12 @@
         background: #f8fafc;
         min-height: 100vh;
         padding: 20px;
+        transition: background-color 0.3s ease;
+    }
+    
+    /* Dark mode support for dashboard container */
+    .dark-mode .dashboard-container {
+        background: #1e2a40 !important;
     }
     
     .welcome-section {
@@ -94,9 +100,24 @@
         overflow: hidden;
     }
     
+    /* Dark mode support for metric cards */
+    .dark .metric-card,
+    [data-bs-theme="dark"] .metric-card,
+    body.dark .metric-card {
+        background: #1f2937;
+        border: 1px solid #374151;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
     .metric-card:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .dark .metric-card:hover,
+    [data-bs-theme="dark"] .metric-card:hover,
+    body.dark .metric-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     }
     
     .metric-card::before {
@@ -127,11 +148,25 @@
         margin-bottom: 4px;
     }
     
+    /* Dark mode support for metric values */
+    .dark .metric-value,
+    [data-bs-theme="dark"] .metric-value,
+    body.dark .metric-value {
+        color: #f9fafb;
+    }
+    
     .metric-label {
         color: #64748b;
         font-size: 0.9rem;
         font-weight: 500;
         margin-bottom: 12px;
+    }
+    
+    /* Dark mode support for metric labels */
+    .dark .metric-label,
+    [data-bs-theme="dark"] .metric-label,
+    body.dark .metric-label {
+        color: #9ca3af;
     }
     
     .metric-trend {
@@ -147,9 +182,24 @@
         color: #16a34a;
     }
     
+    /* Dark mode support for trend indicators */
+    .dark .trend-up,
+    [data-bs-theme="dark"] .trend-up,
+    body.dark .trend-up {
+        background: #064e3b;
+        color: #34d399;
+    }
+    
     .trend-down {
         background: #fef2f2;
         color: #dc2626;
+    }
+    
+    .dark .trend-down,
+    [data-bs-theme="dark"] .trend-down,
+    body.dark .trend-down {
+        background: #7f1d1d;
+        color: #f87171;
     }
     
     .action-card {
@@ -160,6 +210,15 @@
         border: 1px solid #f1f5f9;
         margin-bottom: 20px;
         position: relative;
+    }
+    
+    /* Dark mode support for action cards */
+    .dark .action-card,
+    [data-bs-theme="dark"] .action-card,
+    body.dark .action-card {
+        background: #1f2937;
+        border: 1px solid #374151;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     
     .action-header {
@@ -186,11 +245,25 @@
         margin: 0;
     }
     
+    /* Dark mode support for action titles */
+    .dark .action-title,
+    [data-bs-theme="dark"] .action-title,
+    body.dark .action-title {
+        color: #f9fafb;
+    }
+    
     .action-description {
         color: #64748b;
         font-size: 0.9rem;
         margin-bottom: 20px;
         line-height: 1.5;
+    }
+    
+    /* Dark mode support for action descriptions */
+    .dark .action-description,
+    [data-bs-theme="dark"] .action-description,
+    body.dark .action-description {
+        color: #9ca3af;
     }
     
     .action-btn {
@@ -379,12 +452,30 @@
         border: 1px solid #f1f5f9;
     }
     
+    /* Dark mode support for instance selector */
+    .dark .instance-selector-card,
+    [data-bs-theme="dark"] .instance-selector-card,
+    body.dark .instance-selector-card {
+        background: #1f2937;
+        border: 1px solid #374151;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
     .instance-select {
         border-radius: 10px;
         border: 2px solid #e2e8f0;
         padding: 10px 15px;
         font-weight: 500;
         min-width: 200px;
+    }
+    
+    /* Dark mode support for instance select */
+    .dark .instance-select,
+    [data-bs-theme="dark"] .instance-select,
+    body.dark .instance-select {
+        background: #374151;
+        border: 2px solid #4b5563;
+        color: #f9fafb;
     }
     
     .instance-select:focus {
@@ -398,6 +489,187 @@
         padding: 15px;
         border-left: 4px solid #25d366;
     }
+    
+    /* Dark mode support for instance info */
+    .dark .instance-info,
+    [data-bs-theme="dark"] .instance-info,
+    body.dark .instance-info {
+        background: #374151;
+        color: #f9fafb;
+    }
+    
+    /* Dark mode support for any remaining text elements */
+    .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
+    [data-bs-theme="dark"] h1, [data-bs-theme="dark"] h2, [data-bs-theme="dark"] h3, 
+    [data-bs-theme="dark"] h4, [data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6,
+    body.dark h1, body.dark h2, body.dark h3, body.dark h4, body.dark h5, body.dark h6 {
+        color: #f9fafb !important;
+    }
+    
+    .dark p, .dark span, .dark div,
+    [data-bs-theme="dark"] p, [data-bs-theme="dark"] span, [data-bs-theme="dark"] div,
+    body.dark p, body.dark span, body.dark div {
+        color: #d1d5db;
+    }
+    
+    /* Ensure text in cards remains visible */
+    .dark .card-body, .dark .card-text,
+    [data-bs-theme="dark"] .card-body, [data-bs-theme="dark"] .card-text,
+    body.dark .card-body, body.dark .card-text {
+        color: #d1d5db;
+    }
+    
+    /* Form controls in dark mode */
+    .dark .form-control, .dark .form-select,
+    [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select,
+    body.dark .form-control, body.dark .form-select {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+    
+    .dark .form-control:focus, .dark .form-select:focus,
+    [data-bs-theme="dark"] .form-control:focus, [data-bs-theme="dark"] .form-select:focus,
+    body.dark .form-control:focus, body.dark .form-select:focus {
+        background-color: #374151;
+        border-color: #25d366;
+        color: #f9fafb;
+    }
+</style>
+
+<style>
+    /* Dark mode overrides for entire dashboard */
+    .dark-mode .dashboard-container {
+        background: #1e2a40 !important;
+    }
+    
+    .dark-mode .metric-card, 
+    .dark-mode .action-card, 
+    .dark-mode .engagement-stats, 
+    .dark-mode .recent-activity, 
+    .dark-mode .instance-selector-card {
+        background: #222f48 !important;
+        border: 1px solid #2d3951 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .dark-mode .metric-card:hover, 
+    .dark-mode .action-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    .dark-mode .metric-value, 
+    .dark-mode .action-title, 
+    .dark-mode .stats-title, 
+    .dark-mode .progress-value {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .metric-label, 
+    .dark-mode .action-description, 
+    .dark-mode .activity-text, 
+    .dark-mode .progress-label {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .activity-time {
+        color: #a0aec0 !important;
+    }
+    
+    .dark-mode .time-filter {
+        background: #2d3951 !important;
+    }
+    
+    .dark-mode .time-filter-btn {
+        color: #8997bd !important;
+    }
+    
+    .dark-mode .time-filter-btn.active {
+        background: #1e2a40 !important;
+        color: #25d366 !important;
+    }
+    
+    .dark-mode .trend-up {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .trend-down {
+        background: #7f1d1d !important;
+        color: #f87171 !important;
+    }
+    
+    .dark-mode .instance-select {
+        background: #2d3951 !important;
+        border: 2px solid #3d4a5c !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .instance-info {
+        background: #2d3951 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .form-control, 
+    .dark-mode .form-select {
+        background-color: #2d3951 !important;
+        border-color: #3d4a5c !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .form-control:focus, 
+    .dark-mode .form-select:focus {
+        background-color: #2d3951 !important;
+        border-color: #25d366 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .activity-item {
+        border-bottom: 1px solid #2d3951 !important;
+    }
+    
+    /* Ensure all text is visible in dark mode */
+    .dark-mode h1, 
+    .dark-mode h2, 
+    .dark-mode h3, 
+    .dark-mode h4, 
+    .dark-mode h5, 
+    .dark-mode h6 {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode p, 
+    .dark-mode span, 
+    .dark-mode div, 
+    .dark-mode .card-body, 
+    .dark-mode .card-text {
+        color: #e2e8f0 !important;
+    }
+    
+    /* Improve text color for better readability */
+    .dark-mode .text-muted {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode small, 
+    .dark-mode .small {
+        color: #a0aec0 !important;
+    }
+    
+    /* Badge styling in dark mode */
+    .dark-mode .badge.bg-light {
+        background-color: #4a5568 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    /* Links in dark mode */
+    .dark-mode a {
+        color: #63b3ed !important;
+    }
+    
+    .dark-mode a:hover {
+        color: #90cdf4 !important;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -406,7 +678,7 @@
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="welcome-title">
-                    <i class="fab fa-whatsapp"></i> Good morning! Ready to connect with your customers?
+                    <i class="fab fa-whatsapp"></i>Hello! Ready to connect with your customers?
                 </h1>
                 <p class="welcome-subtitle">You have <strong>{{$guests}}</strong> contacts and <strong>{{$active_conversations}}</strong> active conversations</p>
                 <a href="{{url('message')}}" class="quick-action-btn">
@@ -435,54 +707,6 @@
             <span class="alert-text">You haven't sent many messages today. Engage more customers to grow your business!</span>
         </div>
         <a href="{{url('message')}}" class="alert-btn">Send Messages</a>
-    </div>
-    @endif
-
-    <!-- WhatsApp Instance Selector -->
-    @if(count($whatsapp_instances) > 1)
-    <div class="instance-selector-card">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h5 class="mb-1"><i class="fas fa-mobile-alt"></i> WhatsApp Line</h5>
-                <p class="mb-0 text-muted">Choose which WhatsApp line to manage</p>
-            </div>
-            <div>
-                <select id="instanceSelector" class="form-select instance-select">
-                    <option value="">All Lines</option>
-                    @foreach($whatsapp_instances as $instance)
-                        <option value="{{ $instance->id }}" 
-                                {{ $active_instance_id == $instance->id ? 'selected' : '' }}>
-                            {{ $instance->display_name ?: $instance->schema_name }}
-                            @if($instance->is_primary) (Primary) @endif
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        
-        @if($active_instance_id)
-            @php $activeInstance = $whatsapp_instances->firstWhere('id', $active_instance_id); @endphp
-            @if($activeInstance)
-                <div class="instance-info mt-3">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <strong>{{ $activeInstance->display_name ?: $activeInstance->schema_name }}</strong>
-                            @if($activeInstance->purpose)
-                                <span class="badge bg-light text-dark ms-2">{{ $activeInstance->purpose }}</span>
-                            @endif
-                            @if($activeInstance->description)
-                                <p class="mb-0 mt-1 text-muted small">{{ $activeInstance->description }}</p>
-                            @endif
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-sm btn-outline-primary" onclick="showInstanceConfig('{{ $activeInstance->id }}')">
-                                <i class="fas fa-cog"></i> Configure
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @endif
     </div>
     @endif
 
