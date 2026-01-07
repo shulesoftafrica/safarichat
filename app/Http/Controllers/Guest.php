@@ -294,8 +294,53 @@ class Guest extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function edit() {
-        EventsGuest::find(request('id'))->update(request()->except('id'));
-        return redirect()->back()->with('success', 'success');
+        try {
+            $guestId = request('id');
+            $business_id = Auth::user()->business->id;
+            
+            // Find the guest and ensure it belongs to the current business
+            $guest = EventsGuest::where('id', $guestId)
+                ->where('business_id', $business_id)
+                ->first();
+                
+            if (!$guest) {
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Contact not found or access denied'
+                    ], 404);
+                }
+                return redirect()->back()->with('error', 'Contact not found or access denied');
+            }
+            
+            // Update guest data (validation should be done on frontend)
+            $guest->update(request()->except('id', '_token'));
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Contact updated successfully',
+                    'guest' => $guest
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Contact updated successfully');
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating guest in edit method: ' . $e->getMessage(), [
+                'guest_id' => request('id'),
+                'request_data' => request()->all()
+            ]);
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update contact: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to update contact');
+        }
     }
 
     /**
@@ -306,7 +351,62 @@ class Guest extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id) {
-        
+        try {
+            $business_id = Auth::user()->business->id;
+            
+            // Find the guest and ensure it belongs to the current business
+            $guest = EventsGuest::where('id', $id)
+                ->where('business_id', $business_id)
+                ->first();
+                
+            if (!$guest) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Contact not found or access denied'
+                    ], 404);
+                }
+                return redirect()->back()->with('error', 'Contact not found or access denied');
+            }
+
+            // Update guest data (validation should be done on frontend)
+            $updateData = $request->except('_token', 'id');
+            
+            // Handle phone number formatting if provided
+            if (isset($updateData['guest_phone'])) {
+                // Basic phone formatting - remove non-numeric chars except +
+                $phone = preg_replace('/[^0-9+]/', '', $updateData['guest_phone']);
+                $updateData['guest_phone'] = $phone;
+            }
+
+            // Update the guest record
+            $guest->update($updateData);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Contact updated successfully',
+                    'guest' => $guest->fresh()
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Contact updated successfully');
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating guest: ' . $e->getMessage(), [
+                'guest_id' => $id,
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update contact: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to update contact');
+        }
     }
 
     /**

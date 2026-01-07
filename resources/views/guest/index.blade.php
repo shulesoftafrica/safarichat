@@ -1219,11 +1219,12 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer text-center">
+            <div class="modal-footer">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_guest" value="" name="id"/>
+                <div id="edit-form-status" class="w-100 mb-2"></div>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">{{__('close')}}</button>
-                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">{{__('save')}}</button>
+                <button type="button" id="edit-submit-btn" class="btn btn-success" onclick="handleEditFormSubmission()" data-toggle="tooltip" data-placement="top">{{__('update_contact')}}</button>
             </div>
         </form>
 
@@ -1480,8 +1481,92 @@
     $(document).ready(function() {
         initializeContactSelection();
         initializeMessageForm();
+        initializeEditFormValidation();
         save_category();
     });
+    
+    // Initialize edit form validation
+    function initializeEditFormValidation() {
+        // Real-time validation as user types
+        $('#edit_guest_name').on('input blur', function() {
+            if ($(this).val().trim()) {
+                validateEditField('edit_guest_name');
+            }
+        });
+        
+        $('#edit_guest_phone').on('input blur', function() {
+            if ($(this).val().trim()) {
+                validateEditField('edit_guest_phone');
+            }
+        });
+        
+        $('#edit_pledge').on('input blur', function() {
+            if ($(this).val()) {
+                validateEditField('edit_pledge');
+            }
+        });
+    }
+    
+    function validateEditField(fieldId) {
+        const field = $('#' + fieldId);
+        const value = field.val().trim();
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Clear previous validation state
+        field.removeClass('is-invalid is-valid');
+        field.next('.invalid-feedback').remove();
+        
+        switch(fieldId) {
+            case 'edit_guest_name':
+                if (!value) {
+                    errorMessage = '{{__('name_is_required')}}';
+                    isValid = false;
+                } else if (value.length < 2) {
+                    errorMessage = '{{__('name_must_be_at_least_2_characters')}}';
+                    isValid = false;
+                } else if (value.length > 100) {
+                    errorMessage = '{{__('name_must_not_exceed_100_characters')}}';
+                    isValid = false;
+                } else if (!/^([a-zA-Z\s\-\'\(\)]*)$/.test(value)) {
+                    errorMessage = '{{__('name_can_only_contain_letters_spaces_hyphens_apostrophes_and_parentheses')}}';
+                    isValid = false;
+                }
+                break;
+                
+            case 'edit_guest_phone':
+                if (!value) {
+                    errorMessage = '{{__('phone_number_is_required')}}';
+                    isValid = false;
+                } else if (value.length < 4) {
+                    errorMessage = '{{__('phone_number_must_be_at_least_4_digits')}}';
+                    isValid = false;
+                } else if (value.length > 30) {
+                    errorMessage = '{{__('phone_number_must_not_exceed_30_digits')}}';
+                    isValid = false;
+                } else if (!/^[0-9+\-\s\(\)]*$/.test(value)) {
+                    errorMessage = '{{__('phone_number_can_only_contain_numbers_and_basic_formatting')}}';
+                    isValid = false;
+                }
+                break;
+                
+            case 'edit_pledge':
+                if (value && (isNaN(value) || parseFloat(value) < 0)) {
+                    errorMessage = '{{__('pledge_must_be_a_positive_number')}}';
+                    isValid = false;
+                }
+                break;
+        }
+        
+        if (isValid) {
+            field.addClass('is-valid');
+        } else {
+            field.addClass('is-invalid');
+            field.after('<div class="invalid-feedback">' + errorMessage + '</div>');
+        }
+        
+        return isValid;
+    }
 
     // Contact Selection Functions
     function initializeContactSelection() {
@@ -2016,7 +2101,147 @@
         $('#edit_pledge').val(parseInt($('#guest_pledge' + a).text()));
         $('#edit_guest').val(a);
         $('#ProfileStep5').attr('action', '<?= url('guest/edit/null') ?>');
+        
+        // Clear previous validation messages
+        clearEditValidationMessages();
+        
         $('#myModal').modal('show');
+    }
+
+    // Edit Form Validation Functions
+    function validateEditForm() {
+        let isValid = true;
+        clearEditValidationMessages();
+        
+        // Validate guest name
+        const name = $('#edit_guest_name').val().trim();
+        if (!name) {
+            showEditValidationError('edit_guest_name', '{{__('name_is_required')}}');
+            isValid = false;
+        } else if (name.length < 2) {
+            showEditValidationError('edit_guest_name', '{{__('name_must_be_at_least_2_characters')}}');
+            isValid = false;
+        } else if (name.length > 100) {
+            showEditValidationError('edit_guest_name', '{{__('name_must_not_exceed_100_characters')}}');
+            isValid = false;
+        } else if (!/^([a-zA-Z\s\-\'\(\)]*)$/.test(name)) {
+            showEditValidationError('edit_guest_name', '{{__('name_can_only_contain_letters_spaces_hyphens_apostrophes_and_parentheses')}}');
+            isValid = false;
+        }
+        
+        // Validate phone number
+        const phone = $('#edit_guest_phone').val().trim();
+        if (!phone) {
+            showEditValidationError('edit_guest_phone', '{{__('phone_number_is_required')}}');
+            isValid = false;
+        } else if (phone.length < 4) {
+            showEditValidationError('edit_guest_phone', '{{__('phone_number_must_be_at_least_4_digits')}}');
+            isValid = false;
+        } else if (phone.length > 30) {
+            showEditValidationError('edit_guest_phone', '{{__('phone_number_must_not_exceed_30_digits')}}');
+            isValid = false;
+        } else if (!/^[0-9+\-\s\(\)]*$/.test(phone)) {
+            showEditValidationError('edit_guest_phone', '{{__('phone_number_can_only_contain_numbers_and_basic_formatting')}}');
+            isValid = false;
+        }
+        
+        // Validate pledge (if present)
+        const pledge = $('#edit_pledge').val();
+        if (pledge && (isNaN(pledge) || pledge < 0)) {
+            showEditValidationError('edit_pledge', '{{__('pledge_must_be_a_positive_number')}}');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    function showEditValidationError(fieldId, message) {
+        const field = $('#' + fieldId);
+        field.addClass('is-invalid');
+        
+        // Remove existing error message
+        field.next('.invalid-feedback').remove();
+        
+        // Add new error message
+        field.after('<div class="invalid-feedback">' + message + '</div>');
+    }
+    
+    function clearEditValidationMessages() {
+        $('.form-control').removeClass('is-invalid');
+        $('.invalid-feedback').remove();
+        $('#edit-form-status').html('');
+    }
+    
+    // Handle edit form submission
+    function handleEditFormSubmission() {
+        if (!validateEditForm()) {
+            return false;
+        }
+        
+        const guestId = $('#edit_guest').val();
+        const formData = {
+            guest_name: $('#edit_guest_name').val().trim(),
+            guest_phone: $('#edit_guest_phone').val().trim(),
+            event_guest_category_id: $('#append_option').val(),
+            _token: '{{ csrf_token() }}'
+        };
+        
+        // Include pledge if it exists
+        const pledge = $('#edit_pledge').val();
+        if (pledge) {
+            formData.guest_pledge = pledge;
+        }
+        
+        // Show loading state
+        $('#edit-form-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{__('updating_contact')}}</div>');
+        $('#edit-submit-btn').prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin mr-2"></i>{{__('updating')}}');
+        
+        $.ajax({
+            url: '{{ url('guest/edit') }}/' + guestId,
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#edit-form-status').html('<div class="alert alert-success"><i class="mdi mdi-check mr-2"></i>' + response.message + '</div>');
+                    
+                    // Update the table row with new data
+                    $('#guest_name' + guestId).text(formData.guest_name);
+                    $('#guest_phone' + guestId).text(formData.guest_phone);
+                    if (formData.guest_pledge) {
+                        $('#guest_pledge' + guestId).text(formData.guest_pledge);
+                    }
+                    
+                    // Close modal after delay
+                    setTimeout(function() {
+                        $('#myModal').modal('hide');
+                        showSuccessMessage(response.message || '{{__('contact_updated_successfully')}}');
+                    }, 1500);
+                } else {
+                    $('#edit-form-status').html('<div class="alert alert-danger"><i class="mdi mdi-alert mr-2"></i>' + response.message + '</div>');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = '{{__('failed_to_update_contact')}}';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Handle validation errors from server (fallback)
+                    const errors = xhr.responseJSON.errors;
+                    errorMessage = Object.values(errors).flat().join('<br>');
+                }
+                
+                $('#edit-form-status').html('<div class="alert alert-danger"><i class="mdi mdi-alert mr-2"></i>' + errorMessage + '</div>');
+            },
+            complete: function() {
+                $('#edit-submit-btn').prop('disabled', false).html('{{__('update_contact')}}');
+            }
+        });
+        
+        return false; // Prevent default form submission
     }
 
     save_category = function () {

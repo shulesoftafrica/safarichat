@@ -237,10 +237,54 @@ class DailyOutreachCommand extends Command
     private function getFallbackMessage(Lead $lead, AiSalesAgent $agent): string
     {
         $name = $lead->name ?? 'there';
-        $company = $lead->company_name ? " at {$lead->company_name}" : '';
+        $company = $lead->company_name;
+        $industry = $lead->industry;
         
-        return "Hi {$name}! I hope this message finds you well{$company}. " .
-               "I'd love to share how we can help your business grow. " .
-               "Would you be interested in a quick conversation?";
+        // Get conversation history to understand their context
+        $lastConversation = $lead->conversations()
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        $lastMessage = $lastConversation?->message ?? '';
+        
+        // Get primary product they were interested in
+        $primaryProduct = $lead->products()->first();
+        $productName = $primaryProduct?->name ?? null;
+        
+        // Create contextual messages based on their specific situation
+        if (!empty($lastMessage) && $productName) {
+            // Reference their previous conversation
+            return "Hi {$name}! I was thinking about your {$productName} question. " .
+                   "I found some insights that might help. Quick update?";
+        }
+        
+        if ($company && $industry && $productName) {
+            // Industry-specific with product mention
+            return "Hi {$name}! Noticed {$company} is in {$industry}. " .
+                   "Our {$productName} solution just helped a similar company save 40% on operations. " .
+                   "Worth a 5-minute chat?";
+        }
+        
+        if ($company && $productName) {
+            // Company-specific with product
+            return "Hi {$name}! Quick question about {$company}'s current {$productName} setup. " .
+                   "Found something that might save you significant time. Interested?";
+        }
+        
+        if ($productName) {
+            // Product-focused without generic fluff
+            return "Hi {$name}! Quick update on {$productName} - we just added features that " .
+                   "solve the top 3 issues most companies face. Want the details?";
+        }
+        
+        if ($industry) {
+            // Industry-specific without product
+            return "Hi {$name}! Been working with several {$industry} companies lately. " .
+                   "Found a pattern that might help you cut costs. 2-minute question?";
+        }
+        
+        // Last resort - still more specific than generic
+        return "Hi {$name}! Found something that might help with your current challenges. " .
+               "Based on our brief chat - is this still a priority?";
     }
 }

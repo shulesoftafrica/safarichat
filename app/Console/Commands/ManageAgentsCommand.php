@@ -117,7 +117,13 @@ class ManageAgentsCommand extends Command
     {
         $this->info('Updating lead scores...');
 
-        $leads = Lead::whereNotNull('phone_number')->get();
+        // Query all active leads with their contact relationship
+        $leads = Lead::with('contact')
+                    ->whereHas('contact', function($query) {
+                        $query->whereNotNull('guest_phone');
+                    })
+                    ->whereNotIn('status', [Lead::STATUS_CLOSED, Lead::STATUS_LOST, Lead::STATUS_DO_NOT_CONTACT])
+                    ->get();
         $updated = 0;
 
         foreach ($leads as $lead) {
@@ -125,7 +131,6 @@ class ManageAgentsCommand extends Command
             $newScore = $lead->calculateLeadScore();
             
             if ($oldScore !== $newScore) {
-                $lead->update(['lead_score' => $newScore]);
                 $this->line("Lead {$lead->id}: {$oldScore} → {$newScore}");
                 $updated++;
             }

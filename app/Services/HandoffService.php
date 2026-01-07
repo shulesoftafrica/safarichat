@@ -172,7 +172,7 @@ class HandoffService
         return Handoff::where('status', '!=', 'resolved')
             ->where('sla_deadline', '<', now())
             ->with(['lead', 'aiSalesAgent', 'assignedUser'])
-            ->orderBy('priority')
+            ->orderBy('priority_level')
             ->orderBy('created_at')
             ->get();
     }
@@ -185,14 +185,14 @@ class HandoffService
         $since = now()->subDays($days);
 
         $stats = Handoff::where('created_at', '>=', $since)
-            ->selectRaw('
+            ->selectRaw("
                 COUNT(*) as total,
-                SUM(CASE WHEN status = "resolved" THEN 1 ELSE 0 END) as resolved,
-                SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = "assigned" THEN 1 ELSE 0 END) as assigned,
-                SUM(CASE WHEN sla_deadline < NOW() AND status != "resolved" THEN 1 ELSE 0 END) as overdue,
-                AVG(CASE WHEN status = "resolved" THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) ELSE NULL END) as avg_resolution_hours
-            ')
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'assigned' THEN 1 ELSE 0 END) as assigned,
+                SUM(CASE WHEN sla_deadline < NOW() AND status != 'resolved' THEN 1 ELSE 0 END) as overdue,
+                AVG(CASE WHEN status = 'resolved' THEN EXTRACT(EPOCH FROM (resolved_at - created_at))/3600 ELSE NULL END) as avg_resolution_hours
+            ")
             ->first();
 
         return [
@@ -214,7 +214,7 @@ class HandoffService
     {
         $pendingHandoffs = Handoff::where('status', 'pending')
             ->where('created_at', '>', now()->subHours(24)) // Don't auto-assign very old handoffs
-            ->orderBy('priority')
+            ->orderBy('priority_level')
             ->orderBy('created_at')
             ->limit(50)
             ->get();

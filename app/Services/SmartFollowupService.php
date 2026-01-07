@@ -85,7 +85,7 @@ class SmartFollowupService
     }
 
     /**
-     * Generate personalized followup message based on conversation history and customer language
+     * Generate truly personalized followup message based on conversation history and customer language
      */
     private function generatePersonalizedFollowup(Lead $lead)
     {
@@ -234,34 +234,218 @@ class SmartFollowupService
     }
 
     /**
-     * Create contextual message based on analysis
+     * Create contextual message based on analysis - TRULY PERSONALIZED
      */
     private function createContextualMessage(Lead $lead, $context, $language)
     {
-        $customerName = $lead->getContactName();
+        $name = $lead->getContactName();
+        $lastMessage = $context['last_customer_message'];
+        $daysSince = $context['days_since_last_contact'];
+        $stage = $context['conversation_stage'];
+        $hasInterest = $context['has_shown_interest'];
+        $mentionedBudget = $context['mentioned_budget'];
+        $mentionedTimeline = $context['mentioned_timeline'];
         
-        // Base messages in different languages
-        $messages = [
-            'english' => $this->getEnglishMessages($customerName, $context),
-            'swahili' => $this->getSwahiliMessages($customerName, $context),
-            'french' => $this->getFrenchMessages($customerName, $context),
-            'arabic' => $this->getArabicMessages($customerName, $context),
-            'portuguese' => $this->getPortugueseMessages($customerName, $context),
-            'spanish' => $this->getSpanishMessages($customerName, $context)
-        ];
+        // Get specific product they were interested in
+        $primaryProduct = $this->getPrimaryProductFromLead($lead);
+        $productName = $primaryProduct ?? 'our solution';
+        
+        // Analyze their specific concerns or interests from last message
+        $concerns = $this->extractConcerns($lastMessage);
+        $interests = $this->extractInterests($lastMessage);
+        
+        // Generate contextual message based on their specific situation
+        $message = $this->buildContextualMessage([
+            'name' => $name,
+            'product' => $productName,
+            'last_message' => $lastMessage,
+            'days_since' => $daysSince,
+            'concerns' => $concerns,
+            'interests' => $interests,
+            'stage' => $stage,
+            'has_budget_discussion' => $mentionedBudget,
+            'has_timeline' => $mentionedTimeline,
+            'language' => $language,
+            'lead_score' => $this->calculateLeadScore($lead)
+        ]);
+        
+        return $message;
+    }
 
-        // Select appropriate message based on context and stage
-        $languageMessages = $messages[$language] ?? $messages['english'];
+    /**
+     * Build contextual message based on specific customer situation
+     */
+    private function buildContextualMessage($data)
+    {
+        $templates = $this->getContextualTemplates($data['language']);
+        $name = $data['name'];
+        $product = $data['product'] ?? 'our solution';
+        $lastMsg = strtolower($data['last_message'] ?? '');
+        $days = $data['days_since'];
+        $concerns = $data['concerns'];
+        $interests = $data['interests'];
         
-        if ($context['conversation_stage'] === 'advanced' && $context['has_shown_interest']) {
-            return $languageMessages['closing'];
-        } elseif ($context['has_shown_interest']) {
-            return $languageMessages['interested'];
-        } elseif ($context['days_since_last_contact'] > 5) {
-            return $languageMessages['re_engage'];
-        } else {
-            return $languageMessages['follow_up'];
+        // 1. RESPOND TO SPECIFIC CONCERNS
+        if (!empty($concerns)) {
+            if (in_array('price', $concerns) || in_array('cost', $concerns)) {
+                return str_replace(['{name}', '{product}', '{concern}'], 
+                    [$name, $product, 'pricing'], 
+                    $templates['address_price_concern']);
+            }
+            
+            if (in_array('time', $concerns) || in_array('busy', $concerns)) {
+                return str_replace(['{name}', '{product}'], 
+                    [$name, $product], 
+                    $templates['address_time_concern']);
+            }
         }
+        
+        // 2. REFERENCE SPECIFIC INTERESTS
+        if (!empty($interests)) {
+            $interest = $interests[0]; // Take first interest
+            return str_replace(['{name}', '{product}', '{interest}'], 
+                [$name, $product, $interest], 
+                $templates['follow_interest']);
+        }
+        
+        // 3. REFERENCE THEIR LAST MESSAGE DIRECTLY
+        if (strpos($lastMsg, 'think') !== false || strpos($lastMsg, 'consider') !== false) {
+            return str_replace(['{name}', '{product}'], 
+                [$name, $product], 
+                $templates['thinking_response']);
+        }
+        
+        if (strpos($lastMsg, 'later') !== false || strpos($lastMsg, 'busy') !== false) {
+            return str_replace(['{name}', '{product}', '{days}'], 
+                [$name, $product, $days], 
+                $templates['timing_response']);
+        }
+        
+        // 4. VALUE-BASED FOLLOWUP (not generic)
+        if ($data['lead_score'] > 60) {
+            return str_replace(['{name}', '{product}'], 
+                [$name, $product], 
+                $templates['high_intent']);
+        }
+        
+        // 5. DEFAULT - Still personalized, not generic
+        return str_replace(['{name}', '{product}', '{days}'], 
+            [$name, $product, $days], 
+            $templates['personalized_default']);
+    }
+
+    /**
+     * Extract specific concerns from customer's message
+     */
+    private function extractConcerns($message)
+    {
+        $concerns = [];
+        $msg = strtolower($message);
+        
+        if (strpos($msg, 'expensive') !== false || strpos($msg, 'cost') !== false || 
+            strpos($msg, 'price') !== false || strpos($msg, 'budget') !== false) {
+            $concerns[] = 'price';
+        }
+        
+        if (strpos($msg, 'time') !== false || strpos($msg, 'busy') !== false || 
+            strpos($msg, 'schedule') !== false) {
+            $concerns[] = 'time';
+        }
+        
+        if (strpos($msg, 'competitor') !== false || strpos($msg, 'other') !== false) {
+            $concerns[] = 'competition';
+        }
+        
+        return $concerns;
+    }
+
+    /**
+     * Extract specific interests from customer's message
+     */
+    private function extractInterests($message)
+    {
+        $interests = [];
+        $msg = strtolower($message);
+        
+        $interestMap = [
+            'features' => ['features', 'functionality', 'capabilities'],
+            'demo' => ['demo', 'show', 'see', 'preview'],
+            'integration' => ['integration', 'connect', 'api', 'sync'],
+            'support' => ['support', 'help', 'training', 'onboarding'],
+            'pricing' => ['pricing', 'plans', 'packages', 'options'],
+            'security' => ['security', 'safe', 'protection', 'privacy'],
+            'scalability' => ['scale', 'growth', 'expand', 'users']
+        ];
+        
+        foreach ($interestMap as $interest => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($msg, $keyword) !== false) {
+                    $interests[] = $interest;
+                    break;
+                }
+            }
+        }
+        
+        return array_unique($interests);
+    }
+
+    /**
+     * Get primary product from lead
+     */
+    private function getPrimaryProductFromLead(Lead $lead)
+    {
+        $products = $lead->getActiveProducts();
+        return $products->first()?->name ?? null;
+    }
+
+    /**
+     * Calculate lead score for personalization
+     */
+    private function calculateLeadScore(Lead $lead)
+    {
+        return method_exists($lead, 'calculateLeadScore') ? $lead->calculateLeadScore() : 50;
+    }
+
+    /**
+     * Contextual message templates - MUCH MORE PERSONALIZED
+     */
+    private function getContextualTemplates($language = 'english')
+    {
+        $templates = [
+            'english' => [
+                'address_price_concern' => "Hi {name}! I understand pricing is important for {product}. We actually have flexible options that might work better than you think. Could I share a quick cost breakdown that shows the ROI?",
+                
+                'address_time_concern' => "Hi {name}! I know you're busy. That's exactly why {product} saves 5+ hours weekly for teams like yours. Worth a 10-minute chat to see the time savings?",
+                
+                'follow_interest' => "Hi {name}! You mentioned {interest} for {product}. I found some examples of how this works for similar companies. Want me to send them over?",
+                
+                'thinking_response' => "Hi {name}! Take your time with {product}. When you're ready, I have answers to the top 3 questions most people ask. No pressure - just here when you need me.",
+                
+                'timing_response' => "Hi {name}! Perfect timing - it's been {days} days. Quick update: we just added new features to {product} that solve the exact issue you mentioned. 2-minute update?",
+                
+                'high_intent' => "Hi {name}! Based on our chat, {product} seems like a perfect fit. I can fast-track you with our implementation team. Ready to see how quickly we can get you started?",
+                
+                'personalized_default' => "Hi {name}! Hope your week is going well. I was thinking about your {product} needs and found something that might interest you. Quick question - is this still a priority?"
+            ],
+            
+            'swahili' => [
+                'address_price_concern' => "Habari {name}! Naelewa bei ni muhimu kwa {product}. Kwa kweli tuna chaguo rahisi zaidi kuliko unavyofikiri. Naweza kushiriki maelezo ya gharama na faida?",
+                
+                'address_time_concern' => "Habari {name}! Najua una kazi nyingi. Ndio maana {product} inaokoa masaa 5+ kwa wiki kwa timu kama yenu. Je tunaweza zungumza dakika 10 kuona jinsi inavyookoa muda?",
+                
+                'follow_interest' => "Habari {name}! Ulitaja {interest} kwa {product}. Nimepata mifano ya jinsi hii inavyofanya kazi kwa makampuni kama yenu. Natume?",
+                
+                'thinking_response' => "Habari {name}! Chukua muda wako na {product}. Utakapo kuwa tayari, nina majibu ya maswali 3 makuu watu wengi hauliza. Hakuna haraka - niko hapa utakaponihitaji.",
+                
+                'timing_response' => "Habari {name}! Wakati mzuri - zimepita siku {days}. Habari mpya: tumeongeza vipengele vipya vya {product} vinavyosuluhisha tatizo ulilotaja. Taarifa ya dakika 2?",
+                
+                'high_intent' => "Habari {name}! Kulingana na mazungumzo yetu, {product} inaonekana ni sahihi kabisa. Naweza kuharakisha utaratibu na timu yetu ya utekelezaji. Tayari kuona tunaweza kuanza haraka kiasi gani?",
+                
+                'personalized_default' => "Habari {name}! Natumai wiki yako inaenda vizuri. Nilikuwa nikifikiri kuhusu mahitaji yako ya {product} na nimepata kitu kinachoweza kukuvutia. Swali la haraka - hii bado ni kipaumbele?"
+            ]
+        ];
+        
+        return $templates[$language] ?? $templates['english'];
     }
 
     /**

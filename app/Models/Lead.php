@@ -274,10 +274,11 @@ class Lead extends Model
         
         // Penalty for churned leads
         if ($this->is_churned) {
-            $score *= 0.5;
+            $score = intval($score * 0.5);
         }
 
-        $this->update(['lead_score' => min(100, max(0, $score))]);
+        $finalScore = intval(min(100, max(0, $score)));
+        $this->update(['lead_score' => $finalScore]);
         return $this->lead_score;
     }
 

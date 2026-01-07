@@ -22,16 +22,16 @@ class NotificationService
                 'handoff' => $handoff,
                 'lead' => $handoff->lead,
                 'agent' => $handoff->aiSalesAgent,
-                'priority' => $handoff->priority,
-                'reason' => $handoff->reason,
+                'priority' => $handoff->priority_level,
+                'reason' => $handoff->reason_code,
                 'sla_deadline' => $handoff->sla_deadline,
-                'context' => $handoff->context,
+                'context' => $handoff->context_data,
             ];
 
             // Send email notification
             Mail::send('emails.handoff.created', $data, function ($message) use ($agentOwner, $handoff) {
                 $message->to($agentOwner->email)
-                    ->subject("AI Sales Agent Escalation - {$handoff->priority} priority")
+                    ->subject("AI Sales Agent Escalation - {$handoff->priority_level} priority")
                     ->from(config('mail.from.address'), config('mail.from.name'));
             });
 
@@ -189,7 +189,7 @@ class NotificationService
                 'type' => 'handoff_created',
                 'handoff_id' => $handoff->id,
                 'lead_id' => $handoff->lead_id,
-                'priority' => $handoff->priority,
+                'priority' => $handoff->priority_level,
                 'reason' => $handoff->reason,
                 'agent_name' => $handoff->aiSalesAgent->assistant_name,
                 'created_at' => $handoff->created_at->toISOString(),

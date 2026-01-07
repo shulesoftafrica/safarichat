@@ -10,10 +10,25 @@ class Handoff extends Model
 {
     use HasFactory;
 
+    /**
+     * Boot method to set up model event listeners
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Automatically set SLA deadline when creating handoffs
+        static::creating(function ($handoff) {
+            if (empty($handoff->sla_deadline)) {
+                $handoff->sla_deadline = $handoff->calculateSlaDeadline();
+            }
+        });
+    }
+
     protected $fillable = [
         'lead_id', 'reason_code', 'ai_summary', 'human_agent_id', 'status',
         'assigned_at', 'resolved_at', 'resolution_notes', 'customer_satisfaction',
-        'context_data', 'priority_level', 'estimated_resolution_time'
+        'context_data', 'priority_level', 'estimated_resolution_time', 'sla_deadline'
     ];
 
     protected $attributes = [
@@ -25,6 +40,7 @@ class Handoff extends Model
     protected $casts = [
         'assigned_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'sla_deadline' => 'datetime',
         'context_data' => 'array',
         'customer_satisfaction' => 'integer',
         'estimated_resolution_time' => 'integer'
@@ -257,6 +273,22 @@ class Handoff extends Model
         
         $this->update(['context_data' => $context]);
         return $this;
+    }
+
+    /**
+     * Calculate SLA deadline based on priority level
+     */
+    public function calculateSlaDeadline(): Carbon
+    {
+        $hours = match($this->priority_level) {
+            self::PRIORITY_URGENT => 0.5,  // 30 minutes
+            self::PRIORITY_HIGH => 2,      // 2 hours
+            self::PRIORITY_MEDIUM => 4,    // 4 hours
+            self::PRIORITY_LOW => 24,      // 24 hours
+            default => 4                   // Default 4 hours
+        };
+        
+        return Carbon::now()->addHours($hours);
     }
 
     /**

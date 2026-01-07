@@ -27,6 +27,7 @@ class Kernel extends ConsoleKernel {
         Commands\SyncCreditsCommand::class,
         Commands\ProcessNotifications::class,
         Commands\SmartFollowupCommand::class,
+        Commands\UpdateContactPrioritiesCommand::class,
     ];
     public $emails;
 
@@ -125,6 +126,19 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Lead scores update failed', 'error');
+            });
+
+        // Update contact priorities daily at 2:30 AM (after lead scores)
+        $schedule->command('contacts:update-priorities')
+            ->dailyAt('02:30')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/contact-priorities.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Contact priorities update completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Contact priorities update failed', 'error');
             });
 
         // Generate product descriptions weekly (Sundays at 3 AM)

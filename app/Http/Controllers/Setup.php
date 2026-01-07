@@ -998,6 +998,15 @@ class Setup extends Controller {
                 return null;
             }
             
+            // Calculate priority level based on contact data
+            $contactData = [
+                'name' => $guestName,
+                'phone' => $cleanPhone,
+                'email' => '',
+                'source' => 'whatsapp'
+            ];
+            $priorityLevel = $this->calculateContactPriority($contactData);
+            
             $newGuest = \App\Models\BusinessContact::create([
                 'business_id' => $userBusiness->id, // Critical: Set business_id for interface filtering
                 'user_id' => $userId,
@@ -1007,7 +1016,7 @@ class Setup extends Controller {
                 'guest_pledge' => 0,
                 'contact_category_id' => 1, // Default category
                 'handoff_status' => 'ai', // Default to AI handling
-                'priority_level' => 3, // Normal priority
+                'priority_level' => $priorityLevel, // Dynamic priority based on contact data
                 'contacted_for_sales' => false,
                 'created_at' => now(),
                 'updated_at' => now()
@@ -1049,6 +1058,67 @@ class Setup extends Controller {
         }
         
         return '+' . $phone;
+    }
+
+    /**
+     * Calculate dynamic priority level based on contact information and context
+     */
+    private function calculateContactPriority(array $contactData): int
+    {
+        $baseScore = 50; // Start with neutral score
+        
+        // Higher priority for contacts with email (more complete information)
+        if (!empty($contactData['email'])) {
+            $baseScore += 15;
+        }
+        
+        // Higher priority for contacts with proper names (not auto-generated)
+        $name = $contactData['name'] ?? '';
+        if (!empty($name) && !str_starts_with($name, 'Contact_') && $name !== 'Unknown') {
+            $baseScore += 10;
+        }
+        
+        // Higher priority during business hours (more likely to convert)
+        $currentHour = now()->hour;
+        if ($currentHour >= 8 && $currentHour <= 18) {
+            $baseScore += 10;
+        }
+        
+        // Higher priority for contacts from specific sources
+        $source = $contactData['source'] ?? 'unknown';
+        switch ($source) {
+            case 'website':
+            case 'api':
+                $baseScore += 15;
+                break;
+            case 'referral':
+                $baseScore += 20;
+                break;
+            case 'whatsapp':
+                $baseScore += 5;
+                break;
+        }
+        
+        // Check if it's a returning customer (higher priority)
+        if (!empty($contactData['phone'])) {
+            $existingContact = \App\Models\BusinessContact::where('guest_phone', 'LIKE', '%' . substr($contactData['phone'], -8))
+                                             ->where('contacted_for_sales', true)
+                                             ->first();
+            if ($existingContact) {
+                $baseScore += 25; // Returning customers get higher priority
+            }
+        }
+        
+        // Convert score to priority level (1=High, 2=Medium, 3=Normal, 4=Low)
+        if ($baseScore >= 80) {
+            return 1; // High priority (Urgent)
+        } elseif ($baseScore >= 65) {
+            return 2; // Medium priority (High)
+        } elseif ($baseScore >= 40) {
+            return 3; // Normal priority
+        } else {
+            return 4; // Low priority
+        }
     }
 
     /**

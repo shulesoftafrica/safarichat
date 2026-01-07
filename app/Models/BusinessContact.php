@@ -126,6 +126,14 @@ class BusinessContact extends Model
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function leads()
+    {
+        return $this->hasMany('App\Models\Lead', 'business_contact_id');
+    }
+
+    /**
      * Get the user who created this contact
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
