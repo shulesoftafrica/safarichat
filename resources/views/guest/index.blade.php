@@ -1172,9 +1172,23 @@
                     <div class="form-group">
                         <label for="edit_lead_status" class="col-form-label text-right">{{__('lead_status')}}</label>
                         <select class="form-control" name="lead_status" id="edit_lead_status">
-                            @foreach($statusLabels as $status => $label)
-                                <option value="{{ $status }}">{{ $label }}</option>
-                            @endforeach
+                            <option value="">{{__('select_lead_status')}}</option>
+                            <option value="NEW">{{__('New')}}</option>
+                            <option value="OUTREACHED">{{__('Outreached')}}</option>
+                            <option value="REPLIED">{{__('Replied')}}</option>
+                            <option value="ENGAGED">{{__('Engaged')}}</option>
+                            <option value="QUALIFIED">{{__('Qualified')}}</option>
+                            <option value="PITCHED">{{__('Pitched')}}</option>
+                            <option value="DEMO_SCHEDULED">{{__('Demo Scheduled')}}</option>
+                            <option value="PROPOSAL_SENT">{{__('Proposal Sent')}}</option>
+                            <option value="NEGOTIATING">{{__('Negotiating')}}</option>
+                            <option value="CLOSED">{{__('Closed')}}</option>
+                            <option value="LOST">{{__('Lost')}}</option>
+                            <option value="HANDED_OFF">{{__('Handed Off')}}</option>
+                            <option value="DO_NOT_CONTACT">{{__('Do Not Contact')}}</option>
+                            <option value="NEEDS_ATTENTION">{{__('Needs Attention')}}</option>
+                            <option value="CONVERTED">{{__('Converted')}}</option>
+                            <option value="CHURNED">{{__('Churned')}}</option>
                         </select>
                         <small class="form-text text-muted">
                             {{__('select_appropriate_lead_status_based_on_current_conversation_stage')}}

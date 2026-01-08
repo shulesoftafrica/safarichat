@@ -30,7 +30,7 @@ class Guest extends Controller {
         }
         
         // Get paginated guests data with handoff information
-        $this->data['guests'] = EventsGuest::with(['contactCategory', 'assignedAgent'])
+        $this->data['guests'] = EventsGuest::with(['contactCategory', 'assignedAgent', 'lead'])
             ->where('business_id', $business_id)
             ->limit(1000)
             ->get();
@@ -314,8 +314,30 @@ class Guest extends Controller {
                 return redirect()->back()->with('error', 'Contact not found or access denied');
             }
             
-            // Update guest data (validation should be done on frontend)
-            $guest->update(request()->except('id', '_token'));
+            // Handle lead status separately
+            $leadStatus = request('lead_status');
+            if ($leadStatus) {
+                // Get or create lead for this contact
+                $lead = $guest->lead;
+                if (!$lead) {
+                    $lead = Lead::create([
+                        'business_contact_id' => $guest->id,
+                        'business_id' => $guest->business_id,
+                        'user_id' => Auth::id(),
+                        'name' => $guest->guest_name,
+                        'phone_number' => $guest->guest_phone,
+                        'email' => $guest->guest_email,
+                        'status' => $leadStatus,
+                        'source' => 'manual_edit'
+                    ]);
+                } else {
+                    $lead->status = $leadStatus;
+                    $lead->save();
+                }
+            }
+            
+            // Update guest data (excluding lead_status as it's handled above)
+            $guest->update(request()->except('id', '_token', 'lead_status'));
             
             if (request()->expectsJson()) {
                 return response()->json([
