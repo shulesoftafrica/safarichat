@@ -368,7 +368,7 @@ class MigrateCrmDataCommand extends Command
         $messageHistory = $crmMessages->map(function($msg) {
             return [
                 'date' => $msg->created_at,
-                'content' => $msg->activity ?? $msg->description,
+                'content' => $msg->activity,
                 'type' => 'crm_note'
             ];
         })->toArray();

@@ -94,6 +94,15 @@ class BusinessContact extends Model
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @deprecated Alias for contactCategory() - for backward compatibility
+     */
+    public function eventGuestCategory()
+    {
+        return $this->contactCategory();
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function messages()

@@ -81,6 +81,11 @@ class Handoff extends Model
         return $this->belongsTo(User::class, 'human_agent_id');
     }
 
+    public function conversation()
+    {
+        return $this->hasOne(Conversation::class, 'lead_id', 'lead_id');
+    }
+
     // Scopes
     public function scopePending($query)
     {

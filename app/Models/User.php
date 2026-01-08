@@ -256,4 +256,36 @@ class User extends Authenticatable implements MustVerifyEmail{
     {
         return $this->hasMany(ApiKey::class);
     }
+
+    /**
+     * Get user's roles for role-based access control
+     */
+    public function roles()
+    {
+        // Simple role implementation - can be expanded later
+        $roles = [];
+        
+        // Check if user is admin based on business ownership or other criteria
+        if ($this->business && $this->business->user_id === $this->id) {
+            $roles[] = 'business_owner';
+        }
+        
+        // Check if user is an agent (has assigned handoffs)
+        if ($this->assignedHandoffs()->exists()) {
+            $roles[] = 'agent';
+        }
+        
+        // Default role for all users
+        $roles[] = 'user';
+        
+        return collect($roles);
+    }
+
+    /**
+     * Check if user has specific role
+     */
+    public function hasRole($role)
+    {
+        return $this->roles()->contains($role);
+    }
 }
