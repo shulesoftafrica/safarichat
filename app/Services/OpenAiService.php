@@ -979,4 +979,45 @@ class OpenAiService
         // Default: allow if unclear (better to be permissive for sales)
         return true;
     }
+
+    /**
+     * Generate AI-powered context summary for CRM migration
+     */
+    public function generateContextSummary(string $prompt): array
+    {
+        try {
+            $sanitizedPrompt = $this->sanitizeText($prompt);
+            
+            $response = $this->client->chat()->create([
+                'model' => $this->defaultModel,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are an expert CRM analyst tasked with creating comprehensive client context summaries for AI sales agents. Generate clear, structured, actionable summaries that help AI agents understand client history and approach strategies.'],
+                    ['role' => 'user', 'content' => $sanitizedPrompt]
+                ],
+                'max_tokens' => 1000,
+                'temperature' => 0.3
+            ]);
+
+            $generatedSummary = $response->choices[0]->message->content ?? '';
+            
+            if (empty($generatedSummary)) {
+                throw new \Exception('Empty response from OpenAI API');
+            }
+
+            return [
+                'success' => true,
+                'summary' => $this->sanitizeText($generatedSummary),
+                'tokens_used' => $response->usage->totalTokens ?? 0
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Context summary generation failed: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'summary' => null
+            ];
+        }
+    }
 }

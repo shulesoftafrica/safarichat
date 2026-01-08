@@ -8,6 +8,7 @@ use App\Models\BusinessContact as EventsGuest;
 use App\Models\BusinessContactCategory;
 use App\Models\BusinessContactCategory as EventGuestCategory;
 use App\Models\Lead;
+use App\Models\AiSalesAgent;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
 use Auth;
@@ -468,11 +469,33 @@ class Guest extends Controller {
             $lead = Lead::where('business_contact_id', $guest->id)->first();
             
             if (!$lead) {
+                // Ensure we have an AI sales agent for this business
+                $aiSalesAgent = AiSalesAgent::where('business_id', $guest->business_id)
+                    ->where('is_active', true)
+                    ->first();
+                
+                if (!$aiSalesAgent) {
+                    // Create a default AI sales agent if none exists
+                    $aiSalesAgent = AiSalesAgent::create([
+                        'business_id' => $guest->business_id,
+                        'name' => 'Default Sales Agent',
+                        'personality_type' => 'professional',
+                        'is_active' => true,
+                        'allow_outreach' => true,
+                        'business_hours_start' => '09:00',
+                        'business_hours_end' => '17:00',
+                        'timezone' => 'UTC',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+                
                 // Create a new lead if one doesn't exist
                 $lead = Lead::create([
                     'business_contact_id' => $guest->id,
                     'business_id' => $guest->business_id,
                     'user_id' => Auth::id(),
+                    'ai_sales_agent_id' => $aiSalesAgent->id,
                     'status' => $leadStatus,
                     'source' => 'manual_edit',
                     'last_interaction_at' => now()

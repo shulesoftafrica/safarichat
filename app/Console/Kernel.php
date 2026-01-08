@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel {
         Commands\ProcessNotifications::class,
         Commands\SmartFollowupCommand::class,
         Commands\UpdateContactPrioritiesCommand::class,
+        Commands\MigrateCrmDataCommand::class,
     ];
     public $emails;
 
