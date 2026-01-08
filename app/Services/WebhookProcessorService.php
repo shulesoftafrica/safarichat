@@ -467,9 +467,9 @@ class WebhookProcessorService
             ->where('created_at', '>=', $since)
             ->selectRaw('
                 COUNT(*) as total_messages,
-                SUM(CASE WHEN processing_method = "webhook" AND status = "replied" THEN 1 ELSE 0 END) as instant_processed,
+                SUM(CASE WHEN processing_method = 'webhook' AND status = 'replied' THEN 1 ELSE 0 END) as instant_processed,
                 SUM(CASE WHEN failed_instant_at IS NOT NULL THEN 1 ELSE 0 END) as failed_instant,
-                AVG(CASE WHEN status = "replied" THEN processing_attempts ELSE NULL END) as avg_processing_attempts
+                AVG(CASE WHEN status = 'replied' THEN processing_attempts ELSE NULL END) as avg_processing_attempts
             ')
             ->first();
 

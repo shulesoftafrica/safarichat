@@ -173,10 +173,10 @@ class ProcessFailedMessagesCommand extends Command
         $stats = IncomingMessage::where('created_at', '>=', $since)
             ->selectRaw('
                 COUNT(*) as total,
-                SUM(CASE WHEN status = "replied" THEN 1 ELSE 0 END) as replied,
-                SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed,
-                SUM(CASE WHEN processing_method = "webhook" THEN 1 ELSE 0 END) as instant,
-                SUM(CASE WHEN processing_method = "cron_fallback" THEN 1 ELSE 0 END) as cron_processed,
+                SUM(CASE WHEN status = 'replied' THEN 1 ELSE 0 END) as replied,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+                SUM(CASE WHEN processing_method = 'webhook' THEN 1 ELSE 0 END) as instant,
+                SUM(CASE WHEN processing_method = 'cron_fallback' THEN 1 ELSE 0 END) as cron_processed,
                 AVG(processing_attempts) as avg_attempts
             ')
             ->first();

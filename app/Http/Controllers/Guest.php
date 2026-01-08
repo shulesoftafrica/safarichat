@@ -320,10 +320,28 @@ class Guest extends Controller {
                 // Get or create lead for this contact
                 $lead = $guest->lead;
                 if (!$lead) {
+                    // Get default AI sales agent for this business
+                    $defaultAgent = \App\Models\AiSalesAgent::where('business_id', $guest->business_id)
+                        ->where('is_active', true)
+                        ->first();
+                        
+                    if (!$defaultAgent) {
+                        // Create a default AI sales agent if none exists
+                        $defaultAgent = \App\Models\AiSalesAgent::create([
+                            'business_id' => $guest->business_id,
+                            'user_id' => Auth::id(),
+                            'name' => 'Default Sales Agent',
+                            'is_active' => true,
+                            'allow_outreach' => true,
+                            'personality_type' => 'professional'
+                        ]);
+                    }
+                    
                     $lead = Lead::create([
                         'business_contact_id' => $guest->id,
                         'business_id' => $guest->business_id,
                         'user_id' => Auth::id(),
+                        'ai_sales_agent_id' => $defaultAgent->id,
                         'name' => $guest->guest_name,
                         'phone_number' => $guest->guest_phone,
                         'email' => $guest->guest_email,

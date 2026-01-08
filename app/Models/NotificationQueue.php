@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class NotificationQueue extends Model
 {
     use HasFactory;
+    
+    protected $table = 'notification_queue';
 
     protected $fillable = [
         'user_id',
