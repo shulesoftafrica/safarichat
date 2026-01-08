@@ -79,6 +79,7 @@ class MigrateCrmDataCommand extends Command
                 $migrationContext['user'], 
                 $migrationContext['business'], 
                 $migrationContext['aiSalesAgent'], 
+                $migrationContext['activeCampaignProduct'], 
                 $limit, 
                 $dryRun
             );
@@ -137,17 +138,25 @@ class MigrateCrmDataCommand extends Command
             ]);
         }
 
+        // Get active campaign product for this user
+        $activeCampaignProduct = DB::table('products')
+            ->where('user_id', $userId)
+            ->where('status', 'active')
+            ->orderBy('is_active_campaign', 'desc')
+            ->first();
+
         return [
             'user' => $user,
             'business' => $business,
-            'aiSalesAgent' => $aiSalesAgent
+            'aiSalesAgent' => $aiSalesAgent,
+            'activeCampaignProduct' => $activeCampaignProduct
         ];
     }
 
     /**
      * Main client data migration logic
      */
-    private function migrateClientsData($user, $business, $aiSalesAgent, $limit, $dryRun): array
+    private function migrateClientsData($user, $business, $aiSalesAgent, $activeCampaignProduct, $limit, $dryRun): array
     {
         $results = [
             'processed' => 0,
@@ -186,7 +195,7 @@ class MigrateCrmDataCommand extends Command
                     $results['conversations_created']++;
                 } else {
                     // Actual migration
-                    $migrationResult = $this->processClientMigration($client, $user, $business, $aiSalesAgent);
+                    $migrationResult = $this->processClientMigration($client, $user, $business, $aiSalesAgent, $activeCampaignProduct);
                     
                     if ($migrationResult['business_contact']) {
                         $results['business_contacts_created']++;
@@ -224,7 +233,7 @@ class MigrateCrmDataCommand extends Command
     /**
      * Process individual client migration
      */
-    private function processClientMigration($client, $user, $business, $aiSalesAgent): array
+    private function processClientMigration($client, $user, $business, $aiSalesAgent, $activeCampaignProduct): array
     {
         $result = [
             'business_contact' => null,
@@ -292,7 +301,7 @@ class MigrateCrmDataCommand extends Command
         $result['lead'] = $lead;
 
         // STEP 2C: Generate AI Context Summary from CRM Messages
-        $conversation = $this->createConversationContextFromCRM($client, $lead, $aiSalesAgent, $businessContact);
+        $conversation = $this->createConversationContextFromCRM($client, $lead, $aiSalesAgent, $businessContact, $activeCampaignProduct);
         $result['conversation'] = $conversation;
 
         return $result;
@@ -310,7 +319,7 @@ class MigrateCrmDataCommand extends Command
     /**
      * Create conversation context from CRM messages
      */
-    private function createConversationContextFromCRM($client, $lead, $aiSalesAgent, $businessContact)
+    private function createConversationContextFromCRM($client, $lead, $aiSalesAgent, $businessContact, $activeCampaignProduct)
     {
         // Get all CRM messages/tasks for this client
         $crmMessages = DB::connection('admin_crm')
@@ -332,6 +341,7 @@ class MigrateCrmDataCommand extends Command
             'lead_id' => $lead->id,
             'ai_sales_agent_id' => $aiSalesAgent->id,
             'business_contact_id' => $businessContact->id,
+            'product_id' => $activeCampaignProduct ? $activeCampaignProduct->id : null,
             'message_content' => $aiContextSummary,
             'message_type' => 'AI_AGENT',
             'sender_type' => 'ai_agent',
