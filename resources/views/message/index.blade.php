@@ -977,8 +977,8 @@
                                 <div class="recipient-icon" style="background: #dbeafe; color: #2563eb;">
                                     <i class="fas fa-filter"></i>
                                 </div>
-                                <h3 class="recipient-title">Select Category</h3>
-                                <p class="recipient-desc">Choose specific groups or categories</p>
+                                <h3 class="recipient-title">Select Lead Status</h3>
+                                <p class="recipient-desc">Choose contacts by their lead status</p>
                             </div>
                         </div>
                         
@@ -1007,20 +1007,20 @@
                     <div id="criteria-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
-                <!-- Category Selection (Hidden by default) -->
+                <!-- Lead Status Selection (Hidden by default) -->
                 <div class="form-section" id="categorySection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-tag"></i> Select Customer Category
+                        <i class="fas fa-tag"></i> Select Lead Status
                     </label>
-                    <select class="form-control-modern @error('event_guest_category_id') is-invalid @enderror" name="event_guest_category_id" id="categorySelect">
-                        <option value="">Choose a category...</option>
-                        @if(isset($guest_categories))
-                            @foreach ($guest_categories as $category)
-                                <option value="{{ $category->id }}" {{ old('event_guest_category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                    <select class="form-control-modern @error('lead_status') is-invalid @enderror" name="lead_status" id="categorySelect">
+                        <option value="">Choose a lead status...</option>
+                        @if(isset($lead_statuses))
+                            @foreach ($lead_statuses as $status_value => $status_label)
+                                <option value="{{ $status_value }}" {{ old('lead_status') == $status_value ? 'selected' : '' }}>{{ $status_label }}</option>
                             @endforeach
                         @endif
                     </select>
-                    @error('event_guest_category_id')
+                    @error('lead_status')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                     <div id="category-validation-feedback" class="invalid-feedback" style="display: none;"></div>
@@ -1558,13 +1558,13 @@ document.addEventListener('DOMContentLoaded', function() {
             showValidationError('criteria', 'Please select a recipient type');
         }
 
-        // Validate category selection if needed
+        // Validate lead status selection if needed
         if (selectedCriteria === '2') {
             const categorySelect = document.getElementById('categorySelect');
             if (!categorySelect.value) {
                 isValid = false;
-                errors.push('Please select a customer category');
-                showValidationError('category', 'Please select a customer category');
+                errors.push('Please select a lead status');
+                showValidationError('category', 'Please select a lead status');
                 categorySelect.classList.add('is-invalid');
             }
         }

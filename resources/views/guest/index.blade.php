@@ -51,6 +51,9 @@
 .badge-teal { background-color: #20c997; }
 .badge-indigo { background-color: #6610f2; }
 
+/* International Telephone Input Styles */
+.iti { width: 100%; }
+
 /* Dark Mode Styles */
 .dark-mode .container-fluid {
     background-color: #1a1f2e !important;
@@ -902,6 +905,27 @@
                         </script>
                     </p>
                     <br/>
+                    @php
+                        // Define status labels globally for reuse in both table and modal
+                        $statusLabels = [
+                            'NEW' => 'New Lead',
+                            'OUTREACHED' => 'Outreached',
+                            'REPLIED' => 'Replied',
+                            'ENGAGED' => 'Engaged',
+                            'QUALIFIED' => 'Qualified',
+                            'PITCHED' => 'Pitched',
+                            'DEMO_SCHEDULED' => 'Demo Scheduled',
+                            'PROPOSAL_SENT' => 'Proposal Sent',
+                            'NEGOTIATING' => 'Negotiating',
+                            'CLOSED' => 'Closed Won',
+                            'LOST' => 'Closed Lost',
+                            'HANDED_OFF' => 'Handed Off',
+                            'DO_NOT_CONTACT' => 'Do Not Contact',
+                            'NEEDS_ATTENTION' => 'Needs Attention',
+                            'CONVERTED' => 'Converted',
+                            'CHURNED' => 'Churned'
+                        ];
+                    @endphp
                     <div class="table-responsive">
                         <table class="table table-bordered dataTable" id="datatable-buttons">
                             <thead>
@@ -983,29 +1007,12 @@
                                                     'CONVERTED' => 'trophy',
                                                     'CHURNED' => 'account-remove'
                                                 ];
-                                                $statusLabels = [
-                                                    'NEW' => 'New Lead',
-                                                    'OUTREACHED' => 'Outreached',
-                                                    'REPLIED' => 'Replied',
-                                                    'ENGAGED' => 'Engaged',
-                                                    'QUALIFIED' => 'Qualified',
-                                                    'PITCHED' => 'Pitched',
-                                                    'DEMO_SCHEDULED' => 'Demo Scheduled',
-                                                    'PROPOSAL_SENT' => 'Proposal Sent',
-                                                    'NEGOTIATING' => 'Negotiating',
-                                                    'CLOSED' => 'Closed Won',
-                                                    'LOST' => 'Closed Lost',
-                                                    'HANDED_OFF' => 'Handed Off',
-                                                    'DO_NOT_CONTACT' => 'Do Not Contact',
-                                                    'NEEDS_ATTENTION' => 'Needs Attention',
-                                                    'CONVERTED' => 'Converted',
-                                                    'CHURNED' => 'Churned'
-                                                ];
                                             @endphp
                                             <span class="badge badge-{{ $statusColors[$leadStatus] ?? 'secondary' }}" style="font-size: 0.8em; padding: 5px 8px; min-width: 90px; text-align: center;">
                                                 <i class="mdi mdi-{{ $statusIcons[$leadStatus] ?? 'help' }} mr-1"></i>
                                                 {{ $statusLabels[$leadStatus] ?? $leadStatus }}
                                             </span>
+                                            <span id="guest_lead_status<?= $guest->id ?>" style="display:none;">{{ $leadStatus }}</span>
                                         </td>
                                         
                                         <!-- Handoff Status Column -->
@@ -1150,72 +1157,28 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="quantity" class="col-form-label text-right">{{__('phone')}}</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <select class="form-control" name="country_code" id="country_code" style="max-width: 100px;">
-                                    @foreach(\App\Models\Country::orderBy('name')->get() as $country)
-                                        <option value="+{{ $country->phonecode }}">
-                                            +{{ $country->name }} 
-                                        </option>
-                                    @endforeach
-                                    <!-- Add more country codes as needed -->
-                                </select>
-                            </div>
-                            <input type="text"
-                                   name="guest_phone"
-                                   id="edit_guest_phone"
-                                   class="form-control"
-                                   placeholder="7XXXXXXXX"
-                                   pattern="[0-9]{7,15}"
-                                   title="Enter phone number without country code, numbers only"
-                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                   required="">
-                        </div>
+                        <label for="edit_guest_phone" class="col-form-label text-right">{{__('phone')}}</label>
+                        <input type="tel" 
+                               name="guest_phone"
+                               id="edit_guest_phone"
+                               class="form-control"
+                               placeholder="Enter phone number"
+                               required="">
                         <small class="form-text text-muted">
                             {{__('enter_phone_with_country_code')}} (e.g. +255 712345678)
                         </small>
                     </div>
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">{{__('user_group')}}</label>
-                        <select class="form-control" name="event_guest_category_id" id="append_option">
-                            <?php foreach ($guest_categories as $category) { ?>
-                                <option value="<?= $category->id ?>"><?= $category->name ?></option>
-                            <?php } ?>
+                        <label for="edit_lead_status" class="col-form-label text-right">{{__('lead_status')}}</label>
+                        <select class="form-control" name="lead_status" id="edit_lead_status">
+                            @foreach($statusLabels as $status => $label)
+                                <option value="{{ $status }}">{{ $label }}</option>
+                            @endforeach
                         </select>
-                        <br/>
-                        <a class="label label-default mb-2 mb-lg-0 badge badge-success" onclick="$('.arrow').toggle()" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
-                           {{__('add_new_user_group')}} 
-                        </a> <i class="dripicons-arrow-thin-right arrow"></i> <i class="dripicons-arrow-thin-down arrow" style="display: none"></i>
-                        <div class="collapse hide" id="collapseExample" style="">
-                            <div class="card mb-0 card-body">
-                                <p class="mb-0 text-muted">{{__('user_group_name')}} </p> 
-                                <div class="table-responsive">
-                                    <div class="form-group">
-                                        <div class="input-group">
-                                            <input type="text" id="new_category_value"  name="name" class="form-control" placeholder="{{__('type_name')}}">
-                                            <span class="input-group-append">
-
-                                                <button type="button" class="btn  btn-sm btn-success" id="new_category">{{__('save')}}</button>
-                                            </span>
-
-                                        </div> 
-                                        <span id="error_message"></span>
-                                      </div>
-                                          <div class="text-muted small d-block mt-1">{{__('user_group_name_help')}} </div>
-
-                                        <div class="alert alert-warning mt-3">
-                                            <i class="mdi mdi-information-outline mr-2"></i>
-                                            {{ __('You can edit or manage existing categories in the') }}
-                                            <a href="{{ url('home/settings') }}" class="font-weight-bold text-primary" target="_blank">
-                                                {{ __('Settings page') }}
-                                            </a>.
-                                        </div>
-                                  
-                                </div>
-                            </div>
-                        </div>
+                        <small class="form-text text-muted">
+                            {{__('select_appropriate_lead_status_based_on_current_conversation_stage')}}
+                        </small>
                     </div>
                 </div>
             </div>
@@ -1505,6 +1468,10 @@
                 validateEditField('edit_pledge');
             }
         });
+        
+        $('#edit_lead_status').on('change', function() {
+            validateEditField('edit_lead_status');
+        });
     }
     
     function validateEditField(fieldId) {
@@ -1553,6 +1520,14 @@
             case 'edit_pledge':
                 if (value && (isNaN(value) || parseFloat(value) < 0)) {
                     errorMessage = '{{__('pledge_must_be_a_positive_number')}}';
+                    isValid = false;
+                }
+                break;
+                
+            case 'edit_lead_status':
+                const validStatuses = ['NEW', 'OUTREACHED', 'REPLIED', 'ENGAGED', 'QUALIFIED', 'PITCHED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'NEGOTIATING', 'CLOSED', 'LOST', 'HANDED_OFF', 'DO_NOT_CONTACT','CHURNED'];
+                if (!validStatuses.includes(value)) {
+                    errorMessage = '{{__('please_select_a_valid_lead_status')}}';
                     isValid = false;
                 }
                 break;
@@ -2097,8 +2072,16 @@
     // Original functions (updated)
     function editGuest(a) {
         $('#edit_guest_name').val($('#guest_name' + a).text());
-        $('#edit_guest_phone').val($('#guest_phone' + a).text());
+        
+        // Store phone number for later setting after intl input is initialized
+        window.currentPhoneNumber = $('#guest_phone' + a).text();
+        
         $('#edit_pledge').val(parseInt($('#guest_pledge' + a).text()));
+        
+        // Set lead status from hidden span
+        const leadStatus = $('#guest_lead_status' + a).text().trim();
+        $('#edit_lead_status').val(leadStatus);
+        
         $('#edit_guest').val(a);
         $('#ProfileStep5').attr('action', '<?= url('guest/edit/null') ?>');
         
@@ -2152,6 +2135,14 @@
             isValid = false;
         }
         
+        // Validate lead status
+        const leadStatus = $('#edit_lead_status').val();
+        const validStatuses = ['NEW', 'OUTREACHED', 'REPLIED', 'ENGAGED', 'QUALIFIED', 'PITCHED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'NEGOTIATING', 'CLOSED', 'LOST', 'HANDED_OFF', 'DO_NOT_CONTACT'];
+        if (!leadStatus || !validStatuses.includes(leadStatus)) {
+            showEditValidationError('edit_lead_status', '{{__('please_select_a_valid_lead_status')}}');
+            isValid = false;
+        }
+        
         return isValid;
     }
     
@@ -2181,8 +2172,8 @@
         const guestId = $('#edit_guest').val();
         const formData = {
             guest_name: $('#edit_guest_name').val().trim(),
-            guest_phone: $('#edit_guest_phone').val().trim(),
-            event_guest_category_id: $('#append_option').val(),
+            guest_phone: getFullPhoneNumber(),
+            lead_status: $('#edit_lead_status').val(),
             _token: '{{ csrf_token() }}'
         };
         
@@ -2210,9 +2201,15 @@
                     // Update the table row with new data
                     $('#guest_name' + guestId).text(formData.guest_name);
                     $('#guest_phone' + guestId).text(formData.guest_phone);
+                    $('#guest_lead_status' + guestId).text(formData.lead_status);
                     if (formData.guest_pledge) {
                         $('#guest_pledge' + guestId).text(formData.guest_pledge);
                     }
+                    
+                    // Refresh the page to update the lead status badge with proper styling
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
                     
                     // Close modal after delay
                     setTimeout(function() {
@@ -2718,6 +2715,53 @@ document.addEventListener('DOMContentLoaded', function() {
         activeTab.style.background = 'rgba(255,255,255,0.3)';
     }
 });
+</script>
+
+<!-- International Telephone Input CSS & JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+
+<script>
+// Initialize International Telephone Input on modal phone field
+let phoneInput;
+
+$(document).ready(function() {
+    // Initialize phone input after modal is shown
+    $('#myModal').on('shown.bs.modal', function() {
+        if (phoneInput) {
+            phoneInput.destroy();
+        }
+        
+        const input = document.querySelector("#edit_guest_phone");
+        phoneInput = window.intlTelInput(input, {
+            initialCountry: "tz", // Default to Tanzania
+            preferredCountries: ["tz", "ke", "ug", "rw", "bi"],
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+        });
+        
+        // Set the phone number if available
+        if (window.currentPhoneNumber) {
+            phoneInput.setNumber(window.currentPhoneNumber);
+            window.currentPhoneNumber = null; // Clear after setting
+        }
+    });
+    
+    // Clean up when modal is hidden
+    $('#myModal').on('hidden.bs.modal', function() {
+        if (phoneInput) {
+            phoneInput.destroy();
+            phoneInput = null;
+        }
+    });
+});
+
+// Update form submission to get full international number
+function getFullPhoneNumber() {
+    if (phoneInput) {
+        return phoneInput.getNumber();
+    }
+    return $('#edit_guest_phone').val();
+}
 </script>
 
 @endsection

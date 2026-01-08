@@ -134,6 +134,15 @@ class BusinessContact extends Model
     }
 
     /**
+     * Get the primary lead for this contact (singular relationship)
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function lead()
+    {
+        return $this->hasOne('App\Models\Lead', 'business_contact_id')->latest();
+    }
+
+    /**
      * Get the user who created this contact
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */

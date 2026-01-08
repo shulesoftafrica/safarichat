@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $days
  * @property string $message
  * @property integer $type
- * @property int $event_guest_category_id
+ * @property string $lead_status
  * @property string $inputs
  * @property string $created_at
  * @property string $updated_at
@@ -25,7 +25,7 @@ class Reminder extends Model
     /**
      * @var array
      */
-    protected $fillable = ['user_id', 'date', 'time', 'title', 'is_repeated', 'days', 'message', 'type', 'event_guest_category_id', 'users', 'created_at', 'updated_at','last_date','channels'];
+    protected $fillable = ['user_id', 'date', 'time', 'title', 'is_repeated', 'days', 'message', 'type', 'lead_status', 'users', 'created_at', 'updated_at','last_date','channels'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

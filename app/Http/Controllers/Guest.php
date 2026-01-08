@@ -7,6 +7,7 @@ use App\Models\BusinessContact;
 use App\Models\BusinessContact as EventsGuest;
 use App\Models\BusinessContactCategory;
 use App\Models\BusinessContactCategory as EventGuestCategory;
+use App\Models\Lead;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
 use Auth;
@@ -370,7 +371,7 @@ class Guest extends Controller {
             }
 
             // Update guest data (validation should be done on frontend)
-            $updateData = $request->except('_token', 'id');
+            $updateData = $request->except('_token', 'id', 'lead_status');
             
             // Handle phone number formatting if provided
             if (isset($updateData['guest_phone'])) {
@@ -381,6 +382,11 @@ class Guest extends Controller {
 
             // Update the guest record
             $guest->update($updateData);
+            
+            // Handle lead status update if provided
+            if ($request->has('lead_status')) {
+                $this->updateLeadStatus($guest, $request->lead_status);
+            }
             
             if ($request->expectsJson()) {
                 return response()->json([
@@ -406,6 +412,51 @@ class Guest extends Controller {
             }
             
             return redirect()->back()->with('error', 'Failed to update contact');
+        }
+    }
+
+    /**
+     * Update lead status for a guest
+     *
+     * @param  EventsGuest  $guest
+     * @param  string  $leadStatus
+     * @return void
+     */
+    private function updateLeadStatus($guest, $leadStatus) {
+        try {
+            // Find the lead associated with this guest (contact)
+            $lead = Lead::where('business_contact_id', $guest->id)->first();
+            
+            if (!$lead) {
+                // Create a new lead if one doesn't exist
+                $lead = Lead::create([
+                    'business_contact_id' => $guest->id,
+                    'business_id' => $guest->business_id,
+                    'user_id' => Auth::id(),
+                    'status' => $leadStatus,
+                    'source' => 'manual_edit',
+                    'last_interaction_at' => now()
+                ]);
+            } else {
+                // Update existing lead status
+                $lead->update([
+                    'status' => $leadStatus,
+                    'last_interaction_at' => now()
+                ]);
+            }
+            
+            \Log::info('Lead status updated successfully', [
+                'guest_id' => $guest->id,
+                'lead_id' => $lead->id,
+                'old_status' => $lead->getOriginal('status'),
+                'new_status' => $leadStatus
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating lead status: ' . $e->getMessage(), [
+                'guest_id' => $guest->id,
+                'lead_status' => $leadStatus
+            ]);
         }
     }
 

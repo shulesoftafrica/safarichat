@@ -9,6 +9,7 @@ use \App\Models\Message as SMS;
 use \App\Models\BusinessContact;
 use \App\Models\BusinessContact as EventsGuest;
 use \App\Models\OutgoingMessage;
+use \App\Models\Lead;
 use \App\Jobs\SendWhatsAppMessage;
 use \App\Jobs\SendWhatsAppMediaMessage;
 use \App\Jobs\ProcessBulkMessages;
@@ -66,7 +67,27 @@ class Message extends Controller
                 'instance_name' => Auth::user()->name,
             ]);
         }
-        $this->data['guest_categories'] = EventGuestCategory::where('business_id', Auth::user()->business->id)->get();
+        
+        // Pass Lead Statuses instead of Customer Categories
+        $this->data['lead_statuses'] = [
+            \App\Models\Lead::STATUS_NEW => 'New',
+            \App\Models\Lead::STATUS_OUTREACHED => 'Outreached',
+            \App\Models\Lead::STATUS_REPLIED => 'Replied',
+            \App\Models\Lead::STATUS_ENGAGED => 'Engaged',
+            \App\Models\Lead::STATUS_QUALIFIED => 'Qualified',
+            \App\Models\Lead::STATUS_PITCHED => 'Pitched',
+            \App\Models\Lead::STATUS_DEMO_SCHEDULED => 'Demo Scheduled',
+            \App\Models\Lead::STATUS_PROPOSAL_SENT => 'Proposal Sent',
+            \App\Models\Lead::STATUS_NEGOTIATING => 'Negotiating',
+            \App\Models\Lead::STATUS_CLOSED => 'Closed',
+            \App\Models\Lead::STATUS_LOST => 'Lost',
+            \App\Models\Lead::STATUS_HANDED_OFF => 'Handed Off',
+            \App\Models\Lead::STATUS_DO_NOT_CONTACT => 'Do Not Contact',
+            \App\Models\Lead::STATUS_NEEDS_ATTENTION => 'Needs Attention',
+            \App\Models\Lead::STATUS_CONVERTED => 'Converted',
+            \App\Models\Lead::STATUS_CHURNED => 'Churned'
+        ];
+        
           //check if the invoice has been paid for bulksms
       
         $this->data['whatsapp'] = $this->checkChannelStatus('whatsapp');
@@ -224,7 +245,7 @@ class Message extends Controller
             $users_lists = implode(',', array_values($user_inputs));
             $arr = [
                 'user_id' => Auth::user()->id,
-                'event_guest_category_id' => request('event_guest_category_id'),
+                'lead_status' => request('lead_status'),
                 'date' => date('Y-m-d h:i', strtotime(request('date'))),
                 'time' => date('h:i', strtotime(request('time'))),
                 'message' => strip_tags(request('message')),
@@ -248,10 +269,10 @@ class Message extends Controller
      */
     public function callUsers()
     {
-        $category_id = request('category_id');
+        $lead_status = request('lead_status'); // Updated from category_id to lead_status
         $criteria = strip_tags(request('criteria'));
       
-        $users = $this->getUserByCriteria($criteria, Auth::user()->business->id, null, $category_id);
+        $users = $this->getUserByCriteria($criteria, Auth::user()->business->id, null, $lead_status);
         if (empty($users)) {
             echo '0';
         } else {
@@ -423,8 +444,15 @@ class Message extends Controller
                 break;
 
             case 2:
-                //Select Guest Category
-                $users = $request <> null ? \App\Models\BusinessContact::where('business_id', $business_id)->where('contact_category_id', $request->event_guest_category_id) : [];
+                //Select Lead Status
+                if ($request != null && $request->input('lead_status')) {
+                    $users = \App\Models\BusinessContact::where('business_id', $business_id)
+                        ->whereHas('lead', function($query) use ($request) {
+                            $query->where('status', $request->input('lead_status'));
+                        });
+                } else {
+                    $users = [];
+                }
                 break;
 
             case 3:
@@ -464,7 +492,8 @@ class Message extends Controller
         if ($criteria == 6) {
             $users = $users; // Already an array for custom numbers
         } else {
-            $users = $sub_category <> null && (int) $sub_category > 0 && (int) $criteria <> 6 ? $users->where('event_guest_category_id', $sub_category)->get() : $users->get();
+            // For lead status filtering (case 2), the query is already built with the status filter
+            $users = $users->get();
         }
         
         // Debug logging
@@ -569,9 +598,8 @@ class Message extends Controller
             // All Contacts
             $users = $this->getUserByCriteria(1, $business_id, $request);
         } elseif ($criteria == 2) {
-            // Select Category
-            $categoryId = $request->input('event_guest_category_id');
-            $users = $this->getUserByCriteria(2, $business_id, $request, $categoryId);
+            // Select Lead Status
+            $users = $this->getUserByCriteria(2, $business_id, $request);
         } elseif ($criteria == 6) {
             // Custom Numbers
             $users = $this->getUserByCriteria(6, $business_id, $request);
