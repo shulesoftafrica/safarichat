@@ -1286,6 +1286,24 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Conversation Summary Section -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="mdi mdi-chat-processing mr-2"></i>{{__('conversation_summary')}}</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="conversation-summary">
+                                    <div class="text-center text-muted">
+                                        <i class="mdi mdi-loading mdi-spin"></i> {{__('loading_conversation_summary')}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">
@@ -1648,8 +1666,9 @@
                     $('#view-contact-group').text(contact.category_name || '{{__("no_group")}}');
                     $('#view-contact-date').text(new Date(contact.created_at).toLocaleDateString());
                     
-                    // Load messages
+                    // Load messages and conversation summary
                     loadContactMessages(contactId);
+                    loadConversationSummary(contactId);
                     
                     $('#contactViewModal').modal('show');
                 } else {
@@ -1662,7 +1681,164 @@
         });
     }
 
-    function loadContactMessages(contactId) {
+    function loadConversationSummary(contactId) {
+        $('#conversation-summary').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__('loading_conversation_summary')}}</div>');
+        
+        $.ajax({
+            url: '<?= url('guest/getConversationSummary') ?>/' + contactId,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    displayConversationSummary(response.summary);
+                } else {
+                    $('#conversation-summary').html('<div class="text-center text-muted">{{__('no_conversation_summary_available')}}</div>');
+                }
+            },
+            error: function() {
+                $('#conversation-summary').html('<div class="text-center text-danger">{{__('error_loading_conversation_summary')}}</div>');
+            }
+        });
+    }
+
+    function displayConversationSummary(summary) {
+        if (!summary) {
+            $('#conversation-summary').html('<div class="text-center text-muted">{{__('no_conversation_data_available')}}</div>');
+            return;
+        }
+
+        let summaryHtml = '<div class="conversation-summary-content">';
+        
+        // Display conversation overview
+        if (summary.overview) {
+            summaryHtml += `
+                <div class="mb-3">
+                    <h6 class="text-primary"><i class="mdi mdi-chart-line mr-1"></i>{{__('conversation_overview')}}</h6>
+                    <div class="bg-light p-3 rounded">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <small class="text-muted">{{__('total_messages')}}</small>
+                                <div class="font-weight-bold">${summary.overview.total_messages || 0}</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">{{__('last_interaction')}}</small>
+                                <div class="font-weight-bold">${summary.overview.last_interaction ? new Date(summary.overview.last_interaction).toLocaleDateString() : '{{__('never')}}'}</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">{{__('conversation_stage')}}</small>
+                                <div class="font-weight-bold">${summary.overview.stage || '{{__('unknown')}}'}</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">{{__('ai_responses')}}</small>
+                                <div class="font-weight-bold">${summary.overview.ai_responses || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Display key topics discussed
+        if (summary.key_topics && summary.key_topics.length > 0) {
+            summaryHtml += `
+                <div class="mb-3">
+                    <h6 class="text-info"><i class="mdi mdi-tag-multiple mr-1"></i>{{__('key_topics_discussed')}}</h6>
+                    <div class="d-flex flex-wrap">
+            `;
+            
+            summary.key_topics.forEach(function(topic) {
+                summaryHtml += `<span class="badge badge-info mr-1 mb-1">${topic}</span>`;
+            });
+            
+            summaryHtml += '</div></div>';
+        }
+        
+        // Display conversation context (AI summary)
+        if (summary.ai_context) {
+            summaryHtml += `
+                <div class="mb-3">
+                    <h6 class="text-success"><i class="mdi mdi-robot mr-1"></i>{{__('ai_conversation_context')}}</h6>
+                    <div class="border-left border-success pl-3">
+                        <div class="text-muted" style="white-space: pre-wrap;">${summary.ai_context}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Display recent activity
+        if (summary.recent_activity && summary.recent_activity.length > 0) {
+            summaryHtml += `
+                <div class="mb-3">
+                    <h6 class="text-warning"><i class="mdi mdi-clock mr-1"></i>{{__('recent_activity')}}</h6>
+                    <div class="timeline">
+            `;
+            
+            summary.recent_activity.forEach(function(activity, index) {
+                const activityDate = new Date(activity.date).toLocaleDateString();
+                const activityTime = new Date(activity.date).toLocaleTimeString();
+                summaryHtml += `
+                    <div class="timeline-item ${index === 0 ? 'latest' : ''}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between">
+                                <strong>${activity.action}</strong>
+                                <small class="text-muted">${activityDate} ${activityTime}</small>
+                            </div>
+                            ${activity.description ? '<p class="mb-0 text-muted">' + activity.description + '</p>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            summaryHtml += '</div></div>';
+        }
+        
+        summaryHtml += '</div>';
+        
+        // Add custom styles for timeline
+        summaryHtml += `
+            <style>
+                .timeline {
+                    position: relative;
+                    padding-left: 20px;
+                }
+                .timeline-item {
+                    position: relative;
+                    padding-bottom: 15px;
+                }
+                .timeline-item:not(:last-child)::before {
+                    content: '';
+                    position: absolute;
+                    left: -15px;
+                    top: 20px;
+                    height: calc(100% - 10px);
+                    width: 2px;
+                    background: #dee2e6;
+                }
+                .timeline-marker {
+                    position: absolute;
+                    left: -19px;
+                    top: 5px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #6c757d;
+                }
+                .timeline-item.latest .timeline-marker {
+                    background: #28a745;
+                }
+                .timeline-content {
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+            </style>
+        `;
+        
+        $('#conversation-summary').html(summaryHtml);
+    }
         $('#contact-messages').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__("loading_messages")}}</div>');
         
         $.ajax({

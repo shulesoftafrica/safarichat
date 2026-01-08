@@ -916,6 +916,159 @@ class Guest extends Controller {
     }
 
     /**
+     * Get conversation summary for a specific contact
+     */
+    public function getConversationSummary($id)
+    {
+        try {
+            $business_id = Auth::user()->business->id;
+
+            // Get contact with lead relationship
+            $contact = EventsGuest::with(['lead', 'lead.conversations'])
+                ->where('id', $id)
+                ->where('business_id', $business_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json(['success' => false, 'message' => 'Contact not found']);
+            }
+
+            // Get conversation data
+            $lead = $contact->lead;
+            $conversations = $lead ? $lead->conversations()->orderBy('created_at', 'desc')->get() : collect();
+            
+            // Get message statistics
+            $outgoingCount = $contact->outgoingMessages()->count();
+            $incomingCount = $contact->incomingMessages()->count();
+            $totalMessages = $outgoingCount + $incomingCount;
+            
+            // Get last interaction
+            $lastOutgoing = $contact->outgoingMessages()->latest()->first();
+            $lastIncoming = $contact->incomingMessages()->latest('message_timestamp')->first();
+            
+            $lastInteraction = null;
+            if ($lastOutgoing && $lastIncoming) {
+                $lastInteraction = $lastOutgoing->created_at > $lastIncoming->message_timestamp ? 
+                    $lastOutgoing->created_at : $lastIncoming->message_timestamp;
+            } elseif ($lastOutgoing) {
+                $lastInteraction = $lastOutgoing->created_at;
+            } elseif ($lastIncoming) {
+                $lastInteraction = $lastIncoming->message_timestamp;
+            }
+
+            // Build conversation summary
+            $summary = [
+                'overview' => [
+                    'total_messages' => $totalMessages,
+                    'outgoing_messages' => $outgoingCount,
+                    'incoming_messages' => $incomingCount,
+                    'ai_responses' => $conversations->where('message_type', 'AI_AGENT')->count(),
+                    'last_interaction' => $lastInteraction,
+                    'stage' => $lead ? $lead->status : 'Unknown',
+                    'lead_score' => $lead ? $lead->lead_score : 0
+                ]
+            ];
+
+            // Extract key topics from conversations if available
+            $keyTopics = [];
+            if ($conversations->isNotEmpty()) {
+                foreach ($conversations as $conversation) {
+                    // Look for AI context summaries
+                    if ($conversation->message_type === 'ai_context_summary' && !empty($conversation->message_content)) {
+                        // Extract key topics from AI context (simple keyword extraction)
+                        $content = strtolower($conversation->message_content);
+                        $topics = [];
+                        
+                        // Common business/education keywords to look for
+                        $keywords = ['school', 'student', 'education', 'management', 'system', 'software', 'learning', 'teaching', 'administration', 'fee', 'payment', 'registration', 'academic', 'curriculum'];
+                        
+                        foreach ($keywords as $keyword) {
+                            if (strpos($content, $keyword) !== false) {
+                                $topics[] = ucfirst($keyword);
+                            }
+                        }
+                        
+                        $keyTopics = array_merge($keyTopics, $topics);
+                    }
+                }
+                
+                // Remove duplicates and limit to 10 topics
+                $keyTopics = array_unique($keyTopics);
+                $keyTopics = array_slice($keyTopics, 0, 10);
+                
+                $summary['key_topics'] = $keyTopics;
+                
+                // Get AI context if available
+                $aiContext = $conversations->where('message_type', 'ai_context_summary')->first();
+                if ($aiContext) {
+                    $summary['ai_context'] = $aiContext->message_content;
+                }
+            }
+
+            // Recent activity timeline
+            $recentActivity = [];
+            
+            // Add lead status changes
+            if ($lead) {
+                $recentActivity[] = [
+                    'action' => 'Lead Status',
+                    'description' => "Status: {$lead->status}",
+                    'date' => $lead->updated_at
+                ];
+                
+                if ($lead->last_interaction_at) {
+                    $recentActivity[] = [
+                        'action' => 'Last Lead Interaction',
+                        'description' => 'AI system interaction',
+                        'date' => $lead->last_interaction_at
+                    ];
+                }
+            }
+            
+            // Add recent conversations
+            foreach ($conversations->take(3) as $conversation) {
+                $actionType = $conversation->message_type === 'AI_AGENT' ? 'AI Response' : 'Conversation';
+                $recentActivity[] = [
+                    'action' => $actionType,
+                    'description' => $conversation->conversation_stage ? "Stage: {$conversation->conversation_stage}" : null,
+                    'date' => $conversation->created_at
+                ];
+            }
+            
+            // Add handoff information if available
+            if ($contact->handoff_status && $contact->handoff_status !== 'ai') {
+                $recentActivity[] = [
+                    'action' => 'Handoff Status',
+                    'description' => "Status: " . ucfirst(str_replace('_', ' ', $contact->handoff_status)),
+                    'date' => $contact->handoff_requested_at ?: $contact->updated_at
+                ];
+            }
+            
+            // Sort by date and limit to 5 most recent
+            usort($recentActivity, function($a, $b) {
+                return strtotime($b['date']) - strtotime($a['date']);
+            });
+            
+            $summary['recent_activity'] = array_slice($recentActivity, 0, 5);
+
+            return response()->json([
+                'success' => true,
+                'summary' => $summary,
+                'contact' => [
+                    'id' => $contact->id,
+                    'name' => $contact->guest_name,
+                    'phone' => $contact->guest_phone,
+                    'email' => $contact->guest_email,
+                    'lead_status' => $lead ? $lead->status : null
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Send message to selected contacts
      */
     public function sendUniqueMessage(Request $request)
