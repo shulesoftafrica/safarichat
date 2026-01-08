@@ -2137,7 +2137,7 @@
         
         // Validate lead status
         const leadStatus = $('#edit_lead_status').val();
-        const validStatuses = ['NEW', 'OUTREACHED', 'REPLIED', 'ENGAGED', 'QUALIFIED', 'PITCHED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'NEGOTIATING', 'CLOSED', 'LOST', 'HANDED_OFF', 'DO_NOT_CONTACT'];
+        const validStatuses = ['NEW', 'OUTREACHED', 'REPLIED', 'ENGAGED', 'QUALIFIED', 'PITCHED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'NEGOTIATING', 'CLOSED', 'LOST', 'HANDED_OFF', 'DO_NOT_CONTACT','CHURNED'];
         if (!leadStatus || !validStatuses.includes(leadStatus)) {
             showEditValidationError('edit_lead_status', '{{__('please_select_a_valid_lead_status')}}');
             isValid = false;
