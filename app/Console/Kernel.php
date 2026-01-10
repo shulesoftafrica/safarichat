@@ -29,6 +29,7 @@ class Kernel extends ConsoleKernel {
         Commands\SmartFollowupCommand::class,
         Commands\UpdateContactPrioritiesCommand::class,
         Commands\MigrateCrmDataCommand::class,
+        Commands\ProcessAppointmentRemindersCommand::class,
     ];
     public $emails;
 
@@ -341,6 +342,20 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Credit synchronization failed', 'error');
+            });
+
+        // Process appointment reminders - every hour during business hours
+        $schedule->command('appointments:process-reminders')
+            ->hourly()
+            ->between('07:00', '20:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/appointment-reminders.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Appointment reminders processed successfully');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Appointment reminders processing failed', 'error');
             });
 
         // Process notification queue - every 10 minutes

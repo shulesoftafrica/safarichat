@@ -751,15 +751,31 @@ class OpenAiService
             }
         }
 
-        // Detect escalation needs
+        // Detect escalation needs - Enhanced detection
         $escalationPhrases = [
-            'transfer', 'manager', 'supervisor', 'human agent', 'speak to someone',
-            'not satisfied', 'complaint', 'escalate'
+            // Direct human requests
+            'transfer', 'manager', 'supervisor', 'human agent', 'speak to someone', 'talk to person',
+            'human help', 'real person', 'live agent', 'customer service', 'support agent',
+            'boss', 'owner', 'director', 'representative', 'speak to boss', 'talk to boss',
+            // Complaints & dissatisfaction
+            'not satisfied', 'complaint', 'escalate', 'unhappy', 'frustrated', 'angry',
+            'not working', 'bad service', 'poor service', 'terrible', 'awful',
+            // Complex requests
+            'complex issue', 'technical problem', 'urgent matter', 'important issue',
+            'serious problem', 'major issue', 'complicated', 'difficult',
+            // Other triggers
+            'cancel subscription', 'refund', 'legal action', 'lawyer', 'sue',
+            'this is ridiculous', 'this is stupid', 'waste of time'
         ];
         
+        $userMessage = strtolower($userPrompt);
         foreach ($escalationPhrases as $phrase) {
-            if (stripos($modifiedResponse, $phrase) !== false) {
-                $actions['needs_escalation'] = true;
+            if (stripos($userMessage, $phrase) !== false) {
+                $actions['needs_escalation'] = [
+                    'reason' => $phrase,
+                    'priority' => $this->determineEscalationPriority($userPrompt),
+                    'trigger_phrase' => $phrase
+                ];
                 break;
             }
         }
@@ -779,6 +795,25 @@ class OpenAiService
                 }
             }
         }
+        
+        // Detect appointment scheduling requests
+        $appointmentKeywords = [
+            'schedule', 'book', 'appointment', 'meeting', 'demo', 'consultation',
+            'call', 'presentation', 'session', 'discuss', 'meet', 'available',
+            'calendar', 'time slot', 'when can we', 'let\'s meet'
+        ];
+        
+        $userMessage = strtolower($userPrompt);
+        foreach ($appointmentKeywords as $keyword) {
+            if (stripos($userMessage, $keyword) !== false) {
+                $actions['schedule_appointment'] = [
+                    'detected' => true,
+                    'type' => 'demo',
+                    'urgency' => 'normal'
+                ];
+                break;
+            }
+        }
 
         // Schedule followup if mentioned
         if (stripos($aiResponse, 'follow up') || stripos($aiResponse, 'check back')) {
@@ -789,6 +824,39 @@ class OpenAiService
             'response' => $modifiedResponse,
             'actions' => $actions
         ];
+    }
+    
+    /**
+     * Determine escalation priority based on user message content
+     */
+    private function determineEscalationPriority(string $userMessage): string
+    {
+        $urgentKeywords = [
+            'urgent', 'emergency', 'asap', 'immediately', 'right now', 
+            'angry', 'furious', 'terrible', 'awful', 'sue', 'lawyer',
+            'cancel', 'refund', 'complaint'
+        ];
+        
+        $highKeywords = [
+            'frustrated', 'disappointed', 'unhappy', 'not working',
+            'manager', 'supervisor', 'boss', 'director'
+        ];
+        
+        $userMessage = strtolower($userMessage);
+        
+        foreach ($urgentKeywords as $keyword) {
+            if (stripos($userMessage, $keyword) !== false) {
+                return 'urgent';
+            }
+        }
+        
+        foreach ($highKeywords as $keyword) {
+            if (stripos($userMessage, $keyword) !== false) {
+                return 'high';
+            }
+        }
+        
+        return 'medium';
     }
 
     /**

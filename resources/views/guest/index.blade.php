@@ -1839,6 +1839,8 @@
         
         $('#conversation-summary').html(summaryHtml);
     }
+
+    function loadContactMessages(contactId) {
         $('#contact-messages').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__("loading_messages")}}</div>');
         
         $.ajax({

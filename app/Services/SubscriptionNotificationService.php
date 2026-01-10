@@ -98,56 +98,91 @@ class SubscriptionNotificationService
     }
 
     /**
-     * Send daily summary for inactive users
+     * Send daily summary to business owners/bosses
      */
-    public function sendDailySummary(User $user): void
+    public function sendDailySummary(User $user, array $stats = []): void
     {
         $yesterday = now()->subDay();
+        $businessName = $user->business->name ?? 'Your Business';
         
-        // Get missed automations from yesterday
+        // Get missed automations for inactive subscriptions
         $missedAutomations = $user->missedAutomations()
             ->whereDate('created_at', $yesterday)
             ->get()
             ->groupBy('automation_type');
-
-        if ($missedAutomations->isEmpty()) {
+            
+        $hasSubscriptionIssues = $missedAutomations->isNotEmpty();
+        $totalCustomersAtRisk = 0;
+        
+        if ($hasSubscriptionIssues) {
+            $totalCustomersAtRisk = $missedAutomations->flatten()->unique('target_data.customer_id')->count();
+        }
+        
+        // Send email summary
+        try {
+            \Illuminate\Support\Facades\Mail::send('emails.daily-summary', [
+                'user' => $user,
+                'businessName' => $businessName,
+                'date' => $yesterday->format('M j, Y'),
+                'stats' => $stats,
+                'hasSubscriptionIssues' => $hasSubscriptionIssues,
+                'missedAutomations' => $missedAutomations->map->count(),
+                'totalCustomersAtRisk' => $totalCustomersAtRisk
+            ], function ($message) use ($user, $businessName, $yesterday) {
+                $message->to($user->email)
+                    ->subject("📊 Daily Summary - {$businessName} ({$yesterday->format('M j')})")
+                    ->from(config('mail.from.address'), config('mail.from.name'));
+            });
+            
+            \Illuminate\Support\Facades\Log::info('Daily summary email sent', [
+                'user_id' => $user->id,
+                'business' => $businessName,
+                'has_issues' => $stats['has_issues'] ?? false
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send daily summary email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // Also send WhatsApp notification if enabled and critical issues exist
+        if (($stats['overdue_handoffs'] ?? 0) > 0 || ($stats['failed_messages'] ?? 0) > 10) {
+            $this->sendWhatsAppSummary($user, $stats);
+        }
+    }
+    
+    /**
+     * Send critical WhatsApp summary
+     */
+    private function sendWhatsAppSummary(User $user, array $stats): void
+    {
+        if (!$user->whatsapp_number && !$user->phone) {
             return;
         }
-
-        $message = "📊 Daily Report – Missed Automations (Subscription Inactive)\n\n";
-        $message .= "Yesterday SafariChat could not perform:\n";
-
-        $typeLabels = [
-            'followup' => 'customer follow-up messages',
-            'qualification' => 'qualifying question sessions',
-            'reminder' => 'order reminders',
-            'cart_recovery' => 'cart recovery attempts',
-            'welcome_sequence' => 'welcome sequences'
-        ];
-
-        foreach ($missedAutomations as $type => $automations) {
-            $count = $automations->count();
-            $label = $typeLabels[$type] ?? $type;
-            $message .= "• {$count} {$label}\n";
+        
+        $businessName = $user->business->name ?? 'Your Business';
+        $message = "🚨 *{$businessName} - Critical Alert*\n\n";
+        
+        if ($stats['overdue_handoffs'] > 0) {
+            $message .= "⚠️ {$stats['overdue_handoffs']} customer escalations are overdue!\n";
         }
-
-        $totalCustomers = $missedAutomations->flatten()->unique('lead_id')->count();
-        $message .= "\nTotal customers at risk: {$totalCustomers}\n\n";
-        $message .= "Reactivate now to avoid losing future customers.";
-
+        
+        if ($stats['failed_messages'] > 10) {
+            $message .= "📱 High message failure rate: {$stats['failed_messages']} failed\n";
+        }
+        
+        $message .= "\nCheck your dashboard for details.";
+        
         NotificationQueue::create([
             'user_id' => $user->id,
             'notification_type' => 'whatsapp',
-            'category' => 'daily_summary',
-            'priority' => 'medium',
+            'category' => 'critical_alert',
+            'priority' => 'urgent',
             'recipient' => $user->whatsapp_number ?? $user->phone,
             'message' => $message,
-            'scheduled_for' => now()->hour(8), // Send at 8 AM
-            'template_data' => [
-                'date' => $yesterday->toDateString(),
-                'missed_count' => $missedAutomations->flatten()->count(),
-                'customers_at_risk' => $totalCustomers
-            ]
+            'scheduled_for' => now(),
         ]);
     }
 

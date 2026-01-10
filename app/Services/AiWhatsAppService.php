@@ -398,6 +398,13 @@ class AiWhatsAppService
                 case 'schedule_followup':
                     $results['followup'] = $this->scheduleFollowup($agent, $lead, $product);
                     break;
+                    
+                case 'schedule_appointment':
+                case 'book_demo':
+                case 'schedule_meeting':
+                case 'book_consultation':
+                    $results['appointment'] = $this->scheduleAppointment($agent, $lead, $data);
+                    break;
             }
         }
 
@@ -497,6 +504,75 @@ class AiWhatsAppService
             'followup_at' => $followupTime,
             'message' => $agent->followup_message,
         ];
+    }
+    
+    /**
+     * Schedule appointment for lead
+     */
+    private function scheduleAppointment(AiSalesAgent $agent, Lead $lead, array $data): array
+    {
+        try {
+            // Create appointment
+            $appointment = \App\Models\Appointment::createFromAiRequest($lead, $data);
+            
+            // Send confirmation message
+            $confirmationMessage = $this->generateAppointmentConfirmation($appointment);
+            
+            // You might want to send this confirmation via WhatsApp
+            // This would integrate with your message sending system
+            
+            return [
+                'scheduled' => true,
+                'appointment_id' => $appointment->id,
+                'scheduled_at' => $appointment->scheduled_at->toISOString(),
+                'confirmation_message' => $confirmationMessage,
+                'type' => $appointment->appointment_type
+            ];
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to schedule appointment', [
+                'error' => $e->getMessage(),
+                'lead_id' => $lead->id,
+                'data' => $data
+            ]);
+            
+            return [
+                'scheduled' => false,
+                'error' => 'Failed to schedule appointment',
+                'reason' => $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Generate appointment confirmation message
+     */
+    private function generateAppointmentConfirmation(\App\Models\Appointment $appointment): string
+    {
+        $lead = $appointment->lead;
+        $scheduledDate = $appointment->scheduled_at->format('l, M j, Y');
+        $scheduledTime = $appointment->scheduled_at->format('g:i A');
+        
+        $message = "🗓️ *Appointment Confirmed!*\n\n";
+        $message .= "Hi {$lead->name}! 👋\n\n";
+        $message .= "Great news! I've scheduled your {$appointment->title} for:\n\n";
+        $message .= "📅 {$scheduledDate}\n";
+        $message .= "⏰ {$scheduledTime}\n";
+        $message .= "⏱️ Duration: {$appointment->formatted_duration}\n\n";
+        
+        if ($appointment->location) {
+            $message .= "📍 Location: {$appointment->location}\n\n";
+        }
+        
+        if ($appointment->meeting_link) {
+            $message .= "🔗 Meeting Link: {$appointment->meeting_link}\n\n";
+        }
+        
+        $message .= "I'll send you a reminder 24 hours before the appointment.\n\n";
+        $message .= "If you need to reschedule, just let me know! 😊\n\n";
+        $message .= "Looking forward to our meeting!";
+        
+        return $message;
     }
 
     /**

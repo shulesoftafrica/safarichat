@@ -93,6 +93,11 @@ class Lead extends Model
     {
         return $this->hasMany(Handoff::class);
     }
+    
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
 
     // Scopes
     public function scopeActive($query)
