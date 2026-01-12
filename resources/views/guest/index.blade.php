@@ -959,8 +959,8 @@
                                     <tr data-handoff-status="{{ $guest->handoff_status ?? 'ai' }}" data-priority="{{ $guest->priority_level ?? 3 }}">
                                         <td>
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-<?= $guest->id ?>" value="<?= $guest->id ?>">
-                                                <label class="custom-control-label" for="checkbox-<?= $guest->id ?>"></label>
+                                                <input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-{{ $guest->id }}" value="{{ $guest->id }}">
+                                                <label class="custom-control-label" for="checkbox-{{ $guest->id }}"></label>
                                             </div>
                                         </td>
                                         <td>{{$i}}</td>
@@ -1066,20 +1066,20 @@
                                         </td>
                                         
                                         <td name="buttons">
-                                            <a onclick="viewContact('<?= $guest->id ?>')" class="btn btn-info btn-sm" title="{{__('view_contact')}}">
+                                            <a onclick="viewContact('{{ $guest->id }}')" class="btn btn-info btn-sm" title="{{__('view_contact')}}">
                                                 <i class="las la-eye"></i>
                                             </a>
-                                            <a onclick="sendMessageToContact('<?= $guest->id ?>')" class="btn btn-success btn-sm" title="{{__('send_message')}}">
+                                            <a onclick="sendMessageToContact('{{ $guest->id }}')" class="btn btn-success btn-sm" title="{{__('send_message')}}">
                                                 <i class="las la-comment"></i>
                                             </a>
                                             <!-- Handoff Management Button -->
-                                            <button onclick="openHandoffModal('<?= $guest->id ?>')" class="btn btn-primary btn-sm" title="{{__('manage_handoff')}}">
+                                            <button onclick="openHandoffModal('{{ $guest->id }}')" class="btn btn-primary btn-sm" title="{{__('manage_handoff')}}">
                                                 <i class="mdi mdi-account-supervisor"></i>
                                             </button>
-                                            <a onclick="editGuest('<?= $guest->id ?>')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{__('edit')}}">
+                                            <a onclick="editGuest('{{ $guest->id }}')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{__('edit')}}">
                                                 <i class="las la-pen"></i>
                                             </a>
-                                            <a onclick="confirmDelete('<?= $guest->id ?>')" class="btn btn-danger btn-sm" title="{{__('delete')}}">
+                                            <a onclick="confirmDelete('{{ $guest->id }}')" class="btn btn-danger btn-sm" title="{{__('delete')}}">
                                                 <i class="las la-trash-alt"></i>
                                             </a>
                                         </td>
@@ -1652,7 +1652,7 @@
         
         // Get contact details
         $.ajax({
-            url: '<?= url("guest/getContactDetails") ?>/' + contactId,
+            url: '{{ url("guest/getContactDetails") }}/' + contactId,
             method: 'GET',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -1685,7 +1685,7 @@
         $('#conversation-summary').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__('loading_conversation_summary')}}</div>');
         
         $.ajax({
-            url: '<?= url('guest/getConversationSummary') ?>/' + contactId,
+            url: '{{ url('guest/getConversationSummary') }}/' + contactId,
             method: 'GET',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -1844,7 +1844,7 @@
         $('#contact-messages').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__("loading_messages")}}</div>');
         
         $.ajax({
-            url: '<?= url("guest/getContactMessages") ?>/' + contactId,
+            url: '{{ url("guest/getContactMessages") }}/' + contactId,
             method: 'GET',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -2111,7 +2111,7 @@
         });
         
         $.ajax({
-            url: '<?= url("guest/sendMessage") ?>',
+            url: '{{ url("guest/sendMessage") }}',
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'

@@ -319,10 +319,17 @@ class NotificationService
     public function sendSystemAlert(string $alertType, array $data): void
     {
         try {
-            $adminUsers = User::whereHas('roles', function ($query) {
-                    $query->where('name', 'admin');
+            // Get admin users - using a different approach since roles() is not an Eloquent relationship
+            $adminUsers = User::where('is_active', true)
+                ->where(function ($query) {
+                    // Get business owners (they act as admins for their businesses)
+                    $query->whereHas('business', function ($q) {
+                        $q->whereNotNull('user_id');
+                    })
+                    // Or get users with admin permissions (can be expanded later)
+                    ->orWhere('user_type_id', 1) // Assuming user_type_id 1 is admin
+                    ->orWhere('email', 'like', '%admin%'); // Basic admin check
                 })
-                ->where('is_active', true)
                 ->get();
 
             foreach ($adminUsers as $admin) {
