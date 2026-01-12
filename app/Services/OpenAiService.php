@@ -93,7 +93,7 @@ class OpenAiService
             ]);
 
             $aiResponse = $response->choices[0]->message->content;
-            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product);
+            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product, $customerMessage);
 
             return [
                 'success' => true,
@@ -318,7 +318,7 @@ class OpenAiService
             ]);
 
             $aiResponse = $response->choices[0]->message->content;
-            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product);
+            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product, $customerMessage);
 
             return [
                 'success' => true,
@@ -706,7 +706,7 @@ class OpenAiService
     /**
      * Apply agent constraints and extract actions
      */
-    private function applyAgentConstraints(string $aiResponse, AiSalesAgent $agent, ?Product $product): array
+    private function applyAgentConstraints(string $aiResponse, AiSalesAgent $agent, ?Product $product, string $customerMessage = ''): array
     {
         $actions = [];
         $modifiedResponse = $aiResponse;
@@ -768,12 +768,12 @@ class OpenAiService
             'this is ridiculous', 'this is stupid', 'waste of time'
         ];
         
-        $userMessage = strtolower($userPrompt);
+        $userMessage = strtolower($customerMessage);
         foreach ($escalationPhrases as $phrase) {
             if (stripos($userMessage, $phrase) !== false) {
                 $actions['needs_escalation'] = [
                     'reason' => $phrase,
-                    'priority' => $this->determineEscalationPriority($userPrompt),
+                    'priority' => $this->determineEscalationPriority($customerMessage),
                     'trigger_phrase' => $phrase
                 ];
                 break;
@@ -803,7 +803,7 @@ class OpenAiService
             'calendar', 'time slot', 'when can we', 'let\'s meet'
         ];
         
-        $userMessage = strtolower($userPrompt);
+        $userMessage = strtolower($customerMessage);
         foreach ($appointmentKeywords as $keyword) {
             if (stripos($userMessage, $keyword) !== false) {
                 $actions['schedule_appointment'] = [
