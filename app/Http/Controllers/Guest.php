@@ -820,6 +820,74 @@ class Guest extends Controller {
     }
 
     /**
+     * Get conversations for a specific contact with pagination
+     */
+    public function getConversations($id)
+    {
+        try {
+            $business_id = Auth::user()->business->id;
+
+            // Get contact
+            $contact = EventsGuest::where('id', $id)
+                ->where('business_id', $business_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json(['success' => false, 'message' => 'Contact not found']);
+            }
+
+            $limit = request('limit', 3);
+            $offset = request('offset', 0);
+
+            // Get conversations from the conversations table
+            // First, get the lead associated with this contact
+            $lead = $contact->lead;
+
+            if (!$lead) {
+                return response()->json([
+                    'success' => true,
+                    'conversations' => [],
+                    'has_more' => false,
+                    'total' => 0
+                ]);
+            }
+
+            // Get conversations for this lead with pagination
+            $conversations = \App\Models\Conversation::where('lead_id', $lead->id)
+                ->orderBy('created_at', 'desc')
+                ->offset($offset)
+                ->limit($limit + 1) // Get one extra to check if there are more
+                ->get();
+
+            $hasMore = $conversations->count() > $limit;
+            if ($hasMore) {
+                $conversations = $conversations->take($limit); // Remove the extra record
+            }
+
+            // Format conversations for frontend
+            $formattedConversations = $conversations->map(function ($conversation) {
+                return [
+                    'id' => $conversation->id,
+                    'message_content' => $conversation->message_content,
+                    'sender_type' => $conversation->sender_type,
+                    'created_at' => $conversation->created_at,
+                    'timestamp' => $conversation->timestamp ?? $conversation->created_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'conversations' => $formattedConversations,
+                'has_more' => $hasMore,
+                'total' => \App\Models\Conversation::where('lead_id', $lead->id)->count()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Get messages sent to a specific contact
      */
     public function getContactMessages($id)

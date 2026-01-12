@@ -390,6 +390,97 @@
 .dark-mode .input-group .form-control:not(:first-child) {
     border-left: 0;
 }
+
+/* Conversation Bubble Styles */
+.conversations-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.message-item {
+    display: flex;
+    width: 100%;
+    margin-bottom: 15px !important;
+}
+
+.message-bubble {
+    display: flex;
+    flex-direction: column;
+    word-wrap: break-word;
+    border-radius: 18px !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: relative;
+    animation: fadeInMessage 0.3s ease-in;
+}
+
+.message-bubble.ml-auto {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+    color: white !important;
+}
+
+.message-bubble.mr-auto {
+    align-self: flex-start;
+    background-color: #ffffff !important;
+    border: 1px solid #e9ecef;
+    color: #212529 !important;
+}
+
+.message-bubble .message-content p {
+    margin: 0 !important;
+    line-height: 1.4;
+}
+
+.message-bubble small {
+    opacity: 0.8;
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+.message-bubble.ml-auto small {
+    color: rgba(255,255,255,0.8) !important;
+}
+
+.message-bubble.mr-auto small {
+    color: #6c757d !important;
+}
+
+@keyframes fadeInMessage {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dark-mode .conversations-list {
+    background-color: #1a202c !important;
+}
+
+.dark-mode .message-bubble.mr-auto {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .message-bubble.mr-auto small {
+    color: #a0aec0 !important;
+}
+
+#load-more-btn {
+    transition: all 0.3s ease;
+}
+
+#load-more-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+}
 </style>
 <div class="container-fluid">
     <!-- Page-Title -->
@@ -1471,6 +1562,11 @@
     let currentContactId = null;
     let deleteAction = 'single'; // 'single' or 'bulk'
     let contactsToDelete = [];
+    
+    // Message pagination variables
+    let currentContactMessages = [];
+    let messageOffset = 0;
+    const messagesPerPage = 3;
 
     // Initialize contact management features
     $(document).ready(function() {
@@ -1842,16 +1938,20 @@
 
     function loadContactMessages(contactId) {
         $('#contact-messages').html('<div class="text-center text-muted"><i class="mdi mdi-loading mdi-spin"></i> {{__("loading_messages")}}</div>');
+        messageOffset = 0; // Reset offset
+        currentContactMessages = []; // Reset messages array
         
         $.ajax({
-            url: '{{ url("guest/getContactMessages") }}/' + contactId,
+            url: '{{ url("guest/getConversations") }}/' + contactId + '?limit=' + messagesPerPage + '&offset=' + messageOffset,
             method: 'GET',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             success: function(response) {
-                if (response.success) {
-                    displayMessages(response.messages);
+                if (response.success && response.conversations && response.conversations.length > 0) {
+                    currentContactMessages = response.conversations;
+                    displayMessages(currentContactMessages, response.has_more || false);
+                    messageOffset += messagesPerPage;
                 } else {
                     $('#contact-messages').html('<div class="text-center text-muted">{{__("no_messages_found")}}</div>');
                 }
@@ -1862,34 +1962,83 @@
         });
     }
 
-    function displayMessages(messages) {
-        if (messages.length === 0) {
+    function displayMessages(conversations, hasMore = false) {
+        if (conversations.length === 0) {
             $('#contact-messages').html('<div class="text-center text-muted">{{__("no_messages_found")}}</div>');
             return;
         }
 
-        let messagesHtml = '';
-        messages.forEach(function(message) {
-            const messageDate = new Date(message.created_at).toLocaleDateString();
-            const messageTime = new Date(message.created_at).toLocaleTimeString();
-            const statusClass = message.status === 'sent' ? 'success' : 
-                               message.status === 'delivered' ? 'info' : 
-                               message.status === 'failed' ? 'danger' : 'warning';
+        let messagesHtml = '<div class="conversations-list">';
+        conversations.forEach(function(conversation) {
+            const messageDate = new Date(conversation.timestamp || conversation.created_at).toLocaleDateString();
+            const messageTime = new Date(conversation.timestamp || conversation.created_at).toLocaleTimeString();
+            const isOutgoing = conversation.sender_type === 'staff' || conversation.sender_type === 'system' || conversation.sender_type === 'ai';
+            const senderClass = isOutgoing ? 'outgoing' : 'incoming';
+            const alignClass = isOutgoing ? 'ml-auto' : 'mr-auto';
+            
+            // Clean and format message content
+            let messageContent = conversation.message_content || 'No content';
+            // Convert HTML line breaks to proper breaks but escape other HTML
+            messageContent = messageContent.replace(/<br\s*\/?>/gi, '\n').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
             
             messagesHtml += `
-                <div class="message-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
+                <div class="message-item">
+                    <div class="message-bubble ${alignClass} p-3">
                         <div class="message-content">
-                            <p class="mb-1">${message.message}</p>
-                            <small class="text-muted">${messageDate} ${messageTime}</small>
+                            <p class="mb-1">${messageContent}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="message-meta">${conversation.sender_type || 'unknown'} • ${messageDate} ${messageTime}</small>
+                            </div>
                         </div>
-                        <span class="badge badge-${statusClass}">${message.status}</span>
                     </div>
                 </div>
             `;
         });
         
+        // Add load more button if there are more messages
+        if (hasMore) {
+            messagesHtml += `
+                <div class="text-center mt-3">
+                    <button id="load-more-btn" class="btn btn-outline-primary btn-sm" onclick="loadMoreMessages(currentContactId)">
+                        <i class="mdi mdi-chevron-down mr-1"></i>{{__("load_more_messages")}}
+                    </button>
+                </div>
+            `;
+        }
+        
+        messagesHtml += '</div>';
         $('#contact-messages').html(messagesHtml);
+        
+        // Scroll to bottom to show most recent messages
+        const conversationsList = $('.conversations-list');
+        if (conversationsList.length) {
+            conversationsList.scrollTop(conversationsList[0].scrollHeight);
+        }
+    }
+
+    function loadMoreMessages(contactId) {
+        $('#load-more-btn').html('<i class="mdi mdi-loading mdi-spin"></i> {{__("loading")}}').prop('disabled', true);
+        
+        $.ajax({
+            url: '{{ url("guest/getConversations") }}/' + contactId + '?limit=' + messagesPerPage + '&offset=' + messageOffset,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success && response.conversations && response.conversations.length > 0) {
+                    // Append new messages to existing ones
+                    currentContactMessages = currentContactMessages.concat(response.conversations);
+                    displayMessages(currentContactMessages, response.has_more || false);
+                    messageOffset += messagesPerPage;
+                } else {
+                    $('#load-more-btn').hide();
+                }
+            },
+            error: function() {
+                $('#load-more-btn').html('{{__("error_loading_more")}}').prop('disabled', false);
+            }
+        });
     }
 
     // Message Functions

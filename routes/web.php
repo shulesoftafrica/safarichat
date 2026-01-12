@@ -113,6 +113,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/guest/getContactDetails/{id}', [App\Http\Controllers\Guest::class, 'getContactDetails'])->name('guest.getContactDetails');
     Route::get('/guest/getContactMessages/{id}', [App\Http\Controllers\Guest::class, 'getContactMessages'])->name('guest.getContactMessages');
+    Route::get('/guest/getConversations/{id}', [App\Http\Controllers\Guest::class, 'getConversations'])->name('guest.getConversations');
     Route::get('/guest/getConversationSummary/{id}', [App\Http\Controllers\Guest::class, 'getConversationSummary'])->name('guest.getConversationSummary');
     Route::post('/guest/sendMessage', [App\Http\Controllers\Guest::class, 'sendMessage'])->name('guest.sendMessage');
     Route::delete('/guest/bulkDelete', [App\Http\Controllers\Guest::class, 'bulkDelete'])->name('guest.bulkDelete');
