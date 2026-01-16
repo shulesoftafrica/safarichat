@@ -932,34 +932,27 @@ class Message extends Controller
         $effectiveUserId = $userId ?? (Auth::check() ? Auth::id() : null);
         
         try {
-            $waSenderService = new WaSenderService();
+            // First check if this is a system message that should always use system default
+            $messageType = $this->determineSystemMessageType($message, $effectiveUserId, $messageTypeHint);
+            $systemMessageTypes = ['otp_verification', 'welcome_message', 'payment_reminder', 'password_reset', 'system_notification'];
+            $isSystemMessage = in_array($messageType, $systemMessageTypes);
             
-            // First try to get user's WhatsApp instance
-            $instance = null;
-            if ($effectiveUserId) {
-                $instance = $waSenderService->getUserInstance($effectiveUserId);
-            }
-              
-            // If no user instance found, fall back to system default instance
-            if (!$instance) {
-                Log::info('No user WhatsApp instance found, attempting system default', [
-                    'user_id' => $effectiveUserId,
-                    'phone' => $phoneNumber
+            // If this is a system message (like OTP), go directly to system default
+            if ($isSystemMessage) {
+                Log::info('Using system default for system message', [
+                    'message_type' => $messageType,
+                    'phone' => $phoneNumber,
+                    'user_id' => $effectiveUserId
                 ]);
                 
-                // Try to use system default instance via SystemWhatsAppService
+                // Use system default instance via SystemWhatsAppService
                 $systemService = app(SystemWhatsAppService::class);
                 
-            
-
                 if ($systemService->isAvailable()) {
-                    // Determine message type based on context
-                    $messageType = $this->determineSystemMessageType($message, $effectiveUserId, $messageTypeHint);
-                    
                     // Get system instance for validation
                     $systemInstance = \App\Models\WhatsappInstance::getSystemDefault();
              
-                    if ($messageType && $systemInstance && $systemInstance->canSendMessageType($messageType)) {
+                    if ($systemInstance && $systemInstance->canSendMessageType($messageType)) {
                         // Use appropriate SystemWhatsAppService method based on message type
                         $result = match($messageType) {
                             'otp_verification' => $systemService->sendGenericMessage($phoneNumber, $message, 'otp_verification'),
@@ -969,7 +962,6 @@ class Message extends Controller
                             default => $systemService->sendGenericMessage($phoneNumber, $message, 'system_notification')
                         };
 
-             
                         Log::info('Message sent via system default WhatsApp instance', [
                             'phone' => $phoneNumber,
                             'user_id' => $effectiveUserId,
@@ -982,6 +974,63 @@ class Message extends Controller
                             'message' => $result ? 'Message sent via system instance' : 'Failed to send via system instance',
                             'method' => 'system_default',
                             'message_type' => $messageType
+                        ];
+                    }
+                }
+                
+                Log::error('System WhatsApp instance not available for system message', [
+                    'user_id' => $effectiveUserId,
+                    'phone' => $phoneNumber,
+                    'message_type' => $messageType,
+                    'system_available' => $systemService->isAvailable()
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'System WhatsApp instance not available',
+                    'error_code' => 'SYSTEM_INSTANCE_UNAVAILABLE'
+                ];
+            }
+            
+            // For regular user messages, try to get user's WhatsApp instance
+            $waSenderService = new WaSenderService();
+            $instance = null;
+            if ($effectiveUserId) {
+                $instance = $waSenderService->getUserInstance($effectiveUserId);
+            }
+              
+            // If no user instance found, fall back to system default instance for regular messages
+            if (!$instance) {
+                Log::info('No user WhatsApp instance found for regular message, attempting system default', [
+                    'user_id' => $effectiveUserId,
+                    'phone' => $phoneNumber
+                ]);
+                
+                // Try to use system default instance via SystemWhatsAppService for regular messages
+                $systemService = app(SystemWhatsAppService::class);
+                
+                if ($systemService->isAvailable()) {
+                    // For regular messages without user instance, treat as system notification
+                    $fallbackMessageType = 'system_notification';
+                    
+                    // Get system instance for validation
+                    $systemInstance = \App\Models\WhatsappInstance::getSystemDefault();
+             
+                    if ($systemInstance && $systemInstance->canSendMessageType($fallbackMessageType)) {
+                        $result = $systemService->sendGenericMessage($phoneNumber, $message, $fallbackMessageType);
+
+                        Log::info('Regular message sent via system default WhatsApp instance', [
+                            'phone' => $phoneNumber,
+                            'user_id' => $effectiveUserId,
+                            'message_type' => $fallbackMessageType,
+                            'result' => $result
+                        ]);
+                        
+                        return [
+                            'success' => $result,
+                            'message' => $result ? 'Message sent via system instance' : 'Failed to send via system instance',
+                            'method' => 'system_default',
+                            'message_type' => $fallbackMessageType
                         ];
                     }
                 }

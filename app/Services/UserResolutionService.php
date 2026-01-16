@@ -20,8 +20,8 @@ class UserResolutionService
      * Phone number normalization patterns
      */
     private static array $phonePatterns = [
-        'kenyan' => [
-            'pattern' => '/^(\+255|255|0)?([17]\d{8})$/',
+        'tanzanian' => [
+            'pattern' => '/^(\+255|255|0)?([6-9]\d{8})$/',
             'format' => '+255{number}',
             'length' => 9
         ],
@@ -137,8 +137,8 @@ class UserResolutionService
         // Clean the phone number
         $cleaned = preg_replace('/[^\d+]/', '', $phone);
         
-        // Try Kenyan format first
-        if (preg_match(self::$phonePatterns['kenyan']['pattern'], $cleaned, $matches)) {
+        // Try Tanzanian format first
+        if (preg_match(self::$phonePatterns['tanzanian']['pattern'], $cleaned, $matches)) {
             return '+255' . $matches[2];
         }
         

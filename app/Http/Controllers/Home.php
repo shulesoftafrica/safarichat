@@ -147,11 +147,11 @@ class Home extends Controller
                 SELECT 
                     count(*) as sum, 
                     extract(month from created_at)||'-'||extract(year from created_at) as month_date 
-                FROM events_guests 
-                WHERE business_id = ? 
+                FROM business_contacts 
+                WHERE user_id = ? 
                 GROUP BY month_date 
                 ORDER BY month_date ASC
-            ", [$business_id]);
+            ", [$user_id]);
         }
 
         // Instance-aware recent activity data for WhatsApp

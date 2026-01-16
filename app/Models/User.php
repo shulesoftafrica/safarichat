@@ -52,7 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail{
         'available_credits',
         'whatsapp_number',
         'last_activity_at',
-        'uuid'
+        'uuid',
+        'is_active'
     ];
 
     /**
@@ -76,7 +77,8 @@ class User extends Authenticatable implements MustVerifyEmail{
         'password_reset_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'last_activity_at' => 'datetime',
-        'available_credits' => 'integer'
+        'available_credits' => 'integer',
+        'is_active' => 'boolean'
     ];
 
     /**
@@ -287,5 +289,13 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function hasRole($role)
     {
         return $this->roles()->contains($role);
+    }
+
+    /**
+     * Scope a query to only include active users
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

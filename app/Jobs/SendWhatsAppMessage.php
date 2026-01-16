@@ -36,6 +36,7 @@ class SendWhatsAppMessage implements ShouldQueue
     protected $priority;
     protected $batchId;
     protected $outgoingMessageId;
+    protected $messageType; // Add message type field
 
     /**
      * The number of times the job may be attempted.
@@ -69,6 +70,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $this->priority = $options['priority'] ?? 'normal';
         $this->batchId = $options['batch_id'] ?? null;
         $this->outgoingMessageId = $options['outgoing_message_id'] ?? null;
+        $this->messageType = $options['message_type'] ?? null; // Add message type support
       
         // Set queue based on message priority
         $this->onQueue($this->determineQueue());
@@ -223,18 +225,31 @@ class SendWhatsAppMessage implements ShouldQueue
      */
     private function sendViaUnifiedApi(UnifiedNotificationService $service, OutgoingMessage $message)
     {
-        // Get WhatsApp instance to extract UUID for schema_name
+        // Determine if this is a system message that should always use system default instance
+        $isSystemMessage = $this->isSystemMessage();
         $whatsappInstance = null;
-        if ($this->whatsappInstanceId) {
-            $whatsappInstance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
+        
+        if ($isSystemMessage) {
+            // For system messages (OTP, welcome, etc.), always use system default instance
+            $whatsappInstance = \App\Models\WhatsappInstance::getSystemDefault();
+            Log::info('Using system default instance for system message', [
+                'phone' => $this->phoneNumber,
+                'message_type' => $this->messageType,
+                'instance_id' => $whatsappInstance ? $whatsappInstance->id : 'not_found'
+            ]);
+        } else {
+            // For regular messages, try to find the specified instance
+            if ($this->whatsappInstanceId) {
+                $whatsappInstance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
+            }
         }
           
         // Use WhatsApp instance UUID as schema_name (required for multi-tenant messaging)
-        $schemaName = 'default'; // fallback
+        $schemaName = null; // Start with null to detect if not found
         if ($whatsappInstance && $whatsappInstance->uuid) {
             $schemaName = $whatsappInstance->uuid;
-        } else {
-            // If no instance UUID, try to find user's primary instance
+        } else if (!$isSystemMessage) {
+            // Only try user instances for non-system messages
             $user = User::find($this->userId);
             if ($user) {
                 $primaryInstance = $user->whatsappInstances()->where('is_primary', true)->first();
@@ -249,6 +264,21 @@ class SendWhatsAppMessage implements ShouldQueue
                 }
             }
         }
+        
+        // Final fallback to system default if no schema found
+        if (!$schemaName) {
+            $systemInstance = \App\Models\WhatsappInstance::getSystemDefault();
+            if ($systemInstance && $systemInstance->uuid) {
+                $schemaName = $systemInstance->uuid;
+                Log::info('Using system default UUID as fallback', [
+                    'phone' => $this->phoneNumber,
+                    'system_uuid' => $schemaName,
+                    'user_id' => $this->userId
+                ]);
+            } else {
+                throw new Exception('No valid WhatsApp instance UUID found for message sending');
+            }
+        }
 
         $apiData = [
             'schema_name' => $schemaName,
@@ -258,7 +288,12 @@ class SendWhatsAppMessage implements ShouldQueue
             'priority' => $this->priority,
             "type"=>"wasender"
         ];
-    
+    Log::info('Unified API data being sent', [
+        'phone' => $this->phoneNumber,
+        'api_data' => $apiData,
+        'schema_name' => $schemaName,
+        'provider' => $this->provider
+    ]);
         // Add files if present
         if ($this->files && is_array($this->files)) {
             foreach ($this->files as $file) {
@@ -353,5 +388,56 @@ class SendWhatsAppMessage implements ShouldQueue
     public function backoff(): array
     {
         return [30, 60, 180]; // Retry after 30s, 1min, 3mins
+    }
+
+    /**
+     * Determine if this is a system message that should use system default instance
+     */
+    private function isSystemMessage(): bool
+    {
+        // Check if message type is explicitly set as a system message type
+        if ($this->messageType) {
+            $systemMessageTypes = ['otp_verification', 'welcome_message', 'password_reset', 'payment_reminder', 'system_notification'];
+            if (in_array($this->messageType, $systemMessageTypes)) {
+                return true;
+            }
+        }
+
+        // Check if this appears to be a system message based on priority and user context
+        if ($this->priority === 'high' && !$this->userId) {
+            return true; // High priority message with no user ID is likely system message
+        }
+
+        // Check message content patterns for OTP, welcome, etc.
+        $messageText = is_array($this->messageData) ? 
+            ($this->messageData['message'] ?? json_encode($this->messageData)) : 
+            $this->messageData;
+        
+        $messageText = strtolower($messageText);
+        
+        // OTP patterns
+        if (preg_match('/(verification code|otp|verify|code|\d{4,6})/', $messageText)) {
+            return true;
+        }
+        
+        // Welcome patterns
+        if (preg_match('/(welcome|greeting|hello.*safarichat|thank you for joining)/', $messageText)) {
+            return true;
+        }
+        
+        // Password reset patterns
+        if (preg_match('/(password|reset|forgot|change password)/', $messageText)) {
+            return true;
+        }
+
+        // Check if whatsappInstanceId points to system default instance
+        if ($this->whatsappInstanceId) {
+            $instance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
+            if ($instance && $instance->is_system_default) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

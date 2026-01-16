@@ -186,7 +186,8 @@ class SystemWhatsAppService
                 [                                   // options array
                     'whatsapp_instance_id' => $this->systemInstance->id,
                     'provider' => 'unified_api',
-                    'priority' => 'high'
+                    'priority' => 'high',
+                    'message_type' => $messageType  // Add message type to options
                 ]
             );
             
