@@ -99,7 +99,7 @@ Route::get('/service/jd', [App\Http\Controllers\Service::class, 'jd'])->name('se
 Route::get('/service/tab-content', [App\Http\Controllers\Service::class, 'getTabContent'])->name('service.tab-content');
 
 // Products Management Routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     Route::post('/products', [App\Http\Controllers\ProductController::class, 'store'])->name('products.store');
     Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
@@ -110,7 +110,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Contact Management Routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/guest/getContactDetails/{id}', [App\Http\Controllers\Guest::class, 'getContactDetails'])->name('guest.getContactDetails');
     Route::get('/guest/getContactMessages/{id}', [App\Http\Controllers\Guest::class, 'getContactMessages'])->name('guest.getContactMessages');
     Route::get('/guest/getConversations/{id}', [App\Http\Controllers\Guest::class, 'getConversations'])->name('guest.getConversations');
@@ -120,12 +120,12 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::get('/home', [App\Http\Controllers\Home::class, 'index'])->name('home');
-Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index']);
+Route::get('/home', [App\Http\Controllers\Home::class, 'index'])->name('home')->middleware(['auth', 'whatsapp.setup']);
+Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->middleware(['auth', 'whatsapp.setup']);
 // Support system removed - use external support tools
 
 // Guest management routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/guest', [App\Http\Controllers\Guest::class, 'index'])->name('guest.index');
     Route::post('/guest/store/{id?}', [App\Http\Controllers\Guest::class, 'store'])->name('guest.store');
     Route::post('/guest/edit/{id?}', [App\Http\Controllers\Guest::class, 'update'])->name('guest.update');
@@ -236,12 +236,19 @@ Route::get('/test-event-fix', function() {
 Route::get('/wasender', [App\Http\Controllers\WaSenderController::class, 'index'])
     ->middleware('auth')->name('wasender.index');
 
+Route::get('/auth/business/wasender', [App\Http\Controllers\WaSenderController::class, 'index'])
+    ->middleware('auth')->name('business.wasender');
+
 # WA Sender AJAX endpoints for web interface
 Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function () {
     Route::post('/create-session', [App\Http\Controllers\WaSenderController::class, 'createSession'])
         ->name('create-session');
     Route::get('/session-status/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'checkSessionStatus'])
         ->name('session-status');
+    Route::get('/verify-connection/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'verifyConnection'])
+        ->name('verify-connection');
+    Route::delete('/cleanup-session/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'cleanupSession'])
+        ->name('cleanup-session');
     Route::get('/user-instances', [App\Http\Controllers\WaSenderController::class, 'getUserInstances'])
         ->name('user-instances');
     Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance'])
@@ -300,8 +307,10 @@ if (createRoute() != NULL) {
     $file = app_path() . DIRECTORY_SEPARATOR . 'Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . $route[0] . '.php';
 
     if (file_exists($file)) {
-        // Exclude API routes from this wildcard route
-        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute())->where('controller', '^(?!api).*');
+        // Exclude API routes from this wildcard route and apply whatsapp.setup middleware
+        Route::any('/{controller?}/{method?}/{param1?}/{param2?}/{param3?}/{param4?}/{param5?}/{param6?}/{param7?}', createRoute())
+            ->where('controller', '^(?!api).*')
+            ->middleware(['auth', 'whatsapp.setup']);
     }
 }
 

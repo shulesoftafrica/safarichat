@@ -1,4 +1,18 @@
-<?php ?>
+<?php 
+// Check if user has connected WhatsApp and defined products
+$hasConnectedWhatsApp = false;
+$hasProducts = false;
+$showNavigation = false;
+
+if (Auth::check()) {
+    $user = Auth::user();
+    $hasConnectedWhatsApp = $user->whatsappInstances()
+        ->where('status', 'connected')
+        ->exists();
+    $hasProducts = $user->products()->exists();
+    $showNavigation = $hasConnectedWhatsApp && $hasProducts;
+}
+?>
 <!-- Add Font Awesome CDN for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <!-- leftbar-tab-menu -->
@@ -10,6 +24,7 @@
             </span>
         </a>
         <nav class="nav">
+            <?php if ($showNavigation) { ?>
             <?php
             if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
                 ?>
@@ -65,6 +80,7 @@
         </div>
         <!--end logo-->
         <div class="menu-body slimscroll">  
+            <?php if ($showNavigation) { ?>
             <?php
         //    if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
                 ?>
@@ -130,7 +146,31 @@
                 </div><!-- end CRM -->                
 
          
-            <?php //} ?>
+            <?php } // End showNavigation check ?>
+            
+            <?php if (!$showNavigation && Auth::check()) { ?>
+                <div class="setup-status-message" style="padding: 2rem; text-align: center; color: #6c757d;">
+                    <?php if (!$hasConnectedWhatsApp) { ?>
+                        <div class="mb-3">
+                            <i class="fab fa-whatsapp" style="font-size: 3rem; color: #25D366; margin-bottom: 1rem;"></i>
+                            <h5 style="color: #333; margin-bottom: 0.5rem;">Connect WhatsApp First</h5>
+                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Please connect your WhatsApp account to access the dashboard.</p>
+                            <a href="{{ route('business.wasender') }}" class="btn btn-success">
+                                <i class="fab fa-whatsapp mr-2"></i>Connect WhatsApp
+                            </a>
+                        </div>
+                    <?php } elseif (!$hasProducts) { ?>
+                        <div class="mb-3">
+                            <i class="fas fa-box" style="font-size: 3rem; color: #007bff; margin-bottom: 1rem;"></i>
+                            <h5 style="color: #333; margin-bottom: 0.5rem;">Define Your Products</h5>
+                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Please define at least one product or service to access the full dashboard.</p>
+                            <a href="{{ route('products.index') }}" class="btn btn-primary">
+                                <i class="fas fa-plus mr-2"></i>Add Products
+                            </a>
+                        </div>
+                    <?php } ?>
+                </div>
+            <?php } ?>
 
             <?php if (!empty(Auth::user()->business)) { ?>
                 <!-- <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
@@ -149,6 +189,7 @@
             <?php } ?>
          
 
+            <?php if ($showNavigation) { ?>
             <div id="services" class="main-icon-menu-pane ">
                 <div class="title-box">
                     <h6 class="menu-title">{{__('services')}}</h6>     
@@ -166,6 +207,7 @@
                     <li class="nav-item"><a class="nav-link btn btn-outline-success waves-effect waves-light" href="<?= url('service/selected') ?>">{{__('selected_services')}}</a></li>
                 </ul>
             </div><!-- end Authentication-->
+            <?php } // End showNavigation check for services ?>
         </div><!--end menu-body-->
     </div><!-- end main-menu-inner-->
 </div>

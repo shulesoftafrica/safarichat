@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'onboarding.complete' => \App\Http\Middleware\OnboardingComplete::class,
         'auth.admin' => \App\Http\Middleware\AdminAuth::class,
         'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
+        'whatsapp.setup' => \App\Http\Middleware\CheckWhatsAppSetup::class,
     ];
 }
