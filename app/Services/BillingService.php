@@ -45,6 +45,14 @@ class BillingService
     }
     
     /**
+     * Alias for getCachedStatus for backward compatibility
+     */
+    public static function getBillingStatus($customerId)
+    {
+        return self::getCachedStatus($customerId);
+    }
+    
+    /**
      * Load complete customer billing status from API
      * This runs once at app boot and periodically for refresh
      */
