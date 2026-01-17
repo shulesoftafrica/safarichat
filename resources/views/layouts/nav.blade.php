@@ -53,6 +53,7 @@ if (Auth::check()) {
 
 
             <?php } ?>
+            <?php } // End showNavigation check ?>
         </nav><!--end nav-->
         <div class="pro-metrica-end">
             <!-- <a href="" class="help" data-toggle="tooltip-custom" data-placement="right" title="" data-original-title="{{__('support')}}" >
@@ -172,7 +173,7 @@ if (Auth::check()) {
                 </div>
             <?php } ?>
 
-            <?php if (!empty(Auth::user()->business)) { ?>
+            <?php if (!empty(Auth::user()->business) && $showNavigation) { ?>
                 <!-- <div id="Business" class="main-icon-menu-pane  <?= in_array(request()->segment(2), ['business']) || Auth::user()->usersEvents()->count() == 0 ? 'active' : '' ?>">
                     <div class="title-box">
                         <h6 class="menu-title">Business </h6>        
