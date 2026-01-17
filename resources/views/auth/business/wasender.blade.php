@@ -160,6 +160,13 @@
     padding: 1rem;
 }
 
+.qr-code-display canvas,
+.qr-code-display img {
+    border-radius: 10px;
+    max-width: 100%;
+    height: auto;
+}
+
 .qr-code-image {
     max-width: 280px;
     border-radius: 10px;
@@ -375,8 +382,8 @@
                 </div>
 
                 <div class="qr-code-container">
-                    <div class="qr-code-display">
-                        <img id="qr-code-image" src="" alt="QR Code" class="qr-code-image">
+                    <div class="qr-code-display" id="qr-code-display">
+                        <!-- QR code will be generated here by QRCode.js -->
                     </div>
                 </div>
 
@@ -384,7 +391,7 @@
                     <div class="status-spinner"></div>
                     <div>
                         <strong>Waiting for scan...</strong><br>
-                        <small>QR code expires in: <span id="qr-timer">30</span> seconds</small>
+                        <small>QR code expires in: <span id="qr-timer">120</span> seconds</small>
                     </div>
                 </div>
             </div>
@@ -442,6 +449,7 @@
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="text/javascript">
     // Initialize phone validation
     function initializePhoneValidation() {
@@ -522,6 +530,10 @@
     let currentSessionId = null;
     let statusCheckInterval = null;
     let countdownInterval = null;
+    let qrCodeInstance = null;
+    let connectionTimeout = null;
+    let maxConnectionAttempts = 60; // 30 minutes (60 * 30 seconds)
+    let currentAttempts = 0;
 
     function showSection(sectionId) {
         $('.setup-section').removeClass('active');
@@ -529,12 +541,49 @@
     }
 
     function showError(message) {
+        // Clean up intervals and session
+        clearAllIntervals();
+        
         showSection('error-section');
         $('#error-message').text(message);
+        
+        // Clean up session on server if it exists
+        if (currentSessionId) {
+            cleanupSession(currentSessionId);
+        }
+    }
+
+    function clearAllIntervals() {
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+            statusCheckInterval = null;
+        }
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        if (connectionTimeout) {
+            clearTimeout(connectionTimeout);
+            connectionTimeout = null;
+        }
+    }
+
+    async function cleanupSession(sessionId) {
+        try {
+            await fetch(`{{ url("wasender/cleanup-session") }}/${sessionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+        } catch (error) {
+            console.error('Failed to cleanup session:', error);
+        }
+        currentSessionId = null;
     }
 
     function startCountdown() {
-        let timeLeft = 30;
+        let timeLeft = 120; // Extend to 2 minutes
         $('#qr-timer').text(timeLeft);
         
         if (countdownInterval) {
@@ -546,7 +595,9 @@
             $('#qr-timer').text(timeLeft);
             
             if (timeLeft <= 0) {
-                timeLeft = 30; // Reset countdown
+                // QR code expired, regenerate
+                clearInterval(countdownInterval);
+                regenerateQRCode();
             }
         }, 1000);
     }
@@ -589,51 +640,43 @@
                     showSection('qr-code-section');
                     startCountdown(); // Start the countdown timer
 
-                    // Handle QR code - either base64 or URL
-                    let qrCodeData = data.qr_code;
-                    console.log('Received QR Code data type:', typeof qrCodeData);
+                    // Clear previous QR code if exists
+                    const qrContainer = document.getElementById('qr-code-display');
+                    qrContainer.innerHTML = '';
                     
-                    const qrImage = $('#qr-code-image');
-                    
-                    // Check if it's base64 encoded (starts with data:image/ or is just base64 string)
-                    if (qrCodeData && (qrCodeData.startsWith('data:image/') || qrCodeData.length > 500)) {
-                        // It's base64 data
-                        let qrSrc = qrCodeData.startsWith('data:image/') ? qrCodeData : 'data:image/png;base64,' + qrCodeData;
-                        qrImage.attr('src', qrSrc);
-                        console.log('QR code set as base64 data');
-                    } else if (qrCodeData && qrCodeData.startsWith('http')) {
-                        // It's a URL
-                        qrImage.on('error', function() {
-                            console.error('Failed to load QR code image from URL:', qrCodeData);
-                            $(this).attr('alt', 'QR Code failed to load');
-                            $('.qr-code-display').html('<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>QR Code failed to load. Please try again.</div>');
-                        });
-                        
-                        qrImage.on('load', function() {
-                            console.log('QR code image loaded successfully from URL:', qrCodeData);
-                        });
-                        
-                        const cacheBuster = '?t=' + Date.now();
-                        qrImage.attr('src', qrCodeData + cacheBuster);
+                    // Generate QR code using QRCode.js
+                    if (data.qr_code) {
+                        try {
+                            qrCodeInstance = new QRCode(qrContainer, {
+                                text: data.qr_code,
+                                width: 280,
+                                height: 280,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                            console.log('QR code generated successfully with QRCode.js');
+                        } catch (error) {
+                            console.error('Error generating QR code:', error);
+                            qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>QR Code generation failed. Please try again.</div>';
+                        }
                     } else {
-                        console.error('Invalid QR code data format:', qrCodeData);
-                        $('.qr-code-display').html('<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>Invalid QR code format. Please try again.</div>');
+                        console.error('No QR code data received');
+                        qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>No QR code data received. Please try again.</div>';
                     }
                     
                     checkSessionStatus(data.session_id);
                 } else {
-                    alert('QR code generation failed. Please try again.');
-
+                    showError('QR code generation failed: ' + (data.message || 'Please try again.'));
                 }
             } else {
-                alert('Error: ' + data.message);
+                showError('Error: ' + (data.message || 'Connection failed'));
                 generateBtn.prop('disabled', false);
                 $('#btn-spinner').addClass('d-none');
             }
         } catch (error) {
-            alert('Connection error. Please try again.');
-            generateBtn.prop('disabled', false);
-            $('#btn-spinner').addClass('d-none');
+            console.error('Generate session error:', error);
+            showError('Connection error. Please check your internet connection and try again.');
         }
     }
 
@@ -645,7 +688,21 @@
             clearInterval(statusCheckInterval);
         }
 
+        currentAttempts = 0;
+
         statusCheckInterval = setInterval(async () => {
+            currentAttempts++;
+            
+            // Timeout after max attempts
+            if (currentAttempts >= maxConnectionAttempts) {
+                clearInterval(statusCheckInterval);
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+                showError('Connection timeout. The QR code scanning took too long. Please try again.');
+                return;
+            }
+
             try {
                 const response = await fetch(`{{ url("wasender/session-status") }}/${sessionId}`, {
                     headers: {
@@ -653,19 +710,54 @@
                     }
                 });
                 
-                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error('Status check failed');
+                }
                 
-                if (data.success && data.status === 'connected') {
-                    clearInterval(statusCheckInterval);
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
+                const data = await response.json();
+                console.log('Status check response:', data);
+                
+                if (data.success) {
+                    if (data.status === 'connected' && data.verified === true) {
+                        // Double-check connection is actually working
+                        const verificationResponse = await fetch(`{{ url("wasender/verify-connection") }}/${sessionId}`, {
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        });
+                        
+                        const verificationData = await verificationResponse.json();
+                        
+                        if (verificationData.success && verificationData.connected === true) {
+                            clearInterval(statusCheckInterval);
+                            if (countdownInterval) {
+                                clearInterval(countdownInterval);
+                            }
+                            showSection('success-section');
+                            console.log('WhatsApp connection verified successfully');
+                        } else {
+                            console.log('Connection verification failed, continuing to wait...');
+                        }
+                    } else if (data.status === 'failed' || data.status === 'error') {
+                        clearInterval(statusCheckInterval);
+                        if (countdownInterval) {
+                            clearInterval(countdownInterval);
+                        }
+                        showError(data.message || 'WhatsApp connection failed. Please try again.');
                     }
-                    showSection('success-section');
+                    // Continue waiting for other statuses (pending, scanning, etc.)
+                } else {
+                    console.error('Status check returned error:', data.message);
                 }
             } catch (error) {
                 console.error('Status check failed:', error);
+                // Don't show error immediately, continue retrying
+                if (currentAttempts >= 3) {
+                    // Only show error after multiple failures
+                    console.warn('Multiple status check failures, but continuing...');
+                }
             }
-        }, 30000); // Check every 30 seconds
+        }, 5000); // Check every 5 seconds instead of 30
     }
 
     $(document).ready(function() {
@@ -685,6 +777,18 @@
         $('#whatsapp-form').submit(function(e) {
             e.preventDefault();
             generateSession();
+        });
+
+        // Cleanup on page unload
+        $(window).on('beforeunload', function() {
+            clearAllIntervals();
+            if (currentSessionId) {
+                // Use sendBeacon for cleanup on page unload
+                navigator.sendBeacon(
+                    `{{ url("wasender/cleanup-session") }}/${currentSessionId}`,
+                    new FormData()
+                );
+            }
         });
 
 
