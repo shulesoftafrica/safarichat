@@ -13,32 +13,48 @@ use Illuminate\Support\Facades\Notification;
 class NotificationService
 {
     /**
+     * Send WhatsApp message
+     */
+    private function sendWhatsAppMessage(string $phone, string $message): void
+    {
+        try {
+            // Use the same logic as in Setup controller
+            $controller = new \App\Http\Controllers\Setup();
+            $controller->sendTextMessage($phone, $message, 'whatsapp', 'notification');
+            
+            Log::info('WhatsApp notification sent', [
+                'phone' => $phone,
+                'message_length' => strlen($message)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send WhatsApp notification', [
+                'phone' => $phone,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Notify when handoff is created
      */
     public function notifyHandoffCreated(Handoff $handoff, User $agentOwner): void
     {
         try {
-            $data = [
-                'handoff' => $handoff,
-                'lead' => $handoff->lead,
-                'agent' => $handoff->aiSalesAgent,
-                'priority' => $handoff->priority_level,
-                'reason' => $handoff->reason_code,
-                'sla_deadline' => $handoff->sla_deadline,
-                'context' => $handoff->context_data,
-            ];
+            $message = "🚨 *New Customer Escalation Created*\n\n";
+            $message .= "📋 Lead ID: #{$handoff->lead_id}\n";
+            $message .= "👤 Customer: {$handoff->lead->contact->guest_name}\n";
+            $message .= "📞 Phone: {$handoff->lead->contact->guest_phone}\n";
+            $message .= "🔥 Priority: " . ucfirst($handoff->priority_level) . "\n";
+            $message .= "📝 Reason: {$handoff->reason_code}\n\n";
+            $message .= "Please check your dashboard to handle this escalation.";
 
-            // Send email notification
-            Mail::send('emails.handoff.created', $data, function ($message) use ($agentOwner, $handoff) {
-                $message->to($agentOwner->email)
-                    ->subject("AI Sales Agent Escalation - {$handoff->priority_level} priority")
-                    ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            $this->sendWhatsAppMessage($agentOwner->phone, $message);
 
             // Log notification
             Log::info('Handoff creation notification sent', [
                 'handoff_id' => $handoff->id,
-                'notified_user' => $agentOwner->email,
+                'notified_user' => $agentOwner->phone,
             ]);
 
         } catch (\Exception $e) {
@@ -56,19 +72,16 @@ class NotificationService
     public function notifyHandoffAssigned(Handoff $handoff, User $assignedAgent): void
     {
         try {
-            $data = [
-                'handoff' => $handoff,
-                'lead' => $handoff->lead,
-                'agent' => $handoff->aiSalesAgent,
-                'assigned_agent' => $assignedAgent,
-                'context' => $handoff->context,
-            ];
+            $message = "✅ *Customer Escalation Assigned to You*\n\n";
+            $message .= "📋 Lead ID: #{$handoff->lead_id}\n";
+            $message .= "👤 Customer: {$handoff->lead->contact->guest_name}\n";
+            $message .= "📞 Phone: {$handoff->lead->contact->guest_phone}\n";
+            $message .= "🔥 Priority: {$handoff->priority_level}\n";
+            $message .= "📝 Reason: {$handoff->reason_code}\n";
+            $message .= "⏰ SLA Deadline: {$handoff->sla_deadline->format('M d, Y H:i')}\n\n";
+            $message .= "Please handle this escalation promptly. Check your dashboard for full details.";
 
-            Mail::send('emails.handoff.assigned', $data, function ($message) use ($assignedAgent, $handoff) {
-                $message->to($assignedAgent->email)
-                    ->subject("Handoff Assigned: Lead #{$handoff->lead_id}")
-                    ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            $this->sendWhatsAppMessage($assignedAgent->phone, $message);
 
             Log::info('Handoff assignment notification sent', [
                 'handoff_id' => $handoff->id,
@@ -100,12 +113,18 @@ class NotificationService
             ];
 
             // Notify original agent owner
-            if ($handoff->aiSalesAgent && $handoff->aiSalesAgent->user) {
-                Mail::send('emails.handoff.resolved', $data, function ($message) use ($handoff) {
-                    $message->to($handoff->aiSalesAgent->user->email)
-                        ->subject("Handoff Resolved: Lead #{$handoff->lead_id}")
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-                });
+            if ($handoff->lead->aiSalesAgent && $handoff->lead->aiSalesAgent->user) {
+                $message = "✅ *Customer Escalation Resolved*\n\n";
+                $message .= "📋 Lead ID: #{$handoff->lead_id}\n";
+                $message .= "👤 Customer: {$handoff->lead->contact->guest_name}\n";
+                $message .= "👨‍💼 Resolved by: {$resolvedBy->name}\n";
+                $message .= "📝 Resolution: {$handoff->resolution_notes}\n";
+                if (isset($outcome['customer_satisfaction'])) {
+                    $message .= "⭐ Satisfaction: {$outcome['customer_satisfaction']}/5\n";
+                }
+                $message .= "\nGreat work on handling this escalation!";
+
+                $this->sendWhatsAppMessage($handoff->lead->aiSalesAgent->user->phone, $message);
             }
 
             Log::info('Handoff resolution notification sent', [
@@ -145,20 +164,26 @@ class NotificationService
             ];
 
             if ($fallbackUser) {
-                // Send email to user
-                Mail::send('emails.handoff.fallback', $data, function ($message) use ($fallbackUser, $handoff) {
-                    $message->to($fallbackUser->email)
-                        ->subject("AI Agent Escalation - Action Required")
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-                });
+                // Send WhatsApp message to user
+                $message = "🔄 *Fallback Customer Escalation Assigned*\n\n";
+                $message .= "📋 Lead ID: #{$handoff->lead_id}\n";
+                $message .= "👤 Customer: {$handoff->lead->contact->guest_name}\n";
+                $message .= "🔥 Priority: " . ucfirst($handoff->priority_level) . "\n";
+                $message .= "⚠️ This escalation was auto-assigned as a fallback.\n\n";
+                $message .= "Please handle this escalation promptly.";
+
+                $this->sendWhatsAppMessage($fallbackUser->phone, $message);
             } else {
-                // Send to fallback contact directly (if it's an email)
-                if (filter_var($agent->fallback_person, FILTER_VALIDATE_EMAIL)) {
-                    Mail::send('emails.handoff.fallback', $data, function ($message) use ($agent, $handoff) {
-                        $message->to($agent->fallback_person)
-                            ->subject("AI Agent Escalation - Action Required")
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    });
+                // Send to fallback contact directly (if it's a phone number)
+                if (preg_match('/^\+?[1-9]\d{1,14}$/', $agent->fallback_person)) {
+                    $message = "🚨 *URGENT: Admin Fallback Escalation*\n\n";
+                    $message .= "📋 Handoff ID: #{$handoff->id}\n";
+                    $message .= "👤 Customer: {$handoff->lead->contact->guest_name}\n";
+                    $message .= "🔥 Priority: " . ucfirst($handoff->priority_level) . "\n";
+                    $message .= "⚠️ No agents available - admin intervention required!\n\n";
+                    $message .= "Please assign this escalation manually.";
+
+                    $this->sendWhatsAppMessage($agent->fallback_person, $message);
                 }
             }
 
@@ -239,10 +264,16 @@ class NotificationService
                     'count' => $userHandoffs->count(),
                 ];
 
-                Mail::send('emails.handoff.overdue', $data, function ($message) use ($user, $userHandoffs) {
-                    $message->to($user->email)
-                        ->subject("Overdue Handoffs Alert - {$userHandoffs->count()} items")
-                        ->from(config('mail.from.address'), config('mail.from.name'));
+                $message = "🚨 *OVERDUE Customer Escalations*\n\n";
+                $message .= "You have {$userHandoffs->count()} overdue escalation(s):\n\n";
+                foreach ($userHandoffs as $handoff) {
+                    $message .= "📋 Lead #{$handoff->lead_id} - {$handoff->lead->contact->guest_name}\n";
+                    $message .= "⏰ Due: {$handoff->sla_deadline->diffForHumans()}\n";
+                    $message .= "🔥 Priority: " . ucfirst($handoff->priority_level) . "\n\n";
+                }
+                $message .= "⚠️ Please handle these escalations immediately!";
+
+                $this->sendWhatsAppMessage($user->phone, $message);
                 });
             }
 
@@ -293,11 +324,16 @@ class NotificationService
                 'stats' => $stats,
             ];
 
-            Mail::send('emails.handoff.daily_summary', $data, function ($message) use ($user, $yesterday) {
-                $message->to($user->email)
-                    ->subject("Daily Handoff Summary - {$yesterday->format('M j, Y')}")
-                    ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            $message = "📊 *Daily Escalation Summary - {$yesterday->format('M d, Y')}*\n\n";
+            $message .= "📥 New: {$data['stats']['new_handoffs']}\n";
+            $message .= "✅ Resolved: {$data['stats']['resolved_handoffs']}\n";
+            $message .= "⏳ Pending: {$data['stats']['pending_handoffs']}\n";
+            if ($data['stats']['overdue_handoffs'] > 0) {
+                $message .= "🚨 Overdue: {$data['stats']['overdue_handoffs']}\n";
+            }
+            $message .= "\nKeep up the great work!";
+
+            $this->sendWhatsAppMessage($user->phone, $message);
 
             Log::info('Daily handoff summary sent', [
                 'user_id' => $user->id,
