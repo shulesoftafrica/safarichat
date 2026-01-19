@@ -30,6 +30,7 @@ class Kernel extends ConsoleKernel {
         Commands\UpdateContactPrioritiesCommand::class,
         Commands\MigrateCrmDataCommand::class,
         Commands\ProcessAppointmentRemindersCommand::class,
+        Commands\ConvertUnengagedContactsCommand::class,
     ];
     public $emails;
 
@@ -249,6 +250,19 @@ class Kernel extends ConsoleKernel {
           ->name('scheduled-followups');
 
         // === New AI Sales Agent Commands ===
+        
+        // Convert unengaged business contacts to leads (8:30 AM and 1:30 PM - 30min before outreach)
+        $schedule->command('contacts:convert-unengaged --limit=15 --days-old=1')
+            ->twiceDaily(8, 13, 30) // 30 minutes before daily outreach
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/contact-conversion.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Contact conversion completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Contact conversion failed', 'error');
+            });
         
         // Daily outreach campaign - twice daily (9 AM and 2 PM)
         $schedule->command('ai-agent:daily-outreach --limit=50')
