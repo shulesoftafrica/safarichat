@@ -28,11 +28,24 @@
         <div class="details">
             <strong>Alert Details:</strong>
             <ul>
-                @foreach($data as $key => $value)
-                    @if(is_string($value) || is_numeric($value))
-                        <li><strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong> {{ $value }}</li>
-                    @endif
-                @endforeach
+                @if(isset($alert_data) && is_array($alert_data))
+                    @foreach($alert_data as $key => $value)
+                        @if(is_string($value) || is_numeric($value))
+                            <li><strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong> {{ $value }}</li>
+                        @endif
+                    @endforeach
+                @else
+                    {{-- Fallback: show all available data except known system variables --}}
+                    @php
+                        $systemVars = ['admin', 'alert_type', 'timestamp'];
+                        $displayData = collect(get_defined_vars())->except($systemVars);
+                    @endphp
+                    @foreach($displayData as $key => $value)
+                        @if((is_string($value) || is_numeric($value)) && !in_array($key, $systemVars))
+                            <li><strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong> {{ $value }}</li>
+                        @endif
+                    @endforeach
+                @endif
             </ul>
         </div>
         

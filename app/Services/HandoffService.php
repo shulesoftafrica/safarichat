@@ -171,7 +171,7 @@ class HandoffService
     {
         return Handoff::where('status', '!=', 'resolved')
             ->where('sla_deadline', '<', now())
-            ->with(['lead', 'aiSalesAgent', 'assignedUser'])
+            ->with(['lead', 'humanAgent', 'conversation.aiSalesAgent'])
             ->orderBy('priority_level')
             ->orderBy('created_at')
             ->get();
@@ -379,11 +379,20 @@ class HandoffService
      */
     private function findBestAvailableAgent(Handoff $handoff): ?User
     {
-        // This is a simplified version - you can expand with more sophisticated logic
-        $availableAgents = User::whereHas('roles', function ($query) {
-                $query->where('name', 'sales_agent');
+        // Get users who have assigned handoffs (they are active agents)
+        // or users who are business owners (they can handle handoffs)
+        $availableAgents = User::where('is_active', true)
+            ->where(function ($query) {
+                // Users who have been assigned handoffs (they are agents)
+                $query->whereHas('assignedHandoffs')
+                    // Or users who own businesses (they can act as agents)
+                    ->orWhereHas('business', function ($q) {
+                        $q->whereNotNull('user_id');
+                    })
+                    // Or users with specific admin/agent user types
+                    ->orWhere('user_type_id', 1) // Admin type
+                    ->orWhere('user_type_id', 3); // Agent type if it exists
             })
-            ->where('is_active', true)
             ->withCount(['assignedHandoffs' => function ($query) {
                 $query->where('status', 'assigned');
             }])

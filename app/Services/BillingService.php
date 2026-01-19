@@ -316,19 +316,16 @@ class BillingService
         try {
             // Set default parameters
             $queryParams = array_merge([
-                'product_code' => self::PRODUCT_CODE,
-                'currency' => 'TZS',
-                'active_only' => true
             ], $params);
             
-            $apiUrl = self::getBillingApiBase() . "/products";
+            $apiUrl = self::getBillingApiBase() . "/products/by-code/".self::PRODUCT_CODE;
             Log::info("Fetching products catalog", [
                 'api_url' => $apiUrl,
                 'query_params' => $queryParams
             ]);
             
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => config('services.billing.api_key'),
+                'Authorization' => 'Bearer ' . config('services.billing.api_key'),
                 'Accept' => 'application/json'
             ])->get($apiUrl, $queryParams);
             
@@ -336,7 +333,7 @@ class BillingService
                 $data = $response->json();
                 
                 if (isset($data['success']) && $data['success']) {
-                    Log::info("Products catalog fetched successfully", ['product_code' => $queryParams['product_code']]);
+                    Log::info("Products catalog fetched successfully", ['product_code' => self::PRODUCT_CODE]);
                     return [
                         'success' => true,
                         'data' => $data['data'] ?? []

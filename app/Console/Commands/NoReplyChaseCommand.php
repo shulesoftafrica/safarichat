@@ -125,14 +125,14 @@ class NoReplyChaseCommand extends Command
         return Lead::where('ai_sales_agent_id', $agent->id)
             ->whereIn('status', [
                 Lead::STATUS_OUTREACHED,
-                Lead::STATUS_INTERESTED,
-                Lead::STATUS_NURTURING
+                Lead::STATUS_ENGAGED,
+                Lead::STATUS_QUALIFIED
             ])
             ->whereNotIn('status', [
                 Lead::STATUS_DO_NOT_CONTACT,
                 Lead::STATUS_CLOSED,
                 Lead::STATUS_CONVERTED,
-                Lead::STATUS_HANDOFF_REQUESTED
+                Lead::STATUS_HANDED_OFF
             ])
             ->where('last_contact_at', '<', $noReplyThreshold)
             ->where(function($query) use ($noReplyThreshold) {

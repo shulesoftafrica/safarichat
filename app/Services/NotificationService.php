@@ -333,11 +333,15 @@ class NotificationService
                 ->get();
 
             foreach ($adminUsers as $admin) {
-                $emailData = array_merge($data, [
+                $emailData = [
                     'admin' => $admin,
                     'alert_type' => $alertType,
                     'timestamp' => now(),
-                ]);
+                    'alert_data' => $data, // Keep original data structure for the view
+                ];
+
+                // Also merge the data at top level for backward compatibility
+                $emailData = array_merge($emailData, $data);
 
                 Mail::send('emails.system.alert', $emailData, function ($message) use ($admin, $alertType) {
                     $message->to($admin->email)

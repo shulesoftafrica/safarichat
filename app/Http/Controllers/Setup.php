@@ -22,19 +22,25 @@ class Setup extends Controller {
         // Load pricing plans from billing service (excluding free trial)
         $products = BillingService::getProducts();
         $pricingPlans = [];
-        
+
         if ($products['success'] && !empty($products['data'])) {
             // Filter out free trial packages (price = 0) and only show packages with price > 0
             
-            $pricingPlans = collect($products['data']['products'][0]['plans'] ?? [])
+            $pricingPlans = collect($products['data']['price_plans'] ?? [])
                 ->filter(function($plan) {
-                    return isset($plan['price']) && $plan['price'] > 0;
+                    return isset($plan['amount']) && floatval($plan['amount']) > 0;
+                })
+                ->map(function($plan) {
+                    // Ensure the view can access the price correctly
+                    $plan['price_plans'] = $plan['amount']; // For backward compatibility
+                    $plan['price'] = $plan['amount']; // Alternative field name
+                    return $plan;
                 })
                 ->values()
                 ->toArray();
              
         }
-      
+
         return view('auth.login', ['pricingPlans' => $pricingPlans]);
     }
 

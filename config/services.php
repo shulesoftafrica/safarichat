@@ -78,8 +78,8 @@ return [
     ],
 
     'billing' => [
-        'api_url' => env('BILLING_API_URL', 'https://shulesoft.safaribook.africa/api/billing'),
-        'api_key' => env('BILLING_API_KEY','Dp77IDXdqtBuB2zLvYovj2QmAK'),
+        'api_url' => env('BILLING_API_URL', 'http://127.0.0.1:8000/api'),
+        'api_key' => env('BILLING_API_KEY','21|jGYrq6GOU7w5lARAnu9ckTeMpCVOIu6qJgoCpU57843389ae'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
     ],
 
