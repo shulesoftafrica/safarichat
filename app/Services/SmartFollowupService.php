@@ -24,6 +24,15 @@ class SmartFollowupService
     public function processSmartFollowups()
     {
         try {
+            // Check if followups should only be sent during business hours
+            $enforceBusinessHours = env('AI_FOLLOWUP_BUSINESS_HOURS', false);
+            $now = Carbon::now();
+            $businessStart = $now->copy()->setTime(8, 0, 0); // 8:00 AM
+            $businessEnd = $now->copy()->setTime(18, 0, 0); // 6:00 PM
+            if ($enforceBusinessHours && ($now->lt($businessStart) || $now->gte($businessEnd))) {
+                Log::info('Smart followup: Skipped due to outside business hours (' . $now->format('H:i') . ')');
+                return;
+            }
             // Get leads that are NOT closed and need followup
             $leadsNeedingFollowUp = Lead::whereNotIn('status', [
                                         Lead::STATUS_CLOSED, 

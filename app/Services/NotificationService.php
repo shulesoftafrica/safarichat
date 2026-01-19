@@ -274,7 +274,6 @@ class NotificationService
                 $message .= "⚠️ Please handle these escalations immediately!";
 
                 $this->sendWhatsAppMessage($user->phone, $message);
-                });
             }
 
             Log::info('Overdue handoffs notifications sent', [
