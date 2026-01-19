@@ -123,20 +123,26 @@ class WinBackOutreachCommand extends Command
         
         return Lead::where('ai_sales_agent_id', $agent->id)
             ->whereIn('status', [
-                Lead::STATUS_INACTIVE,
-                Lead::STATUS_INTERESTED,
-                Lead::STATUS_NURTURING
+                Lead::STATUS_CHURNED,
+                Lead::STATUS_LOST,
+                Lead::STATUS_ENGAGED,
+                Lead::STATUS_QUALIFIED
             ])
             ->whereNotIn('status', [
                 Lead::STATUS_DO_NOT_CONTACT,
                 Lead::STATUS_CLOSED,
-                Lead::STATUS_CONVERTED
+                Lead::STATUS_CONVERTED,
+                Lead::STATUS_HANDED_OFF
             ])
             ->where(function($query) use ($inactiveDate) {
+                // Consider both last interaction and conversation activity
                 $query->where('last_interaction_at', '<', $inactiveDate)
                     ->orWhere(function($q) use ($inactiveDate) {
                         $q->whereNull('last_interaction_at')
                           ->where('created_at', '<', $inactiveDate);
+                    })
+                    ->orWhereDoesntHave('conversations', function($q) use ($inactiveDate) {
+                        $q->where('updated_at', '>', $inactiveDate);
                     });
             })
             ->where(function($query) {
@@ -144,7 +150,7 @@ class WinBackOutreachCommand extends Command
                 $query->whereNull('last_winback_at')
                     ->orWhere('last_winback_at', '<', now()->subDays(14));
             })
-            ->where('lead_score', '>', 30) // Only target leads with decent scores
+            ->where('lead_score', '>', 20) // Lower threshold for churned customers
             ->orderByDesc('lead_score')
             ->orderByDesc('last_interaction_at')
             ->limit($limit)
@@ -171,7 +177,7 @@ class WinBackOutreachCommand extends Command
             if ($result['success']) {
                 // Update lead status and timestamps
                 $lead->update([
-                    'status' => Lead::STATUS_WIN_BACK_ATTEMPTED,
+                    'status' => Lead::STATUS_OUTREACHED, // Changed to existing status
                     'last_contact_at' => now(),
                     'last_winback_at' => now(),
                     'winback_attempts' => ($lead->winback_attempts ?? 0) + 1
@@ -208,19 +214,50 @@ class WinBackOutreachCommand extends Command
 
     private function determineWinBackStrategy(Lead $lead): string
     {
-        // Analyze lead history to determine best approach
+        // Analyze lead history and conversation patterns to determine best approach
         $daysSinceLastContact = $lead->last_interaction_at 
             ? now()->diffInDays($lead->last_interaction_at) 
             : 999;
 
         $leadScore = $lead->lead_score ?? 0;
-        $previousConversations = $lead->conversations()->count();
         $winbackAttempts = $lead->winback_attempts ?? 0;
-
-        // Strategy logic
+        
+        // Get conversation history for deeper insights
+        $conversations = $lead->conversations()
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+            
+        $totalConversations = $conversations->count();
+        $lastConversationStage = $conversations->first()?->conversation_stage ?? 'UNKNOWN';
+        
+        // Analyze conversation patterns
+        $hadDeepEngagement = $conversations->where('conversation_stage', 'NEGOTIATING')->count() > 0
+            || $conversations->where('conversation_stage', 'PROPOSAL_SENT')->count() > 0;
+            
+        $showedHighInterest = $conversations->where('conversation_stage', 'INTERESTED')->count() > 2
+            || $conversations->where('conversation_stage', 'DEMO_REQUESTED')->count() > 0;
+            
+        $wasCloseToDeal = in_array($lastConversationStage, ['NEGOTIATING', 'PROPOSAL_SENT', 'DEMO_SCHEDULED']);
+        
+        // Enhanced strategy logic based on conversation history
+        if ($lead->status === Lead::STATUS_CHURNED) {
+            if ($hadDeepEngagement && $leadScore > 60) {
+                return 'RELATIONSHIP_RECOVERY'; // Address what went wrong
+            } elseif ($showedHighInterest) {
+                return 'REIGNITE_INTEREST'; // Remind of their previous enthusiasm
+            } else {
+                return 'FRESH_START'; // New approach, clean slate
+            }
+        }
+        
+        if ($wasCloseToDeal && $daysSinceLastContact > 30) {
+            return 'DEAL_REVIVAL'; // Address the stalled deal
+        }
+        
         if ($daysSinceLastContact > 90 && $leadScore > 70) {
             return 'MISSED_CONNECTION'; // "We miss you" approach
-        } elseif ($leadScore > 60 && $previousConversations > 3) {
+        } elseif ($leadScore > 60 && $totalConversations > 3) {
             return 'VALUE_REMINDER'; // Remind of previous interest/value
         } elseif ($winbackAttempts === 0 && $leadScore > 50) {
             return 'SPECIAL_OFFER'; // First win-back attempt with incentive
@@ -264,6 +301,40 @@ class WinBackOutreachCommand extends Command
             ? now()->diffInDays($lead->last_interaction_at) 
             : 999;
 
+        // Get detailed conversation history
+        $recentConversations = $lead->conversations()
+            ->orderBy('updated_at', 'desc')
+            ->limit(3)
+            ->get();
+            
+        $conversationSummary = [];
+        $lastTopics = [];
+        $engagementLevel = 'low';
+        
+        foreach ($recentConversations as $conv) {
+            $conversationSummary[] = [
+                'stage' => $conv->conversation_stage,
+                'date' => $conv->updated_at->diffForHumans(),
+                'messages_count' => $conv->messages()->count()
+            ];
+            
+            // Extract topics from last message content
+            if ($conv->last_message_content) {
+                $lastTopics[] = substr($conv->last_message_content, 0, 100);
+            }
+        }
+        
+        // Determine engagement level based on conversation history
+        $totalMessages = $recentConversations->sum(function($conv) {
+            return $conv->messages()->count();
+        });
+        
+        if ($totalMessages > 10) {
+            $engagementLevel = 'high';
+        } elseif ($totalMessages > 5) {
+            $engagementLevel = 'medium';
+        }
+
         return [
             'lead_name' => $lead->name,
             'company_name' => $lead->company_name,
@@ -273,7 +344,13 @@ class WinBackOutreachCommand extends Command
             'previous_interests' => $lead->interests ?? [],
             'strategy' => $strategy,
             'winback_attempts' => $lead->winback_attempts ?? 0,
-            'last_conversation_stage' => $lead->conversations()->latest()->first()?->conversation_stage
+            'last_conversation_stage' => $recentConversations->first()?->conversation_stage,
+            'conversation_history' => $conversationSummary,
+            'last_topics' => $lastTopics,
+            'engagement_level' => $engagementLevel,
+            'total_conversations' => $lead->conversations()->count(),
+            'is_churned' => $lead->status === Lead::STATUS_CHURNED,
+            'churn_reason' => $lead->churn_reason ?? null
         ];
     }
 
@@ -288,7 +365,11 @@ class WinBackOutreachCommand extends Command
             'SPECIAL_OFFER' => 'Include a special offer or incentive to re-engage.',
             'CHECK_IN' => 'Simple, friendly check-in to see how they\'re doing.',
             'UPDATE_SHARE' => 'Share exciting updates or new features that might interest them.',
-            'LAST_CHANCE' => 'Final attempt with urgency but remain respectful.'
+            'LAST_CHANCE' => 'Final attempt with urgency but remain respectful.',
+            'RELATIONSHIP_RECOVERY' => 'Acknowledge the past relationship and address what might have gone wrong.',
+            'REIGNITE_INTEREST' => 'Remind them of their previous enthusiasm and interest.',
+            'FRESH_START' => 'Offer a completely new approach and fresh beginning.',
+            'DEAL_REVIVAL' => 'Address the previously stalled deal and offer to move forward.'
         ];
 
         $strategyPrompt = $strategyPrompts[$strategy] ?? 'Create a personalized, respectful re-engagement message.';
@@ -307,7 +388,11 @@ class WinBackOutreachCommand extends Command
             'SPECIAL_OFFER' => "Hi {$name}! We have something special that might interest you. Would love to reconnect and share details! ✨",
             'CHECK_IN' => "Hi {$name}! Just checking in to see how things are going. Hope all is well! 👋",
             'UPDATE_SHARE' => "Hi {$name}! We've made some exciting updates that might interest you. Would love to share! 🚀",
-            'LAST_CHANCE' => "Hi {$name}! One final check - are you still interested in what we discussed? No pressure! 🤝"
+            'LAST_CHANCE' => "Hi {$name}! One final check - are you still interested in what we discussed? No pressure! 🤝",
+            'RELATIONSHIP_RECOVERY' => "Hi {$name}! I know things didn't work out before, but I'd love to reconnect and see if we can help now. 🤝",
+            'REIGNITE_INTEREST' => "Hi {$name}! I remember how excited you were about our solution. Any chance to revisit that conversation? ⭐",
+            'FRESH_START' => "Hi {$name}! I'd love to start fresh and see if there's a way we can work together now. New possibilities! ✨",
+            'DEAL_REVIVAL' => "Hi {$name}! About that proposal we discussed - any interest in moving forward? Happy to revisit! 📋"
         ];
 
         return $messages[$strategy] ?? "Hi {$name}! Hope you're doing well. Would love to reconnect when you have a moment! 😊";

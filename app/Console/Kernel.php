@@ -289,6 +289,31 @@ class Kernel extends ConsoleKernel {
                 $this->logCronActivity(null, 'Win-back campaign failed', 'error');
             });
 
+        // Aggressive churned customer win-back - twice weekly (Monday & Friday at 2 PM)
+        $schedule->command('ai-agent:win-back --limit=20 --days-inactive=14')
+            ->weeklyOn(1, '14:00') // Monday
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/churn-winback.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Churn win-back campaign completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Churn win-back campaign failed', 'error');
+            });
+
+        $schedule->command('ai-agent:win-back --limit=20 --days-inactive=14')
+            ->weeklyOn(5, '14:00') // Friday
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/churn-winback.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Churn win-back campaign completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Churn win-back campaign failed', 'error');
+            });
+
         // No-reply chase follow-ups - daily at 11 AM and 4 PM
         $schedule->command('ai-agent:chase-no-reply --limit=50 --hours=48 --max-chases=3')
             ->twiceDaily(11, 16)
