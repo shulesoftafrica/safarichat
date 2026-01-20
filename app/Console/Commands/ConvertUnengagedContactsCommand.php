@@ -33,6 +33,13 @@ class ConvertUnengagedContactsCommand extends Command
             $unengagedContacts = $this->getUnengagedContacts($limit, $daysOld);
             
             if ($unengagedContacts->isEmpty()) {
+                // Debug: Show why no contacts were found
+                $this->warn('⚠️  No unengaged contacts found. Debug info:');
+                $this->info("  - Days old filter: {$daysOld}");
+                $this->info("  - Total contacts in DB: " . BusinessContact::count());
+                $this->info("  - Not contacted for sales: " . BusinessContact::where('contacted_for_sales', false)->count());
+                $this->info("  - With valid phone: " . BusinessContact::where('contacted_for_sales', false)->whereNotNull('guest_phone')->where('guest_phone', '!=', '')->count());
+                $this->info("  - Without leads: " . BusinessContact::whereDoesntHave('leads')->count());
                 $this->info('✅ No unengaged contacts found');
                 return 0;
             }
@@ -102,6 +109,8 @@ class ConvertUnengagedContactsCommand extends Command
                 $query->where('contacted_for_sales', false)
                       ->orWhereNull('contacted_for_sales');
             })
+            ->whereNotNull('business_id') // Must have valid business_id
+            ->where('business_id', '>', 0) // Must be a positive integer
             ->whereNotNull('guest_phone')
             ->where('guest_phone', '!=', '')
             ->whereNotNull('guest_name')
