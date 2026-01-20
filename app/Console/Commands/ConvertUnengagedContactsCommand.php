@@ -126,6 +126,9 @@ class ConvertUnengagedContactsCommand extends Command
                           });
                       });
             })
+            // Exclude contacts that have existing incoming/outgoing messages
+            ->whereDoesntHave('incomingMessages')
+            ->whereDoesntHave('outgoingMessages')
             ->whereHas('business', function($query) {
                 // Only contacts with active businesses
                 $query->whereNotNull('user_id');
