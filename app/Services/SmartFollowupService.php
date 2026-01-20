@@ -546,7 +546,7 @@ class SmartFollowupService
                 'lead_id' => $lead->id,
                 'ai_sales_agent_id' => $lead->ai_sales_agent_id,
                 'message_content' => $message,
-                'sender_type' => 'ai_agent_followup',
+                'sender_type' => 'agent', // Valid values: customer, agent, system
                 'created_at' => now()
             ]);
 

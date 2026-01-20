@@ -950,7 +950,7 @@ class AiWhatsAppService
                     'message_type' => Conversation::TYPE_AI_AGENT,
                     'message_content' => $message,
                     'conversation_state' => 'OUTREACH',
-                    'sender_type' => 'ai_outreach',
+                    'sender_type' => 'agent', // Valid values: customer, agent, system
                     'is_active' => true,
                     'metadata' => [
                         'campaign' => 'daily_outreach',
