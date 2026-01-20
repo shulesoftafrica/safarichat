@@ -259,8 +259,9 @@ class DailyOutreachCommand extends Command
         
         if ($company && $industry && $productName) {
             // Industry-specific with product mention
+            $industryNoun = $this->mapIndustryToNoun($industry);
             return "Hi {$name}! Noticed {$company} is in {$industry}. " .
-                   "Our {$productName} solution just helped a similar company save 40% on operations. " .
+                   "Our {$productName} solution just helped a similar {$industryNoun} save 40% on operations. " .
                    "Worth a 5-minute chat?";
         }
         
@@ -273,17 +274,43 @@ class DailyOutreachCommand extends Command
         if ($productName) {
             // Product-focused without generic fluff
             return "Hi {$name}! Quick update on {$productName} - we just added features that " .
-                   "solve the top 3 issues most companies face. Want the details?";
+                   "solve the top 3 issues most businesses face. Want the details?";
         }
         
         if ($industry) {
-            // Industry-specific without product
-            return "Hi {$name}! Been working with several {$industry} companies lately. " .
+            // Industry-specific without product - use natural noun
+            $industryNoun = $this->mapIndustryToNoun($industry);
+            return "Hi {$name}! Been working with several {$industryNoun} lately. " .
                    "Found a pattern that might help you cut costs. 2-minute question?";
         }
         
         // Last resort - still more specific than generic
         return "Hi {$name}! Found something that might help with your current challenges. " .
                "Based on our brief chat - is this still a priority?";
+    }
+
+    /**
+     * Map industry to natural noun for conversational messages
+     */
+    private function mapIndustryToNoun(string $industry): string
+    {
+        return match(strtolower($industry)) {
+            'education', 'school', 'schools' => 'schools',
+            'healthcare', 'health', 'hospital', 'hospitals' => 'healthcare facilities',
+            'restaurant', 'restaurants', 'food', 'hospitality' => 'restaurants',
+            'retail', 'shop', 'shops' => 'retail businesses',
+            'wedding', 'weddings', 'events' => 'wedding planners',
+            'construction' => 'construction firms',
+            'manufacturing' => 'manufacturers',
+            'logistics', 'transport', 'transportation' => 'logistics companies',
+            'real estate', 'realestate', 'property' => 'real estate agencies',
+            'finance', 'banking' => 'financial institutions',
+            'legal', 'law' => 'law firms',
+            'consulting' => 'consulting firms',
+            'technology', 'tech', 'software' => 'tech companies',
+            'agriculture', 'farming' => 'farms',
+            'nonprofit', 'ngo' => 'organizations',
+            default => strtolower($industry) . ' businesses'
+        };
     }
 }
