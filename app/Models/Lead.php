@@ -84,6 +84,12 @@ class Lead extends Model
         return $this->hasMany(LeadProduct::class);
     }
 
+    // Alias for leadProducts() - for backward compatibility
+    public function products()
+    {
+        return $this->leadProducts();
+    }
+
     public function conversations()
     {
         return $this->hasMany(Conversation::class);

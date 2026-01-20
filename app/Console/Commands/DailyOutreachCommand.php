@@ -192,7 +192,7 @@ class DailyOutreachCommand extends Command
 
             // Build context for AI
             $context = [
-                'lead_name' => $lead->name,
+                'lead_name' => $lead->name ?? $lead->company_name,
                 'company_name' => $lead->company_name,
                 'industry' => $lead->industry,
                 'lead_score' => $lead->lead_score,
@@ -202,8 +202,7 @@ class DailyOutreachCommand extends Command
             ];
 
             // Generate personalized message using AI
-            $prompt = $this->buildOutreachPrompt($context, $agent);
-            $response = $this->openAiService->generateResponse($lead, null, null, 'INTRO');
+            $response = $this->openAiService->generateResponse($lead, null, $context, 'INTRO');
 
             return $response['message_text'] ?? $this->getFallbackMessage($lead, $agent);
 
