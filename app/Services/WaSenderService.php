@@ -147,7 +147,8 @@ class WaSenderService
 
             // Log the message
             $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : 'text';
-            $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instance);
+            $instanceId = is_object($instance) ? $instance->id : $instance;
+            $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instanceId);
 
             if ($response->successful() && isset($result['success']) && $result['success']) {
                 Log::info('WhatsApp message sent successfully via Unified API', [
@@ -963,7 +964,7 @@ class WaSenderService
      * @param string $status Message status
      * @return void
      */
-    protected function logOutgoingMessage(string $phoneNumber, string $message, string $messageType, array $apiResponse, ?int $userId, ?string $instanceId, string $status = 'sent'): void
+    protected function logOutgoingMessage(string $phoneNumber, string $message, string $messageType, array $apiResponse, ?int $userId, $instanceId, string $status = 'sent'): void
     {
         try {
             OutgoingMessage::create([
@@ -972,7 +973,7 @@ class WaSenderService
                 'message_body' => $message,
                 'message_type' => $messageType,
                 'status' => $status,
-                'instance_id' => $instanceId,
+                'instance_id' => is_numeric($instanceId) ? (int)$instanceId : null,
                 'waapi_message_id' => $apiResponse['message_id'] ?? null,
                 'external_id' => $apiResponse['external_id'] ?? null,
                 'waapi_response' => json_encode($apiResponse),
