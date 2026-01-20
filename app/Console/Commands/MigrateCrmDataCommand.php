@@ -344,7 +344,7 @@ class MigrateCrmDataCommand extends Command
             'product_id' => $activeCampaignProduct ? $activeCampaignProduct->id : null,
             'message_content' => $aiContextSummary,
             'message_type' => 'AI_AGENT',
-            'sender_type' => 'agent', // Valid values: customer, agent, system
+            'sender_type' => 'ai_agent', // Valid values: customer, ai_agent, user_manual, ai_agent_followup
             'conversation_stage' => 'CRM_CONTEXT',
             'status' => 'completed',
             'priority' => 5,
