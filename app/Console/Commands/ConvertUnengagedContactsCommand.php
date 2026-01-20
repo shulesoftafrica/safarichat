@@ -104,7 +104,7 @@ class ConvertUnengagedContactsCommand extends Command
     {
         $cutoffDate = now()->subDays($daysOld);
         
-        return BusinessContact::where(function($query) {
+        $query = BusinessContact::where(function($query) {
                 // Not contacted for sales yet
                 $query->where('contacted_for_sales', false)
                       ->orWhereNull('contacted_for_sales');
@@ -116,15 +116,43 @@ class ConvertUnengagedContactsCommand extends Command
             ->whereNotNull('guest_name')
             ->where('guest_name', '!=', '')
             ->where('created_at', '<=', $cutoffDate) // At least X days old
-            ->whereDoesntHave('leads') // No existing lead record
+            ->where(function($query) {
+                // No existing lead record OR lead exists but never messaged
+                $query->whereDoesntHave('leads')
+                      ->orWhereHas('leads', function($leadQuery) {
+                          // Lead exists but has no AI/HUMAN agent messages (never contacted)
+                          $leadQuery->whereDoesntHave('conversations', function($convQuery) {
+                              $convQuery->whereIn('message_type', ['AI_AGENT', 'HUMAN_AGENT']);
+                          });
+                      });
+            })
             ->whereHas('business', function($query) {
                 // Only contacts with active businesses
                 $query->whereNotNull('user_id');
             })
             ->with(['business', 'business.user'])
             ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
+            ->limit($limit);
+        
+        // Log the SQL query for debugging
+        $sql = $query->toSql();
+        $bindings = $query->getBindings();
+        Log::info('Unengaged contacts query', [
+            'sql' => $sql,
+            'bindings' => $bindings,
+            'cutoff_date' => $cutoffDate->toDateTimeString(),
+            'days_old' => $daysOld
+        ]);
+        
+        // Print query to console
+        $this->newLine();
+        $this->info('📊 Query Details:');
+        $this->line('SQL: ' . $sql);
+        $this->line('Bindings: ' . json_encode($bindings, JSON_PRETTY_PRINT));
+        $this->line('Cutoff Date: ' . $cutoffDate->toDateTimeString());
+        $this->newLine();
+        
+        return $query->get();
     }
 
     /**
