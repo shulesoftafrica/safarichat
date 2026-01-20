@@ -259,13 +259,17 @@ class AiWhatsAppService
 
         $history = [];
         foreach ($conversations as $conversation) {
-            $history[] = [
-                'from_customer' => true,
-                'content' => $conversation->customer_message,
-                'timestamp' => $conversation->created_at,
-            ];
+            // Only add customer message if it's not null or empty
+            if (!empty($conversation->customer_message)) {
+                $history[] = [
+                    'from_customer' => true,
+                    'content' => $conversation->customer_message,
+                    'timestamp' => $conversation->created_at,
+                ];
+            }
             
-            if ($conversation->ai_response) {
+            // Only add AI response if it exists and is not empty
+            if (!empty($conversation->ai_response)) {
                 $history[] = [
                     'from_customer' => false,
                     'content' => $conversation->ai_response,

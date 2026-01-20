@@ -172,13 +172,24 @@ class OpenAiService
             // Convert simple string messages to the expected format
             foreach ($recentMessages as $index => $messageContent) {
                 if (is_string($messageContent)) {
-                    $conversationHistory[] = [
-                        'from_customer' => ($index % 2 === 0), // Alternate between customer and agent
-                        'content' => $messageContent
-                    ];
+                    // Sanitize string content and ensure it's not null
+                    $content = $this->sanitizeText($messageContent);
+                    if (!empty(trim($content))) {
+                        $conversationHistory[] = [
+                            'from_customer' => ($index % 2 === 0), // Alternate between customer and agent
+                            'content' => $content
+                        ];
+                    }
                 } elseif (is_array($messageContent) && isset($messageContent['content'])) {
-                    // If already in expected format, use as-is
-                    $conversationHistory[] = $messageContent;
+                    // If already in expected format, sanitize content
+                    $content = $messageContent['content'] ?? '';
+                    $content = $this->sanitizeText($content);
+                    if (!empty(trim($content))) {
+                        $conversationHistory[] = [
+                            'from_customer' => $messageContent['from_customer'] ?? false,
+                            'content' => $content
+                        ];
+                    }
                 }
             }
             
@@ -398,10 +409,17 @@ class OpenAiService
 
         // Add conversation history
         foreach ($conversationHistory as $message) {
-            $messages[] = [
-                'role' => $message['from_customer'] ? 'user' : 'assistant',
-                'content' => $message['content']
-            ];
+            // Ensure content is never null and is sanitized
+            $content = $message['content'] ?? '';
+            $content = $this->sanitizeText($content);
+            
+            // Only add message if content is not empty after sanitization
+            if (!empty(trim($content))) {
+                $messages[] = [
+                    'role' => $message['from_customer'] ? 'user' : 'assistant',
+                    'content' => $content
+                ];
+            }
         }
 
         // Add current message
@@ -431,10 +449,17 @@ class OpenAiService
 
         // Add conversation history
         foreach ($conversationHistory as $message) {
-            $messages[] = [
-                'role' => $message['from_customer'] ? 'user' : 'assistant',
-                'content' => $message['content']
-            ];
+            // Ensure content is never null and is sanitized
+            $content = $message['content'] ?? '';
+            $content = $this->sanitizeText($content);
+            
+            // Only add message if content is not empty after sanitization
+            if (!empty(trim($content))) {
+                $messages[] = [
+                    'role' => $message['from_customer'] ? 'user' : 'assistant',
+                    'content' => $content
+                ];
+            }
         }
 
         // Add current message

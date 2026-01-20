@@ -353,6 +353,24 @@ class NotificationService
      */
     public function sendSystemAlert(string $alertType, array $data): void
     {
+        // Check if email alerts are enabled
+        $emailAlertsEnabled = config('ai_sales_agent.monitoring.email_alerts_enabled', false);
+        
+        // Always log the alert for record-keeping
+        Log::warning('System Alert: ' . $alertType, [
+            'alert_type' => $alertType,
+            'alert_data' => $data,
+            'timestamp' => now()->toDateTimeString(),
+        ]);
+        
+        // If email alerts are disabled, just log and return
+        if (!$emailAlertsEnabled) {
+            Log::info('Email alerts disabled, alert logged only', [
+                'alert_type' => $alertType,
+            ]);
+            return;
+        }
+        
         try {
             // Get admin users - using a different approach since roles() is not an Eloquent relationship
             $adminUsers = User::where('is_active', true)
@@ -367,34 +385,55 @@ class NotificationService
                 })
                 ->get();
 
-            foreach ($adminUsers as $admin) {
-                $emailData = [
-                    'admin' => $admin,
-                    'alert_type' => $alertType,
-                    'timestamp' => now(),
-                    'alert_data' => $data, // Keep original data structure for the view
-                ];
-
-                // Also merge the data at top level for backward compatibility
-                $emailData = array_merge($emailData, $data);
-
-                Mail::send('emails.system.alert', $emailData, function ($message) use ($admin, $alertType) {
-                    $message->to($admin->email)
-                        ->subject("System Alert: {$alertType}")
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-                });
+            if ($adminUsers->isEmpty()) {
+                Log::info('No admin users found to send alert email');
+                return;
             }
 
-            Log::warning('System alert sent', [
+            $emailsSent = 0;
+            $emailsFailed = 0;
+
+            foreach ($adminUsers as $admin) {
+                try {
+                    $emailData = [
+                        'admin' => $admin,
+                        'alert_type' => $alertType,
+                        'timestamp' => now(),
+                        'alert_data' => $data, // Keep original data structure for the view
+                    ];
+
+                    // Also merge the data at top level for backward compatibility
+                    $emailData = array_merge($emailData, $data);
+
+                    Mail::send('emails.system.alert', $emailData, function ($message) use ($admin, $alertType) {
+                        $message->to($admin->email)
+                            ->subject("System Alert: {$alertType}")
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    });
+                    
+                    $emailsSent++;
+                } catch (\Exception $emailError) {
+                    $emailsFailed++;
+                    Log::warning('Failed to send alert email to individual admin', [
+                        'admin_email' => $admin->email,
+                        'error' => $emailError->getMessage(),
+                    ]);
+                }
+            }
+
+            Log::info('System alert email attempt completed', [
                 'alert_type' => $alertType,
-                'data' => $data,
-                'admins_notified' => $adminUsers->count(),
+                'emails_sent' => $emailsSent,
+                'emails_failed' => $emailsFailed,
+                'total_admins' => $adminUsers->count(),
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to send system alert', [
+            // Fallback: ensure alert is at least logged even if email completely fails
+            Log::error('System alert email process failed completely', [
                 'alert_type' => $alertType,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

@@ -78,6 +78,7 @@ return [
         'alert_on_high_failure_rate' => env('AI_ALERT_FAILURES', true),
         'failure_rate_threshold' => (float) env('AI_FAILURE_THRESHOLD', 0.1), // 10%
         'performance_monitoring' => env('AI_PERFORMANCE_MONITORING', true),
+        'email_alerts_enabled' => env('AI_EMAIL_ALERTS_ENABLED', false), // Disabled by default to prevent SMTP errors
     ],
 
     'features' => [

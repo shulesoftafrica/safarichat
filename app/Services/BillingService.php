@@ -215,9 +215,17 @@ class BillingService
         
         // Check if cache has expired
         if (isset($status['expires_at'])) {
-            $expiresAt = \Carbon\Carbon::parse($status['expires_at']);
-            if ($expiresAt->isPast()) {
-                return false;
+            try {
+                $expiresAt = \Carbon\Carbon::parse($status['expires_at']);
+                if ($expiresAt->isPast()) {
+                    return false;
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to parse expires_at in billing cache validation', [
+                    'expires_at' => $status['expires_at'],
+                    'error' => $e->getMessage(),
+                ]);
+                return false; // Treat parse error as invalid cache
             }
         }
         

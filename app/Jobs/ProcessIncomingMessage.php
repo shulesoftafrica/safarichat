@@ -128,12 +128,17 @@ class ProcessIncomingMessage implements ShouldQueue
 
             // Build conversation context
             $context = $recentMessages->map(function ($msg) {
+                // Ensure message_body is never null
+                $content = $msg->message_body ?? '';
                 return [
                     'role' => $msg->from_me ? 'assistant' : 'user',
-                    'content' => $msg->message_body,
+                    'content' => $content,
                     'timestamp' => $msg->created_at
                 ];
-            })->toArray();
+            })->filter(function ($msg) {
+                // Filter out messages with empty content
+                return !empty(trim($msg['content']));
+            })->values()->toArray();
 
             // Add current message to context
             $context[] = [

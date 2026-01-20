@@ -162,8 +162,16 @@ class BillingCacheManager
             return false;
         }
         
-        $expiresAt = Carbon::parse($status['expires_at']);
-        return $expiresAt->isFuture();
+        try {
+            $expiresAt = Carbon::parse($status['expires_at']);
+            return $expiresAt->isFuture();
+        } catch (\Exception $e) {
+            \Log::warning('Failed to parse expires_at in billing cache', [
+                'expires_at' => $status['expires_at'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
     
     /**
@@ -227,19 +235,31 @@ class BillingCacheManager
             ];
         }
         
-        $expiresAt = Carbon::parse($status['expires_at']);
-        $loadedAt = Carbon::parse($status['loaded_at']);
-        
-        return [
-            'cached' => true,
-            'loaded_at' => $loadedAt->toISOString(),
-            'expires_at' => $expiresAt->toISOString(),
-            'age_minutes' => $loadedAt->diffInMinutes(now()),
-            'expires_in_minutes' => now()->diffInMinutes($expiresAt),
-            'is_fallback' => $status['is_fallback'] ?? false,
-            'plan' => $status['subscription']['plan'] ?? 'unknown',
-            'status' => $expiresAt->isFuture() ? 'valid' : 'expired'
-        ];
+        try {
+            $expiresAt = Carbon::parse($status['expires_at']);
+            $loadedAt = Carbon::parse($status['loaded_at']);
+            
+            return [
+                'cached' => true,
+                'loaded_at' => $loadedAt->toISOString(),
+                'expires_at' => $expiresAt->toISOString(),
+                'age_minutes' => $loadedAt->diffInMinutes(now()),
+                'expires_in_minutes' => now()->diffInMinutes($expiresAt),
+                'is_fallback' => $status['is_fallback'] ?? false,
+                'plan' => $status['subscription']['plan'] ?? 'unknown',
+                'status' => $expiresAt->isFuture() ? 'valid' : 'expired'
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Failed to parse dates in billing cache stats', [
+                'customer_id' => $customerId,
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'cached' => true,
+                'status' => 'error_parsing_dates',
+                'raw_data' => $status
+            ];
+        }
     }
     
     /**

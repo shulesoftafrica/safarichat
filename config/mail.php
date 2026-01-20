@@ -43,6 +43,8 @@ return [
             'password' =>'lazacodecompany2020', //env('MAIL_PASSWORD'),
             'timeout' => null,
             'auth_mode' => null,
+            // NOTE: If SMTP authentication fails, system alerts will be logged instead of emailed.
+            // To enable email alerts, verify SMTP credentials and set AI_EMAIL_ALERTS_ENABLED=true in .env
         ],
 
         'ses' => [

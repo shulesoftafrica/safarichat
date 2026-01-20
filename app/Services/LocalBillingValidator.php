@@ -23,10 +23,18 @@ class LocalBillingValidator
         }
         
         if (isset($status['expires_at'])) {
-            $expiresAt = Carbon::parse($status['expires_at']);
-            if ($expiresAt->isPast()) {
-                Log::warning('Billing validation failed: cache_expired');
-                return ['valid' => false, 'reason' => 'cache_expired'];
+            try {
+                $expiresAt = Carbon::parse($status['expires_at']);
+                if ($expiresAt->isPast()) {
+                    Log::warning('Billing validation failed: cache_expired');
+                    return ['valid' => false, 'reason' => 'cache_expired'];
+                }
+            } catch (\Exception $e) {
+                Log::warning('Billing validation failed: invalid_expires_at', [
+                    'expires_at' => $status['expires_at'],
+                    'error' => $e->getMessage(),
+                ]);
+                return ['valid' => false, 'reason' => 'invalid_date_format'];
             }
         }
         

@@ -86,8 +86,8 @@ class CrmImportContactsController extends Controller
                         'source' => 'crm_import',
                         'tags' => !empty($contactData['tags']) ? implode(',', $contactData['tags']) : null,
                         'imported_from_crm' => true,
-                        'crm_created_at' => isset($contactData['created_in_crm']) ? Carbon::parse($contactData['created_in_crm']) : null,
-                        'crm_updated_at' => isset($contactData['updated_in_crm']) ? Carbon::parse($contactData['updated_in_crm']) : null,
+                        'crm_created_at' => $this->parseDate($contactData['created_in_crm'] ?? null),
+                        'crm_updated_at' => $this->parseDate($contactData['updated_in_crm'] ?? null),
                     ]);
 
                     $imported[] = [
@@ -231,7 +231,7 @@ class CrmImportContactsController extends Controller
                     'conversation_state' => 'IMPORTED_SUMMARY',
                     'is_imported' => true,
                     'import_type' => 'summarized',
-                    'original_timestamp' => Carbon::parse($summaryData['date_range']['end']),
+                    'original_timestamp' => $this->parseDate($summaryData['date_range']['end'] ?? null),
                     'metadata' => [
                         'key_interactions' => $summaryData['key_interactions'] ?? [],
                         'total_original_messages' => $summaryData['total_messages'],
@@ -415,5 +415,38 @@ class CrmImportContactsController extends Controller
         }
 
         return 'GENERAL';
+    }
+
+    /**
+     * Safely parse date string with fallback
+     */
+    private function parseDate($dateString)
+    {
+        // Return null if empty or null
+        if (empty($dateString)) {
+            return null;
+        }
+
+        // Ensure it's a string and not an error code or number
+        if (!is_string($dateString) && !is_numeric($dateString)) {
+            return null;
+        }
+
+        // If it's just numbers (like error code 42703), return null
+        if (is_numeric($dateString) && strlen($dateString) < 8) {
+            return null;
+        }
+
+        try {
+            // Try to parse the date
+            return Carbon::parse($dateString);
+        } catch (\Exception $e) {
+            // Log the error and return null
+            \Log::warning('Failed to parse date in CRM import', [
+                'date_string' => $dateString,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }
