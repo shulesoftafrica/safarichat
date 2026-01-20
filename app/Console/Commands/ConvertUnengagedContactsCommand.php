@@ -125,8 +125,8 @@ class ConvertUnengagedContactsCommand extends Command
     {
         try {
             // Get active AI sales agent for this business
+            // Note: Using just status='active' as is_active should mirror this
             $aiAgent = AiSalesAgent::where('user_id', $contact->business->user_id)
-                                  ->where('is_active', true)
                                   ->where('status', 'active')
                                   ->first();
 
@@ -135,7 +135,7 @@ class ConvertUnengagedContactsCommand extends Command
                     'contact_id' => $contact->id,
                     'contact_name' => $contact->guest_name,
                     'user_id' => $contact->business->user_id,
-                    'business_id' => $contact->business_id
+                    'business_id' => $contact->business_id,
                 ]);
                 return false;
             }
