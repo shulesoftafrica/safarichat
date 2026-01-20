@@ -104,6 +104,19 @@ class ConvertUnengagedContactsCommand extends Command
     {
         $cutoffDate = now()->subDays($daysOld);
         
+        // Get all phone numbers that have existing messages
+        $phonesWithIncoming = \DB::table('incoming_messages')
+            ->whereNotNull('phone_number')
+            ->pluck('phone_number')
+            ->unique();
+            
+        $phonesWithOutgoing = \DB::table('outgoing_messages')
+            ->whereNotNull('phone_number')
+            ->pluck('phone_number')
+            ->unique();
+            
+        $phonesWithMessages = $phonesWithIncoming->merge($phonesWithOutgoing)->unique()->toArray();
+        
         $query = BusinessContact::where(function($query) {
                 // Not contacted for sales yet
                 $query->where('contacted_for_sales', false)
@@ -126,9 +139,8 @@ class ConvertUnengagedContactsCommand extends Command
                           });
                       });
             })
-            // Exclude contacts that have existing incoming/outgoing messages
-            ->whereDoesntHave('incomingMessages')
-            ->whereDoesntHave('outgoingMessages')
+            // Exclude contacts whose phone numbers already have messages
+            ->whereNotIn('guest_phone', $phonesWithMessages)
             ->whereHas('business', function($query) {
                 // Only contacts with active businesses
                 $query->whereNotNull('user_id');

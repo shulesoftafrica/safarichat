@@ -125,6 +125,13 @@ class DailyOutreachCommand extends Command
 
     private function getLeadsForOutreach(AiSalesAgent $agent, int $limit)
     {
+        // Get all phone numbers that already have outgoing messages (already contacted)
+        $phonesWithMessages = \DB::table('outgoing_messages')
+            ->whereNotNull('phone_number')
+            ->pluck('phone_number')
+            ->unique()
+            ->toArray();
+        
         return Lead::where('ai_sales_agent_id', $agent->id)
             ->whereIn('status', [Lead::STATUS_NEW, Lead::STATUS_OUTREACHED])
             ->whereNotIn('status', [Lead::STATUS_DO_NOT_CONTACT, Lead::STATUS_CLOSED])
@@ -133,6 +140,10 @@ class DailyOutreachCommand extends Command
                     ->orWhere('last_contact_at', '<', now()->subDays(1));
             })
             ->where('lead_score', '>', 0)
+            // Exclude leads whose phone numbers already have outgoing messages
+            ->whereHas('contact', function($query) use ($phonesWithMessages) {
+                $query->whereNotIn('guest_phone', $phonesWithMessages);
+            })
             ->orderByDesc('lead_score')
             ->orderBy('created_at')
             ->limit($limit)
