@@ -74,6 +74,8 @@ Route::post('/resetpassword/resetP','Setup@resetP');
 
 // Custom authentication routes (OTP-based)
 Route::get('/login', 'Setup@businessLogin')->name('login');
+Route::post('/setup/otp', 'Setup@otp')->name('otp.send');
+Route::post('/setup/otpverify', 'Setup@otpverify')->name('otp.verify');
 Route::post('/logout', function() {
     auth()->logout();
     request()->session()->invalidate();
