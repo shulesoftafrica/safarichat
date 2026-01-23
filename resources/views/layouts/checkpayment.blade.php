@@ -599,6 +599,15 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
             return false;
         }
         return true;
+    };
+}
+
+    } // End of pricingControlsInitialized check
+</script>
+
+@if($isTrialExpired || $isSubscriptionExpired || $isInactive)
+<!-- Auto-show pricing modal when subscription is required -->
+<script>
 (function() {
     function tryShowModal() {
         if (window.pricingControls && window.pricingControls.modal) {
@@ -624,16 +633,7 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     } else {
         setTimeout(tryShowModal, 500);
     }
-})(           @endif
-            @if($isSubscriptionExpired)
-                pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.');
-            @endif
-            @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
-                pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
-            @endif
-        }, 500);
-    }
-});
+})();
 </script>
 @endif
 
