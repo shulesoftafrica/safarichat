@@ -644,8 +644,9 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     } // End of pricingControlsInitialized check
 </script>
 
+@auth
 @if($isTrialExpired || $isSubscriptionExpired || $isInactive)
-<!-- Auto-show pricing modal when subscription is required -->
+<!-- Auto-show pricing modal when subscription is required (authenticated users only) -->
 <script>
 (function() {
     function tryShowModal() {
@@ -675,6 +676,7 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 })();
 </script>
 @endif
+@endauth
 
 @if($subscriptionStatus === 'trial' && $expiresAt && now()->lessThan($expiresAt))
 <!-- Trial Status Info -->
