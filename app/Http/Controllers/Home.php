@@ -24,11 +24,8 @@ class Home extends Controller
         $this->data['epayment_enabled'] = $this->epayment_enabled;
     }
 
-    private $HEADER = array(
-        'application/x-www-form-urlencoded'
-    );
-    private $URL = 'http://51.91.251.252:8081/api';
 
+  
     public function testMessage(){
         $wasender = new \App\Services\WaSenderService();
                 
