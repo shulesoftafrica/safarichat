@@ -1,7 +1,50 @@
 <?php 
-// NEW BILLING LOGIC - No more SubscriptionService calls
+// NEW BILLING LOGIC - Load actual billing data
 $user = Auth::user();
-$businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no business
+$businessId = $user->business?->id ?? $user->id;
+
+// Load billing account data
+$billingAccount = null;
+if ($user->business) {
+    $billingAccount = $user->business->billingAccount;
+} else {
+    // Fallback: try to get billing account through user
+    $billingAccount = $user->billingAccount;
+}
+
+// Determine subscription status
+$subscriptionStatus = $billingAccount->subscription_status ?? 'inactive';
+$currentPlan = $billingAccount->subscription_plan ?? 'trial';
+$expiresAt = $billingAccount->subscription_expires_at ?? null;
+$aiCredits = $billingAccount->ai_credits ?? 0;
+
+// Determine modal context
+$isTrialExpired = $subscriptionStatus === 'trial' && $expiresAt && now()->greaterThan($expiresAt);
+$isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled']);
+$isInactive = $subscriptionStatus === 'inactive' || !$billingAccount;
+
+// Set dynamic messages based on status
+if ($isTrialExpired) {
+    $modalTitle = 'Trial Period Ended';
+    $modalIcon = 'fa-clock';
+    $modalIconColor = '#ff9800';
+    $defaultMessage = 'Your free trial has ended. Please upgrade to continue using SafariChat features.';
+} elseif ($isSubscriptionExpired) {
+    $modalTitle = 'Subscription Expired';
+    $modalIcon = 'fa-exclamation-triangle';
+    $modalIconColor = '#f44336';
+    $defaultMessage = 'Your subscription has expired. Please renew to continue using SafariChat features.';
+} elseif ($isInactive) {
+    $modalTitle = 'Subscription Required';
+    $modalIcon = 'fa-lock';
+    $modalIconColor = '#dc3545';
+    $defaultMessage = 'You need an active subscription to access this feature.';
+} else {
+    $modalTitle = 'Upgrade Required';
+    $modalIcon = 'fa-crown';
+    $modalIconColor = '#667eea';
+    $defaultMessage = 'This feature is not included in your current subscription plan.';
+}
 ?>
 
 <!-- Pricing Controls Modal - Reusable across all pages -->
@@ -10,17 +53,17 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
         <div class="modal-content">
             <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 <h5 class="modal-title" id="pricingControlsModalLabel">
-                    <i class="fas fa-crown"></i> Upgrade Required
+                    <i class="fas {{ $modalIcon }}"></i> {{ $modalTitle }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="pricingControlsModalBody">
                 <div class="text-center mb-4">
                     <div class="mb-3">
-                        <i class="fas fa-lock fa-3x" style="color: #dc3545;"></i>
+                        <i class="fas {{ $modalIcon }} fa-3x" style="color: {{ $modalIconColor }};"></i>
                     </div>
-                    <h5>Feature Not Available</h5>
-                    <p class="text-muted" id="featureMessage">This feature is not included in your current subscription plan.</p>
+                    <h5 id="modalContextTitle">{{ $modalTitle }}</h5>
+                    <p class="text-muted" id="featureMessage">{{ $defaultMessage }}</p>
                 </div>
 
                 <!-- Current Plan Display -->
@@ -29,12 +72,25 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
                         <h6 class="card-title"><i class="fas fa-user-tag"></i> Current Plan</h6>
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="badge bg-secondary" id="currentPlanName">Loading...</span>
-                                <small class="text-muted d-block" id="currentPlanDetails">Loading plan details...</small>
+                                <span class="badge bg-{{ $currentPlan === 'trial' ? 'secondary' : ($currentPlan === 'starter' ? 'info' : ($currentPlan === 'pro' ? 'primary' : 'warning')) }}" id="currentPlanName">
+                                    {{ ucfirst($currentPlan) }}{{ $currentPlan === 'trial' ? ' (Free)' : '' }} Plan
+                                </span>
+                                <small class="text-muted d-block" id="currentPlanDetails">
+                                    Status: <strong class="text-{{ $subscriptionStatus === 'active' ? 'success' : 'danger' }}">{{ ucfirst($subscriptionStatus) }}</strong>
+                                    @if($aiCredits > 0)
+                                        • {{ number_format($aiCredits) }} AI Credits
+                                    @endif
+                                </small>
                             </div>
                             <div class="text-end">
-                                <small class="text-muted">Expires</small>
-                                <div id="currentPlanExpiry" class="fw-bold">Loading...</div>
+                                <small class="text-muted">{{ $expiresAt && now()->lessThan($expiresAt) ? 'Expires' : 'Expired' }}</small>
+                                <div id="currentPlanExpiry" class="fw-bold">
+                                    @if($expiresAt)
+                                        {{ $expiresAt->format('M d, Y') }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -92,18 +148,25 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
     class PricingControls {
         constructor() {
             this.modal = null;
-            this.currentSubscription = null;
+            this.currentSubscription = {
+                plan: '{{ $currentPlan }}',
+                status: '{{ $subscriptionStatus }}',
+                expires_at: '{{ $expiresAt ? $expiresAt->toISOString() : "" }}',
+                ai_credits: {{ $aiCredits }}
+            };
             this.availablePlans = [];
             this.currentFeature = null;
         }
 
         async init() {
             this.modal = new bootstrap.Modal(document.getElementById('pricingControlsModal'));
-            await this.loadCurrentSubscription();
+            // Current plan already loaded from server-side PHP
+            // Just load available plans
             await this.loadAvailablePlans();
         }
 
         async loadCurrentSubscription() {
+            // Already loaded from PHP, but can refresh if needed
             try {
                 const response = await fetch('{{ url("/api/billing/status") }}', {
                     headers: {
@@ -116,7 +179,6 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
                 
                 if (data.success) {
                     this.currentSubscription = data.subscription;
-                    this.updateCurrentPlanDisplay();
                 }
             } catch (error) {
                 console.error('Error loading subscription:', error);
@@ -186,19 +248,33 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
             }
             if (features.unlimited_messages) {
                 descriptions.push('Unlimited messages');
-            }
-            
-            return descriptions;
-        }
-
-        updateCurrentPlanDisplay() {
+            // Plan display is now handled server-side in PHP
+            // This method can be called to refresh dynamically if needed
             const planName = this.currentSubscription?.plan || 'trial';
             const planTitle = this.capitalize(planName) + (planName === 'trial' ? ' (Free)' : ' Plan');
             
-            document.getElementById('currentPlanName').textContent = planTitle;
-            document.getElementById('currentPlanName').className = `badge bg-${this.getPlanColor(planName)}`;
+            const currentPlanElement = document.getElementById('currentPlanName');
+            if (currentPlanElement) {
+                currentPlanElement.textContent = planTitle;
+                currentPlanElement.className = `badge bg-${this.getPlanColor(planName)}`;
+            }
             
-            const details = this.getPlanDetails(planName);
+            const status = this.currentSubscription?.status || 'inactive';
+            const credits = this.currentSubscription?.ai_credits || 0;
+            const detailsElement = document.getElementById('currentPlanDetails');
+            if (detailsElement) {
+                const statusColor = status === 'active' ? 'success' : 'danger';
+                detailsElement.innerHTML = `Status: <strong class="text-${statusColor}">${this.capitalize(status)}</strong>` +
+                    (credits > 0 ? ` • ${credits.toLocaleString()} AI Credits` : '');
+            }
+            
+            const expiry = this.currentSubscription?.expires_at 
+                ? new Date(this.currentSubscription.expires_at).toLocaleDateString()
+                : 'N/A';
+            const expiryElement = document.getElementById('currentPlanExpiry');
+            if (expiryElement) {
+                expiryElement.textContent = expiry;
+            }
             document.getElementById('currentPlanDetails').textContent = details;
             
             const expiry = this.currentSubscription?.expires_at 
@@ -297,12 +373,25 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
         }
 
         getPlanDetails(plan) {
-            const details = {
-                trial: 'Limited features, 3 days remaining',
-                starter: 'Basic features, 1 WhatsApp channel',
-                pro: 'Advanced features, 3 WhatsApp channels',
-                premium: 'All features, 7 WhatsApp channels'
-            };
+            const detamodal title and icon based on subscription status
+            const status = '{{ $subscriptionStatus }}';
+            const currentPlan = '{{ $currentPlan }}';
+            const modalTitle = document.getElementById('pricingControlsModalLabel');
+            const contextTitle = document.getElementById('modalContextTitle');
+            const messageElement = document.getElementById('featureMessage');
+            
+            // Set appropriate message based on context
+            if (message) {
+                messageElement.textContent = message;
+            } else if (feature) {
+                messageElement.textContent = `The "${feature}" feature is not available in your current plan. Upgrade to unlock this feature.`;
+            } else {
+                messageElement.textContent = '{{ $defaultMessage }}';
+            }
+            
+            // Update titles if not already set
+            if (contextTitle && !message && !feature) {
+                contextTitle.textContent = '{{ $modalTitle }}'
             return details[plan] || 'Unknown plan';
         }
 
@@ -460,23 +549,29 @@ $businessId = $user->business?->id ?? $user->id; // Fallback to user ID if no bu
         }
     }
 
-    function proceedWithCurrentPlan() {
-        // Allow user to proceed with limited functionality
-        pricingControls.modal.hide();
-        
-        if (typeof toastr !== 'undefined') {
-            toastr.info('Continuing with current plan limitations');
-        }
+    $isTrialExpired || $isSubscriptionExpired || $isInactive)
+<!-- Auto-show pricing modal when subscription is required -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-show pricing modal for expired/no subscription
+    if (pricingControls && pricingControls.modal) {
+        setTimeout(() => {
+            @if($isTrialExpired)
+                pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt->format("M d, Y") }}. Please upgrade to continue using SafariChat features.');
+            @elseif($isSubscriptionExpired)
+                pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt->format("M d, Y") }}. Please renew to continue using SafariChat features.');
+            @else
+                pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
+            @endif
+        }, 500);
     }
-
-    // Helper function to check if user can access feature
-    function checkFeatureAccess(featureName) {
-        // This would integrate with your existing billing service
-        // Return true if user has access, false otherwise
-        // For now, return true to allow development
-        return true;
-    }
-
+});
+</script>
+@elseif($subscriptionStatus === 'trial' && $expiresAt && now()->lessThan($expiresAt))
+<!-- Trial Status Info -->
+<div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+    <i class="fas fa-clock"></i> 
+    <strong>Trial Active:</strong> Your trial expires on {{ $expiresAt->format('M d, Y') }}
     // Helper function to show upgrade modal for specific features
     function requireFeatureUpgrade(featureName, customMessage = null) {
         if (!checkFeatureAccess(featureName)) {
