@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\Business;
+use App\Models\BillingAccount;
 
 /**
  * Central Billing Service - SafariChat Revenue Protection System
@@ -88,71 +89,72 @@ class BillingService
     
     /**
      * REVENUE PROTECTION: Conservative fallback when billing API fails
+     * Now uses BillingAccount as single source of truth
      */
     private static function getFallbackStatus($customerId)
     {
-        // Get user's current plan from database
+        // Get user and their billing account
         $user = User::find($customerId);
-        $business = $user ? $user->business : null;
         
-        $plan = 'trial'; // Default to most restrictive
-        if ($business && $business->subscription_plan) {
-            $plan = $business->subscription_plan;
+        if (!$user) {
+            return self::getDefaultTrialStatus($customerId);
         }
         
-        // Get actual AI credits from database instead of hardcoded values
-        $actualAiCredits = $user->ai_credits ?? $business->ai_credits ?? 0;
+        // Get or create billing account
+        $billingAccount = $user->billingAccount ?? $user->getOrCreateBillingAccount();
         
-        // Conservative limits - protect revenue while allowing minimal usage
-        $fallbackLimits = [
-            'trial' => [
-                'contacts' => ['current' => 0, 'max' => 5, 'canAdd' => true],
-                'products' => ['current' => 0, 'max' => 1, 'canAdd' => true],
-                'whatsapp_channels' => ['current' => 0, 'max' => 1, 'canAdd' => true],
-                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
-            ],
-            'starter' => [
-                'contacts' => ['current' => 0, 'max' => 20, 'canAdd' => true], // Reduced from 50
-                'products' => ['current' => 0, 'max' => 2, 'canAdd' => true], // Reduced from 5
-                'whatsapp_channels' => ['current' => 0, 'max' => 1, 'canAdd' => true],
-                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
-            ],
-            'pro' => [
-                'contacts' => ['current' => 0, 'max' => 50, 'canAdd' => true], // Reduced from 150
-                'products' => ['current' => 0, 'max' => 10, 'canAdd' => true], // Reduced from 50
-                'whatsapp_channels' => ['current' => 0, 'max' => 2, 'canAdd' => true], // Reduced from 3
-                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
-            ],
-            'premium' => [
-                'contacts' => ['current' => 0, 'max' => 100, 'canAdd' => true], // Reduced from 400
-                'products' => ['current' => 0, 'max' => 25, 'canAdd' => true], // Reduced from 200
-                'whatsapp_channels' => ['current' => 0, 'max' => 3, 'canAdd' => true], // Reduced from 7
-                'ai_credits' => ['balance' => $actualAiCredits, 'canUse' => $actualAiCredits > 0] // Use actual DB value
-            ]
-        ];
+        if (!$billingAccount) {
+            return self::getDefaultTrialStatus($customerId);
+        }
         
+        $plan = $billingAccount->subscription_plan;
+        $aiCredits = $billingAccount->ai_credits;
+        
+        // Build status from billing account data
         $status = [
             'customer_id' => $customerId,
             'loaded_at' => now()->toISOString(),
             'expires_at' => now()->addSeconds(self::FALLBACK_DURATION)->toISOString(),
             'is_fallback' => true,
             'subscription' => [
-                'active' => true,
+                'active' => $billingAccount->isActive(),
                 'plan' => $plan,
                 'trial' => $plan === 'trial',
-                'expires' => now()->addDays(30)->toISOString() // Conservative assumption
+                'expires' => $billingAccount->subscription_expires_at 
+                    ? $billingAccount->subscription_expires_at->toISOString() 
+                    : now()->addDays(30)->toISOString()
             ],
-            'limits' => $fallbackLimits[$plan] ?? $fallbackLimits['trial'],
+            'limits' => [
+                'contacts' => [
+                    'current' => 0, 
+                    'max' => $billingAccount->max_contacts, 
+                    'canAdd' => true
+                ],
+                'products' => [
+                    'current' => 0, 
+                    'max' => $billingAccount->max_products, 
+                    'canAdd' => true
+                ],
+                'whatsapp_channels' => [
+                    'current' => 0, 
+                    'max' => $billingAccount->whatsapp_channels, 
+                    'canAdd' => true
+                ],
+                'ai_credits' => [
+                    'balance' => $aiCredits, 
+                    'canUse' => $aiCredits > 0
+                ]
+            ],
             'permissions' => [
-                'add_contact' => true,
-                'add_product' => true,
-                'send_message' => true,
-                'use_ai' => true,
-                'automations' => $plan !== 'trial',
-                'customer_followups' => in_array($plan, ['pro', 'premium']),
-                'customer_categorization' => in_array($plan, ['pro', 'premium']),
-                'booking_calendars' => $plan === 'premium',
-                'sales_reports' => in_array($plan, ['pro', 'premium'])
+                'add_contact' => $billingAccount->isActive(),
+                'add_product' => $billingAccount->isActive(),
+                'send_message' => $billingAccount->isActive(),
+                'use_ai' => $billingAccount->isActive() && $aiCredits > 0,
+                'automations' => $billingAccount->isActive() && $plan !== 'trial',
+                'customer_followups' => $billingAccount->customer_followups,
+                'customer_categorization' => $billingAccount->customer_categorization,
+                'booking_calendars' => $billingAccount->booking_calendars,
+                'sales_reports' => $billingAccount->sales_reports
             ]
         ];
         
@@ -160,9 +162,47 @@ class BillingService
         self::cacheStatus($customerId, $status, self::FALLBACK_DURATION);
         
         // Log fallback usage for revenue tracking
-        Log::warning("Using fallback billing status for customer {$customerId}, plan: {$plan}");
+        Log::warning("Using fallback billing status for customer {$customerId}, plan: {$plan}, credits: {$aiCredits}");
         
         return $status;
+    }
+    
+    /**
+     * Get default trial status when no user found
+     */
+    private static function getDefaultTrialStatus($customerId)
+    {
+        $trialConfig = config('safarichat_billing.plans.trial');
+        
+        return [
+            'customer_id' => $customerId,
+            'loaded_at' => now()->toISOString(),
+            'expires_at' => now()->addSeconds(self::FALLBACK_DURATION)->toISOString(),
+            'is_fallback' => true,
+            'subscription' => [
+                'active' => false,
+                'plan' => 'trial',
+                'trial' => true,
+                'expires' => now()->addDays(3)->toISOString()
+            ],
+            'limits' => [
+                'contacts' => ['current' => 0, 'max' => 5, 'canAdd' => false],
+                'products' => ['current' => 0, 'max' => 1, 'canAdd' => false],
+                'whatsapp_channels' => ['current' => 0, 'max' => 1, 'canAdd' => false],
+                'ai_credits' => ['balance' => 0, 'canUse' => false]
+            ],
+            'permissions' => [
+                'add_contact' => false,
+                'add_product' => false,
+                'send_message' => false,
+                'use_ai' => false,
+                'automations' => false,
+                'customer_followups' => false,
+                'customer_categorization' => false,
+                'booking_calendars' => false,
+                'sales_reports' => false
+            ]
+        ];
     }
     
     /**
@@ -421,5 +461,96 @@ class BillingService
     public static function getSafariChatProduct()
     {
         return self::getProductDetails('safarichat');
+    }
+
+    
+    /**
+     * Get billing account for a user
+     * @param User|int $user User instance or user ID
+     * @return BillingAccount|null
+     */
+    public static function getBillingAccountForUser($user)
+    {
+        if (is_numeric($user)) {
+            $user = User::find($user);
+        }
+        
+        if (!$user) {
+            return null;
+        }
+        
+        return $user->billingAccount ?? $user->getOrCreateBillingAccount();
+    }
+    
+    /**
+     * Deduct AI credits from billing account
+     * @param User|int $user
+     * @param int $credits
+     * @param string $reason
+     * @return bool Success status
+     */
+    public static function deductCredits($user, int $credits, string $reason = null): bool
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            Log::error("Cannot deduct credits: No billing account found for user", [
+                'user_id' => is_numeric($user) ? $user : $user->id
+            ]);
+            return false;
+        }
+        
+        return $billingAccount->deductCredits($credits, $reason);
+    }
+    
+    /**
+     * Add AI credits to billing account
+     * @param User|int $user
+     * @param int $credits
+     * @param string $reason
+     */
+    public static function addCredits($user, int $credits, string $reason = null): void
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            Log::error("Cannot add credits: No billing account found");
+            return;
+        }
+        
+        $billingAccount->addCredits($credits, $reason);
+    }
+
+    /**
+     * Get remaining credits for user
+     * @param User|int $user
+     * @return int
+     */
+    public static function getRemainingCredits($user): int
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            return 0;
+        }
+        
+        return $billingAccount->ai_credits;
+    }
+    
+    /**
+     * Check if user has sufficient credits
+     * @param User|int $user
+     * @param int $credits
+     * @return bool
+     */
+    public static function hasCredits($user, int $credits = 1): bool
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            return false;
+        }
+        
+        return $billingAccount->hasCredits($credits);
     }
 }

@@ -204,22 +204,28 @@ class OpenAiService
                 $tokensUsed = $response['tokens_used'] ?? $estimatedTokens;
                 $actualCredits = max(1, ceil($tokensUsed / 3.846));
                 
-                // Deduct credits from user account
+                // Deduct credits from billing account (single source of truth)
                 $user = \App\Models\User::find($userId);
-                if ($user && $user->ai_credits >= $actualCredits) {
-                    $user->decrement('ai_credits', $actualCredits);
+                if ($user) {
+                    $deducted = \App\Services\BillingService::deductCredits(
+                        $user, 
+                        $actualCredits, 
+                        "AI response generation for lead {$lead->id}"
+                    );
                     
-                    // Also deduct from business if exists
-                    if ($user->business) {
-                        $user->business->decrement('ai_credits', $actualCredits);
+                    if ($deducted) {
+                        Log::info('AI credits deducted from billing account', [
+                            'user_id' => $userId,
+                            'credits_deducted' => $actualCredits,
+                            'tokens_used' => $tokensUsed,
+                            'remaining_credits' => \App\Services\BillingService::getRemainingCredits($user)
+                        ]);
+                    } else {
+                        Log::warning('Failed to deduct credits from billing account', [
+                            'user_id' => $userId,
+                            'credits_needed' => $actualCredits
+                        ]);
                     }
-                    
-                    Log::info('AI credits deducted', [
-                        'user_id' => $userId,
-                        'credits_deducted' => $actualCredits,
-                        'tokens_used' => $tokensUsed,
-                        'remaining_credits' => $user->fresh()->ai_credits
-                    ]);
                 }
                 
                 return [

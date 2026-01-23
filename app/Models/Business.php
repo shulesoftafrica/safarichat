@@ -49,6 +49,50 @@ class Business extends Model
     }
 
     /**
+     * Get the billing account (single source of truth for billing)
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function billingAccount()
+    {
+        return $this->belongsTo('App\Models\BillingAccount', 'billing_account_id');
+    }
+
+    /**
+     * Get or create billing account for this business
+     * @return \App\Models\BillingAccount
+     */
+    public function getOrCreateBillingAccount()
+    {
+        if ($this->billingAccount) {
+            return $this->billingAccount;
+        }
+
+        // Create new billing account for business
+        $plan = $this->subscription_plan ?? 'trial';
+        $planConfig = config("safarichat_billing.plans.{$plan}");
+        
+        $billingAccount = \App\Models\BillingAccount::create([
+            'owner_type' => 'App\\Models\\Business',
+            'owner_id' => $this->id,
+            'subscription_plan' => $plan,
+            'ai_credits' => $this->ai_credits ?? $planConfig['limits']['ai_credits'] ?? 1000,
+            'max_contacts' => $planConfig['limits']['max_contacts'] ?? 10,
+            'max_products' => $planConfig['limits']['max_products'] ?? 1,
+            'whatsapp_channels' => $planConfig['limits']['whatsapp_channels'] ?? 1,
+            'customer_followups' => $planConfig['limits']['customer_followups'] ?? false,
+            'customer_categorization' => $planConfig['limits']['customer_categorization'] ?? false,
+            'booking_calendars' => $planConfig['limits']['booking_calendars'] ?? false,
+            'sales_reports' => $planConfig['limits']['sales_reports'] ?? false,
+            'unlimited_messages' => $planConfig['limits']['unlimited_messages'] ?? false,
+        ]);
+
+        $this->billing_account_id = $billingAccount->id;
+        $this->save();
+
+        return $billingAccount;
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function businessServices()

@@ -89,6 +89,48 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
+     * Get the billing account (single source of truth for billing)
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function billingAccount() {
+        return $this->belongsTo('App\Models\BillingAccount', 'billing_account_id');
+    }
+
+    /**
+     * Get or create billing account for this user
+     * @return \App\Models\BillingAccount
+     */
+    public function getOrCreateBillingAccount() {
+        if ($this->billingAccount) {
+            return $this->billingAccount;
+        }
+
+        // If user has a business, use business billing account
+        if ($this->business && $this->business->billingAccount) {
+            $this->billing_account_id = $this->business->billing_account_id;
+            $this->save();
+            return $this->business->billingAccount;
+        }
+
+        // Create new billing account for user
+        $planConfig = config("safarichat_billing.plans.trial");
+        $billingAccount = \App\Models\BillingAccount::create([
+            'owner_type' => 'App\\Models\\User',
+            'owner_id' => $this->id,
+            'subscription_plan' => 'trial',
+            'ai_credits' => $planConfig['limits']['ai_credits'] ?? 1000,
+            'max_contacts' => $planConfig['limits']['max_contacts'] ?? 10,
+            'max_products' => $planConfig['limits']['max_products'] ?? 1,
+            'whatsapp_channels' => $planConfig['limits']['whatsapp_channels'] ?? 1,
+        ]);
+
+        $this->billing_account_id = $billingAccount->id;
+        $this->save();
+
+        return $billingAccount;
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function messages() {
