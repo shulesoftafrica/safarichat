@@ -20,10 +20,13 @@ $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial')
 $expiresAt = $billingAccount ? $billingAccount->subscription_expires_at : null;
 $aiCredits = $billingAccount ? ($billingAccount->ai_credits ?? 0) : 0;
 
-// Determine modal context
-$isTrialExpired = $subscriptionStatus === 'trial' && $expiresAt && now()->greaterThan($expiresAt);
-$isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled']);
-$isInactive = $subscriptionStatus === 'inactive' || !$billingAccount;
+// Check if trial or subscription is still valid (not expired)
+$isStillValid = $expiresAt && now()->lessThanOrEqualTo($expiresAt);
+
+// Determine modal context - only show modal if actually expired or no valid subscription
+$isTrialExpired = $currentPlan === 'trial' && $expiresAt && now()->greaterThan($expiresAt);
+$isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled']) && (!$expiresAt || now()->greaterThan($expiresAt));
+$isInactive = ($subscriptionStatus === 'inactive' || !$billingAccount) && !$isStillValid;
 
 // Set dynamic messages based on status
 $modalTitle = 'Upgrade Required';
