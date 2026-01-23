@@ -80,6 +80,7 @@ return [
     'billing' => [
         'api_url' => env('BILLING_API_URL', 'http://127.0.0.1:8000/api'),
         'api_key' => env('BILLING_API_KEY','21|jGYrq6GOU7w5lARAnu9ckTeMpCVOIu6qJgoCpU57843389ae'),
+        'webhook_secret' => env('BILLING_WEBHOOK_SECRET'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
     ],
 

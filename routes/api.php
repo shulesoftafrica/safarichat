@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CrmImportController;
 use App\Http\Controllers\WaSenderController;
 use App\Http\Controllers\Auth\WhatsAppRegistrationController;
 use App\Http\Controllers\Api\BillingApiController;
+use App\Http\Controllers\Api\BillingWebhookController;
 
 /*
   |--------------------------------------------------------------------------
@@ -26,6 +27,9 @@ use App\Http\Controllers\Api\BillingApiController;
 
 // Billing API Routes (Revenue Protected)
 Route::prefix('billing')->name('api.billing.')->group(function () {
+    // Webhook endpoint (no auth required - validated by signature)
+    Route::post('/webhook', [BillingWebhookController::class, 'handle'])->name('webhook');
+    
     // Product catalog endpoints
     Route::get('/products', [BillingApiController::class, 'getProducts'])->name('products');
     
