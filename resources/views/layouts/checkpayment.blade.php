@@ -149,18 +149,22 @@ if ($isInactive) {
 
 <!-- Pricing Controls JavaScript -->
 <script>
-    class PricingControls {
-        constructor() {
-            this.modal = null;
-            this.currentSubscription = {
-                plan: '{{ $currentPlan }}',
-                status: '{{ $subscriptionStatus }}',
-                expires_at: '{{ $expiresAt ? $expiresAt->toISOString() : "" }}',
-                ai_credits: {{ $aiCredits }}
-            };
-            this.availablePlans = [];
-            this.currentFeature = null;
-        }
+    // Prevent duplicate script execution
+    if (typeof window.pricingControlsInitialized === 'undefined') {
+        window.pricingControlsInitialized = true;
+
+        class PricingControls {
+            constructor() {
+                this.modal = null;
+                this.currentSubscription = {
+                    plan: '{{ $currentPlan }}',
+                    status: '{{ $subscriptionStatus }}',
+                    expires_at: '{{ $expiresAt ? $expiresAt->toISOString() : "" }}',
+                    ai_credits: {{ $aiCredits }}
+                };
+                this.availablePlans = [];
+                this.currentFeature = null;
+            }
 
         async init() {
             this.modal = new bootstrap.Modal(document.getElementById('pricingControlsModal'));
@@ -272,19 +276,13 @@ if ($isInactive) {
                     (credits > 0 ? ` • ${credits.toLocaleString()} AI Credits` : '');
             }
             
-            const expiry = this.currentSubscription?.expires_at 
+            const expiryDate = this.currentSubscription?.expires_at 
                 ? new Date(this.currentSubscription.expires_at).toLocaleDateString()
                 : 'N/A';
             const expiryElement = document.getElementById('currentPlanExpiry');
             if (expiryElement) {
-                expiryElement.textContent = expiry;
+                expiryElement.textContent = expiryDate;
             }
-            document.getElementById('currentPlanDetails').textContent = details;
-            
-            const expiry = this.currentSubscription?.expires_at 
-                ? new Date(this.currentSubscription.expires_at).toLocaleDateString()
-                : 'N/A';
-            document.getElementById('currentPlanExpiry').textContent = expiry;
         }
 
         renderAvailablePlans() {
@@ -427,23 +425,38 @@ if ($isInactive) {
         }
     }
 
-    // Global instance
-    let pricingControls;
+    // Global instance - only create if not already exists
+    if (typeof window.pricingControls === 'undefined') {
+        window.pricingControls = null;
+    }
 
     // Initialize when document is ready
-    document.addEventListener('DOMContentLoaded', async function() {
-        pricingControls = new PricingControls();
-        await pricingControls.init();
-    });
-
-    // Global functions for modal interactions
-    function showUpgradeModal(feature = null, message = null) {
-        if (pricingControls) {
-            pricingControls.showModal(feature, message);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!window.pricingControls) {
+                window.pricingControls = new PricingControls();
+                await window.pricingControls.init();
+            }
+        });
+    } else {
+        // DOM already loaded
+        if (!window.pricingControls) {
+            window.pricingControls = new PricingControls();
+            window.pricingControls.init();
         }
     }
 
-    async function upgradeToPlan(planCode, price) {
+    // Global functions for modal interactions
+    if (typeof window.showUpgradeModal === 'undefined') {
+        window.showUpgradeModal = function(feature = null, message = null) {
+            if (window.pricingControls) {
+                window.pricingControls.showModal(feature, message);
+            }
+        };
+    }
+
+    if (typeof window.upgradeToPlan === 'undefined') {
+        window.upgradeToPlan = async function(planCode, price) {
         try {
             // Show loading state
             const button = event.target;
@@ -475,8 +488,8 @@ if ($isInactive) {
                     window.location.href = data.payment_url;
                 } else {
                     // Refetch subscription status
-                    await pricingControls.refetchSubscriptionStatus();
-                    pricingControls.modal.hide();
+                    await window.pricingControls.refetchSubscriptionStatus();
+                    window.pricingControls.modal.hide();
                     
                     // Show success message
                     if (typeof toastr !== 'undefined') {
@@ -497,13 +510,16 @@ if ($isInactive) {
             }
         } finally {
             // Restore button
-            const button = event.target;
-            button.innerHTML = originalContent;
-            button.disabled = false;
+            if (event && event.target) {
+                event.target.innerHTML = originalContent;
+                event.target.disabled = false;
+            }
         }
-    }
+    };
+}
 
-    async function purchaseCredits() {
+if (typeof window.purchaseCredits === 'undefined') {
+    window.purchaseCredits = async function() {
         const amount = document.getElementById('creditAmount').value;
         
         if (!amount || amount < 1000) {
@@ -533,7 +549,7 @@ if ($isInactive) {
                 if (data.payment_url) {
                     window.location.href = data.payment_url;
                 } else {
-                    pricingControls.modal.hide();
+                    window.pricingControls.modal.hide();
                     if (typeof toastr !== 'undefined') {
                         toastr.success(data.message || 'Credits purchased successfully!');
                     } else {
@@ -551,45 +567,64 @@ if ($isInactive) {
                 alert(error.message || 'Failed to purchase credits');
             }
         }
-    }
+    };
+}
 
-    function proceedWithCurrentPlan() {
+if (typeof window.proceedWithCurrentPlan === 'undefined') {
+    window.proceedWithCurrentPlan = function() {
         // Allow user to proceed with limited functionality
-        pricingControls.modal.hide();
+        window.pricingControls.modal.hide();
         
         if (typeof toastr !== 'undefined') {
             toastr.info('Continuing with current plan limitations');
         }
-    }
+    };
+}
 
-    // Helper function to check if user can access feature
-    function checkFeatureAccess(featureName) {
+// Helper function to check if user can access feature
+if (typeof window.checkFeatureAccess === 'undefined') {
+    window.checkFeatureAccess = function(featureName) {
         // This would integrate with your existing billing service
         // Return true if user has access, false otherwise
         // For now, return true to allow development
         return true;
-    }
+    };
+}
 
-    // Helper function to show upgrade modal for specific features
-    function requireFeatureUpgrade(featureName, customMessage = null) {
-        if (!checkFeatureAccess(featureName)) {
-            showUpgradeModal(featureName, customMessage);
+// Helper function to show upgrade modal for specific features
+if (typeof window.requireFeatureUpgrade === 'undefined') {
+    window.requireFeatureUpgrade = function(featureName, customMessage = null) {
+        if (!window.checkFeatureAccess(featureName)) {
+            window.showUpgradeModal(featureName, customMessage);
             return false;
         }
         return true;
-    }
-</script>
-
-@if($isTrialExpired || $isSubscriptionExpired || $isInactive)
-<!-- Auto-show pricing modal when subscription is required -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-show pricing modal for expired/no subscription
-    if (pricingControls && pricingControls.modal) {
-        setTimeout(() => {
+(function() {
+    function tryShowModal() {
+        if (window.pricingControls && window.pricingControls.modal) {
             @if($isTrialExpired)
-                pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.');
+                window.pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.');
             @endif
+            @if($isSubscriptionExpired)
+                window.pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.');
+            @endif
+            @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
+                window.pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
+            @endif
+        } else {
+            // Retry after a short delay if pricingControls not ready yet
+            setTimeout(tryShowModal, 100);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(tryShowModal, 500);
+        });
+    } else {
+        setTimeout(tryShowModal, 500);
+    }
+})(           @endif
             @if($isSubscriptionExpired)
                 pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.');
             @endif
