@@ -180,7 +180,15 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             }
 
         async init() {
-            this.modal = new bootstrap.Modal(document.getElementById('pricingControlsModal'));
+            const modalElement = document.getElementById('pricingControlsModal');
+            const isHardBlock = modalElement.getAttribute('data-bs-backdrop') === 'static';
+            
+            // Initialize modal with configuration based on server-side hard block setting
+            this.modal = new bootstrap.Modal(modalElement, {
+                backdrop: isHardBlock ? 'static' : true,
+                keyboard: isHardBlock ? false : true
+            });
+            
             // Current plan already loaded from server-side PHP
             // Just load available plans
             await this.loadAvailablePlans();
@@ -409,14 +417,25 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             const closeBtn = document.getElementById('modalCloseBtn');
             const cancelBtn = document.getElementById('modalCancelBtn');
             
+            // Configure modal options based on block type
+            let modalOptions = {};
+            
             if (isHardBlock) {
                 // Hard block: lock the modal (cannot close)
+                modalOptions = {
+                    backdrop: 'static',
+                    keyboard: false
+                };
                 modalElement.setAttribute('data-bs-backdrop', 'static');
                 modalElement.setAttribute('data-bs-keyboard', 'false');
                 if (closeBtn) closeBtn.classList.add('d-none');
                 if (cancelBtn) cancelBtn.classList.add('d-none');
             } else {
                 // Soft block: allow closing (feature upgrade or credits)
+                modalOptions = {
+                    backdrop: true,
+                    keyboard: true
+                };
                 modalElement.setAttribute('data-bs-backdrop', 'true');
                 modalElement.setAttribute('data-bs-keyboard', 'true');
                 if (closeBtn) closeBtn.classList.remove('d-none');
@@ -431,9 +450,11 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 messageElement.textContent = `The "${feature}" feature is not available in your current plan. Upgrade to unlock this feature.`;
             }
             
-            // Reinitialize modal with new settings
-            this.modal.dispose();
-            this.modal = new bootstrap.Modal(modalElement);
+            // Reinitialize modal with explicit configuration
+            if (this.modal) {
+                this.modal.dispose();
+            }
+            this.modal = new bootstrap.Modal(modalElement, modalOptions);
             this.modal.show();
         }
 
