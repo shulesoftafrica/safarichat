@@ -25,16 +25,21 @@ class Setup extends Controller {
 
         if ($products['success'] && !empty($products['data'])) {
             // Filter out free trial packages (price = 0) and only show packages with price > 0
-            
-            $pricingPlans = collect($products['data']['price_plans'] ?? [])
+            // The new BillingService returns products directly in ['data'] array
+            $pricingPlans = collect($products['data'])
                 ->filter(function($plan) {
-                    return isset($plan['amount']) && floatval($plan['amount']) > 0;
+                    return isset($plan['price']) && floatval($plan['price']) > 0;
                 })
                 ->map(function($plan) {
-                    // Ensure the view can access the price correctly
-                    $plan['price_plans'] = $plan['amount']; // For backward compatibility
-                    $plan['price'] = $plan['amount']; // Alternative field name
-                    return $plan;
+                    // Transform to format expected by view
+                    return [
+                        'name' => $plan['plan_name'] ?? ucfirst($plan['id']),
+                        'amount' => $plan['price'],
+                        'billing_interval' => $plan['billing_cycle'] ?? 'monthly',
+                        'metadata' => [
+                            'features' => $plan['limits'] ?? []
+                        ]
+                    ];
                 })
                 ->values()
                 ->toArray();

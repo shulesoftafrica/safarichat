@@ -427,73 +427,53 @@ class AdminController extends Controller
     
     public function getCurrentPricing()
     {
-        // First try to load from billing API
-        try {
-            $billingApiUrl = config('app.url') . '/api/billing/get-pricing';
-            $response = Http::timeout(5)->get($billingApiUrl);
+        // Use BillingService to get products
+        $products = $this->billingService ? $this->billingService->getProducts() : BillingService::getProducts();
+        
+        if ($products['success'] && !empty($products['data'])) {
+            // Convert products array to pricing structure expected by admin dashboard
+            $pricing = [
+                'price_per_message' => 100,
+                'price_per_month' => 15000,
+                'free_messages_limit' => 100,
+            ];
             
-            if ($response->successful()) {
-                $apiData = $response->json();
-                if (isset($apiData['success']) && $apiData['success']) {
-                    // Convert billing API format to our format
-                    return $this->convertBillingApiPricing($apiData['data']);
+            // Extract plan prices from products
+            foreach ($products['data'] as $product) {
+                $planId = $product['id'] ?? '';
+                $price = $product['price'] ?? 0;
+                
+                if ($planId === 'starter') {
+                    $pricing['starter_price'] = $price;
+                } elseif ($planId === 'pro') {
+                    $pricing['pro_price'] = $price;
+                } elseif ($planId === 'premium') {
+                    $pricing['premium_price'] = $price;
                 }
-            } else {
-                Log::info('Billing API returned error, using database fallback: ' . $response->status());
             }
-        } catch (\Exception $e) {
-            Log::info('Failed to load pricing from billing API, using database: ' . $e->getMessage());
+            
+            // Cache the pricing
+            cache()->put('pricing_config', $pricing, 86400);
+            
+            return $pricing;
         }
         
-        // Fallback to database/cache
-        return $this->getCurrentPricingFromDB();
+        // Fallback to config file directly
+        return $this->getCurrentPricingFromConfig();
     }
     
-    private function convertBillingApiPricing($billingData)
+    private function getCurrentPricingFromConfig()
     {
+        $config = config('safarichat_billing');
+        
         return [
-            'price_per_message' => $billingData['token_pricing']['price_per_message'] ?? 100,
-            'price_per_month' => $billingData['token_pricing']['price_per_month'] ?? 15000,
-            'free_messages_limit' => $billingData['token_pricing']['free_messages_limit'] ?? 100,
-            'starter_price' => $billingData['plans']['starter']['price'] ?? 15000,
-            'pro_price' => $billingData['plans']['pro']['price'] ?? 45000,
-            'premium_price' => $billingData['plans']['premium']['price'] ?? 85000,
-        ];
-    }
-    
-    private function getCurrentPricingFromDB()
-    {
-        // Try cache first
-        $cached = cache()->get('pricing_config');
-        if ($cached) {
-            return $cached;
-        }
-        
-        // Load from database
-        $pricing = [];
-        $settings = DB::table('settings')->where('key', 'like', 'billing.%')->get();
-        
-        foreach ($settings as $setting) {
-            $key = str_replace('billing.', '', $setting->key);
-            $pricing[$key] = $setting->value;
-        }
-        
-        // Set defaults if not found
-        $defaults = [
             'price_per_message' => 100,
             'price_per_month' => 15000,
             'free_messages_limit' => 100,
-            'starter_price' => 15000,
-            'pro_price' => 45000,
-            'premium_price' => 85000,
+            'starter_price' => $config['plans']['starter']['price'] ?? 69000,
+            'pro_price' => $config['plans']['pro']['price'] ?? 149000,
+            'premium_price' => $config['plans']['premium']['price'] ?? 299000,
         ];
-        
-        $pricing = array_merge($defaults, $pricing);
-        
-        // Cache for future requests
-        cache()->put('pricing_config', $pricing, 86400);
-        
-        return $pricing;
     }
     
     // Billing API sync endpoints
