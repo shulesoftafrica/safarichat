@@ -319,6 +319,7 @@ class BillingService
     
     /**
      * Get products catalog from billing system
+     * Falls back to config file if API is unavailable
      * 
      * @param array $params Query parameters (product_code, currency, active_only)
      * @return array Product catalog data or error
@@ -356,19 +357,52 @@ class BillingService
             throw new \Exception('API returned error: ' . $response->body());
             
         } catch (\Exception $e) {
-            Log::error("Failed to fetch products catalog", [
+            Log::warning("Billing API unavailable, using config fallback", [
                 'error' => $e->getMessage(),
                 'api_url' => self::getBillingApiBase(),
-                'query_params' => $queryParams ?? [],
-                'trace' => $e->getTraceAsString()
             ]);
             
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'data' => []
+            // FALLBACK: Return products from config file
+            return self::getProductsFromConfig();
+        }
+    }
+    
+    /**
+     * Get products from config file as fallback
+     * @return array Product catalog from config
+     */
+    private static function getProductsFromConfig()
+    {
+        $config = config('safarichat_billing');
+        $plans = $config['plans'] ?? [];
+        
+        $products = [];
+        foreach ($plans as $planName => $planData) {
+            $products[] = [
+                'id' => $planName,
+                'product_code' => $config['product_code'],
+                'plan_name' => ucfirst($planName),
+                'price' => $planData['price'] ?? 0,
+                'currency' => $planData['currency'] ?? 'TZS',
+                'billing_cycle' => $planData['billing_cycle'] ?? 'one-time',
+                'duration_days' => $planData['duration_days'] ?? 30,
+                'limits' => $planData['limits'] ?? [],
+                'credits_rollover' => $planData['credits_rollover'] ?? false,
+                'is_active' => true,
+                'source' => 'config_fallback'
             ];
         }
+        
+        Log::info("Loaded products from config file", [
+            'product_count' => count($products),
+            'plans' => array_keys($plans)
+        ]);
+        
+        return [
+            'success' => true,
+            'data' => $products,
+            'source' => 'config'
+        ];
     }
     
     /**
