@@ -190,13 +190,12 @@ class BillingWebhookController extends Controller
             // Calculate expiration date
             $expiresAt = now()->addDays($durationDays);
             
-            // Update billing account
+            // Update billing account (excluding ai_credits which we'll increment separately)
             $billingAccount->update([
                 'subscription_status' => 'active',
                 'subscription_plan' => $plan,
                 'subscription_started_at' => now(),
                 'subscription_expires_at' => $expiresAt,
-                'ai_credits' => DB::raw("ai_credits + {$aiCredits}"),
                 'max_contacts' => $features['max_contacts'] ?? $billingAccount->max_contacts,
                 'max_products' => $features['max_products'] ?? $billingAccount->max_products,
                 'whatsapp_channels' => $features['whatsapp_channels'] ?? $billingAccount->whatsapp_channels,
@@ -208,6 +207,11 @@ class BillingWebhookController extends Controller
                 'last_payment_amount' => $payment['amount'] ?? 0,
                 'last_transaction_id' => $payment['transaction_id'] ?? null
             ]);
+            
+            // Increment AI credits separately
+            if ($aiCredits > 0) {
+                $billingAccount->increment('ai_credits', $aiCredits);
+            }
             
             Log::info('Payment success processed', [
                 'billing_account_id' => $billingAccount->id,
@@ -293,13 +297,17 @@ class BillingWebhookController extends Controller
             
             $newExpiresAt = $baseDate->addDays($durationDays);
             
-            // Update billing account
+            // Update billing account (excluding ai_credits which we'll increment separately)
             $billingAccount->update([
                 'subscription_status' => 'active',
                 'subscription_expires_at' => $newExpiresAt,
-                'ai_credits' => DB::raw("ai_credits + {$aiCredits}"),
                 'last_payment_at' => now()
             ]);
+            
+            // Increment AI credits separately
+            if ($aiCredits > 0) {
+                $billingAccount->increment('ai_credits', $aiCredits);
+            }
             
             Log::info('Subscription renewed', [
                 'billing_account_id' => $billingAccount->id,
