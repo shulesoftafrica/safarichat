@@ -89,45 +89,36 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
-     * Get the billing account (single source of truth for billing)
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Get the billing account through the user's business
+     * @return \Illuminate\Database\Eloquent\Relations\HasOneThrough
      */
     public function billingAccount() {
-        return $this->belongsTo('App\Models\BillingAccount', 'billing_account_id');
+        return $this->hasOneThrough(
+            'App\Models\BillingAccount',
+            'App\Models\Business',
+            'user_id',           // Foreign key on businesses table
+            'business_id',       // Foreign key on billing_accounts table
+            'id',                // Local key on users table
+            'id'                 // Local key on businesses table
+        );
     }
 
     /**
-     * Get or create billing account for this user
+     * Get or create billing account for this user (through business)
      * @return \App\Models\BillingAccount
      */
     public function getOrCreateBillingAccount() {
-        if ($this->billingAccount) {
-            return $this->billingAccount;
+        // Get or create business first
+        $business = $this->business;
+        
+        if (!$business) {
+            $business = \App\Models\Business::create([
+                'user_id' => $this->id,
+                'name' => $this->business_name ?? $this->name . "'s Business",
+            ]);
         }
 
-        // If user has a business, use business billing account
-        if ($this->business && $this->business->billingAccount) {
-            $this->billing_account_id = $this->business->billing_account_id;
-            $this->save();
-            return $this->business->billingAccount;
-        }
-
-        // Create new billing account for user
-        $planConfig = config("safarichat_billing.plans.trial");
-        $billingAccount = \App\Models\BillingAccount::create([
-            'owner_type' => 'App\\Models\\User',
-            'owner_id' => $this->id,
-            'subscription_plan' => 'trial',
-            'ai_credits' => $planConfig['limits']['ai_credits'] ?? 1000,
-            'max_contacts' => $planConfig['limits']['max_contacts'] ?? 10,
-            'max_products' => $planConfig['limits']['max_products'] ?? 1,
-            'whatsapp_channels' => $planConfig['limits']['whatsapp_channels'] ?? 1,
-        ]);
-
-        $this->billing_account_id = $billingAccount->id;
-        $this->save();
-
-        return $billingAccount;
+        return $business->getOrCreateBillingAccount();
     }
 
     /**

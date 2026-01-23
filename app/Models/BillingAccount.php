@@ -11,8 +11,7 @@ class BillingAccount extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'owner_type',
-        'owner_id',
+        'business_id',
         'subscription_plan',
         'subscription_started_at',
         'subscription_expires_at',
@@ -54,11 +53,11 @@ class BillingAccount extends Model
     ];
 
     /**
-     * Get the owning model (User or Business)
+     * Get the business that owns this billing account
      */
-    public function owner()
+    public function business()
     {
-        return $this->morphTo();
+        return $this->belongsTo(Business::class);
     }
 
     /**
