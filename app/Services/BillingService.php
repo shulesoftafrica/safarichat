@@ -302,55 +302,19 @@ class BillingService
     }
     
     /**
-     * Get plan configuration from cached data
+     * Get plan configuration from config file
      */
     public static function getPlanLimits($plan)
     {
-        $planLimits = [
-            'trial' => [
-                'max_contacts' => 10,
-                'max_products' => 1,
-                'max_outgoing_messages' => 50,
-                'whatsapp_channels' => 1,
-                'ai_credits' => 0,
-                'customer_followups' => false,
-                'customer_categorization' => false,
-                'booking_calendars' => false,
-                'sales_reports' => false
-            ],
-            'starter' => [
-                'max_contacts' => 50,
-                'max_products' => 5,
-                'whatsapp_channels' => 1,
-                'ai_credits' => 69000,
-                'customer_followups' => false,
-                'customer_categorization' => false,
-                'booking_calendars' => false,
-                'sales_reports' => false
-            ],
-            'pro' => [
-                'max_contacts' => 150,
-                'max_products' => 50,
-                'whatsapp_channels' => 3,
-                'ai_credits' => 149000,
-                'customer_followups' => true,
-                'customer_categorization' => true,
-                'booking_calendars' => false,
-                'sales_reports' => true
-            ],
-            'premium' => [
-                'max_contacts' => 400,
-                'max_products' => 200,
-                'whatsapp_channels' => 7,
-                'ai_credits' => 299000,
-                'customer_followups' => true,
-                'customer_categorization' => true,
-                'booking_calendars' => true,
-                'sales_reports' => true
-            ]
-        ];
+        $planConfig = config("safarichat_billing.plans.{$plan}");
         
-        return $planLimits[$plan] ?? $planLimits['trial'];
+        if (!$planConfig) {
+            // Fallback to trial plan if plan not found
+            $planConfig = config('safarichat_billing.plans.trial');
+        }
+        
+        // Return only the limits array
+        return $planConfig['limits'] ?? [];
     }
     
     /**
