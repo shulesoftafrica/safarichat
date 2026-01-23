@@ -380,29 +380,6 @@ if ($isInactive) {
             return colors[plan] || 'secondary';
         }
 
-        getPlanDetails(plan) {
-            const detamodal title and icon based on subscription status
-            const status = '{{ $subscriptionStatus }}';
-            const currentPlan = '{{ $currentPlan }}';
-            const modalTitle = document.getElementById('pricingControlsModalLabel');
-            const contextTitle = document.getElementById('modalContextTitle');
-            const messageElement = document.getElementById('featureMessage');
-            
-            // Set appropriate message based on context
-            if (message) {
-                messageElement.textContent = message;
-            } else if (feature) {
-                messageElement.textContent = `The "${feature}" feature is not available in your current plan. Upgrade to unlock this feature.`;
-            } else {
-                messageElement.textContent = '{{ $defaultMessage }}';
-            }
-            
-            // Update titles if not already set
-            if (contextTitle && !message && !feature) {
-                contextTitle.textContent = '{{ $modalTitle }}'
-            return details[plan] || 'Unknown plan';
-        }
-
         formatPrice(price) {
             return new Intl.NumberFormat().format(price);
         }
