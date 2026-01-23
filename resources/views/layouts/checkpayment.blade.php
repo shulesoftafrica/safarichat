@@ -54,15 +54,20 @@ if ($isInactive) {
 }
 @endphp
 
+@php
+// Determine if modal should be locked (subscription/trial expired) or closable (feature upgrade)
+$isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
+@endphp
+
 <!-- Pricing Controls Modal - Reusable across all pages -->
-<div class="modal fade" id="pricingControlsModal" tabindex="-1" aria-labelledby="pricingControlsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="pricingControlsModal" tabindex="-1" aria-labelledby="pricingControlsModalLabel" aria-hidden="true" data-bs-backdrop="{{ $isHardBlock ? 'static' : 'true' }}" data-bs-keyboard="{{ $isHardBlock ? 'false' : 'true' }}">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 <h5 class="modal-title" id="pricingControlsModalLabel">
                     <i class="fas {{ $modalIcon }}"></i> {{ $modalTitle }}
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white {{ $isHardBlock ? 'd-none' : '' }}" data-bs-dismiss="modal" aria-label="Close" id="modalCloseBtn"></button>
             </div>
             <div class="modal-body" id="pricingControlsModalBody">
                 <div class="text-center mb-4">
@@ -138,12 +143,17 @@ if ($isInactive) {
 
                 <!-- Action Buttons -->
                 <div class="d-flex justify-content-between mt-4">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary {{ $isHardBlock ? 'd-none' : '' }}" data-bs-dismiss="modal" id="modalCancelBtn">
                         <i class="fas fa-times"></i> Cancel
                     </button>
                     <button type="button" class="btn btn-primary" onclick="proceedWithCurrentPlan()" style="display: none;" id="proceedButton">
                         <i class="fas fa-arrow-right"></i> Continue with Current Plan
                     </button>
+                    @if($isHardBlock)
+                    <div class="alert alert-warning mb-0 w-100 text-center">
+                        <i class="fas fa-lock"></i> <strong>Subscription Required:</strong> You must select a plan to continue using SafariChat.
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -391,8 +401,27 @@ if ($isInactive) {
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
-        showModal(feature = null, message = null) {
+        showModal(feature = null, message = null, isHardBlock = false) {
             this.currentFeature = feature;
+            
+            // Determine if this is a hard block (expired subscription) or soft block (feature/credits)
+            const modalElement = document.getElementById('pricingControlsModal');
+            const closeBtn = document.getElementById('modalCloseBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+            
+            if (isHardBlock) {
+                // Hard block: lock the modal (cannot close)
+                modalElement.setAttribute('data-bs-backdrop', 'static');
+                modalElement.setAttribute('data-bs-keyboard', 'false');
+                if (closeBtn) closeBtn.classList.add('d-none');
+                if (cancelBtn) cancelBtn.classList.add('d-none');
+            } else {
+                // Soft block: allow closing (feature upgrade or credits)
+                modalElement.setAttribute('data-bs-backdrop', 'true');
+                modalElement.setAttribute('data-bs-keyboard', 'true');
+                if (closeBtn) closeBtn.classList.remove('d-none');
+                if (cancelBtn) cancelBtn.classList.remove('d-none');
+            }
             
             // Update feature message
             const messageElement = document.getElementById('featureMessage');
@@ -402,6 +431,9 @@ if ($isInactive) {
                 messageElement.textContent = `The "${feature}" feature is not available in your current plan. Upgrade to unlock this feature.`;
             }
             
+            // Reinitialize modal with new settings
+            this.modal.dispose();
+            this.modal = new bootstrap.Modal(modalElement);
             this.modal.show();
         }
 
@@ -434,9 +466,9 @@ if ($isInactive) {
 
     // Global functions for modal interactions
     if (typeof window.showUpgradeModal === 'undefined') {
-        window.showUpgradeModal = function(feature = null, message = null) {
+        window.showUpgradeModal = function(feature = null, message = null, isHardBlock = false) {
             if (window.pricingControls) {
-                window.pricingControls.showModal(feature, message);
+                window.pricingControls.showModal(feature, message, isHardBlock);
             }
         };
     }
@@ -598,13 +630,13 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     function tryShowModal() {
         if (window.pricingControls && window.pricingControls.modal) {
             @if($isTrialExpired)
-                window.pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.');
+                window.pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.', true);
             @endif
             @if($isSubscriptionExpired)
-                window.pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.');
+                window.pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.', true);
             @endif
             @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
-                window.pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
+                window.pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.', true);
             @endif
         } else {
             // Retry after a short delay if pricingControls not ready yet
