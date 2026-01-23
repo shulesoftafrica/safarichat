@@ -1,22 +1,24 @@
-<?php 
+@php
 // NEW BILLING LOGIC - Load actual billing data
 $user = Auth::user();
-$businessId = $user->business?->id ?? $user->id;
+$businessId = $user && $user->business ? $user->business->id : ($user ? $user->id : null);
 
 // Load billing account data
 $billingAccount = null;
-if ($user->business) {
-    $billingAccount = $user->business->billingAccount;
-} else {
-    // Fallback: try to get billing account through user
-    $billingAccount = $user->billingAccount;
+if ($user) {
+    if ($user->business) {
+        $billingAccount = $user->business->billingAccount;
+    } else {
+        // Fallback: try to get billing account through user
+        $billingAccount = $user->billingAccount;
+    }
 }
 
 // Determine subscription status
-$subscriptionStatus = $billingAccount->subscription_status ?? 'inactive';
-$currentPlan = $billingAccount->subscription_plan ?? 'trial';
-$expiresAt = $billingAccount->subscription_expires_at ?? null;
-$aiCredits = $billingAccount->ai_credits ?? 0;
+$subscriptionStatus = $billingAccount ? ($billingAccount->subscription_status ?? 'inactive') : 'inactive';
+$currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
+$expiresAt = $billingAccount ? $billingAccount->subscription_expires_at : null;
+$aiCredits = $billingAccount ? ($billingAccount->ai_credits ?? 0) : 0;
 
 // Determine modal context
 $isTrialExpired = $subscriptionStatus === 'trial' && $expiresAt && now()->greaterThan($expiresAt);
@@ -24,28 +26,30 @@ $isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled'])
 $isInactive = $subscriptionStatus === 'inactive' || !$billingAccount;
 
 // Set dynamic messages based on status
+$modalTitle = 'Upgrade Required';
+$modalIcon = 'fa-crown';
+$modalIconColor = '#667eea';
+$defaultMessage = 'This feature is not included in your current subscription plan.';
+
 if ($isTrialExpired) {
     $modalTitle = 'Trial Period Ended';
     $modalIcon = 'fa-clock';
     $modalIconColor = '#ff9800';
     $defaultMessage = 'Your free trial has ended. Please upgrade to continue using SafariChat features.';
-} elseif ($isSubscriptionExpired) {
+}
+if ($isSubscriptionExpired) {
     $modalTitle = 'Subscription Expired';
     $modalIcon = 'fa-exclamation-triangle';
     $modalIconColor = '#f44336';
     $defaultMessage = 'Your subscription has expired. Please renew to continue using SafariChat features.';
-} elseif ($isInactive) {
+}
+if ($isInactive) {
     $modalTitle = 'Subscription Required';
     $modalIcon = 'fa-lock';
     $modalIconColor = '#dc3545';
     $defaultMessage = 'You need an active subscription to access this feature.';
-} else {
-    $modalTitle = 'Upgrade Required';
-    $modalIcon = 'fa-crown';
-    $modalIconColor = '#667eea';
-    $defaultMessage = 'This feature is not included in your current subscription plan.';
 }
-?>
+@endphp
 
 <!-- Pricing Controls Modal - Reusable across all pages -->
 <div class="modal fade" id="pricingControlsModal" tabindex="-1" aria-labelledby="pricingControlsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
