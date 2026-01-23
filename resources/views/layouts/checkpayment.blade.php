@@ -256,6 +256,12 @@ if ($isInactive) {
             }
             if (features.unlimited_messages) {
                 descriptions.push('Unlimited messages');
+            }
+            
+            return descriptions;
+        }
+
+        updateCurrentPlanDisplay() {
             // Plan display is now handled server-side in PHP
             // This method can be called to refresh dynamically if needed
             const planName = this.currentSubscription?.plan || 'trial';
