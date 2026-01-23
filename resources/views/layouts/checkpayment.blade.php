@@ -553,29 +553,23 @@ if ($isInactive) {
         }
     }
 
-    $isTrialExpired || $isSubscriptionExpired || $isInactive)
-<!-- Auto-show pricing modal when subscription is required -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-show pricing modal for expired/no subscription
-    if (pricingControls && pricingControls.modal) {
-        setTimeout(() => {
-            @if($isTrialExpired)
-                pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt->format("M d, Y") }}. Please upgrade to continue using SafariChat features.');
-            @elseif($isSubscriptionExpired)
-                pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt->format("M d, Y") }}. Please renew to continue using SafariChat features.');
-            @else
-                pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
-            @endif
-        }, 500);
+    function proceedWithCurrentPlan() {
+        // Allow user to proceed with limited functionality
+        pricingControls.modal.hide();
+        
+        if (typeof toastr !== 'undefined') {
+            toastr.info('Continuing with current plan limitations');
+        }
     }
-});
-</script>
-@elseif($subscriptionStatus === 'trial' && $expiresAt && now()->lessThan($expiresAt))
-<!-- Trial Status Info -->
-<div class="alert alert-info alert-dismissible fade show m-3" role="alert">
-    <i class="fas fa-clock"></i> 
-    <strong>Trial Active:</strong> Your trial expires on {{ $expiresAt->format('M d, Y') }}
+
+    // Helper function to check if user can access feature
+    function checkFeatureAccess(featureName) {
+        // This would integrate with your existing billing service
+        // Return true if user has access, false otherwise
+        // For now, return true to allow development
+        return true;
+    }
+
     // Helper function to show upgrade modal for specific features
     function requireFeatureUpgrade(featureName, customMessage = null) {
         if (!checkFeatureAccess(featureName)) {
@@ -586,23 +580,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 </script>
 
-@if(isset($user) && (!$user->subscription_status || $user->subscription_status === 'expired'))
+@if($isTrialExpired || $isSubscriptionExpired || $isInactive)
 <!-- Auto-show pricing modal when subscription is required -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-show pricing modal for expired/no subscription
     if (pricingControls && pricingControls.modal) {
         setTimeout(() => {
-            pricingControls.showModal(null, 'Your subscription has expired or is not active. Please upgrade to continue using SafariChat features.');
+            @if($isTrialExpired)
+                pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.');
+            @endif
+            @if($isSubscriptionExpired)
+                pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.');
+            @endif
+            @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
+                pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.');
+            @endif
         }, 500);
     }
 });
 </script>
-@elseif(isset($user) && $user->subscription_status === 'trial')
+@endif
+
+@if($subscriptionStatus === 'trial' && $expiresAt && now()->lessThan($expiresAt))
 <!-- Trial Status Info -->
 <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
     <i class="fas fa-clock"></i> 
-    <strong>Trial Active:</strong> Your trial is active. Subscribe to continue using all features after trial ends.
+    <strong>Trial Active:</strong> Your trial expires on {{ $expiresAt->format('M d, Y') }}. Subscribe to continue using all features after trial ends.
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 @endif
