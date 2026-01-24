@@ -739,7 +739,7 @@
                                                     <div class="credit-amount">{{ number_format($available_credits) }}</div>
                                                     <div class="credit-label">Available AI Credits</div>
                                                     <small class="d-block mt-2" style="opacity: 0.8;">1 Credit = 4 AI Tokens</small>
-                                                    <button class="btn btn-light btn-sm mt-3" onclick="window.showUpgradeModal(null, null, false)">
+                                                    <button class="btn btn-light btn-sm mt-3" onclick="if(window.pricingControls) { window.pricingControls.showModal('AI Credits', 'Purchase additional AI credits to power your automated conversations.', false); } else { showUpgradeModal('AI Credits', 'Purchase additional AI credits to power your automated conversations.', false); }">
                                                         <i class="fas fa-plus"></i> Buy More Credits
                                                     </button>
                                                 </div>
@@ -757,7 +757,7 @@
                                                             <i class="fas fa-history"></i> Billing History
                                                         </button>
                                                         @if($subscription_status === 'inactive' || $subscription_status === 'expired')
-                                                        <button class="quick-action-btn btn btn-success" onclick="window.showUpgradeModal(null, 'Your subscription has expired. Please reactivate to continue.', true)">
+                                                        <button class="quick-action-btn btn btn-success" onclick="if(window.pricingControls) { window.pricingControls.showModal(null, 'Your subscription has expired. Please reactivate to continue.', true); } else { showUpgradeModal(null, 'Your subscription has expired. Please reactivate to continue.', true); }">
                                                             <i class="fas fa-redo"></i> Reactivate Now
                                                         </button>
                                                         @endif
@@ -1079,16 +1079,17 @@
     }
     
     // Subscription Management Functions
-    function showPaywallModal() {
-        checkSubscriptionStatus().then(data => {
-            if (data.status === 'inactive' || data.status === 'expired') {
-                createPaywallModal(data);
-            }
-        });
-    }
+    // Subscription status is now handled by checkpayment.blade.php
+    // All billing data is loaded server-side
     
-    function showUpgradeModal() {
-        $('#packageSelectionModal').modal('show');
+    function showUpgradeModal(feature = null, message = null, isHardBlock = false) {
+        // Use the global pricing modal from checkpayment.blade.php
+        if (window.pricingControls) {
+            window.pricingControls.showModal(feature, message, isHardBlock);
+        } else {
+            // Fallback to legacy modal
+            $('#packageSelectionModal').modal('show');
+        }
     }
     
     function showCreditTopup() {
@@ -1110,19 +1111,8 @@
         alert('Contact sales@shulesoft.africa for custom Enterprise pricing');
     }
     
-    async function checkSubscriptionStatus() {
-        try {
-            const response = await fetch('/api/subscription/status', {
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error checking subscription:', error);
-            return { status: 'error' };
-        }
-    }
+    // Subscription status checking removed - now handled by checkpayment.blade.php
+    // The billing data is already loaded server-side and available in the page
     
     function createPaywallModal(data) {
         const modalHTML = `
@@ -1339,28 +1329,10 @@
         });
     }
     
-    // Auto-check subscription status on page load
+    // Subscription status checking now handled by checkpayment.blade.php
+    // The modal will auto-show on page load if subscription is expired/inactive
     document.addEventListener('DOMContentLoaded', function() {
-        checkSubscriptionStatus().then(data => {
-            if (data.status === 'inactive' || data.status === 'expired') {
-                // Show a smaller notification instead of full modal on page load
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-warning alert-dismissible fade show';
-                notification.style.position = 'fixed';
-                notification.style.top = '20px';
-                notification.style.right = '20px';
-                notification.style.zIndex = '9999';
-                notification.innerHTML = `
-                    <strong>Subscription Inactive!</strong> Your AI agent is not responding to customers.
-                    <button class="btn btn-sm btn-primary ml-2" onclick="showPaywallModal()">Reactivate</button>
-                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-                `;
-                document.body.appendChild(notification);
-                
-                // Auto-hide after 10 seconds
-                setTimeout(() => notification.remove(), 10000);
-            }
-        });
+        console.log('Settings page loaded with subscription status:', '{{ $subscription_status }}');
     });
 </script>
 
