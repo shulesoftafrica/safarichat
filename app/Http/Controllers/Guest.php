@@ -54,6 +54,24 @@ class Guest extends Controller {
             'urgent_cases' => EventsGuest::where('business_id', $business_id)->where('priority_level', '<=', 2)->count()
         ];
         
+        // Add lead status statistics
+        $this->data['lead_status_stats'] = [
+            'NEW' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'NEW')->count(),
+            'OUTREACHED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'OUTREACHED')->count(),
+            'REPLIED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'REPLIED')->count(),
+            'ENGAGED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'ENGAGED')->count(),
+            'QUALIFIED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'QUALIFIED')->count(),
+            'PITCHED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'PITCHED')->count(),
+            'DEMO_SCHEDULED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'DEMO_SCHEDULED')->count(),
+            'PROPOSAL_SENT' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'PROPOSAL_SENT')->count(),
+            'NEGOTIATING' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'NEGOTIATING')->count(),
+            'CLOSED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'CLOSED')->count(),
+            'LOST' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'LOST')->count(),
+            'HANDED_OFF' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'HANDED_OFF')->count(),
+            'DO_NOT_CONTACT' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'DO_NOT_CONTACT')->count(),
+            'CHURNED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'CHURNED')->count(),
+        ];
+        
         // Get available agents for assignment
         $this->data['available_agents'] = \App\Models\User::select('id', 'name', 'email')
             ->where('id', '!=', Auth::id())

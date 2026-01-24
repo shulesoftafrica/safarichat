@@ -1213,6 +1213,275 @@
             </div><!--end card-->
         </div> <!-- end col -->
     </div> <!-- end row -->
+    
+    <!-- Lead Status Summary -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="mt-0 header-title mb-4">
+                        <i class="mdi mdi-chart-bar"></i> {{__('Lead Status Summary')}}
+                    </h4>
+                    
+                    <div class="row">
+                        <!-- New Leads -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #17a2b8; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('New Lead')}}</p>
+                                            <h3 class="mb-0" style="color: #17a2b8;">{{ $lead_status_stats['NEW'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-account-plus" style="font-size: 2.5rem; color: #17a2b8; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Outreached -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #6f42c1; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Outreached')}}</p>
+                                            <h3 class="mb-0" style="color: #6f42c1;">{{ $lead_status_stats['OUTREACHED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-send" style="font-size: 2.5rem; color: #6f42c1; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Replied -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #20c997; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Replied')}}</p>
+                                            <h3 class="mb-0" style="color: #20c997;">{{ $lead_status_stats['REPLIED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-reply" style="font-size: 2.5rem; color: #20c997; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Engaged -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #28a745; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Engaged')}}</p>
+                                            <h3 class="mb-0" style="color: #28a745;">{{ $lead_status_stats['ENGAGED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-account-check" style="font-size: 2.5rem; color: #28a745; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Qualified -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #007bff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Qualified')}}</p>
+                                            <h3 class="mb-0" style="color: #007bff;">{{ $lead_status_stats['QUALIFIED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-star" style="font-size: 2.5rem; color: #007bff; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pitched -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #fd7e14; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Pitched')}}</p>
+                                            <h3 class="mb-0" style="color: #fd7e14;">{{ $lead_status_stats['PITCHED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-presentation" style="font-size: 2.5rem; color: #fd7e14; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Demo Scheduled -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #6610f2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Demo Scheduled')}}</p>
+                                            <h3 class="mb-0" style="color: #6610f2;">{{ $lead_status_stats['DEMO_SCHEDULED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-calendar-check" style="font-size: 2.5rem; color: #6610f2; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Proposal Sent -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #e83e8c; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Proposal Sent')}}</p>
+                                            <h3 class="mb-0" style="color: #e83e8c;">{{ $lead_status_stats['PROPOSAL_SENT'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-file-document" style="font-size: 2.5rem; color: #e83e8c; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Negotiating -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #ffc107; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Negotiating')}}</p>
+                                            <h3 class="mb-0" style="color: #ffc107;">{{ $lead_status_stats['NEGOTIATING'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-handshake" style="font-size: 2.5rem; color: #ffc107; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Closed (Won) -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #28a745; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: linear-gradient(135deg, #f8f9fa 0%, #e9f7ef 100%);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Closed (Won)')}}</p>
+                                            <h3 class="mb-0" style="color: #28a745;">{{ $lead_status_stats['CLOSED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-check-circle" style="font-size: 2.5rem; color: #28a745; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lost -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #dc3545; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Lost')}}</p>
+                                            <h3 class="mb-0" style="color: #dc3545;">{{ $lead_status_stats['LOST'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-close-circle" style="font-size: 2.5rem; color: #dc3545; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Handed Off -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #17a2b8; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Handed Off')}}</p>
+                                            <h3 class="mb-0" style="color: #17a2b8;">{{ $lead_status_stats['HANDED_OFF'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-account-switch" style="font-size: 2.5rem; color: #17a2b8; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Do Not Contact -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #6c757d; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Do Not Contact')}}</p>
+                                            <h3 class="mb-0" style="color: #6c757d;">{{ $lead_status_stats['DO_NOT_CONTACT'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-cancel" style="font-size: 2.5rem; color: #6c757d; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Churned -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card" style="border-left: 4px solid #dc3545; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Churned')}}</p>
+                                            <h3 class="mb-0" style="color: #dc3545;">{{ $lead_status_stats['CHURNED'] ?? 0 }}</h3>
+                                        </div>
+                                        <div>
+                                            <i class="mdi mdi-account-remove" style="font-size: 2.5rem; color: #dc3545; opacity: 0.3;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Total Summary -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0" style="color: white;"><i class="mdi mdi-information"></i> {{__('Total Contacts')}}</h5>
+                                    </div>
+                                    <div>
+                                        <h3 class="mb-0" style="color: white;">{{ $total_guests ?? 0 }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 </div>
