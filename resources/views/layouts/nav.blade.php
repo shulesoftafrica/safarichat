@@ -15,6 +15,40 @@ if (Auth::check()) {
 ?>
 <!-- Add Font Awesome CDN for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    /* Submenu styling */
+    .nav-second-level {
+        padding-left: 0;
+        list-style: none;
+        background-color: rgba(0, 0, 0, 0.05);
+        margin-top: 5px;
+    }
+    .nav-second-level .nav-item {
+        padding-left: 20px;
+    }
+    .nav-second-level .nav-link {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .nav-second-level .nav-link:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #495057;
+    }
+    .nav-second-level .nav-link i {
+        font-size: 0.85rem;
+        width: 20px;
+    }
+    /* Chevron rotation animation */
+    .nav-link[aria-expanded="true"] .fa-chevron-down {
+        transform: rotate(180deg);
+        transition: transform 0.3s ease;
+    }
+    .nav-link[aria-expanded="false"] .fa-chevron-down {
+        transform: rotate(0deg);
+        transition: transform 0.3s ease;
+    }
+</style>
 <!-- leftbar-tab-menu -->
 <div class="leftbar-tab-menu">
     <div class="main-icon-menu">
@@ -132,17 +166,25 @@ if (Auth::check()) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= route('appointments.index') ?>">
+                            <a class="nav-link" href="#appointmentsMenu" data-toggle="collapse" aria-expanded="false">
                                 <i class="fas fa-calendar-check align-middle mr-2" style="color: #10b981;" title="Appointments"></i>{{__('Appointments')}}
                                 @if(isset($pendingAppointmentsCount) && $pendingAppointmentsCount > 0)
                                 <span class="badge badge-soft-danger ml-1">{{ $pendingAppointmentsCount }}</span>
                                 @endif
+                                <i class="fas fa-chevron-down float-right mt-1" style="font-size: 0.7rem;"></i>
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?= route('booking-calendars.index') ?>">
-                                <i class="fas fa-calendar-alt align-middle mr-2" style="color: #3b82f6;" title="Booking Calendars"></i>{{__('Calendars')}}
-                            </a>
+                            <ul class="nav-second-level collapse" id="appointmentsMenu" data-parent="#MetricaCRM">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= route('appointments.index') ?>">
+                                        <i class="fas fa-list align-middle mr-2"></i>{{__('View Appointments')}}
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= route('booking-calendars.index') ?>">
+                                        <i class="fas fa-calendar-alt align-middle mr-2"></i>{{__('Manage Calendars')}}
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('whatsapp/instances') ?>">
