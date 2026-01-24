@@ -190,8 +190,7 @@
                             <i class="fas fa-edit"></i> Edit
                         </a>
                         <a href="{{ route('booking-calendars.preview', $calendar->id) }}?start_date={{ date('Y-m-d') }}&end_date={{ date('Y-m-d', strtotime('+7 days')) }}" 
-                           class="btn btn-outline-info" 
-                           target="_blank">
+                           class="btn btn-outline-info">
                             <i class="fas fa-eye"></i> Preview Slots
                         </a>
                         <button type="button" class="btn btn-outline-danger" onclick="deleteCalendar({{ $calendar->id }}, '{{ $calendar->name }}', {{ $calendar->upcoming_bookings ?? 0 }})">

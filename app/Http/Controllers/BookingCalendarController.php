@@ -254,12 +254,19 @@ class BookingCalendarController extends Controller
         $end = Carbon::parse($endDate);
         
         $slots = $calendar->generateSlotsForDateRange($start, $end);
+        $totalSlots = array_sum(array_map('count', $slots));
         
-        return response()->json([
-            'success' => true,
-            'calendar' => $calendar->name,
-            'slots' => $slots,
-            'total_slots' => array_sum(array_map('count', $slots))
-        ]);
+        // If JSON is requested (for API), return JSON
+        if (request()->wantsJson() || request()->has('format') && request('format') === 'json') {
+            return response()->json([
+                'success' => true,
+                'calendar' => $calendar->name,
+                'slots' => $slots,
+                'total_slots' => $totalSlots
+            ]);
+        }
+        
+        // Otherwise return the view
+        return view('booking-calendars.preview', compact('calendar', 'slots', 'totalSlots', 'startDate', 'endDate'));
     }
 }
