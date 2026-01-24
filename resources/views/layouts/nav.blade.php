@@ -166,25 +166,12 @@ if (Auth::check()) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#appointmentsMenu" data-toggle="collapse" aria-expanded="false">
+                            <a class="nav-link" href="<?= route('appointments.index') ?>">
                                 <i class="fas fa-calendar-check align-middle mr-2" style="color: #10b981;" title="Appointments"></i>{{__('Appointments')}}
                                 @if(isset($pendingAppointmentsCount) && $pendingAppointmentsCount > 0)
                                 <span class="badge badge-soft-danger ml-1">{{ $pendingAppointmentsCount }}</span>
                                 @endif
-                                <i class="fas fa-chevron-down float-right mt-1" style="font-size: 0.7rem;"></i>
                             </a>
-                            <ul class="nav-second-level collapse" id="appointmentsMenu" data-parent="#MetricaCRM">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= route('appointments.index') ?>">
-                                        <i class="fas fa-list align-middle mr-2"></i>{{__('View Appointments')}}
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= route('booking-calendars.index') ?>">
-                                        <i class="fas fa-calendar-alt align-middle mr-2"></i>{{__('Manage Calendars')}}
-                                    </a>
-                                </li>
-                            </ul>
                         </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('whatsapp/instances') ?>">
