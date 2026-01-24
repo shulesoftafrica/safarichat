@@ -251,12 +251,15 @@ class AppointmentController extends Controller
             $q->where('business_id', $business_id);
         })->findOrFail($id);
         
-        $appointment->confirm();
+        $appointment->status = 'confirmed';
+        $appointment->confirmed_at = now();
+        $appointment->save();
         
         // Also confirm the booking slot if exists
         $bookingSlot = BookingSlot::where('appointment_id', $id)->first();
         if ($bookingSlot) {
-            $bookingSlot->confirm();
+            $bookingSlot->status = 'confirmed';
+            $bookingSlot->save();
         }
         
         return redirect()->back()->with('success', 'Appointment confirmed successfully');
@@ -267,15 +270,23 @@ class AppointmentController extends Controller
      */
     public function cancel(Request $request, $id)
     {
+        $request->validate([
+            'cancellation_reason' => 'required|string|max:500',
+        ]);
+        
         $business_id = Auth::user()->business->id;
         
         $appointment = Appointment::whereHas('lead', function($q) use ($business_id) {
             $q->where('business_id', $business_id);
         })->findOrFail($id);
         
-        $reason = $request->input('reason', 'Cancelled by business');
+        $reason = $request->input('cancellation_reason', 'Cancelled by business');
         
-        $appointment->cancel();
+        // Update appointment status and add cancellation info
+        $appointment->status = 'cancelled';
+        $appointment->cancelled_at = now();
+        $appointment->cancellation_reason = $reason;
+        $appointment->save();
         
         // Free up booking slot if exists
         $bookingSlot = BookingSlot::where('appointment_id', $id)->first();
@@ -283,7 +294,7 @@ class AppointmentController extends Controller
             $bookingSlot->cancel($reason);
         }
         
-        return redirect()->back()->with('success', 'Appointment cancelled successfully');
+        return redirect()->route('appointments.index')->with('success', 'Appointment cancelled successfully');
     }
     
     /**
@@ -297,12 +308,15 @@ class AppointmentController extends Controller
             $q->where('business_id', $business_id);
         })->findOrFail($id);
         
-        $appointment->complete();
+        $appointment->status = 'completed';
+        $appointment->completed_at = now();
+        $appointment->save();
         
         // Also mark booking slot as completed
         $bookingSlot = BookingSlot::where('appointment_id', $id)->first();
         if ($bookingSlot) {
-            $bookingSlot->complete();
+            $bookingSlot->status = 'completed';
+            $bookingSlot->save();
         }
         
         return redirect()->back()->with('success', 'Appointment marked as completed');
@@ -319,12 +333,14 @@ class AppointmentController extends Controller
             $q->where('business_id', $business_id);
         })->findOrFail($id);
         
-        $appointment->markNoShow();
+        $appointment->status = 'no_show';
+        $appointment->save();
         
         // Also mark booking slot as no-show
         $bookingSlot = BookingSlot::where('appointment_id', $id)->first();
         if ($bookingSlot) {
-            $bookingSlot->markNoShow();
+            $bookingSlot->status = 'no_show';
+            $bookingSlot->save();
         }
         
         return redirect()->back()->with('warning', 'Appointment marked as no-show');
@@ -335,28 +351,54 @@ class AppointmentController extends Controller
      */
     public function reschedule(Request $request, $id)
     {
+        $request->validate([
+            'new_date' => 'required|date|after_or_equal:today',
+            'new_time' => 'required',
+        ]);
+        
         $business_id = Auth::user()->business->id;
         
         $appointment = Appointment::whereHas('lead', function($q) use ($business_id) {
             $q->where('business_id', $business_id);
         })->findOrFail($id);
         
-        $newDateTime = $request->input('new_datetime');
-        
-        if (!$newDateTime) {
-            return redirect()->back()->with('error', 'New date/time is required');
-        }
+        // Combine date and time
+        $newDateTime = Carbon::parse($request->new_date . ' ' . $request->new_time);
         
         // Cancel old booking slot
         $oldBookingSlot = BookingSlot::where('appointment_id', $id)->first();
         if ($oldBookingSlot) {
-            $oldBookingSlot->cancel('Rescheduled to ' . $newDateTime);
+            $oldBookingSlot->cancel('Rescheduled to ' . $newDateTime->format('M d, Y g:i A'));
         }
         
-        // Reschedule appointment
-        $appointment->reschedule($newDateTime);
+        // Update appointment
+        $appointment->scheduled_at = $newDateTime;
+        if ($request->reschedule_reason) {
+            $appointment->notes = ($appointment->notes ? $appointment->notes . "\n\n" : '') . 
+                                  'Rescheduled: ' . $request->reschedule_reason;
+        }
+        $appointment->save();
         
-        return redirect()->back()->with('success', 'Appointment rescheduled successfully');
+        // Create new booking slot if there's an active calendar
+        $bookingCalendar = BookingCalendar::where('business_id', $business_id)
+            ->where('is_active', true)
+            ->first();
+            
+        if ($bookingCalendar) {
+            $duration = $appointment->duration_minutes ?? 30;
+            BookingSlot::create([
+                'booking_calendar_id' => $bookingCalendar->id,
+                'appointment_id' => $appointment->id,
+                'start_time' => $newDateTime,
+                'end_time' => $newDateTime->copy()->addMinutes($duration),
+                'status' => 'confirmed',
+                'customer_name' => $appointment->lead->contact->guest_name ?? 'N/A',
+                'customer_phone' => $appointment->lead->phone_number ?? 'N/A',
+                'notes' => $request->reschedule_reason,
+            ]);
+        }
+        
+        return redirect()->back()->with('success', 'Appointment rescheduled successfully to ' . $newDateTime->format('M d, Y \a\t g:i A'));
     }
     
     /**
