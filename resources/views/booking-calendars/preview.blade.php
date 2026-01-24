@@ -139,7 +139,7 @@
                 @foreach($days as $day)
                 <div class="col-md-3 mb-2">
                     <strong>{{ ucfirst($day) }}:</strong>
-                    @if(isset($workingHours[$day]) && $workingHours[$day]['enabled'])
+                    @if(isset($workingHours[$day]) && isset($workingHours[$day]['enabled']) && $workingHours[$day]['enabled'] && isset($workingHours[$day]['start']) && isset($workingHours[$day]['end']))
                         <span class="text-success">
                             {{ $workingHours[$day]['start'] }} - {{ $workingHours[$day]['end'] }}
                         </span>
