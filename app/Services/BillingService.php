@@ -498,7 +498,15 @@ class BillingService
             return false;
         }
         
-        return $billingAccount->deductCredits($credits, $reason);
+        $result = $billingAccount->deductCredits($credits, $reason);
+        
+        // Check if credits are low after deduction and send notification
+        if ($result) {
+            $userId = is_numeric($user) ? $user : $user->id;
+            self::checkAndNotifyLowCredits($userId);
+        }
+        
+        return $result;
     }
     
     /**
@@ -685,5 +693,72 @@ class BillingService
                 : "You can create " . ($maxCalendars - $currentCount) . " more booking calendar(s).",
             'upgrade_required' => $currentCount >= $maxCalendars
         ];
+    }
+
+    /**
+     * Check if AI credits are low and send notification if needed
+     * Notifications sent at: 20%, 10%, and 0% thresholds (only once per threshold)
+     * 
+     * @param int $userId
+     * @return void
+     */
+    private static function checkAndNotifyLowCredits($userId): void
+    {
+        try {
+            $user = \App\Models\User::find($userId);
+            if (!$user) {
+                return;
+            }
+
+            $billingAccount = self::getBillingAccountForUser($userId);
+            if (!$billingAccount || !$billingAccount->subscription) {
+                return;
+            }
+
+            $planType = $billingAccount->subscription->plan_type;
+            $creditLimit = config("safarichat_billing.plans.{$planType}.ai_credits");
+            
+            // Skip unlimited plans
+            if ($creditLimit === 'unlimited' || $creditLimit <= 0) {
+                return;
+            }
+
+            $remaining = $billingAccount->ai_credits_balance ?? 0;
+            $percentage = ($remaining / $creditLimit) * 100;
+
+            $notificationService = app(\App\Services\AccountNotificationService::class);
+
+            // Credits depleted (0%)
+            if ($remaining <= 0) {
+                // Check if we've already notified for depletion (using cache to prevent spam)
+                $cacheKey = "credit_notification_depleted_{$userId}";
+                if (!\Cache::has($cacheKey)) {
+                    $notificationService->notifyCreditsDepletion($user, 'AI message');
+                    \Cache::put($cacheKey, true, now()->addHours(6)); // Notify max once per 6 hours
+                }
+            }
+            // Critical threshold (10%)
+            elseif ($percentage <= 10) {
+                $cacheKey = "credit_notification_critical_{$userId}";
+                if (!\Cache::has($cacheKey)) {
+                    $notificationService->notifyLowCredits($user, $remaining, $creditLimit);
+                    \Cache::put($cacheKey, true, now()->addHours(24)); // Notify max once per day
+                }
+            }
+            // Warning threshold (20%)
+            elseif ($percentage <= 20) {
+                $cacheKey = "credit_notification_warning_{$userId}";
+                if (!\Cache::has($cacheKey)) {
+                    $notificationService->notifyLowCredits($user, $remaining, $creditLimit);
+                    \Cache::put($cacheKey, true, now()->addDays(2)); // Notify max once per 2 days
+                }
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to check and notify low credits', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

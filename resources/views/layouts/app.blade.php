@@ -175,6 +175,15 @@ $(document).ready(ajax_setup);
                         <div class="page-content-tab">
                             @endguest
 
+                            {{-- Billing Alerts Section --}}
+                            @auth
+                            @php
+                                $billingAlertService = app(\App\Services\BillingAlertService::class);
+                                $billingAlerts = $billingAlertService->getActiveAlerts(auth()->id());
+                            @endphp
+                            @include('components.billing-alerts', ['billingAlerts' => $billingAlerts])
+                            @endauth
+
                             @yield('content')
                         </div>
                     </div>

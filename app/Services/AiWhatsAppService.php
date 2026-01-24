@@ -1167,9 +1167,9 @@ class AiWhatsAppService
                 'message' => "Contact from {$phone} NOT stored - subscription limit reached"
             ]);
             
-            // TODO: Send email notification to business owner
-            // You can implement email notification here using Mail facade
-            // Mail::to($user->email)->send(new ContactLimitReached($phone, $limitCheck));
+            // Send SMS/WhatsApp notification to business owner
+            $notificationService = app(\App\Services\AccountNotificationService::class);
+            $notificationService->notifyContactLimitReached($user, $phone, $limitCheck);
             
         } catch (\Exception $e) {
             Log::error('Failed to notify owner about contact limit', [
