@@ -550,5 +550,85 @@ class BillingService
         }
         
         return $billingAccount->hasCredits($credits);
+    }    
+    /**
+     * Check if user can add new contact based on subscription limit
+     * @param User|int $user
+     * @return array ['can_add' => bool, 'current' => int, 'max' => int, 'plan' => string, 'message' => string]
+     */
+    public static function canAddContact($user): array
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            return [
+                'can_add' => false,
+                'current' => 0,
+                'max' => 0,
+                'plan' => 'none',
+                'message' => 'No active subscription found. Please subscribe to add contacts.'
+            ];
+        }
+        
+        // Get current contact count for this user/business
+        $userId = is_numeric($user) ? $user : $user->id;
+        $currentCount = \App\Models\BusinessContact::where('user_id', $userId)->count();
+        
+        $maxContacts = $billingAccount->max_contacts;
+        $plan = $billingAccount->subscription_plan;
+        
+        $canAdd = $currentCount < $maxContacts;
+        
+        return [
+            'can_add' => $canAdd,
+            'current' => $currentCount,
+            'max' => $maxContacts,
+            'plan' => $plan,
+            'message' => $canAdd 
+                ? "You can add more contacts ({$currentCount}/{$maxContacts} used)"
+                : "Contact limit reached ({$currentCount}/{$maxContacts}). Upgrade your {$plan} plan to add more contacts."
+        ];
     }
-}
+    
+    /**
+     * Check if user can add multiple contacts (for bulk import)
+     * @param User|int $user
+     * @param int $countToAdd
+     * @return array ['can_add' => bool, 'current' => int, 'max' => int, 'available' => int, 'plan' => string, 'message' => string]
+     */
+    public static function canAddContacts($user, int $countToAdd): array
+    {
+        $billingAccount = self::getBillingAccountForUser($user);
+        
+        if (!$billingAccount) {
+            return [
+                'can_add' => false,
+                'current' => 0,
+                'max' => 0,
+                'available' => 0,
+                'plan' => 'none',
+                'message' => 'No active subscription found. Please subscribe to add contacts.'
+            ];
+        }
+        
+        // Get current contact count for this user/business
+        $userId = is_numeric($user) ? $user : $user->id;
+        $currentCount = \App\Models\BusinessContact::where('user_id', $userId)->count();
+        
+        $maxContacts = $billingAccount->max_contacts;
+        $plan = $billingAccount->subscription_plan;
+        $available = max(0, $maxContacts - $currentCount);
+        
+        $canAdd = $currentCount + $countToAdd <= $maxContacts;
+        
+        return [
+            'can_add' => $canAdd,
+            'current' => $currentCount,
+            'max' => $maxContacts,
+            'available' => $available,
+            'plan' => $plan,
+            'message' => $canAdd 
+                ? "You can add {$countToAdd} contacts ({$currentCount}/{$maxContacts} used, {$available} available)"
+                : "Cannot add {$countToAdd} contacts. Only {$available} slots available ({$currentCount}/{$maxContacts} used). Upgrade your {$plan} plan to add more contacts."
+        ];
+    }}

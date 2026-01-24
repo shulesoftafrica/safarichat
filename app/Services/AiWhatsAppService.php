@@ -11,6 +11,7 @@ use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
 use App\Models\Handoff;
 use App\Services\WaSenderService;
+use App\Services\BillingService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -141,6 +142,26 @@ class AiWhatsAppService
 
         // Create BusinessContact if it doesn't exist
         if (!$businessContact) {
+            // Check contact limit before creating new contact
+            $limitCheck = BillingService::canAddContact($message->user_id);
+            
+            if (!$limitCheck['can_add']) {
+                // Log the blocked contact creation
+                Log::warning('Contact creation blocked - subscription limit reached', [
+                    'user_id' => $message->user_id,
+                    'phone' => $message->phone_number,
+                    'current_contacts' => $limitCheck['current'],
+                    'max_contacts' => $limitCheck['max'],
+                    'subscription_plan' => $limitCheck['plan'],
+                ]);
+                
+                // Notify business owner about the limit
+                $this->notifyOwnerAboutContactLimit($message->user_id, $message->phone_number, $limitCheck);
+                
+                // Throw exception to prevent lead creation without contact
+                throw new \Exception('Contact limit reached. Upgrade subscription to receive messages from new contacts.');
+            }
+            
             $businessContact = UserResolutionService::resolveOrCreateContact([
                 'phone' => $message->phone_number,
                 'name' => $message->sender_name ?? 'WhatsApp Contact',
@@ -993,6 +1014,42 @@ class AiWhatsAppService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+    
+    /**
+     * Notify business owner that contact limit has been reached
+     */
+    private function notifyOwnerAboutContactLimit($userId, $phone, $limitCheck)
+    {
+        try {
+            $user = \App\Models\User::find($userId);
+            
+            if (!$user) {
+                return;
+            }
+            
+            // Log notification for admin visibility
+            Log::warning('CONTACT LIMIT REACHED - Business Owner Notification', [
+                'user_id' => $userId,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'blocked_phone' => $phone,
+                'subscription_plan' => $limitCheck['plan'],
+                'current_contacts' => $limitCheck['current'],
+                'max_contacts' => $limitCheck['max'],
+                'message' => "Contact from {$phone} NOT stored - subscription limit reached"
+            ]);
+            
+            // TODO: Send email notification to business owner
+            // You can implement email notification here using Mail facade
+            // Mail::to($user->email)->send(new ContactLimitReached($phone, $limitCheck));
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to notify owner about contact limit', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }

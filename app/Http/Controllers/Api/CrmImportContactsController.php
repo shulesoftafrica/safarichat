@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Services\BillingService;
 use Carbon\Carbon;
 
 class CrmImportContactsController extends Controller
@@ -48,11 +49,41 @@ class CrmImportContactsController extends Controller
         $imported = [];
         $skipped = [];
         $errors = [];
+        
+        // Check contact limit before processing
+        $limitCheck = BillingService::canAddContacts($user, count($request->contacts));
+        
+        if (!$limitCheck['can_add']) {
+            return response()->json([
+                'success' => false,
+                'message' => $limitCheck['message'],
+                'limit_info' => [
+                    'current_contacts' => $limitCheck['current'],
+                    'max_contacts' => $limitCheck['max'],
+                    'available_slots' => $limitCheck['available'],
+                    'subscription_plan' => $limitCheck['plan'],
+                    'contacts_to_import' => count($request->contacts),
+                ],
+                'upgrade_required' => true,
+            ], 403);
+        }
 
         DB::beginTransaction();
 
         try {
+            $maxContactsToImport = $limitCheck['available'];
+            $contactsProcessed = 0;
+            
             foreach ($request->contacts as $contactData) {
+                // Stop if we've reached the limit
+                if ($contactsProcessed >= $maxContactsToImport) {
+                    $skipped[] = [
+                        'crm_id' => $contactData['crm_id'],
+                        'phone' => $contactData['phone'],
+                        'reason' => 'Contact limit reached - upgrade subscription to import more',
+                    ];
+                    continue;
+                }
                 try {
                     // Check if contact already exists by phone or CRM ID
                     $existingContact = BusinessContact::where('business_id', $user->business->id ?? null)
@@ -97,6 +128,8 @@ class CrmImportContactsController extends Controller
                         'phone' => $contact->guest_phone,
                         'email' => $contact->guest_email,
                     ];
+                    
+                    $contactsProcessed++;
 
                 } catch (\Exception $e) {
                     $errors[] = [

@@ -158,9 +158,31 @@ class Guest extends Controller {
 
             $status = $this->checkKeysExists($data);
             if ((int) $status == 1) {
-                $status = '';
-                foreach ($data as $user_info) {
-                $user = (object) $user_info;
+                // Check contact limit before processing
+                $user = Auth::user();
+                $limitCheck = BillingService::canAddContacts($user, count($data));
+                
+                if (!$limitCheck['can_add']) {
+                    $status = '<div class="alert alert-danger col-lg-12">' . 
+                             '<strong>Contact Limit Reached!</strong><br>' . 
+                             $limitCheck['message'] . '<br>' .
+                             'You are trying to import ' . count($data) . ' contacts, but only ' . $limitCheck['available'] . ' slots are available.<br>' .
+                             'Current: ' . $limitCheck['current'] . '/' . $limitCheck['max'] . ' contacts used on your ' . strtoupper($limitCheck['plan']) . ' plan.<br>' .
+                             '<a href="#" onclick="showUpgradeModal(\'contact_import\')" class="btn btn-primary mt-2">Upgrade Now</a>' .
+                             '</div>';
+                } else {
+                    $status = '';
+                    $contactsImported = 0;
+                    $maxToImport = $limitCheck['available'];
+                    
+                    foreach ($data as $user_info) {
+                        // Stop if we've reached the limit
+                        if ($contactsImported >= $maxToImport) {
+                            $status .= '<div class="alert alert-warning col-lg-12">Remaining contacts skipped - subscription limit reached (' . $limitCheck['max'] . ' contacts max). Please upgrade to import more.</div><br/>';
+                            break;
+                        }
+                        
+                        $user = (object) $user_info;
                 if (strlen($user->name) < 2) {
                     continue;
                 }
@@ -183,6 +205,12 @@ class Guest extends Controller {
                         'event_guest_category_id' => $category_id,
                         'guest_pledge' => $user->pledge
                     ]) : $check_guests;
+                    
+                // Increment counter only if new contact was created
+                if (empty($check_guests)) {
+                    $contactsImported++;
+                }
+                    
                 $with = '';
                 if (isset($user->contribution) && (int) $user->contribution > 0) {
                     // Event payment system removed - guest payments no longer tracked
@@ -190,8 +218,8 @@ class Guest extends Controller {
                     $with = '';
                 }
                 $status .= '<div class="alert alert-success col-lg-12">User ' . $user->name . ' has been uploaded successfully' . $with . '</div><br/>';
+                    }
                 }
-            }
             } elseif ($extension === 'vcf') {
             // Handle VCF file (phone contacts)
             // Use vcard-parser package: https://github.com/jeroendesloovere/vcardparser
@@ -726,12 +754,37 @@ class Guest extends Controller {
                     'imported_count' => 0
                 ]);
             }
+            
+            // Check contact limit before importing
+            $user = Auth::user();
+            $limitCheck = BillingService::canAddContacts($user, count($contacts));
+            
+            if (!$limitCheck['can_add']) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => $limitCheck['message'],
+                    'imported_count' => 0,
+                    'limit_info' => [
+                        'current_contacts' => $limitCheck['current'],
+                        'max_contacts' => $limitCheck['max'],
+                        'available_slots' => $limitCheck['available'],
+                        'subscription_plan' => $limitCheck['plan'],
+                    ],
+                    'upgrade_required' => true,
+                ], 403);
+            }
 
             $imported_count = 0;
             $user_id = Auth::id();
             $business_id = Auth::user()->business->id;
+            $maxToImport = $limitCheck['available'];
 
             foreach ($contacts as $contact) {
+                // Stop if we've reached the limit
+                if ($imported_count >= $maxToImport) {
+                    break;
+                }
+                
                 try {
                     // Google contact format: {name, phones, emails, primaryPhone, primaryEmail}
                     $name = $contact['name'] ?? '';
