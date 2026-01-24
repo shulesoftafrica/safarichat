@@ -60,6 +60,10 @@ class Setup extends Controller {
             return back()->with('error', 'Invalid phone number provided');
         }
         $this->data['phone'] = $phone = $cleanPhone;
+        
+        // Add country code prefix for WhatsApp message sending
+        $phoneWithCountryCode = '255' . $cleanPhone;
+        
         $verify_code = rand(192, 999) . substr(str_shuffle('123456789'), 0, 3);
         $message = 'Hello, Your Verification Code is ' . $verify_code;
         $existing = DB::table('otpcodes')->where('phone', $phone)->where('status', 0)->first();
@@ -73,7 +77,7 @@ class Setup extends Controller {
             'code' => bcrypt($verify_code)
             ]);
         }
-        $this->sendTextMessage($phone, $message, 'whatsapp','otp');
+        $this->sendTextMessage($phoneWithCountryCode, $message, 'whatsapp','otp');
         $this->data['message']='';
 
          return view('auth.verify', $this->data);
