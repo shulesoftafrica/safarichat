@@ -28,9 +28,11 @@ class AppServiceProvider extends ServiceProvider {
         // Share pending appointments count with navigation
         View::composer('layouts.nav', function ($view) {
             if (Auth::check() && Auth::user()->business) {
-                $pendingAppointmentsCount = Appointment::where('business_id', Auth::user()->business->id)
+                $pendingAppointmentsCount = Appointment::whereHas('lead', function ($query) {
+                        $query->where('business_id', Auth::user()->business->id);
+                    })
                     ->where('status', 'pending')
-                    ->where('appointment_date', '>=', now()->format('Y-m-d'))
+                    ->where('scheduled_at', '>=', now())
                     ->count();
                 
                 $view->with('pendingAppointmentsCount', $pendingAppointmentsCount);
