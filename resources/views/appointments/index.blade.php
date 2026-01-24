@@ -35,7 +35,7 @@
     <!-- Tabs -->
     <ul class="nav nav-tabs nav-tabs-custom mb-4" id="appointmentTabs" role="tablist">
         <li class="nav-item">
-            <a class="nav-link active" id="appointments-tab" data-toggle="tab" href="#appointmentsContent" role="tab">
+            <a class="nav-link active" id="appointments-tab" href="#appointmentsContent" role="tab">
                 <i class="fas fa-list mr-2"></i>Appointments
                 @if(isset($stats['pending']) && $stats['pending'] > 0)
                 <span class="badge badge-danger ml-1">{{ $stats['pending'] }}</span>
@@ -43,28 +43,15 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="calendars-tab" data-toggle="tab" href="#calendarsContent" role="tab">
+            <a class="nav-link" id="calendars-tab" href="{{ route('booking-calendars.index') }}" role="tab">
                 <i class="fas fa-calendar-alt mr-2"></i>Booking Calendars
             </a>
         </li>
     </ul>
 
     <!-- Tab Content -->
-    <div class="tab-content" id="appointmentTabContent">
-        <!-- Appointments Tab -->
-        <div class="tab-pane fade show active" id="appointmentsContent" role="tabpanel">
-            @include('appointments._appointments_list')
-        </div>
-
-        <!-- Calendars Tab -->
-        <div class="tab-pane fade" id="calendarsContent" role="tabpanel">
-            <div id="calendarsContentLoader">
-                <div class="text-center py-5">
-                    <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
-                    <p class="mt-3 text-muted">Loading calendars...</p>
-                </div>
-            </div>
-        </div>
+    <div id="appointmentsContent">
+        @include('appointments._appointments_list')
     </div>
 </div>
 
@@ -83,51 +70,6 @@ function cancelAppointment(id) {
     form.action = '{{ url('/appointments') }}/' + id + '/cancel';
     $('#cancelModal').modal('show');
 }
-
-// Load calendars content when tab is clicked
-$(document).ready(function() {
-    $('#calendars-tab').one('shown.bs.tab', function (e) {
-        console.log('Loading calendars tab...');
-        
-        $.ajax({
-            url: '{{ route('booking-calendars.index') }}',
-            method: 'GET',
-            dataType: 'html',
-            success: function(response) {
-                console.log('Calendars content loaded successfully');
-                try {
-                    // Extract only the main content from the response
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response, 'text/html');
-                    
-                    // Try to find the main content area
-                    let content = doc.querySelector('.container-fluid');
-                    
-                    if (content) {
-                        // Remove the page title to avoid duplication
-                        let titleBox = content.querySelector('.page-title-box');
-                        if (titleBox) {
-                            titleBox.remove();
-                        }
-                        $('#calendarsContentLoader').html(content.innerHTML);
-                        console.log('Content injected successfully');
-                    } else {
-                        console.warn('Could not find .container-fluid, loading full response');
-                        $('#calendarsContentLoader').html(response);
-                    }
-                } catch (error) {
-                    console.error('Error parsing calendars content:', error);
-                    $('#calendarsContentLoader').html('<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading calendars. <a href="{{ route('booking-calendars.index') }}" class="alert-link">Click here to view calendars</a></div>');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX error loading calendars:', status, error, xhr);
-                $('#calendarsContentLoader').html('<div class="alert alert-danger"><i class="fas fa-times-circle mr-2"></i>Failed to load calendars. <a href="{{ route('booking-calendars.index') }}" class="alert-link">Click here to view calendars</a></div>');
-            },
-            timeout: 10000 // 10 second timeout
-        });
-    });
-});
 </script>
 @endpush
 @endsection
