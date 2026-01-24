@@ -171,6 +171,25 @@ class Home extends Controller
         // Current active instance
         $this->data['active_instance_id'] = $activeInstanceId;
         
+        // Load billing data from billing_accounts table
+        $billingAccount = null;
+        if (Auth::user()->business) {
+            $billingAccount = Auth::user()->business->billingAccount;
+        }
+        
+        // Set billing-related data
+        if ($billingAccount) {
+            $this->data['subscription_status'] = $billingAccount->subscription_status ?? 'inactive';
+            $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
+            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
+            $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
+        } else {
+            $this->data['subscription_status'] = 'inactive';
+            $this->data['subscription_plan'] = 'trial';
+            $this->data['available_credits'] = 0;
+            $this->data['subscription_expires_at'] = null;
+        }
+        
         return view('home', $this->data);
     }
 
