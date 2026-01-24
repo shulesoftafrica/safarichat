@@ -123,12 +123,12 @@ if (Auth::check()) {
                         </li> -->
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('products') ?>">
-                                <i class="fas fa-box align-middle mr-2" title="Products"></i>{{__('Products')}}
+                                <i class="fas fa-box-open align-middle mr-2" style="color: #667eea;" title="Products"></i>{{__('Products')}}
                             </a>
                         </li>
                          <li class="nav-item">
                             <a class="nav-link" href="<?= url('ai-agents') ?>">
-                                <i class="fas fa-robot align-middle mr-2" title="Sales Agents"></i>{{__('Sales Agents')}}
+                                <i class="fas fa-user-robot align-middle mr-2" style="color: #764ba2;" title="Sales Agents"></i>{{__('Sales Agents')}}
                             </a>
                         </li>
                         <!-- <li class="nav-item">

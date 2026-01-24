@@ -19,18 +19,11 @@
                         </div>
                     </div>
                     <div class="header-actions ms-auto" style="display: flex; gap: 0.75rem; align-items: center;">
-                        @php
-                            $user = Auth::user();
-                            $customerId = $user->customer_id ?? $user->id;
-                            // Get subscription info - in real implementation, this would come from BillingService
-                            $subscriptionPlan = $user->subscription_plan ?? 'trial';
-                            $aiCredits = $user->ai_credits ?? 0;
-                        @endphp
                         
                         <!-- Compact Subscription Plan Badge -->
                         <div class="plan-badge-compact">
-                            <span class="badge plan-badge" data-plan="{{ $subscriptionPlan }}">
-                                {{ strtoupper($subscriptionPlan) }} PLAN
+                            <span class="badge plan-badge" data-plan="{{ $subscription_plan }}">
+                                {{ strtoupper($subscription_plan) }} PLAN
                             </span>
                         </div>
                         
@@ -39,7 +32,7 @@
                             <div class="credits-display-compact">
                                 <i class="fas fa-coins"></i>
                                 <div class="credits-info">
-                                    <span class="credits-number">{{ number_format($aiCredits) }}</span>
+                                    <span class="credits-number">{{ number_format($ai_credits) }}</span>
                                     <span class="credits-label">AI Credits</span>
                                 </div>
                             </div>
@@ -48,7 +41,7 @@
                                     <i class="fas fa-plus"></i>
                                     Add Credits
                                 </button>
-                                @if($subscriptionPlan !== 'premium')
+                                @if($subscription_plan !== 'premium')
                                     <button class="btn-mini primary" onclick="showUpgradeModal('general')" title="Upgrade Plan">
                                         <i class="fas fa-arrow-up"></i>
                                         Upgrade

@@ -25,8 +25,24 @@ class AiSalesAgentController extends Controller
         $agents = AiSalesAgent::forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
+        
+        // Load billing data from billing_accounts table
+        $user = Auth::user();
+        $billingAccount = null;
+        if ($user->business) {
+            $billingAccount = $user->business->billingAccount;
+        }
+        
+        // Set subscription and credits data
+        if ($billingAccount) {
+            $subscription_plan = $billingAccount->subscription_plan ?? 'trial';
+            $ai_credits = $billingAccount->ai_credits ?? 0;
+        } else {
+            $subscription_plan = 'trial';
+            $ai_credits = 0;
+        }
             
-        return view('service.ai-agents.index', compact('agents'));
+        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits'));
     }
 
     /**
