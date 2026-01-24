@@ -287,6 +287,28 @@ Route::middleware('auth')->group(function () {
     Route::get('/billing/ucn-instructions/{reference}', [App\Http\Controllers\BillingController::class, 'showUCNInstructions'])->name('billing.ucn-instructions');
 });
 
+// Booking Calendar Routes
+Route::middleware('auth')->group(function () {
+    // Booking Calendars Management
+    Route::get('/booking-calendars', [App\Http\Controllers\BookingCalendarController::class, 'index'])->name('booking-calendars.index');
+    Route::get('/booking-calendars/create', [App\Http\Controllers\BookingCalendarController::class, 'create'])->name('booking-calendars.create');
+    Route::post('/booking-calendars', [App\Http\Controllers\BookingCalendarController::class, 'store'])->name('booking-calendars.store');
+    Route::get('/booking-calendars/{id}/edit', [App\Http\Controllers\BookingCalendarController::class, 'edit'])->name('booking-calendars.edit');
+    Route::put('/booking-calendars/{id}', [App\Http\Controllers\BookingCalendarController::class, 'update'])->name('booking-calendars.update');
+    Route::delete('/booking-calendars/{id}', [App\Http\Controllers\BookingCalendarController::class, 'destroy'])->name('booking-calendars.destroy');
+    Route::post('/booking-calendars/{id}/toggle', [App\Http\Controllers\BookingCalendarController::class, 'toggle'])->name('booking-calendars.toggle');
+    Route::get('/booking-calendars/{id}/preview', [App\Http\Controllers\BookingCalendarController::class, 'preview'])->name('booking-calendars.preview');
+    
+    // Appointments Management (AI-scheduled bookings)
+    Route::get('/appointments', [App\Http\Controllers\AppointmentController::class, 'index'])->name('appointments.index');
+    Route::get('/appointments/{id}', [App\Http\Controllers\AppointmentController::class, 'show'])->name('appointments.show');
+    Route::post('/appointments/{id}/confirm', [App\Http\Controllers\AppointmentController::class, 'confirm'])->name('appointments.confirm');
+    Route::post('/appointments/{id}/cancel', [App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('/appointments/{id}/complete', [App\Http\Controllers\AppointmentController::class, 'complete'])->name('appointments.complete');
+    Route::post('/appointments/{id}/no-show', [App\Http\Controllers\AppointmentController::class, 'markNoShow'])->name('appointments.no-show');
+    Route::post('/appointments/{id}/reschedule', [App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+});
+
 // Admin Dashboard Routes
 Route::get('/admin', [App\Http\Controllers\AdminController::class, 'showLogin'])->name('admin.login');
 Route::post('/admin/login', [App\Http\Controllers\AdminController::class, 'login']);

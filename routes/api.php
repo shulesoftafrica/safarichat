@@ -389,6 +389,22 @@ Route::middleware('auth:sanctum')->prefix('crm/import')->name('api.crm.import.')
     Route::get('/contacts/{crm_id}/context', [CrmImportController::class, 'getContactContext'])->name('contact.context');
 });
 
+// Booking Slots API Routes (for manual bookings and slot checking)
+Route::middleware('auth:sanctum')->prefix('booking-slots')->name('api.booking-slots.')->group(function () {
+    // Get available slots for a calendar
+    Route::get('/calendars/{calendarId}/available', [App\Http\Controllers\BookingSlotController::class, 'available'])->name('available');
+    
+    // Manual booking operations
+    Route::post('/reserve', [App\Http\Controllers\BookingSlotController::class, 'reserve'])->name('reserve');
+    Route::post('/{id}/confirm', [App\Http\Controllers\BookingSlotController::class, 'confirm'])->name('confirm');
+    Route::post('/{id}/cancel', [App\Http\Controllers\BookingSlotController::class, 'cancel'])->name('cancel');
+    Route::post('/{id}/reschedule', [App\Http\Controllers\BookingSlotController::class, 'reschedule'])->name('reschedule');
+    
+    // Slot information
+    Route::get('/{id}', [App\Http\Controllers\BookingSlotController::class, 'show'])->name('show');
+    Route::get('/', [App\Http\Controllers\BookingSlotController::class, 'index'])->name('index');
+});
+
 // Subscription API Routes - REMOVED (using new billing API architecture)
 
 // Corporate API Routes (Public)

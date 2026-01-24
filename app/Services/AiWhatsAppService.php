@@ -537,26 +537,147 @@ class AiWhatsAppService
     private function scheduleAppointment(AiSalesAgent $agent, Lead $lead, array $data): array
     {
         try {
-            // Create appointment
-            $appointment = \App\Models\Appointment::createFromAiRequest($lead, $data);
+            // Extract appointment details
+            $appointmentType = $data['type'] ?? 'consultation';
+            $requestedDateTime = isset($data['datetime']) ? \Carbon\Carbon::parse($data['datetime']) : now()->addDays(1);
+            $duration = $data['duration_minutes'] ?? 60;
+            
+            // Find an active booking calendar for this type
+            $calendar = \App\Models\BookingCalendar::where('business_id', $lead->business_id)
+                ->where('calendar_type', $appointmentType)
+                ->where('is_active', true)
+                ->where('allow_ai_booking', true)
+                ->first();
+            
+            // If no specific calendar found, try to find a general one
+            if (!$calendar) {
+                $calendar = \App\Models\BookingCalendar::where('business_id', $lead->business_id)
+                    ->where('is_active', true)
+                    ->where('allow_ai_booking', true)
+                    ->first();
+            }
+            
+            // If no calendar exists, create appointment without slot reservation (backward compatibility)
+            if (!$calendar) {
+                \Illuminate\Support\Facades\Log::warning('No booking calendar found for AI appointment', [
+                    'business_id' => $lead->business_id,
+                    'appointment_type' => $appointmentType
+                ]);
+                
+                $appointment = \App\Models\Appointment::createFromAiRequest($lead, $data);
+                
+                return [
+                    'scheduled' => true,
+                    'appointment_id' => $appointment->id,
+                    'scheduled_at' => $appointment->scheduled_at->toISOString(),
+                    'confirmation_message' => $this->generateAppointmentConfirmation($appointment),
+                    'type' => $appointment->appointment_type,
+                    'calendar_check' => false,
+                    'warning' => 'Scheduled without calendar validation - potential conflicts'
+                ];
+            }
+            
+            // Check if requested time slot is available
+            $requestedDate = $requestedDateTime->format('Y-m-d');
+            $requestedTime = $requestedDateTime->format('H:i:s');
+            
+            if (!$calendar->isTimeSlotAvailable($requestedDateTime, $duration)) {
+                // Try to find the next available slot
+                $availableSlots = $calendar->getAvailableSlots($requestedDateTime, $duration);
+                
+                if (empty($availableSlots)) {
+                    // No slots available on requested date, check next 7 days
+                    $foundSlot = false;
+                    for ($i = 1; $i <= 7; $i++) {
+                        $nextDate = $requestedDateTime->copy()->addDays($i);
+                        $availableSlots = $calendar->getAvailableSlots($nextDate, $duration);
+                        
+                        if (!empty($availableSlots)) {
+                            $requestedDateTime = \Carbon\Carbon::parse($availableSlots[0]['start']);
+                            $foundSlot = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$foundSlot) {
+                        return [
+                            'scheduled' => false,
+                            'error' => 'No available slots found',
+                            'reason' => 'Calendar is fully booked for the next 7 days'
+                        ];
+                    }
+                } else {
+                    // Use first available slot on requested date
+                    $requestedDateTime = \Carbon\Carbon::parse($availableSlots[0]['start']);
+                }
+            }
+            
+            // Reserve booking slot
+            $endTime = $requestedDateTime->copy()->addMinutes($duration);
+            
+            // Get or create business contact
+            $businessContact = \App\Models\BusinessContact::where('business_id', $lead->business_id)
+                ->where('phone', $lead->phone)
+                ->first();
+            
+            if (!$businessContact) {
+                $businessContact = \App\Models\BusinessContact::create([
+                    'business_id' => $lead->business_id,
+                    'name' => $lead->name,
+                    'phone' => $lead->phone,
+                    'email' => $lead->email,
+                ]);
+            }
+            
+            // Reserve the slot
+            $bookingSlot = \App\Models\BookingSlot::reserve(
+                $calendar->id,
+                $requestedDateTime,
+                $endTime,
+                $businessContact->id,
+                [
+                    'booking_source' => 'ai_agent',
+                    'ai_agent_id' => $agent->id,
+                    'lead_id' => $lead->id,
+                    'notes' => $data['notes'] ?? 'AI-scheduled appointment'
+                ]
+            );
+            
+            // Create appointment with updated data
+            $appointmentData = array_merge($data, [
+                'datetime' => $requestedDateTime->toISOString(),
+                'duration_minutes' => $duration,
+            ]);
+            
+            $appointment = \App\Models\Appointment::createFromAiRequest($lead, $appointmentData);
+            
+            // Link booking slot to appointment
+            $bookingSlot->linkToAppointment($appointment->id);
+            
+            // Auto-confirm if calendar doesn't require confirmation
+            if (!$calendar->require_confirmation) {
+                $bookingSlot->confirm();
+            }
             
             // Send confirmation message
-            $confirmationMessage = $this->generateAppointmentConfirmation($appointment);
-            
-            // You might want to send this confirmation via WhatsApp
-            // This would integrate with your message sending system
+            $confirmationMessage = $this->generateAppointmentConfirmation($appointment, $bookingSlot);
             
             return [
                 'scheduled' => true,
                 'appointment_id' => $appointment->id,
+                'booking_slot_id' => $bookingSlot->id,
                 'scheduled_at' => $appointment->scheduled_at->toISOString(),
                 'confirmation_message' => $confirmationMessage,
-                'type' => $appointment->appointment_type
+                'type' => $appointment->appointment_type,
+                'calendar_check' => true,
+                'auto_confirmed' => !$calendar->require_confirmation,
+                'calendar_name' => $calendar->name
             ];
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to schedule appointment', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'lead_id' => $lead->id,
                 'data' => $data
             ]);
@@ -572,7 +693,7 @@ class AiWhatsAppService
     /**
      * Generate appointment confirmation message
      */
-    private function generateAppointmentConfirmation(\App\Models\Appointment $appointment): string
+    private function generateAppointmentConfirmation(\App\Models\Appointment $appointment, $bookingSlot = null): string
     {
         $lead = $appointment->lead;
         $scheduledDate = $appointment->scheduled_at->format('l, M j, Y');
@@ -591,6 +712,11 @@ class AiWhatsAppService
         
         if ($appointment->meeting_link) {
             $message .= "🔗 Meeting Link: {$appointment->meeting_link}\n\n";
+        }
+        
+        // Add booking slot confirmation number if available
+        if ($bookingSlot) {
+            $message .= "🎫 Confirmation #: " . strtoupper(substr(md5($bookingSlot->id), 0, 8)) . "\n\n";
         }
         
         $message .= "I'll send you a reminder 24 hours before the appointment.\n\n";

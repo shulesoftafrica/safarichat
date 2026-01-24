@@ -131,6 +131,19 @@ if (Auth::check()) {
                                 <i class="fas fa-brain align-middle mr-2" style="color: #764ba2;" title="Sales Agents"></i>{{__('Sales Agents')}}
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= route('appointments.index') ?>">
+                                <i class="fas fa-calendar-check align-middle mr-2" style="color: #10b981;" title="Appointments"></i>{{__('Appointments')}}
+                                @if(isset($pendingAppointmentsCount) && $pendingAppointmentsCount > 0)
+                                <span class="badge badge-soft-danger ml-1">{{ $pendingAppointmentsCount }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= route('booking-calendars.index') ?>">
+                                <i class="fas fa-calendar-alt align-middle mr-2" style="color: #3b82f6;" title="Booking Calendars"></i>{{__('Calendars')}}
+                            </a>
+                        </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('whatsapp/instances') ?>">
                                 <i class="fas fa-mobile-alt align-middle mr-2" title="WhatsApp Lines"></i>WhatsApp Lines
@@ -138,7 +151,7 @@ if (Auth::check()) {
                         </li> -->
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/report') ?>">
-                                <i class="fas fa-calendar-alt align-middle mr-2" title="Reports"></i>{{__('reports')}}
+                                <i class="fas fa-chart-bar align-middle mr-2" title="Reports"></i>{{__('reports')}}
                             </a>
                         </li>
                     
