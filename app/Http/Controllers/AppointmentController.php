@@ -114,16 +114,30 @@ class AppointmentController extends Controller
             }
             
             $lead = Lead::where('business_id', $business_id)
-                ->where('contact_id', $contact->id)
+                ->where('business_contact_id', $contact->id)
                 ->first();
             
             if (!$lead) {
+                // Get or create default AI sales agent for manual bookings
+                $aiAgent = \App\Models\AiSalesAgent::where('business_id', $business_id)
+                    ->where('is_active', true)
+                    ->first();
+                
+                if (!$aiAgent) {
+                    // Create a default AI agent for manual bookings if none exists
+                    $aiAgent = \App\Models\AiSalesAgent::create([
+                        'business_id' => $business_id,
+                        'name' => 'Manual Booking Agent',
+                        'is_active' => true,
+                    ]);
+                }
+                
                 $lead = Lead::create([
                     'business_id' => $business_id,
-                    'contact_id' => $contact->id,
-                    'name' => $request->customer_name,
-                    'phone' => $phone,
-                    'status' => 'new',
+                    'business_contact_id' => $contact->id,
+                    'ai_sales_agent_id' => $aiAgent->id,
+                    'phone_number' => $phone,
+                    'status' => 'NEW',
                     'source' => 'manual_booking',
                 ]);
             }
