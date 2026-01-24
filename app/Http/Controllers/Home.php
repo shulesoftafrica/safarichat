@@ -179,7 +179,7 @@ class Home extends Controller
         
         // Set billing-related data
         if ($billingAccount) {
-            $this->data['subscription_status'] = $billingAccount->subscription_status ?? 'inactive';
+            $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
             $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
             $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
             $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
