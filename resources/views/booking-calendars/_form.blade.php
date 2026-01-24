@@ -179,7 +179,7 @@
                         </div>
                         <input type="time" name="working_hours[{{ $index }}][start]" 
                                class="form-control day-time-input-{{ $index }}" 
-                               value="{{ $hours['start'] }}"
+                               value="{{ $hours['start'] ?? '' }}"
                                {{ !($hours['enabled'] ?? false) ? 'disabled' : '' }}>
                     </div>
                 </div>
@@ -190,7 +190,7 @@
                         </div>
                         <input type="time" name="working_hours[{{ $index }}][end]" 
                                class="form-control day-time-input-{{ $index }}" 
-                               value="{{ $hours['end'] }}"
+                               value="{{ $hours['end'] ?? '' }}"
                                {{ !($hours['enabled'] ?? false) ? 'disabled' : '' }}>
                     </div>
                 </div>
