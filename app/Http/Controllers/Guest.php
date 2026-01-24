@@ -218,6 +218,7 @@ class Guest extends Controller {
                     $with = '';
                 }
                 $status .= '<div class="alert alert-success col-lg-12">User ' . $user->name . ' has been uploaded successfully' . $with . '</div><br/>';
+                    }
                 }
             }
             } elseif ($extension === 'vcf') {
