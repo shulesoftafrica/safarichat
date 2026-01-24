@@ -433,13 +433,32 @@ class Home extends Controller
                       ->orWhereNull('business_id');
             })->get();
             
-        // Add subscription data for the settings page
-        $this->data['current_subscription'] = Auth::user()->activeSubscription;
-        $this->data['subscription_status'] = Auth::user()->subscription_status;
-        $this->data['available_credits'] = Auth::user()->available_credits;
-        $this->data['trial_ends_at'] = Auth::user()->trial_ends_at;
+        // Load billing data from billing_accounts table
+        $billingAccount = $userBusiness->billingAccount;
         
-        // Package management moved to new billing system
+        if ($billingAccount) {
+            $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
+            $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
+            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
+            $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
+            $this->data['subscription_started_at'] = $billingAccount->subscription_started_at;
+            $this->data['billing_account'] = $billingAccount;
+        } else {
+            $this->data['subscription_status'] = 'inactive';
+            $this->data['subscription_plan'] = 'trial';
+            $this->data['available_credits'] = 0;
+            $this->data['subscription_expires_at'] = null;
+            $this->data['subscription_started_at'] = null;
+            $this->data['billing_account'] = null;
+        }
+        
+        // Load available plans from config
+        $billingConfig = config('safarichat_billing');
+        $this->data['available_plans'] = $billingConfig['plans'] ?? [];
+        
+        // Load payment history (you'll need to create this model/migration)
+        $this->data['payment_history'] = [];  // TODO: Implement payment history model
+        
         return view('auth.settings', $this->data);
     }
 

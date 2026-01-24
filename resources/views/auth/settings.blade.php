@@ -515,124 +515,341 @@
                                 
                                 <!-- Subscription & Billing Tab -->
                                 <div class="tab-pane fade" id="v-pills-subscription" role="tabpanel" aria-labelledby="v-pills-subscription-tab">
-                                    <h4 class="mt-0 header-title">Subscription & Billing</h4>
-                                    <p class="text-muted mb-3">Manage your subscription, view usage, and handle billing</p>
-                                    
-                                    <!-- Current Subscription Status -->
-                                    <div class="row mb-4">
-                                        <div class="col-lg-8">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <h5 class="card-title">Current Plan</h5>
-                                                    @if(Auth::user()->subscription_status === 'trial')
-                                                        <div class="alert alert-info">
-                                                            <h6><i class="las la-clock"></i> Free Trial Active</h6>
-                                                            <p>Trial expires: {{ Auth::user()->trial_ends_at ? Auth::user()->trial_ends_at->format('M d, Y H:i') : 'N/A' }}</p>
-                                                            <p>Days remaining: {{ Auth::user()->trial_ends_at ? Auth::user()->trial_ends_at->diffInDays(now()) : 0 }}</p>
-                                                        </div>
-                                                    @elseif(Auth::user()->subscription_status === 'active')
-                                                        <div class="alert alert-success">
-                                                            <h6><i class="las la-check-circle"></i> Active Subscription</h6>
-                                                            @php $activeSubscription = Auth::user()->activeSubscription; @endphp
-                                                            @if($activeSubscription)
-                                                                <p>Plan: <strong>{{ $activeSubscription->adminPackage->name ?? 'N/A' }}</strong></p>
-                                                                <p>Next billing: {{ $activeSubscription->ends_at ? $activeSubscription->ends_at->format('M d, Y') : 'N/A' }}</p>
-                                                            @else
-                                                                <p>Plan: <strong>N/A</strong></p>
-                                                                <p>Next billing: N/A</p>
-                                                            @endif
-                                                        </div>
-                                                    @else
-                                                        <div class="alert alert-warning">
-                                                            <h6><i class="las la-exclamation-triangle"></i> Subscription Inactive</h6>
-                                                            <p>Your subscription has expired. Reactivate to continue using AI features.</p>
-                                                            <button class="btn btn-primary btn-sm" onclick="showPaywallModal()">Reactivate Now</button>
-                                                        </div>
-                                                    @endif
-                                                    
-                                                    <!-- Credit Balance -->
-                                                    <div class="mt-3">
-                                                        <h6>Available Credits</h6>
-                                                        <div class="progress mb-2">
-                                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ min(100, (Auth::user()->available_credits / 1000) * 100) }}%">
-                                                                {{ Auth::user()->available_credits }} Credits
+                                    <div class="subscription-billing-container">
+                                        <h4 class="mt-0 header-title mb-1">Subscription & Billing</h4>
+                                        <p class="text-muted mb-4">Manage your subscription, view usage, and handle billing</p>
+                                        
+                                        <style>
+                                            .subscription-billing-container {
+                                                padding: 10px;
+                                            }
+                                            .billing-card {
+                                                border-radius: 12px;
+                                                border: 1px solid #e2e8f0;
+                                                box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                                                margin-bottom: 24px;
+                                                overflow: hidden;
+                                            }
+                                            .billing-card-header {
+                                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                color: white;
+                                                padding: 20px;
+                                                font-weight: 600;
+                                                font-size: 1.1rem;
+                                            }
+                                            .billing-card-body {
+                                                padding: 24px;
+                                            }
+                                            .plan-badge {
+                                                display: inline-block;
+                                                padding: 6px 16px;
+                                                border-radius: 20px;
+                                                font-weight: 600;
+                                                font-size: 0.85rem;
+                                                text-transform: uppercase;
+                                            }
+                                            .plan-badge.trial {
+                                                background: #fef3c7;
+                                                color: #92400e;
+                                            }
+                                            .plan-badge.starter {
+                                                background: #dbeafe;
+                                                color: #1e40af;
+                                            }
+                                            .plan-badge.pro {
+                                                background: #ddd6fe;
+                                                color: #5b21b6;
+                                            }
+                                            .plan-badge.premium {
+                                                background: #fef3c7;
+                                                color: #92400e;
+                                            }
+                                            .plan-badge.active {
+                                                background: #d1fae5;
+                                                color: #065f46;
+                                            }
+                                            .plan-badge.inactive {
+                                                background: #fee2e2;
+                                                color: #991b1b;
+                                            }
+                                            .credit-display {
+                                                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                                                color: white;
+                                                padding: 24px;
+                                                border-radius: 12px;
+                                                text-align: center;
+                                                margin-bottom: 24px;
+                                            }
+                                            .credit-amount {
+                                                font-size: 2.5rem;
+                                                font-weight: 700;
+                                                margin-bottom: 8px;
+                                            }
+                                            .credit-label {
+                                                font-size: 0.9rem;
+                                                opacity: 0.9;
+                                            }
+                                            .plan-comparison-card {
+                                                border: 2px solid #e2e8f0;
+                                                border-radius: 12px;
+                                                padding: 24px;
+                                                height: 100%;
+                                                transition: all 0.3s ease;
+                                                position: relative;
+                                            }
+                                            .plan-comparison-card:hover {
+                                                border-color: #667eea;
+                                                box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+                                                transform: translateY(-4px);
+                                            }
+                                            .plan-comparison-card.recommended {
+                                                border-color: #667eea;
+                                                border-width: 3px;
+                                            }
+                                            .plan-comparison-card.current-plan {
+                                                background: #f8fafc;
+                                                border-color: #10b981;
+                                            }
+                                            .recommended-badge {
+                                                position: absolute;
+                                                top: -12px;
+                                                right: 20px;
+                                                background: #667eea;
+                                                color: white;
+                                                padding: 4px 12px;
+                                                border-radius: 12px;
+                                                font-size: 0.75rem;
+                                                font-weight: 600;
+                                            }
+                                            .plan-price {
+                                                font-size: 2rem;
+                                                font-weight: 700;
+                                                color: #1e293b;
+                                                margin: 16px 0;
+                                            }
+                                            .plan-features {
+                                                list-style: none;
+                                                padding: 0;
+                                                margin: 20px 0;
+                                            }
+                                            .plan-features li {
+                                                padding: 8px 0;
+                                                display: flex;
+                                                align-items: center;
+                                            }
+                                            .plan-features li i {
+                                                color: #10b981;
+                                                margin-right: 8px;
+                                            }
+                                            .quick-action-btn {
+                                                border-radius: 8px;
+                                                padding: 12px 24px;
+                                                font-weight: 600;
+                                                transition: all 0.3s ease;
+                                                border: none;
+                                                cursor: pointer;
+                                                width: 100%;
+                                            }
+                                            .quick-action-btn:hover {
+                                                transform: translateY(-2px);
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                            }
+                                        </style>
+                                        
+                                        <!-- Current Plan Overview -->
+                                        <div class="row mb-4">
+                                            <div class="col-lg-8">
+                                                <div class="billing-card">
+                                                    <div class="billing-card-header">
+                                                        <i class="fas fa-crown"></i> Current Subscription
+                                                    </div>
+                                                    <div class="billing-card-body">
+                                                        <div class="row align-items-center">
+                                                            <div class="col-md-6">
+                                                                <h5 class="mb-2">
+                                                                    <span class="plan-badge {{ $subscription_plan }}">
+                                                                        {{ ucfirst($subscription_plan) }} Plan
+                                                                    </span>
+                                                                </h5>
+                                                                <p class="text-muted mb-2">
+                                                                    Status: 
+                                                                    <span class="plan-badge {{ $subscription_status }}">
+                                                                        {{ ucfirst($subscription_status) }}
+                                                                    </span>
+                                                                </p>
+                                                                @if($subscription_started_at)
+                                                                <p class="text-muted mb-1">
+                                                                    <i class="fas fa-calendar-alt"></i> 
+                                                                    Started: {{ \Carbon\Carbon::parse($subscription_started_at)->format('M d, Y') }}
+                                                                </p>
+                                                                @endif
+                                                                @if($subscription_expires_at)
+                                                                <p class="text-muted mb-1">
+                                                                    <i class="fas fa-calendar-check"></i> 
+                                                                    @if($subscription_status === 'trial')
+                                                                        Trial Expires: {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
+                                                                        <small>({{ \Carbon\Carbon::parse($subscription_expires_at)->diffInDays(now()) }} days left)</small>
+                                                                    @else
+                                                                        Next Billing: {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
+                                                                    @endif
+                                                                </p>
+                                                                @endif
+                                                            </div>
+                                                            <div class="col-md-6 text-center">
+                                                                @if($billing_account)
+                                                                <div class="mt-3">
+                                                                    <h6 class="text-muted">Plan Features</h6>
+                                                                    <div class="row mt-2">
+                                                                        <div class="col-6">
+                                                                            <div class="text-center p-2 border rounded">
+                                                                                <strong>{{ $billing_account->max_contacts }}</strong>
+                                                                                <small class="d-block text-muted">Contacts</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            <div class="text-center p-2 border rounded">
+                                                                                <strong>{{ $billing_account->max_products }}</strong>
+                                                                                <small class="d-block text-muted">Products</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-6 mt-2">
+                                                                            <div class="text-center p-2 border rounded">
+                                                                                <strong>{{ $billing_account->whatsapp_channels }}</strong>
+                                                                                <small class="d-block text-muted">WhatsApp Lines</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-6 mt-2">
+                                                                            <div class="text-center p-2 border rounded">
+                                                                                <strong>{{ $billing_account->customer_followups ? 'Yes' : 'No' }}</strong>
+                                                                                <small class="d-block text-muted">Followups</small>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                @endif
                                                             </div>
                                                         </div>
-                                                        <small class="text-muted">1 Credit = 4 AI Tokens</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-lg-4">
+                                                <!-- Credits Display -->
+                                                <div class="credit-display">
+                                                    <div class="credit-amount">{{ number_format($available_credits) }}</div>
+                                                    <div class="credit-label">Available AI Credits</div>
+                                                    <small class="d-block mt-2" style="opacity: 0.8;">1 Credit = 4 AI Tokens</small>
+                                                    <button class="btn btn-light btn-sm mt-3" onclick="window.showUpgradeModal(null, null, false)">
+                                                        <i class="fas fa-plus"></i> Buy More Credits
+                                                    </button>
+                                                </div>
+                                                
+                                                <!-- Quick Actions -->
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <h6 class="mb-3">Quick Actions</h6>
+                                                        @if($subscription_plan !== 'premium')
+                                                        <button class="quick-action-btn btn btn-primary mb-2" onclick="scrollToPlans()">
+                                                            <i class="fas fa-arrow-up"></i> Upgrade Plan
+                                                        </button>
+                                                        @endif
+                                                        <button class="quick-action-btn btn btn-info mb-2" onclick="showBillingHistoryModal()">
+                                                            <i class="fas fa-history"></i> Billing History
+                                                        </button>
+                                                        @if($subscription_status === 'inactive' || $subscription_status === 'expired')
+                                                        <button class="quick-action-btn btn btn-success" onclick="window.showUpgradeModal(null, 'Your subscription has expired. Please reactivate to continue.', true)">
+                                                            <i class="fas fa-redo"></i> Reactivate Now
+                                                        </button>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div class="col-lg-4">
-                                            <div class="card">
-                                                <div class="card-body text-center">
-                                                    <h5>Quick Actions</h5>
-                                                    <button class="btn btn-primary btn-block mb-2" onclick="showUpgradeModal()">
-                                                        <i class="las la-arrow-up"></i> Upgrade Plan
-                                                    </button>
-                                                    <button class="btn btn-success btn-block mb-2" onclick="showCreditTopup()">
-                                                        <i class="las la-plus"></i> Buy Credits
-                                                    </button>
-                                                    <button class="btn btn-info btn-block" onclick="showBillingHistory()">
-                                                        <i class="las la-history"></i> Billing History
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Package Comparison -->
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <h5>Available Packages</h5>
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered">
-                                                    <thead class="thead-light">
-                                                        <tr>
-                                                            <th>Package</th>
-                                                            <th>Price (Monthly)</th>
-                                                            <th>Contacts</th>
-                                                            <th>Products</th>
-                                                            <th>Features</th>
-                                                            <th>Action</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <tr>
-                                                            <td><strong>Winga</strong></td>
-                                                            <td>$29/month</td>
-                                                            <td>50 contacts</td>
-                                                            <td>3 products</td>
-                                                            <td>Basic reporting</td>
-                                                            <td><button class="btn btn-sm btn-primary" onclick="selectPackage('winga', 29)">Select</button></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><strong>Pro</strong></td>
-                                                            <td>$149/month</td>
-                                                            <td>150 contacts</td>
-                                                            <td>50 products</td>
-                                                            <td>Full reporting</td>
-                                                            <td><button class="btn btn-sm btn-primary" onclick="selectPackage('pro', 149)">Select</button></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><strong>Enterprise</strong></td>
-                                                            <td>$399/month</td>
-                                                            <td>300 contacts</td>
-                                                            <td>200 products</td>
-                                                            <td>Full reporting + Priority support</td>
-                                                            <td><button class="btn btn-sm btn-primary" onclick="selectPackage('enterprise', 399)">Select</button></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><strong>Corporate</strong></td>
-                                                            <td>Custom pricing</td>
-                                                            <td>Unlimited</td>
-                                                            <td>Unlimited</td>
-                                                            <td>API access + Custom workflows + Dedicated support</td>
-                                                            <td><button class="btn btn-sm btn-info" onclick="contactSales()">Contact Sales</button></td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
+                                        <!-- Available Plans -->
+                                        <div id="availablePlansSection">
+                                            <h5 class="mb-3"><i class="fas fa-box"></i> Available Packages</h5>
+                                            <div class="row">
+                                                @php
+                                                    $planOrder = ['trial', 'starter', 'pro', 'premium'];
+                                                    $currentPlanIndex = array_search($subscription_plan, $planOrder);
+                                                @endphp
+                                                
+                                                @foreach($planOrder as $index => $planCode)
+                                                    @if(isset($available_plans[$planCode]))
+                                                        @php
+                                                            $plan = $available_plans[$planCode];
+                                                            $isCurrentPlan = $planCode === $subscription_plan;
+                                                            $isRecommended = $planCode === 'pro';
+                                                            $canUpgrade = $index > $currentPlanIndex;
+                                                        @endphp
+                                                        
+                                                        <div class="col-lg-3 col-md-6 mb-4">
+                                                            <div class="plan-comparison-card {{ $isCurrentPlan ? 'current-plan' : '' }} {{ $isRecommended ? 'recommended' : '' }}">
+                                                                @if($isRecommended && !$isCurrentPlan)
+                                                                <span class="recommended-badge">RECOMMENDED</span>
+                                                                @endif
+                                                                @if($isCurrentPlan)
+                                                                <span class="recommended-badge" style="background: #10b981;">CURRENT</span>
+                                                                @endif
+                                                                
+                                                                <h5 class="text-uppercase" style="color: #667eea; font-weight: 700;">
+                                                                    {{ $planCode === 'trial' ? 'Free Trial' : ucfirst($planCode) }}
+                                                                </h5>
+                                                                
+                                                                <div class="plan-price">
+                                                                    TZS {{ number_format($plan['price']) }}
+                                                                    <small class="text-muted" style="font-size: 0.5em;">/month</small>
+                                                                </div>
+                                                                
+                                                                <p class="text-muted" style="font-size: 0.9rem; min-height: 40px;">
+                                                                    {{ $plan['description'] ?? 'Perfect for getting started' }}
+                                                                </p>
+                                                                
+                                                                <ul class="plan-features">
+                                                                    <li>
+                                                                        <i class="fas fa-check-circle"></i>
+                                                                        <span>{{ $plan['limits']['max_contacts'] }} Contacts</span>
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fas fa-check-circle"></i>
+                                                                        <span>{{ $plan['limits']['max_products'] }} Products</span>
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fas fa-check-circle"></i>
+                                                                        <span>{{ $plan['limits']['whatsapp_channels'] }} WhatsApp {{ $plan['limits']['whatsapp_channels'] > 1 ? 'Lines' : 'Line' }}</span>
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fas fa-check-circle"></i>
+                                                                        <span>{{ number_format($plan['price']) }} AI Credits</span>
+                                                                    </li>
+                                                                    @if(isset($plan['features']))
+                                                                        @foreach(array_slice(array_keys(array_filter($plan['features'])), 0, 3) as $feature)
+                                                                        <li>
+                                                                            <i class="fas fa-check-circle"></i>
+                                                                            <span>{{ ucfirst(str_replace('_', ' ', $feature)) }}</span>
+                                                                        </li>
+                                                                        @endforeach
+                                                                    @endif
+                                                                </ul>
+                                                                
+                                                                @if($isCurrentPlan)
+                                                                <button class="btn btn-outline-success btn-block" disabled>
+                                                                    <i class="fas fa-check"></i> Current Plan
+                                                                </button>
+                                                                @elseif($canUpgrade)
+                                                                <button class="btn btn-primary btn-block" onclick="window.upgradeToPlan('{{ $planCode }}', {{ $plan['price'] }})">
+                                                                    <i class="fas fa-arrow-up"></i> Upgrade Now
+                                                                </button>
+                                                                @else
+                                                                <button class="btn btn-outline-secondary btn-block" disabled>
+                                                                    Not Available
+                                                                </button>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                @endforeach
                                             </div>
                                         </div>
                                     </div>
@@ -1077,38 +1294,49 @@
     
     async function loadBillingHistory() {
         try {
-            const response = await fetch('/subscription/billing-history', {
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-            
-            const history = await response.json();
-            
-            let historyHTML = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
-            
-            if (history.length > 0) {
-                history.forEach(payment => {
-                    historyHTML += `
-                        <tr>
-                            <td>${new Date(payment.created_at).toLocaleDateString()}</td>
-                            <td>${payment.description}</td>
-                            <td>$${payment.amount}</td>
-                            <td><span class="badge badge-${payment.status === 'completed' ? 'success' : 'warning'}">${payment.status}</span></td>
-                        </tr>
-                    `;
-                });
-            } else {
-                historyHTML += '<tr><td colspan="4" class="text-center">No billing history found</td></tr>';
-            }
-            
-            historyHTML += '</tbody></table></div>';
+            // For now, show a placeholder since we don't have payment history table yet
+            const historyHTML = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block" style="opacity: 0.3;"></i>
+                                    <p>No billing history yet</p>
+                                    <small>Your payment transactions will appear here</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
             
             document.getElementById('billingHistoryContent').innerHTML = historyHTML;
         } catch (error) {
             console.error('Error loading billing history:', error);
             document.getElementById('billingHistoryContent').innerHTML = '<div class="alert alert-danger">Failed to load billing history</div>';
         }
+    }
+    
+    function showBillingHistoryModal() {
+        $('#billingHistoryModal').modal('show');
+        loadBillingHistory();
+    }
+    
+    function scrollToPlans() {
+        document.getElementById('availablePlansSection').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
     }
     
     // Auto-check subscription status on page load
