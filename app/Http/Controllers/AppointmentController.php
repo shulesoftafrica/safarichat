@@ -22,7 +22,7 @@ class AppointmentController extends Controller
         $business_id = Auth::user()->business->id;
         
         // Get appointments with relationships
-        $appointments = Appointment::with(['lead.businessContact', 'createdBy'])
+        $appointments = Appointment::with(['lead.contact', 'createdBy'])
             ->whereHas('lead', function($q) use ($business_id) {
                 $q->where('business_id', $business_id);
             })
@@ -226,7 +226,7 @@ class AppointmentController extends Controller
     {
         $business_id = Auth::user()->business->id;
         
-        $appointment = Appointment::with(['lead.businessContact', 'createdBy'])
+        $appointment = Appointment::with(['lead.contact', 'createdBy'])
             ->whereHas('lead', function($q) use ($business_id) {
                 $q->where('business_id', $business_id);
             })
