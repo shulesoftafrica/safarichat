@@ -42,65 +42,61 @@
     <div class="row">
         <!-- Main Appointment Info -->
         <div class="col-lg-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Appointment Information</h5>
+            <div class="card shadow-sm mb-4 border-primary">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>{{ $appointment->title }}</h4>
+                        @php
+                            $statusColors = [
+                                'pending' => 'warning',
+                                'confirmed' => 'info',
+                                'completed' => 'success',
+                                'cancelled' => 'secondary',
+                                'no_show' => 'danger'
+                            ];
+                            $color = $statusColors[$appointment->status] ?? 'secondary';
+                        @endphp
+                        <span class="badge badge-{{ $color }} badge-pill px-3 py-2" style="font-size: 1rem;">{{ ucfirst($appointment->status) }}</span>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Title</h6>
-                            <p class="mb-0"><strong>{{ $appointment->title }}</strong></p>
+                    <!-- Date, Time, Duration - Highlighted -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="info-box text-center p-3 bg-light rounded">
+                                <i class="far fa-calendar fa-2x text-primary mb-2"></i>
+                                <h6 class="text-muted mb-1">Date</h6>
+                                <p class="mb-0 h5">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('M d, Y') }}</p>
+                                <p class="mb-0 text-muted small">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('l') }}</p>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Status</h6>
-                            <p class="mb-0">
-                                @php
-                                    $statusColors = [
-                                        'pending' => 'warning',
-                                        'confirmed' => 'info',
-                                        'completed' => 'success',
-                                        'cancelled' => 'secondary',
-                                        'no_show' => 'danger'
-                                    ];
-                                    $color = $statusColors[$appointment->status] ?? 'secondary';
-                                @endphp
-                                <span class="badge badge-{{ $color }} badge-lg">{{ ucfirst($appointment->status) }}</span>
-                            </p>
+                        <div class="col-md-4">
+                            <div class="info-box text-center p-3 bg-light rounded">
+                                <i class="far fa-clock fa-2x text-success mb-2"></i>
+                                <h6 class="text-muted mb-1">Time</h6>
+                                <p class="mb-0 h5">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('g:i A') }}</p>
+                                <p class="mb-0 text-muted small">{{ $appointment->duration_minutes ?? 60 }} minutes</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box text-center p-3 bg-light rounded">
+                                <i class="fas fa-tag fa-2x text-info mb-2"></i>
+                                <h6 class="text-muted mb-1">Type</h6>
+                                <p class="mb-0 h5">{{ ucfirst(str_replace('_', ' ', $appointment->appointment_type)) }}</p>
+                                <p class="mb-0 text-muted small">{{ $appointment->created_at->diffForHumans() }}</p>
+                            </div>
                         </div>
                     </div>
 
-                    <hr>
-
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1"><i class="far fa-calendar mr-1"></i>Date</h6>
-                            <p class="mb-0"><strong>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('l, F j, Y') }}</strong></p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1"><i class="far fa-clock mr-1"></i>Time</h6>
-                            <p class="mb-0"><strong>{{ \Carbon\Carbon::parse($appointment->appointment_time)->format('g:i A') }}</strong></p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1"><i class="fas fa-hourglass-half mr-1"></i>Duration</h6>
-                            <p class="mb-0"><strong>{{ $appointment->duration_minutes ?? 60 }} minutes</strong></p>
+                    <!-- Description -->
+                    @if($appointment->description)
+                    <div class="mb-4">
+                        <div class="border-left-primary p-3 bg-light">
+                            <h6 class="text-primary mb-2"><i class="fas fa-file-alt mr-2"></i>Description</h6>
+                            <p class="mb-0" style="white-space: pre-wrap;">{{ $appointment->description }}</p>
                         </div>
                     </div>
-
-                    <hr>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Type</h6>
-                            <p class="mb-0">
-                                <span class="badge badge-soft-primary">{{ ucfirst(str_replace('_', ' ', $appointment->appointment_type)) }}</span>
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Created</h6>
-                            <p class="mb-0 text-muted">{{ $appointment->created_at->format('M d, Y g:i A') }}</p>
-                        </div>
-                    </div>
+                    @endif
 
                     @if($appointment->location)
                     <hr>
@@ -148,29 +144,72 @@
 
             <!-- Customer Information -->
             @if($appointment->lead)
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Customer Information</h5>
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-gradient-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-circle mr-2"></i>Customer Information</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1">Name</h6>
-                            <p class="mb-0"><strong>{{ $appointment->lead->name }}</strong></p>
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-6">
+                            <div class="media align-items-center">
+                                <div class="avatar-circle bg-info text-white mr-3">
+                                    <i class="fas fa-user fa-2x"></i>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="text-muted mb-1 small">Customer Name</h6>
+                                    <h4 class="mb-0 font-weight-bold">
+                                        @if($appointment->lead->contact && $appointment->lead->contact->guest_name)
+                                            {{ $appointment->lead->contact->guest_name }}
+                                        @else
+                                            {{ $appointment->lead->name ?? 'N/A' }}
+                                        @endif
+                                    </h4>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1">Phone</h6>
-                            <p class="mb-0">
-                                <a href="https://wa.me/{{ $appointment->lead->phone }}" target="_blank" class="text-success">
-                                    <i class="fab fa-whatsapp mr-1"></i>{{ $appointment->lead->phone }}
-                                </a>
-                            </p>
-                        </div>
-                        <div class="col-md-4">
-                            <h6 class="text-muted mb-1">Email</h6>
-                            <p class="mb-0">{{ $appointment->lead->email ?? 'N/A' }}</p>
+                        <div class="col-md-6">
+                            <div class="media align-items-center">
+                                <div class="avatar-circle bg-success text-white mr-3">
+                                    <i class="fab fa-whatsapp fa-2x"></i>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="text-muted mb-1 small">Phone Number</h6>
+                                    @php
+                                        $phone = $appointment->lead->phone_number ?? ($appointment->lead->contact->guest_phone ?? 'N/A');
+                                    @endphp
+                                    @if($phone != 'N/A')
+                                    <h4 class="mb-0">
+                                        <a href="https://wa.me/{{ str_replace(['+', ' ', '-'], '', $phone) }}" target="_blank" class="text-success font-weight-bold text-decoration-none">
+                                            {{ $phone }}
+                                        </a>
+                                    </h4>
+                                    @else
+                                    <h4 class="mb-0 text-muted">N/A</h4>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    @if($appointment->lead->email)
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-1 small"><i class="fas fa-envelope mr-1"></i>Email</h6>
+                            <p class="mb-0 h6">
+                                <a href="mailto:{{ $appointment->lead->email }}" class="text-primary">{{ $appointment->lead->email }}</a>
+                            </p>
+                        </div>
+                    </div>
+                    @endif
+                    @if($appointment->lead->company_name)
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-1 small"><i class="fas fa-building mr-1"></i>Company</h6>
+                            <p class="mb-0 h6">{{ $appointment->lead->company_name }}</p>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
             @endif
@@ -388,6 +427,38 @@
 
 @push('styles')
 <style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.info-box {
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+}
+
+.info-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.border-left-primary {
+    border-left: 4px solid #667eea;
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
 .timeline {
     position: relative;
     padding-left: 30px;
