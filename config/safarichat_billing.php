@@ -13,11 +13,16 @@ return [
                 'whatsapp_channels' => 1,
                 'customer_followups' => false,
                 'customer_categorization' => false,
+                'max_booking_calendars' => 0,
+                'max_bookings_per_month' => 0,
                 'booking_calendars' => false,
                 'sales_reports' => false,
                 'ai_credits' => 1000
             ],
-            'credits_rollover' => false
+            'credits_rollover' => false,
+            'permissions' => [
+                'booking_calendars' => false
+            ]
         ],
         'starter' => [
             'price' => 69000,
@@ -29,12 +34,17 @@ return [
                 'whatsapp_channels' => 1,
                 'customer_followups' => false,
                 'customer_categorization' => false,
-                'booking_calendars' => false,
+                'max_booking_calendars' => 1,
+                'max_bookings_per_month' => 50,
+                'booking_calendars' => true,
                 'sales_reports' => false,
                 'ai_credits' => 69000,
                 'unlimited_messages' => true
             ],
-            'credits_rollover' => true
+            'credits_rollover' => true,
+            'permissions' => [
+                'booking_calendars' => true
+            ]
         ],
         'pro' => [
             'price' => 149000,
@@ -46,12 +56,17 @@ return [
                 'whatsapp_channels' => 3,
                 'customer_followups' => true,
                 'customer_categorization' => true,
-                'booking_calendars' => false,
+                'max_booking_calendars' => 5,
+                'max_bookings_per_month' => 200,
+                'booking_calendars' => true,
                 'sales_reports' => true,
                 'ai_credits' => 149000,
                 'unlimited_messages' => true
             ],
-            'credits_rollover' => true
+            'credits_rollover' => true,
+            'permissions' => [
+                'booking_calendars' => true
+            ]
         ],
         'premium' => [
             'price' => 299000,
@@ -63,12 +78,17 @@ return [
                 'whatsapp_channels' => 7,
                 'customer_followups' => true,
                 'customer_categorization' => true,
+                'max_booking_calendars' => -1,
+                'max_bookings_per_month' => -1,
                 'booking_calendars' => true,
                 'sales_reports' => true,
                 'ai_credits' => 299000,
                 'unlimited_messages' => true
             ],
-            'credits_rollover' => true
+            'credits_rollover' => true,
+            'permissions' => [
+                'booking_calendars' => true
+            ]
         ]
     ],
     'token_pricing' => [

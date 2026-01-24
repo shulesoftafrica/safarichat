@@ -631,4 +631,59 @@ class BillingService
                 ? "You can add {$countToAdd} contacts ({$currentCount}/{$maxContacts} used, {$available} available)"
                 : "Cannot add {$countToAdd} contacts. Only {$available} slots available ({$currentCount}/{$maxContacts} used). Upgrade your {$plan} plan to add more contacts."
         ];
-    }}
+    }
+
+    /**
+     * Check if user can create a new booking calendar
+     *
+     * @param User $user
+     * @return array ['can_create', 'current', 'max', 'plan', 'message', 'upgrade_required']
+     */
+    public static function canCreateBookingCalendar($user): array
+    {
+        $billingAccount = $user->business->billingAccount;
+        $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
+        $planLimits = config("safarichat_billing.plans.{$currentPlan}.limits", []);
+        
+        $maxCalendars = $planLimits['max_booking_calendars'] ?? 0;
+        
+        // Check if feature is allowed
+        if ($maxCalendars === 0) {
+            return [
+                'can_create' => false,
+                'current' => 0,
+                'max' => 0,
+                'plan' => $currentPlan,
+                'message' => 'Booking calendars are not available on your current plan. Upgrade to Starter or higher.',
+                'upgrade_required' => true
+            ];
+        }
+        
+        // Unlimited calendars
+        if ($maxCalendars === -1) {
+            $currentCount = \App\Models\BookingCalendar::where('business_id', $user->business->id)->count();
+            return [
+                'can_create' => true,
+                'current' => $currentCount,
+                'max' => -1,
+                'plan' => $currentPlan,
+                'message' => 'You have unlimited booking calendars.',
+                'upgrade_required' => false
+            ];
+        }
+        
+        // Check current count
+        $currentCount = \App\Models\BookingCalendar::where('business_id', $user->business->id)->count();
+        
+        return [
+            'can_create' => $currentCount < $maxCalendars,
+            'current' => $currentCount,
+            'max' => $maxCalendars,
+            'plan' => $currentPlan,
+            'message' => $currentCount >= $maxCalendars 
+                ? "You have reached your booking calendar limit ({$maxCalendars} calendars). Please upgrade to create more."
+                : "You can create " . ($maxCalendars - $currentCount) . " more booking calendar(s).",
+            'upgrade_required' => $currentCount >= $maxCalendars
+        ];
+    }
+}
