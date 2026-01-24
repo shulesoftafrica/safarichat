@@ -1225,7 +1225,16 @@ function goToSettings() {
 function animateMetrics() {
     const metricValues = document.querySelectorAll('.metric-value');
     metricValues.forEach(metric => {
-        const finalValue = metric.textContent;
+        const finalValue = metric.textContent.trim();
+        
+        // Check if the value is numeric (contains only digits, commas, and optional decimal point)
+        const isNumeric = /^[\d,\.]+$/.test(finalValue.replace(/\s/g, ''));
+        
+        // Skip animation for non-numeric values (like "Active", "Trial", "Starter", etc.)
+        if (!isNumeric) {
+            return;
+        }
+        
         metric.textContent = '0';
         
         const increment = parseInt(finalValue.replace(/,/g, '')) / 100;
