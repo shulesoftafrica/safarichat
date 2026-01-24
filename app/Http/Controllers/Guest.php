@@ -45,31 +45,33 @@ class Guest extends Controller {
         $this->data['subscription_plan'] = $currentPlan;
         $this->data['max_contacts'] = $planLimits['max_contacts'] ?? 10;
         
-        // Add handoff statistics
+        // Add handoff statistics (using already loaded collection)
+        $guests = $this->data['guests'];
         $this->data['handoff_stats'] = [
-            'ai_handled' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'ai')->count(),
-            'pending_handoff' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'pending_handoff')->count(),
-            'handed_off' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'handed_off')->count(),
-            'completed' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'completed')->count(),
-            'urgent_cases' => EventsGuest::where('business_id', $business_id)->where('priority_level', '<=', 2)->count()
+            'ai_handled' => $guests->where('handoff_status', 'ai')->count(),
+            'pending_handoff' => $guests->where('handoff_status', 'pending_handoff')->count(),
+            'handed_off' => $guests->where('handoff_status', 'handed_off')->count(),
+            'completed' => $guests->where('handoff_status', 'completed')->count(),
+            'urgent_cases' => $guests->where('priority_level', '<=', 2)->count()
         ];
         
-        // Add lead status statistics
+        // Add lead status statistics (using already loaded collection with lead relationship)
+        // More efficient than separate DB queries - uses in-memory filtering
         $this->data['lead_status_stats'] = [
-            'NEW' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'NEW')->count(),
-            'OUTREACHED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'OUTREACHED')->count(),
-            'REPLIED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'REPLIED')->count(),
-            'ENGAGED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'ENGAGED')->count(),
-            'QUALIFIED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'QUALIFIED')->count(),
-            'PITCHED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'PITCHED')->count(),
-            'DEMO_SCHEDULED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'DEMO_SCHEDULED')->count(),
-            'PROPOSAL_SENT' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'PROPOSAL_SENT')->count(),
-            'NEGOTIATING' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'NEGOTIATING')->count(),
-            'CLOSED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'CLOSED')->count(),
-            'LOST' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'LOST')->count(),
-            'HANDED_OFF' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'HANDED_OFF')->count(),
-            'DO_NOT_CONTACT' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'DO_NOT_CONTACT')->count(),
-            'CHURNED' => EventsGuest::where('business_id', $business_id)->where('lead_status', 'CHURNED')->count(),
+            'NEW' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'NEW'; })->count(),
+            'OUTREACHED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'OUTREACHED'; })->count(),
+            'REPLIED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'REPLIED'; })->count(),
+            'ENGAGED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'ENGAGED'; })->count(),
+            'QUALIFIED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'QUALIFIED'; })->count(),
+            'PITCHED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'PITCHED'; })->count(),
+            'DEMO_SCHEDULED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'DEMO_SCHEDULED'; })->count(),
+            'PROPOSAL_SENT' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'PROPOSAL_SENT'; })->count(),
+            'NEGOTIATING' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'NEGOTIATING'; })->count(),
+            'CLOSED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'CLOSED'; })->count(),
+            'LOST' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'LOST'; })->count(),
+            'HANDED_OFF' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'HANDED_OFF'; })->count(),
+            'DO_NOT_CONTACT' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'DO_NOT_CONTACT'; })->count(),
+            'CHURNED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'CHURNED'; })->count(),
         ];
         
         // Get available agents for assignment
