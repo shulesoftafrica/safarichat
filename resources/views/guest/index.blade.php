@@ -1563,11 +1563,44 @@
     let deleteAction = 'single'; // 'single' or 'bulk'
     let contactsToDelete = [];
     
+    // Subscription limits
+    const currentContactCount = {{ $total_guests ?? 0 }};
+    const maxContacts = {{ $max_contacts ?? 10 }};
+    const subscriptionPlan = '{{ $subscription_plan ?? 'trial' }}';
+    
     // Message pagination variables
     let currentContactMessages = [];
     let messageOffset = 0;
     const messagesPerPage = 3;
 
+    // Check contact limit before adding new contact
+    function checkContactLimitBeforeAdd() {
+        if (currentContactCount >= maxContacts) {
+            // Show upgrade modal from checkpayment.blade.php
+            const planNames = {
+                'trial': 'Trial',
+                'starter': 'Starter',
+                'pro': 'Pro',
+                'premium': 'Premium'
+            };
+            
+            const limitMessage = `You've reached your contact limit (${maxContacts} contacts) for the ${planNames[subscriptionPlan]} plan. Upgrade to add more contacts.`;
+            
+            if (window.pricingControls) {
+                window.pricingControls.showModal('Add Contacts', limitMessage, false);
+            } else if (typeof window.showUpgradeModal === 'function') {
+                window.showUpgradeModal('Add Contacts', limitMessage, false);
+            } else {
+                alert(limitMessage + ' Please visit Settings to upgrade your plan.');
+            }
+            return false;
+        }
+        
+        // Limit not reached, open add contact modal
+        $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');
+        $('#myModal').modal('show');
+    }
+    
     // Initialize contact management features
     $(document).ready(function() {
         initializeContactSelection();

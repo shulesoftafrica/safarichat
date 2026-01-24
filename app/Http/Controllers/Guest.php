@@ -38,6 +38,13 @@ class Guest extends Controller {
         $this->data['guest_categories'] = EventGuestCategory::where('business_id', $business_id)->get();
         $this->data['total_guests'] = EventsGuest::where('business_id', $business_id)->count();
         
+        // Get subscription plan and limits
+        $billingAccount = Auth::user()->business->billingAccount;
+        $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
+        $planLimits = config('safarichat_billing.plans.' . $currentPlan . '.limits', []);
+        $this->data['subscription_plan'] = $currentPlan;
+        $this->data['max_contacts'] = $planLimits['max_contacts'] ?? 10;
+        
         // Add handoff statistics
         $this->data['handoff_stats'] = [
             'ai_handled' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'ai')->count(),
