@@ -102,15 +102,14 @@ class AppointmentController extends Controller
             $phone = $this->formatPhoneNumber($request->customer_phone);
             
             $contact = BusinessContact::where('business_id', $business_id)
-                ->where('phone', $phone)
+                ->where('guest_phone', $phone)
                 ->first();
             
             if (!$contact) {
                 $contact = BusinessContact::create([
                     'business_id' => $business_id,
-                    'name' => $request->customer_name,
-                    'phone' => $phone,
-                    'status' => 'active',
+                    'guest_name' => $request->customer_name,
+                    'guest_phone' => $phone,
                 ]);
             }
             
