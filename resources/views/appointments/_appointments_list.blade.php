@@ -1,5 +1,11 @@
 <!-- Stats Cards -->
 <div class="row mb-4">
+    <div class="col-12 mb-3">
+        <a href="javascript:void(0)" onclick="$('#bookingModal').modal('show')" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus-circle mr-2"></i>Book New Appointment
+        </a>
+    </div>
+    
     <div class="col-lg-3 col-md-6">
         <div class="card shadow-sm">
             <div class="card-body">

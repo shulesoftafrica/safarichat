@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\BookingSlot;
+use App\Models\BookingCalendar;
+use App\Models\BusinessContact;
 use App\Models\Lead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
@@ -65,6 +69,141 @@ class AppointmentController extends Controller
         ];
         
         return view('appointments.index', compact('appointments', 'stats'));
+    }
+    
+    /**
+     * Store a new appointment
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'appointment_date' => 'required|date|after_or_equal:today',
+            'appointment_time' => 'required',
+            'appointment_type' => 'required|in:demo,consultation,follow_up,meeting,call',
+            'duration_minutes' => 'nullable|integer|min:15|max:480',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+        
+        $business_id = Auth::user()->business->id;
+        $user_id = Auth::id();
+        
+        try {
+            DB::beginTransaction();
+            
+            // Combine date and time
+            $scheduledAt = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
+            $duration = $request->duration_minutes ?? 30;
+            $endsAt = $scheduledAt->copy()->addMinutes($duration);
+            
+            // Find or create lead/contact
+            $phone = $this->formatPhoneNumber($request->customer_phone);
+            
+            $contact = BusinessContact::where('business_id', $business_id)
+                ->where('phone', $phone)
+                ->first();
+            
+            if (!$contact) {
+                $contact = BusinessContact::create([
+                    'business_id' => $business_id,
+                    'name' => $request->customer_name,
+                    'phone' => $phone,
+                    'status' => 'active',
+                ]);
+            }
+            
+            $lead = Lead::where('business_id', $business_id)
+                ->where('contact_id', $contact->id)
+                ->first();
+            
+            if (!$lead) {
+                $lead = Lead::create([
+                    'business_id' => $business_id,
+                    'contact_id' => $contact->id,
+                    'name' => $request->customer_name,
+                    'phone' => $phone,
+                    'status' => 'new',
+                    'source' => 'manual_booking',
+                ]);
+            }
+            
+            // Check for available booking calendar
+            $bookingCalendar = BookingCalendar::where('business_id', $business_id)
+                ->where('is_active', true)
+                ->first();
+            
+            if ($bookingCalendar) {
+                // Check availability
+                $isAvailable = $bookingCalendar->isSlotAvailable($scheduledAt, $duration);
+                
+                if (!$isAvailable) {
+                    DB::rollBack();
+                    return redirect()->back()
+                        ->with('error', 'The selected time slot is not available. Please choose a different time.')
+                        ->withInput();
+                }
+            }
+            
+            // Create the appointment
+            $appointment = Appointment::create([
+                'lead_id' => $lead->id,
+                'scheduled_at' => $scheduledAt,
+                'duration_minutes' => $duration,
+                'appointment_type' => $request->appointment_type,
+                'title' => $request->title ?? ucfirst($request->appointment_type) . ' with ' . $request->customer_name,
+                'description' => $request->description,
+                'status' => 'confirmed',
+                'created_by' => $user_id,
+            ]);
+            
+            // Create booking slot if calendar exists
+            if ($bookingCalendar) {
+                BookingSlot::create([
+                    'booking_calendar_id' => $bookingCalendar->id,
+                    'appointment_id' => $appointment->id,
+                    'start_time' => $scheduledAt,
+                    'end_time' => $endsAt,
+                    'status' => 'confirmed',
+                    'customer_name' => $request->customer_name,
+                    'customer_phone' => $phone,
+                    'notes' => $request->description,
+                ]);
+            }
+            
+            DB::commit();
+            
+            return redirect()->route('appointments.index')
+                ->with('success', 'Appointment booked successfully for ' . $scheduledAt->format('M d, Y \a\t g:i A'));
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Error booking appointment: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+    
+    /**
+     * Format phone number
+     */
+    private function formatPhoneNumber($phone)
+    {
+        // Remove all non-numeric characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // If starts with 0, replace with country code
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '255' . substr($phone, 1);
+        }
+        
+        // If doesn't start with +, add it
+        if (substr($phone, 0, 1) !== '+') {
+            $phone = '+' . $phone;
+        }
+        
+        return $phone;
     }
     
     /**
