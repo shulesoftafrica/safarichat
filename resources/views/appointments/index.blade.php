@@ -85,20 +85,47 @@ function cancelAppointment(id) {
 }
 
 // Load calendars content when tab is clicked
-$('#calendars-tab').one('shown.bs.tab', function (e) {
-    $.ajax({
-        url: '{{ route('booking-calendars.index') }}',
-        method: 'GET',
-        success: function(response) {
-            // Extract only the main content from the response
-            let parser = new DOMParser();
-            let doc = parser.parseFromString(response, 'text/html');
-            let content = doc.querySelector('.container-fluid');
-            $('#calendarsContentLoader').html(content ? content.innerHTML : response);
-        },
-        error: function() {
-            $('#calendarsContentLoader').html('<div class="alert alert-danger">Failed to load calendars. Please refresh the page.</div>');
-        }
+$(document).ready(function() {
+    $('#calendars-tab').one('shown.bs.tab', function (e) {
+        console.log('Loading calendars tab...');
+        
+        $.ajax({
+            url: '{{ route('booking-calendars.index') }}',
+            method: 'GET',
+            dataType: 'html',
+            success: function(response) {
+                console.log('Calendars content loaded successfully');
+                try {
+                    // Extract only the main content from the response
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(response, 'text/html');
+                    
+                    // Try to find the main content area
+                    let content = doc.querySelector('.container-fluid');
+                    
+                    if (content) {
+                        // Remove the page title to avoid duplication
+                        let titleBox = content.querySelector('.page-title-box');
+                        if (titleBox) {
+                            titleBox.remove();
+                        }
+                        $('#calendarsContentLoader').html(content.innerHTML);
+                        console.log('Content injected successfully');
+                    } else {
+                        console.warn('Could not find .container-fluid, loading full response');
+                        $('#calendarsContentLoader').html(response);
+                    }
+                } catch (error) {
+                    console.error('Error parsing calendars content:', error);
+                    $('#calendarsContentLoader').html('<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading calendars. <a href="{{ route('booking-calendars.index') }}" class="alert-link">Click here to view calendars</a></div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error loading calendars:', status, error, xhr);
+                $('#calendarsContentLoader').html('<div class="alert alert-danger"><i class="fas fa-times-circle mr-2"></i>Failed to load calendars. <a href="{{ route('booking-calendars.index') }}" class="alert-link">Click here to view calendars</a></div>');
+            },
+            timeout: 10000 // 10 second timeout
+        });
     });
 });
 </script>
