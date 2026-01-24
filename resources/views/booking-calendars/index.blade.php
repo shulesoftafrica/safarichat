@@ -17,7 +17,7 @@
                         <i class="fas fa-plus mr-1"></i>Create Calendar
                     </a>
                     @else
-                    <button class="btn btn-secondary" disabled title="{{ $limitCheck['message'] }}">
+                    <button class="btn btn-secondary" onclick="showUpgradeModal('Booking Calendars', '{{ $limitCheck['message'] }}')" title="{{ $limitCheck['message'] }}">
                         <i class="fas fa-lock mr-1"></i>Upgrade to Create
                     </button>
                     @endif
@@ -64,9 +64,9 @@
                         </div>
                         @if($limitCheck['upgrade_required'])
                         <div>
-                            <a href="{{ url('/billing/payment') }}" class="btn btn-sm btn-warning">
+                            <button type="button" class="btn btn-sm btn-warning" onclick="showUpgradeModal('Booking Calendars', '{{ $limitCheck['message'] }}')">
                                 <i class="fas fa-arrow-up mr-1"></i>Upgrade Plan
-                            </a>
+                            </button>
                         </div>
                         @endif
                     </div>
