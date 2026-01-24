@@ -83,7 +83,15 @@ class ProductController extends Controller
         $products = $query->paginate(10);
         $categories = Product::forUser(auth()->id())->distinct()->pluck('category');
        
-        return view('service.products', compact('products', 'categories'));
+        // Get subscription plan and product limits
+        $billingAccount = Auth::user()->business->billingAccount;
+        $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
+        $planLimits = config('safarichat_billing.plans.' . $currentPlan . '.limits', []);
+        $subscription_plan = $currentPlan;
+        $max_products = $planLimits['max_products'] ?? 1;
+        $total_products = Product::forUser(auth()->id())->count();
+       
+        return view('service.products', compact('products', 'categories', 'subscription_plan', 'max_products', 'total_products'));
     }
 
     /**

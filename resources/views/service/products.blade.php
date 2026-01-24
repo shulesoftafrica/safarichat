@@ -24,7 +24,7 @@
             <i class="fas fa-box"></i>
             Product Management
         </h2>
-        <button type="button" class="btn btn-primary btn-add-product" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <button type="button" class="btn btn-primary btn-add-product" onclick="checkProductLimitBeforeAdd()">
             <i class="fas fa-plus"></i>
             Add New Product
         </button>
@@ -2132,6 +2132,39 @@
 let currentProductId = null;
 let uploadedDocuments = [];
 let sellingPointsCount = 1;
+
+// Subscription limits
+const currentProductCount = {{ $total_products ?? 0 }};
+const maxProducts = {{ $max_products ?? 1 }};
+const subscriptionPlan = '{{ $subscription_plan ?? 'trial' }}';
+
+// Check product limit before adding new product
+function checkProductLimitBeforeAdd() {
+    if (currentProductCount >= maxProducts) {
+        // Show upgrade modal from checkpayment.blade.php
+        const planNames = {
+            'trial': 'Trial',
+            'starter': 'Starter',
+            'pro': 'Pro',
+            'premium': 'Premium'
+        };
+        
+        const limitMessage = `You've reached your product limit (${maxProducts} product${maxProducts > 1 ? 's' : ''}) for the ${planNames[subscriptionPlan]} plan. Upgrade to add more products.`;
+        
+        if (window.pricingControls) {
+            window.pricingControls.showModal('Add Products', limitMessage, false);
+        } else if (typeof window.showUpgradeModal === 'function') {
+            window.showUpgradeModal('Add Products', limitMessage, false);
+        } else {
+            alert(limitMessage + ' Please visit Settings to upgrade your plan.');
+        }
+        return false;
+    }
+    
+    // Limit not reached, open add product modal
+    const addModal = new bootstrap.Modal(document.getElementById('addProductModal'));
+    addModal.show();
+}
 
 // Product type management
 function toggleProductTypeFields() {
