@@ -437,7 +437,6 @@
 </style>
 @endpush
 
-@push('scripts')
 <script>
 function confirmAppointment() {
     if (confirm('Are you sure you want to confirm this appointment?')) {
@@ -471,5 +470,4 @@ function showRescheduleModal() {
     $('#rescheduleModal').modal('show');
 }
 </script>
-@endpush
 @endsection
