@@ -447,6 +447,17 @@ class Setup extends Controller {
 
         $businessData = json_decode($data['business_data'], true);
 
+        // Check if user already exists
+        $existingUser = \DB::table('users')->where('phone', $data['phone'])->first();
+        
+        if ($existingUser) {
+            // User already registered, just log them in
+            $user = \App\Models\User::find($existingUser->id);
+            auth()->login($user);
+            
+            return redirect('/home')->with('info', 'You are already registered. Welcome back!');
+        }
+
         // Save to users table
         $userId = \DB::table('users')->insertGetId([
             'phone' => $data['phone'],
