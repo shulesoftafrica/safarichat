@@ -503,15 +503,8 @@ class Setup extends Controller {
         if ($user) {
             auth()->login($user);
             
-            // Initialize billing account for new user
-            try {
-                BillingService::initializeBillingAccount($user);
-            } catch (\Exception $e) {
-                Log::error('Failed to initialize billing account during registration', [
-                    'user_id' => $userId,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            // Note: Billing account will be created automatically when user first accesses billing features
+            // via BillingService::getBillingAccountForUser() which creates account if not exists
         }
 
         // Optionally, log registration or send welcome message
