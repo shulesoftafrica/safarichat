@@ -1523,10 +1523,20 @@ class Setup extends Controller {
             // Get trial plan limits from config
             $trialLimits = config('safarichat_billing.plans.trial');
             
+            // Get or create user's business
+            $business = $user->business;
+            if (!$business) {
+                $business = \App\Models\Business::create([
+                    'user_id' => $user->id,
+                    'name' => $user->business_name ?? $user->name . "'s Business",
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+            
             // Create billing account with trial subscription
             $billingAccount = \App\Models\BillingAccount::create([
-                'owner_type' => 'App\Models\User',
-                'owner_id' => $user->id,
+                'business_id' => $business->id,
                 'subscription_plan' => 'trial',
                 'subscription_started_at' => now(),
                 'subscription_expires_at' => now()->addDays(3), // 3-day trial

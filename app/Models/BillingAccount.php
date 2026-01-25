@@ -11,8 +11,6 @@ class BillingAccount extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'owner_type',
-        'owner_id',
         'business_id',
         'subscription_plan',
         'subscription_started_at',
