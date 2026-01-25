@@ -195,12 +195,17 @@ class AccountNotificationService
     private function sendOwnerNotification(User $user, string $message, string $type): bool
     {
         try {
-            // Get user's phone number
+            // Get user's phone number and format with country code if needed
             $phone = $user->phone_number ?? $user->phone ?? null;
             
             if (!$phone) {
                 Log::warning("Cannot send notification - no phone number for user {$user->id}");
                 return false;
+            }
+            
+            // Ensure phone has country code (255 for Tanzania)
+            if (!str_starts_with($phone, '255') && !str_starts_with($phone, '+255')) {
+                $phone = '255' . $phone;
             }
 
             // Send via WhatsApp using WaSenderService

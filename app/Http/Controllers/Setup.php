@@ -450,7 +450,6 @@ class Setup extends Controller {
         // Save to users table
         $userId = \DB::table('users')->insertGetId([
             'phone' => $data['phone'],
-            'phone_number' => '255' . $data['phone'], // Add country code for WhatsApp
             'name' => $businessData['owner_name'] ?? '',
             'business_name' => $businessData['business_name'] ?? '',
             'business_type' => $data['business_type'],
