@@ -450,6 +450,7 @@ class Setup extends Controller {
         // Save to users table
         $userId = \DB::table('users')->insertGetId([
             'phone' => $data['phone'],
+            'phone_number' => '255' . $data['phone'], // Add country code for WhatsApp
             'name' => $businessData['owner_name'] ?? '',
             'business_name' => $businessData['business_name'] ?? '',
             'business_type' => $data['business_type'],
@@ -498,8 +499,24 @@ class Setup extends Controller {
             }
         }
 
+        // Log the user in after registration
+        $user = \App\Models\User::find($userId);
+        if ($user) {
+            auth()->login($user);
+            
+            // Initialize billing account for new user
+            try {
+                BillingService::initializeBillingAccount($user);
+            } catch (\Exception $e) {
+                Log::error('Failed to initialize billing account during registration', [
+                    'user_id' => $userId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
         // Optionally, log registration or send welcome message
-      $this->sendTextMessage($data['phone'], 'Welcome to SafariChat! Your business profile has been created.', 'whatsapp');
+        $this->sendTextMessage($data['phone'], 'Welcome to SafariChat! Your business profile has been created.', 'whatsapp');
 
         return redirect('/home')->with('success', 'Business profile registered successfully!');
     }
