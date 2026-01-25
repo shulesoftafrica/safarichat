@@ -516,13 +516,33 @@ class Setup extends Controller {
             }
         }
 
+        // Create business record with all registration data
+        $business = \App\Models\Business::create([
+            'user_id' => $userId,
+            'name' => $businessData['business_name'] ?? '',
+            'phone' => $data['phone'],
+            'business_category' => $data['business_type'],
+            'descriptions' => json_encode([
+                'business_type' => $data['business_type'],
+                'business_size' => $businessData['business_size'] ?? '',
+                'customer_volume' => $businessData['customer_volume'] ?? '',
+                'years_in_business' => $businessData['years_in_business'] ?? '',
+                'region' => $businessData['region'] ?? '',
+                'current_channels' => $businessData['current_channels'] ?? [],
+                'business_goals' => $businessData['business_goals'] ?? [],
+                'desired_features' => $businessData['desired_features'] ?? [],
+            ]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         // Log the user in after registration
         $user = \App\Models\User::find($userId);
         if ($user) {
             auth()->login($user);
             
             // Create trial billing account and subscription for new user
-            $this->createTrialBillingAccount($user);
+            $this->createTrialBillingAccount($user, $business);
         }
 
         // Optionally, log registration or send welcome message
@@ -1517,21 +1537,23 @@ class Setup extends Controller {
      * Create trial billing account and subscription for new user
      * Gives 3-day free trial with starter plan limits
      */
-    private function createTrialBillingAccount($user)
+    private function createTrialBillingAccount($user, $business = null)
     {
         try {
             // Get trial plan limits from config
             $trialLimits = config('safarichat_billing.plans.trial');
             
             // Get or create user's business
-            $business = $user->business;
             if (!$business) {
-                $business = \App\Models\Business::create([
-                    'user_id' => $user->id,
-                    'name' => $user->business_name ?? $user->name . "'s Business",
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+                $business = $user->business;
+                if (!$business) {
+                    $business = \App\Models\Business::create([
+                        'user_id' => $user->id,
+                        'name' => $user->business_name ?? $user->name . "'s Business",
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
             }
             
             // Create billing account with trial subscription
