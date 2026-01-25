@@ -308,12 +308,8 @@ Route::middleware('auth:sanctum')->prefix('wasender')->group(function () {
     Route::get('/instances/{instanceId}/status', [App\Http\Controllers\Api\WaSenderApiController::class, 'checkInstanceStatus']);
 });
 
-// Payment routes removed - using new billing system
-Route::post('/registerBusiness', 'Setup@registerBusiness');
-Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance');
-Route::post('/update-instance-status', 'Setup@updateInstanceStatus');
-Route::get('/user-whatsapp-instances', 'Setup@getUserWhatsappInstances');
-Route::delete('/delete-whatsapp-instance', 'Setup@deleteWhatsappInstance');
+// Business registration moved to web.php for proper session handling
+// WhatsApp instance routes moved to web.php for proper authentication
 
 
 // Background payment processing removed - using new billing system

@@ -86,6 +86,13 @@ Route::get('/register', function() {
     return view('auth.register');
 })->name('register');
 
+// Business registration and setup routes
+Route::post('/registerBusiness', 'Setup@registerBusiness')->name('register.business');
+Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance')->name('whatsapp.save');
+Route::post('/update-instance-status', 'Setup@updateInstanceStatus')->name('whatsapp.update_status');
+Route::get('/user-whatsapp-instances', 'Setup@getUserWhatsappInstances')->name('whatsapp.instances');
+Route::delete('/delete-whatsapp-instance', 'Setup@deleteWhatsappInstance')->name('whatsapp.delete');
+
 
 
 Route::get('/message/channel', [App\Http\Controllers\Message::class, 'channel'])->name('message.channel');
