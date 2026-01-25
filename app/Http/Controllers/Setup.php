@@ -455,7 +455,14 @@ class Setup extends Controller {
             $user = \App\Models\User::find($existingUser->id);
             auth()->login($user);
             
-            return redirect('/home')->with('info', 'You are already registered. Welcome back!');
+            // Check if they have WhatsApp setup
+            $hasWhatsApp = $user->whatsappInstances()->where('status', 'connected')->exists();
+            
+            if ($hasWhatsApp) {
+                return redirect('/home')->with('info', 'You are already registered. Welcome back!');
+            } else {
+                return redirect()->route('business.wasender')->with('message', 'Welcome back! Please connect your WhatsApp account to continue.');
+            }
         }
 
         // Save to users table
@@ -521,7 +528,8 @@ class Setup extends Controller {
         // Optionally, log registration or send welcome message
         $this->sendTextMessage($data['phone'], 'Welcome to SafariChat! Your business profile has been created.', 'whatsapp');
 
-        return redirect('/home')->with('success', 'Business profile registered successfully!');
+        // Redirect to WhatsApp setup (new users don't have WhatsApp connected yet)
+        return redirect()->route('business.wasender')->with('success', 'Business profile registered successfully! Please connect your WhatsApp account to continue.');
     }
 
     /**
