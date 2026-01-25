@@ -521,8 +521,8 @@ class Setup extends Controller {
         if ($user) {
             auth()->login($user);
             
-            // Note: Billing account will be created automatically when user first accesses billing features
-            // via BillingService::getBillingAccountForUser() which creates account if not exists
+            // Create trial billing account and subscription for new user
+            $this->createTrialBillingAccount($user);
         }
 
         // Optionally, log registration or send welcome message
@@ -1511,6 +1511,74 @@ class Setup extends Controller {
     {
         // Implement SMS sending logic here
         return response()->json(['message' => 'SMS sending not implemented yet']);
+    }
+
+    /**
+     * Create trial billing account and subscription for new user
+     * Gives 3-day free trial with starter plan limits
+     */
+    private function createTrialBillingAccount($user)
+    {
+        try {
+            // Get trial plan limits from config
+            $trialLimits = config('safarichat_billing.plans.trial');
+            
+            // Create billing account with trial subscription
+            $billingAccount = \App\Models\BillingAccount::create([
+                'owner_type' => 'App\Models\User',
+                'owner_id' => $user->id,
+                'subscription_plan' => 'trial',
+                'subscription_started_at' => now(),
+                'subscription_expires_at' => now()->addDays(3), // 3-day trial
+                'next_billing_date' => now()->addDays(3),
+                'ai_credits' => $trialLimits['ai_credits'] ?? 1000,
+                'ai_credits_used' => 0,
+                'available_credits' => $trialLimits['ai_credits'] ?? 1000,
+                'max_contacts' => $trialLimits['max_contacts'] ?? 5,
+                'max_products' => $trialLimits['max_products'] ?? 1,
+                'whatsapp_channels' => $trialLimits['whatsapp_channels'] ?? 1,
+                'customer_followups' => $trialLimits['customer_followups'] ?? false,
+                'customer_categorization' => $trialLimits['customer_categorization'] ?? false,
+                'booking_calendars' => $trialLimits['booking_calendars'] ?? false,
+                'sales_reports' => $trialLimits['sales_reports'] ?? false,
+                'unlimited_messages' => $trialLimits['unlimited_messages'] ?? false,
+                'credits_rollover' => false,
+                'status' => 'active', // Active trial
+                'notes' => 'Auto-created trial account during registration'
+            ]);
+
+            // Create subscription record
+            \App\Models\Subscription::create([
+                'user_id' => $user->id,
+                'status' => 'active',
+                'starts_at' => now(),
+                'trial_ends_at' => now()->addDays(3), // 3-day trial
+                'ends_at' => now()->addDays(3),
+                'auto_renew' => false,
+                'metadata' => [
+                    'plan_type' => 'trial',
+                    'created_during' => 'registration',
+                    'trial_duration_days' => 3
+                ]
+            ]);
+
+            Log::info('Trial billing account created for new user', [
+                'user_id' => $user->id,
+                'billing_account_id' => $billingAccount->id,
+                'trial_expires' => now()->addDays(3)->toDateTimeString()
+            ]);
+
+            return $billingAccount;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create trial billing account', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't fail registration if billing account creation fails
+            return null;
+        }
     }
 
 }
