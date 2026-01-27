@@ -204,7 +204,7 @@ class ConvertUnengagedContactsCommand extends Command
                 'company_name' => $contact->guest_name,
                 'source' => 'business_contact',
                 'status' => Lead::STATUS_NEW,
-                'last_interaction_at' => $contact->created_at,
+                'last_interaction_at' => null, // NULL so they're picked up by followup system as new contacts
                 'lead_score' => $leadScore,
                 'conversion_probability' => (int) round($this->calculateConversionProbability($contact, $leadScore) * 100),
                 'is_churned' => false,

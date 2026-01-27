@@ -125,8 +125,11 @@ class DailyOutreachCommand extends Command
 
     private function getLeadsForOutreach(AiSalesAgent $agent, int $limit)
     {
-        // Get all phone numbers that already have outgoing messages (already contacted)
-        $phonesWithMessages = \DB::table('outgoing_messages')
+        // Get phone numbers that have been contacted by THIS agent recently (within 7 days)
+        // This prevents duplicate messages to same contact
+        $recentlyContactedPhones = \DB::table('outgoing_messages')
+            ->where('user_id', $agent->user_id)
+            ->where('created_at', '>', now()->subDays(7))
             ->whereNotNull('phone_number')
             ->pluck('phone_number')
             ->unique()
@@ -136,13 +139,16 @@ class DailyOutreachCommand extends Command
             ->whereIn('status', [Lead::STATUS_NEW, Lead::STATUS_OUTREACHED])
             ->whereNotIn('status', [Lead::STATUS_DO_NOT_CONTACT, Lead::STATUS_CLOSED])
             ->where(function($query) {
+                // Include NEW contacts (NULL last_contact_at) OR contacts not contacted recently
                 $query->whereNull('last_contact_at')
                     ->orWhere('last_contact_at', '<', now()->subDays(1));
             })
             ->where('lead_score', '>', 0)
-            // Exclude leads whose phone numbers already have outgoing messages
-            ->whereHas('contact', function($query) use ($phonesWithMessages) {
-                $query->whereNotIn('guest_phone', $phonesWithMessages);
+            // Only exclude leads contacted in the last 7 days (prevents spam)
+            ->whereHas('contact', function($query) use ($recentlyContactedPhones) {
+                if (!empty($recentlyContactedPhones)) {
+                    $query->whereNotIn('guest_phone', $recentlyContactedPhones);
+                }
             })
             ->orderByDesc('lead_score')
             ->orderBy('created_at')

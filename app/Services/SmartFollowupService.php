@@ -34,13 +34,17 @@ class SmartFollowupService
                 return;
             }
             // Get leads that are NOT closed and need followup
+            // Include contacts with NO interaction (NULL) OR last interaction > 3 days ago
             $leadsNeedingFollowUp = Lead::whereNotIn('status', [
                                         Lead::STATUS_CLOSED, 
                                         Lead::STATUS_LOST, 
                                         Lead::STATUS_DO_NOT_CONTACT,
                                         Lead::STATUS_CONVERTED
                                     ])
-                                    ->where('last_interaction_at', '<', now()->subDays(3))
+                                    ->where(function($query) {
+                                        $query->whereNull('last_interaction_at')
+                                              ->orWhere('last_interaction_at', '<', now()->subDays(3));
+                                    })
                                     ->whereNull('follow_up_sent_at')
                                     ->with(['contact', 'conversations', 'aiSalesAgent'])
                                     ->limit(20)
@@ -162,15 +166,19 @@ class SmartFollowupService
         $lastMessage = $conversations->where('sender_type', 'customer')->first();
         $conversationTopics = $conversations->pluck('message_content')->implode(' ');
         
+        // Determine if this is a brand new contact with no conversation history
+        $hasConversations = $conversations->count() > 0;
+        
         $context = [
             'last_customer_message' => $lastMessage?->message_content ?? '',
             'days_since_last_contact' => $lastMessage 
                 ? Carbon::parse($lastMessage->created_at)->diffInDays(now()) 
-                : 7,
-            'has_shown_interest' => $this->hasShownInterest($conversationTopics),
-            'mentioned_budget' => $this->mentionedBudget($conversationTopics),
-            'mentioned_timeline' => $this->mentionedTimeline($conversationTopics),
-            'conversation_stage' => $this->determineConversationStage($conversations)
+                : 0,
+            'has_shown_interest' => $hasConversations ? $this->hasShownInterest($conversationTopics) : false,
+            'mentioned_budget' => $hasConversations ? $this->mentionedBudget($conversationTopics) : false,
+            'mentioned_timeline' => $hasConversations ? $this->mentionedTimeline($conversationTopics) : false,
+            'conversation_stage' => $this->determineConversationStage($conversations),
+            'is_new_contact' => !$hasConversations // Flag for contacts never contacted before
         ];
 
         return $context;
@@ -275,7 +283,8 @@ class SmartFollowupService
             'has_budget_discussion' => $mentionedBudget,
             'has_timeline' => $mentionedTimeline,
             'language' => $language,
-            'lead_score' => $this->calculateLeadScore($lead)
+            'lead_score' => $this->calculateLeadScore($lead),
+            'is_new_contact' => $context['is_new_contact'] ?? false
         ]);
         
         return $message;
@@ -293,6 +302,14 @@ class SmartFollowupService
         $days = $data['days_since'];
         $concerns = $data['concerns'];
         $interests = $data['interests'];
+        $isNewContact = $data['is_new_contact'] ?? false;
+        
+        // 0. FIRST CONTACT - Not a followup, this is initial outreach
+        if ($isNewContact) {
+            return str_replace(['{name}', '{product}'], 
+                [$name, $product], 
+                $templates['first_contact']);
+        }
         
         // 1. RESPOND TO SPECIFIC CONCERNS
         if (!empty($concerns)) {
@@ -422,6 +439,8 @@ class SmartFollowupService
     {
         $templates = [
             'english' => [
+                'first_contact' => "Hi {name}! I noticed you recently joined us. I'm here to help with {product}. What specific challenges are you looking to solve? Let me know how I can assist!",
+                
                 'address_price_concern' => "Hi {name}! I understand pricing is important for {product}. We actually have flexible options that might work better than you think. Could I share a quick cost breakdown that shows the ROI?",
                 
                 'address_time_concern' => "Hi {name}! I know you're busy. That's exactly why {product} saves 5+ hours weekly for teams like yours. Worth a 10-minute chat to see the time savings?",
@@ -438,6 +457,8 @@ class SmartFollowupService
             ],
             
             'swahili' => [
+                'first_contact' => "Habari {name}! Nimeona umejiunga nasi hivi karibuni. Niko hapa kukusaidia na {product}. Ni changamoto gani maalum unazotafuta kusuluhisha? Nijulishe jinsi ninavyoweza kukusaidia!",
+                
                 'address_price_concern' => "Habari {name}! Naelewa bei ni muhimu kwa {product}. Kwa kweli tuna chaguo rahisi zaidi kuliko unavyofikiri. Naweza kushiriki maelezo ya gharama na faida?",
                 
                 'address_time_concern' => "Habari {name}! Najua una kazi nyingi. Ndio maana {product} inaokoa masaa 5+ kwa wiki kwa timu kama yenu. Je tunaweza zungumza dakika 10 kuona jinsi inavyookoa muda?",

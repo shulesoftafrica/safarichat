@@ -53,7 +53,8 @@ class User extends Authenticatable implements MustVerifyEmail{
         'whatsapp_number',
         'last_activity_at',
         'uuid',
-        'is_active'
+        'is_active',
+        'verified'
     ];
 
     /**

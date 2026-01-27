@@ -96,6 +96,7 @@ class UserRegistrationService
             'email' => $userData['email'] ?? null,
             'password' => isset($userData['password']) ? Hash::make($userData['password']) : null,
             'phone_verified_at' => now(),
+            'verified' => 1,
             'created_at' => now()
         ]);
         

@@ -408,7 +408,7 @@ if (Auth::check()) {
                                 </form>-->
 
             </li>
-            <?php if ((int) Auth::user()->verified == 0 && Auth::user()->email_verified_at == null) { ?>
+            <?php if ((int) Auth::user()->verified == 0) { ?>
                 <a href="#" class="alert icon-custom-alert alert-outline-pink b-round fade show" role="alert" data-toggle="modal" data-target="#verifyModal">                                            
                     <i class="mdi mdi-alert-outline alert-icon"></i>
                     <div class="alert-text">

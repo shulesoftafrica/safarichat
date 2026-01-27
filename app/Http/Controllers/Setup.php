@@ -102,7 +102,7 @@ class Setup extends Controller {
                 // Update password with new OTP code
                 DB::table('users')->where('id', $user->id)->update([
                     'password' => bcrypt($input_code),
-                   
+                    'verified' => 1,
                     'updated_at' => now(),
                 ]);
                 // Attempt login
