@@ -3201,7 +3201,7 @@
     <!-- Sticky Login Section -->
     <div class="sticky-login" id="login">
         <div class="login-logo">
-            <img src="{{ asset(ROOT.'assets/images/safarichat.png')}}" alt="safarichat Logo">
+            <img src="{{ asset(ROOT.'assets/images/safarichat.png')}}?v=1" alt="safarichat Logo">
         </div>
         
         <h2 class="login-title">Meet Your New AI Sales Rep</h2>
