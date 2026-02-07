@@ -1688,8 +1688,8 @@ class WaSenderController extends Controller
                     'name' => $instance->instance_name,
                     'phone_number' => $instance->phone_number,
                     'status' => $instance->status,
-                    'created_at' => $instance->created_at->toISOString(),
-                    'updated_at' => $instance->updated_at->toISOString(),
+                    'created_at' => $instance->created_at ? $instance->created_at->toISOString() : now()->toISOString(),
+                    'updated_at' => $instance->updated_at ? $instance->updated_at->toISOString() : now()->toISOString(),
                 ];
             });
 
@@ -1729,8 +1729,8 @@ class WaSenderController extends Controller
                     'webhook_url' => $instance->webhook_url,
                     'webhook_enabled' => !empty($instance->webhook_url),
                     'webhook_events' => $instance->metadata['webhook_events'] ?? [],
-                    'created_at' => $instance->created_at->toISOString(),
-                    'updated_at' => $instance->updated_at->toISOString(),
+                    'created_at' => $instance->created_at ? $instance->created_at->toISOString() : now()->toISOString(),
+                    'updated_at' => $instance->updated_at ? $instance->updated_at->toISOString() : now()->toISOString(),
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1866,6 +1866,7 @@ class WaSenderController extends Controller
                 $instance->update($updateData);
             }
 
+            $freshInstance = $instance->fresh();
             return response()->json([
                 'success' => true,
                 'message' => 'WhatsApp session updated successfully',
@@ -1875,7 +1876,7 @@ class WaSenderController extends Controller
                     'name' => $instance->instance_name,
                     'phone_number' => $instance->phone_number,
                     'webhook_enabled' => !empty($instance->webhook_url),
-                    'updated_at' => $instance->fresh()->updated_at->toISOString(),
+                    'updated_at' => ($freshInstance && $freshInstance->updated_at) ? $freshInstance->updated_at->toISOString() : now()->toISOString(),
                 ]
             ]);
         } catch (\Exception $e) {

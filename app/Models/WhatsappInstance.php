@@ -55,7 +55,9 @@ class WhatsappInstance extends Model
         'qr_code_generated_at' => 'datetime',
         'connected_at' => 'datetime',
         'disconnected_at' => 'datetime',
-        'last_active_at' => 'datetime'
+        'last_active_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     /**
@@ -70,6 +72,30 @@ class WhatsappInstance extends Model
                 $model->uuid = (string) \Illuminate\Support\Str::uuid();
             }
         });
+    }
+
+    /**
+     * Override getAttribute to handle malformed date values
+     */
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+        
+        // Handle malformed date attributes (like PostgreSQL error codes)
+        if (in_array($key, ['created_at', 'updated_at']) && $value !== null) {
+            // If value is not a Carbon instance and looks like an error code, return null
+            if (!$value instanceof \Carbon\Carbon) {
+                if (is_string($value) || is_numeric($value)) {
+                    // Check if it's just a number (like error code 42703)
+                    if (is_numeric($value) && strlen((string)$value) < 8) {
+                        \Log::warning("Invalid date value for {$key}: {$value} in WhatsappInstance ID: {$this->id}");
+                        return null;
+                    }
+                }
+            }
+        }
+        
+        return $value;
     }
 
     /**

@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\BillingAccount;
-use App\Models\Contact;
+use App\Models\BusinessContact;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -32,16 +32,19 @@ class BillingAlertService
         $alerts = [];
         
         try {
-            $billingAccount = BillingAccount::where('user_id', $userId)->first();
+            $user = User::find($userId);
+            if (!$user || !$user->business) {
+                return [];
+            }
             
-            if (!$billingAccount || !$billingAccount->subscription) {
+            $billingAccount = $user->business->billingAccount;
+            
+            if (!$billingAccount) {
                 return [];
             }
 
-            $subscription = $billingAccount->subscription;
-
-            // Check subscription status
-            if ($subscription->status === 'inactive' || $subscription->status === 'cancelled') {
+            // Check subscription status using billing_account fields directly
+            if ($billingAccount->status === 'inactive' || $billingAccount->status === 'cancelled') {
                 $alerts[] = [
                     'severity' => 'critical',
                     'type' => 'subscription_inactive',
@@ -56,8 +59,8 @@ class BillingAlertService
             }
 
             // Check trial expiration
-            if ($subscription->plan_type === 'trial' && $subscription->trial_ends_at) {
-                $daysRemaining = now()->diffInDays($subscription->trial_ends_at, false);
+            if ($billingAccount->subscription_plan === 'trial' && $billingAccount->subscription_expires_at) {
+                $daysRemaining = now()->diffInDays($billingAccount->subscription_expires_at, false);
                 
                 if ($daysRemaining <= 0) {
                     $alerts[] = [
@@ -93,7 +96,7 @@ class BillingAlertService
             }
 
             // Check contact limit
-            $contactAlert = $this->checkContactLimit($userId, $subscription->plan_type);
+            $contactAlert = $this->checkContactLimit($userId, $billingAccount->subscription_plan);
             if ($contactAlert) {
                 $alerts[] = $contactAlert;
             }
@@ -125,13 +128,13 @@ class BillingAlertService
      */
     private function checkAiCredits($billingAccount): ?array
     {
-        $limits = config("safarichat_billing.plans.{$billingAccount->subscription->plan_type}.ai_credits");
+        $limits = config("safarichat_billing.plans.{$billingAccount->subscription_plan}.limits.ai_credits");
         
         if ($limits === 'unlimited') {
             return null;
         }
 
-        $remaining = $billingAccount->ai_credits_balance ?? 0;
+        $remaining = $billingAccount->ai_credits ?? 0;
         $percentage = $limits > 0 ? ($remaining / $limits) * 100 : 0;
 
         if ($remaining <= 0) {
@@ -195,13 +198,13 @@ class BillingAlertService
      */
     private function checkContactLimit($userId, $planType): ?array
     {
-        $limits = config("safarichat_billing.plans.{$planType}.max_contacts");
+        $limits = config("safarichat_billing.plans.{$planType}.limits.max_contacts");
         
-        if ($limits === 'unlimited') {
+        if ($limits === 'unlimited' || !$limits || $limits <= 0) {
             return null;
         }
 
-        $currentCount = Contact::where('user_id', $userId)->count();
+        $currentCount = BusinessContact::where('user_id', $userId)->count();
         $percentage = $limits > 0 ? ($currentCount / $limits) * 100 : 0;
 
         if ($currentCount >= $limits) {
@@ -310,37 +313,41 @@ class BillingAlertService
     public function getBillingSummary($userId): array
     {
         try {
-            $billingAccount = BillingAccount::where('user_id', $userId)->first();
+            $user = User::find($userId);
+            if (!$user || !$user->business) {
+                return [];
+            }
             
-            if (!$billingAccount || !$billingAccount->subscription) {
+            $billingAccount = $user->business->billingAccount;
+            
+            if (!$billingAccount) {
                 return [];
             }
 
-            $subscription = $billingAccount->subscription;
-            $planType = $subscription->plan_type;
+            $planType = $billingAccount->subscription_plan;
 
             // AI Credits
-            $creditLimit = config("safarichat_billing.plans.{$planType}.ai_credits");
-            $creditRemaining = $billingAccount->ai_credits_balance ?? 0;
+            $creditLimit = config("safarichat_billing.plans.{$planType}.limits.ai_credits");
+            $creditRemaining = $billingAccount->ai_credits ?? 0;
             $creditPercentage = ($creditLimit !== 'unlimited' && $creditLimit > 0) 
                 ? round(($creditRemaining / $creditLimit) * 100) 
                 : null;
 
             // Contacts
-            $contactLimit = config("safarichat_billing.plans.{$planType}.max_contacts");
-            $contactCount = Contact::where('user_id', $userId)->count();
+            $contactLimit = config("safarichat_billing.plans.{$planType}.limits.max_contacts");
+            $contactCount = BusinessContact::where('user_id', $userId)->count();
             $contactPercentage = ($contactLimit !== 'unlimited' && $contactLimit > 0) 
                 ? round(($contactCount / $contactLimit) * 100) 
                 : null;
 
             // Calendars
-            $calendarLimit = config("safarichat_billing.plans.{$planType}.booking_calendars");
+            $calendarLimit = config("safarichat_billing.plans.{$planType}.limits.booking_calendars");
             $calendarCount = \App\Models\BookingCalendar::where('user_id', $userId)->count();
 
             return [
                 'plan_type' => strtoupper($planType),
-                'status' => $subscription->status,
-                'trial_ends_at' => $subscription->trial_ends_at,
+                'status' => $billingAccount->status,
+                'trial_ends_at' => $billingAccount->subscription_expires_at,
                 'credits' => [
                     'remaining' => $creditRemaining,
                     'limit' => $creditLimit,

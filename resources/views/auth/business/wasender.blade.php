@@ -534,6 +534,8 @@
     let connectionTimeout = null;
     let maxConnectionAttempts = 60; // 30 minutes (60 * 30 seconds)
     let currentAttempts = 0;
+    let qrRefreshInterval = null;
+    let lastQRGeneration = 0;
 
     function showSection(sectionId) {
         $('.setup-section').removeClass('active');
@@ -565,6 +567,10 @@
         if (connectionTimeout) {
             clearTimeout(connectionTimeout);
             connectionTimeout = null;
+        }
+        if (qrRefreshInterval) {
+            clearInterval(qrRefreshInterval);
+            qrRefreshInterval = null;
         }
     }
 
@@ -600,6 +606,79 @@
                 regenerateQRCode();
             }
         }, 1000);
+    }
+
+    function displayQRCode(qrString) {
+        if (!qrString) {
+            console.error('No QR code string provided');
+            const qrContainer = document.getElementById('qr-code-display');
+            qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>No QR code data received. Please try again.</div>';
+            return;
+        }
+
+        // Clear previous QR code
+        const qrContainer = document.getElementById('qr-code-display');
+        qrContainer.innerHTML = '';
+        
+        // Add cache-busting timestamp to ensure fresh render
+        const timestamp = Date.now();
+        lastQRGeneration = timestamp;
+        
+        try {
+            // Generate QR code using QRCode.js from the string payload
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: qrString, // Use the raw string from WaSender API
+                width: 280,
+                height: 280,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            console.log('QR code generated successfully at:', new Date(timestamp).toISOString());
+            console.log('QR string length:', qrString.length);
+        } catch (error) {
+            console.error('Error generating QR code:', error);
+            qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>QR Code generation failed. Please try again.</div>';
+        }
+    }
+
+    async function refreshQRCode(sessionId) {
+        try {
+            // Fetch fresh QR code from server with cache-busting
+            const timestamp = Date.now();
+            const response = await fetch(`{{ url("wasender/session-qr") }}/${sessionId}?t=${timestamp}`, {
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.qr_code) {
+                console.log('QR code refreshed successfully');
+                displayQRCode(data.qr_code);
+            } else {
+                console.warn('QR refresh failed:', data.message);
+            }
+        } catch (error) {
+            console.error('Failed to refresh QR code:', error);
+        }
+    }
+
+    function startQRRefresh(sessionId) {
+        // Clear any existing refresh interval
+        if (qrRefreshInterval) {
+            clearInterval(qrRefreshInterval);
+        }
+        
+        // Refresh QR code every 45 seconds (before it expires)
+        qrRefreshInterval = setInterval(() => {
+            console.log('Auto-refreshing QR code to prevent expiry...');
+            refreshQRCode(sessionId);
+        }, 45000); // 45 seconds
     }
 
     async function generateSession() {
@@ -640,30 +719,11 @@
                     showSection('qr-code-section');
                     startCountdown(); // Start the countdown timer
 
-                    // Clear previous QR code if exists
-                    const qrContainer = document.getElementById('qr-code-display');
-                    qrContainer.innerHTML = '';
+                    // Display the initial QR code
+                    displayQRCode(data.qr_code);
                     
-                    // Generate QR code using QRCode.js
-                    if (data.qr_code) {
-                        try {
-                            qrCodeInstance = new QRCode(qrContainer, {
-                                text: data.qr_code,
-                                width: 280,
-                                height: 280,
-                                colorDark: "#000000",
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.H
-                            });
-                            console.log('QR code generated successfully with QRCode.js');
-                        } catch (error) {
-                            console.error('Error generating QR code:', error);
-                            qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>QR Code generation failed. Please try again.</div>';
-                        }
-                    } else {
-                        console.error('No QR code data received');
-                        qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>No QR code data received. Please try again.</div>';
-                    }
+                    // Start QR refresh mechanism (refresh every 30 seconds to avoid expiry)
+                    startQRRefresh(data.session_id);
                     
                     checkSessionStatus(data.session_id);
                 } else {
@@ -757,7 +817,7 @@
                     console.warn('Multiple status check failures, but continuing...');
                 }
             }
-        }, 5000); // Check every 5 seconds instead of 30
+        }, 4*5000); // Check every 20 seconds instead of 30
     }
 
     $(document).ready(function() {

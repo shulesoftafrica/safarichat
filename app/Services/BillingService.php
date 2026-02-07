@@ -711,19 +711,19 @@ class BillingService
             }
 
             $billingAccount = self::getBillingAccountForUser($userId);
-            if (!$billingAccount || !$billingAccount->subscription) {
+            if (!$billingAccount) {
                 return;
             }
 
-            $planType = $billingAccount->subscription->plan_type;
-            $creditLimit = config("safarichat_billing.plans.{$planType}.ai_credits");
+            $planType = $billingAccount->subscription_plan;
+            $creditLimit = config("safarichat_billing.plans.{$planType}.limits.ai_credits");
             
             // Skip unlimited plans
             if ($creditLimit === 'unlimited' || $creditLimit <= 0) {
                 return;
             }
 
-            $remaining = $billingAccount->ai_credits_balance ?? 0;
+            $remaining = $billingAccount->ai_credits ?? 0;
             $percentage = ($remaining / $creditLimit) * 100;
 
             $notificationService = app(\App\Services\AccountNotificationService::class);
