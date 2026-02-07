@@ -216,7 +216,7 @@ class AccountNotificationService
                     'priority' => 'high',
                     'metadata' => [
                         'notification_type' => $type,
-                        'user_id' => $user->id,
+                        'user_id' => (string) $user->id, // Convert to string for API validation
                         'timestamp' => now()->toIso8601String()
                     ]
                 ],
