@@ -311,14 +311,20 @@ class CronMonitorCommand extends Command
                 $lines = $this->getLastNLines($file->getPathname(), 100);
                 foreach ($lines as $line) {
                     if (stripos($line, 'error') !== false || stripos($line, 'failed') !== false) {
-                        if (preg_match('/\[([\d\-\s:]+)\]/', $line, $matches)) {
-                            $logTime = Carbon::parse($matches[1]);
-                            if ($logTime->gt($cutoffTime)) {
-                                $failures[] = [
-                                    'file' => $file->getFilename(),
-                                    'time' => $matches[1],
-                                    'message' => substr($line, 0, 100)
-                                ];
+                        // Match datetime pattern only: [YYYY-MM-DD HH:MM:SS]
+                        if (preg_match('/\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/', $line, $matches)) {
+                            try {
+                                $logTime = Carbon::parse($matches[1]);
+                                if ($logTime->gt($cutoffTime)) {
+                                    $failures[] = [
+                                        'file' => $file->getFilename(),
+                                        'time' => $matches[1],
+                                        'message' => substr($line, 0, 100)
+                                    ];
+                                }
+                            } catch (\Exception $e) {
+                                // Skip lines with invalid timestamps
+                                continue;
                             }
                         }
                     }
