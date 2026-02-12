@@ -69,9 +69,8 @@ class SyncCreditsCommand extends Command
     {
         $this->info('Finding customers with pending credit deductions...');
         
-        // Get all users who might have pending deductions
-        $customers = User::whereNotNull('ai_credits')
-                        ->where('ai_credits', '>', 0)
+        // Get all users who have billing accounts (new billing system)
+        $customers = User::whereHas('billingAccount')
                         ->get();
         
         $syncCount = 0;
