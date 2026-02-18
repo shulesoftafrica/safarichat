@@ -369,8 +369,9 @@
                                 <div class="row">
                                     <div class="col-md-6" id="skuField">
                                         <div class="mb-3">
-                                            <label class="form-label">SKU *</label>
-                                            <input type="text" class="form-control" name="sku" required>
+                                            <label class="form-label">SKU (Auto-generated)</label>
+                                            <input type="text" class="form-control" name="sku" readonly placeholder="Auto-generated..." style="background-color: #f8f9fa; cursor: not-allowed;">
+                                            <small class="text-muted">SKU is automatically generated</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -2199,7 +2200,6 @@ function toggleProductTypeFields() {
         // Hide SKU field for services
         if (skuField) {
             skuField.style.display = 'none';
-            if (skuInput) skuInput.removeAttribute('required');
         }
         
         // Remove required from hidden pricing fields
@@ -2226,10 +2226,14 @@ function toggleProductTypeFields() {
         if (aiSalesConfigSection) aiSalesConfigSection.style.display = 'block';
         if (productTagsSection) productTagsSection.style.display = 'block';
         
-        // Show SKU field for products
+        // Show SKU field for products and auto-generate if empty
         if (skuField) {
             skuField.style.display = 'block';
-            if (skuInput) skuInput.setAttribute('required', 'required');
+            // Auto-populate SKU for new products
+            const productId = document.getElementById('productId')?.value;
+            if (!productId && skuInput && !skuInput.value) {
+                autoPopulateSKU();
+            }
         }
         
         // Add required back to pricing fields for products
@@ -2720,6 +2724,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset currentProductId for new products
             currentProductId = null;
             console.log('Modal reset - currentProductId set to null');
+            
+            // Auto-generate SKU for new products
+            setTimeout(() => autoPopulateSKU(), 100);
         });
     }
     
@@ -2742,10 +2749,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.log('FAQ container already has items or this is an edit:', faqContainer ? faqContainer.children.length : 'container not found');
                 }
+                
+                // Auto-generate SKU for new products
+                autoPopulateSKU();
             }, 200);
         });
     }
 });
+
+/**
+ * Generate a default SKU for products
+ * Format: SKU-{DATE}-{RANDOM}
+ */
+function generateDefaultSKU() {
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `SKU-${timestamp}-${random}`;
+}
+
+/**
+ * Auto-populate SKU field if empty or for new products
+ */
+function autoPopulateSKU() {
+    const skuInput = document.querySelector('[name="sku"]');
+    const productId = document.getElementById('productId')?.value;
+    
+    // Only auto-generate for new products (no productId) or if SKU is empty
+    if (skuInput && !productId) {
+        const newSKU = generateDefaultSKU();
+        skuInput.value = newSKU;
+        console.log('Auto-generated SKU:', newSKU);
+    }
+}
 
 function removeImagePreview(button) {
     // Remove specific image preview

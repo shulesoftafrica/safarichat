@@ -1,6 +1,50 @@
 @extends('layouts.app')
 @section('content')
 <style>
+/* Ensure setup-section background is correct in both modes */
+.setup-section {
+    background: white;
+    transition: background 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .setup-section {
+        background: #181818;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    .setup-section {
+        background: white;
+    }
+}
+@media (prefers-color-scheme: light) {
+    .setup-container {
+        background: white;
+        color: #333;
+    }
+    .form-label {
+        color: #333;
+    }
+    .setup-header h2,
+    .setup-header p,
+    h4,
+    h5,
+    label,
+    .form-label,
+    .auth-option h5 {
+        color: #333 !important;
+    }
+    .auth-option p,
+    .text-muted {
+        color: #6c757d !important;
+    }
+    [style*="color: #fafafa"],
+    [style*="color:#fafafa"],
+    [style*="color: rgb(250,250,250)"] {
+        color: #333 !important;
+    }
+}
 .whatsapp-setup {
     background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
     min-height: 100vh;
@@ -11,9 +55,18 @@
     max-width: 700px;
     margin: 0 auto;
     background: white;
+    color: #333;
     border-radius: 20px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
     overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .setup-container {
+        background: #1e1e1e;
+        color: #e0e0e0;
+    }
 }
 
 .setup-header {
@@ -68,6 +121,32 @@
     margin-bottom: 0.5rem;
     font-weight: 600;
     color: #333;
+    transition: color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .form-label {
+        color: #fafafa;
+    }
+    .setup-header h2,
+    .setup-header p,
+    h4,
+    h5,
+    label,
+    .form-label,
+    .auth-option h5 {
+        color: #fafafa !important;
+    }
+    .auth-option p,
+    .text-muted {
+        color: #bdbdbd !important;
+    }
+    /* Override inline color for headings */
+    [style*="color: #333"],
+    [style*="color:#333"],
+    [style*="color: rgb(51,51,51)"] {
+        color: #fafafa !important;
+    }
 }
 
 .form-control {
@@ -77,6 +156,16 @@
     border-radius: 10px;
     font-size: 1rem;
     transition: all 0.3s ease;
+    background: white;
+    color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+    .form-control {
+        background: #2d2d2d;
+        color: #e0e0e0;
+        border-color: #404040;
+    }
 }
 
 .form-control:focus {
@@ -119,6 +208,15 @@
     padding: 1rem 1.5rem;
     border-radius: 10px;
     margin-bottom: 1.5rem;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .alert-info {
+        background: #1a3a42;
+        border: 1px solid #2a5a5f;
+        color: #5db3d5;
+    }
 }
 
 .alert-success {
@@ -128,6 +226,15 @@
     padding: 1.5rem;
     border-radius: 10px;
     text-align: center;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .alert-success {
+        background: #1a3a1f;
+        border: 1px solid #2a5a2f;
+        color: #5db87a;
+    }
 }
 
 .alert-danger {
@@ -137,6 +244,15 @@
     padding: 1rem 1.5rem;
     border-radius: 10px;
     margin-bottom: 1.5rem;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .alert-danger {
+        background: #3a1a1a;
+        border: 1px solid #5a2a2a;
+        color: #d57a7a;
+    }
 }
 
 .qr-code-container {
@@ -146,6 +262,14 @@
     margin: 2rem 0;
     border: 2px solid #e9ecef;
     text-align: center;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .qr-code-container {
+        background: #2d2d2d;
+        border: 2px solid #404040;
+    }
 }
 
 .qr-code-display {
@@ -158,6 +282,14 @@
     border: 2px dashed #dee2e6;
     margin-bottom: 1rem;
     padding: 1rem;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .qr-code-display {
+        background: #3a3a3a;
+        border: 2px dashed #505050;
+    }
 }
 
 .qr-code-display canvas,
@@ -194,12 +326,21 @@
     padding: 1rem 1.5rem;
     border-radius: 10px;
     margin: 1rem 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .status-indicator.waiting {
     background: #fff3cd;
     border: 1px solid #ffeaa7;
     color: #856404;
+}
+
+@media (prefers-color-scheme: dark) {
+    .status-indicator.waiting {
+        background: #3a2d1a;
+        border: 1px solid #5a4d2a;
+        color: #d4a575;
+    }
 }
 
 .status-spinner {
@@ -213,6 +354,12 @@
     margin-right: 0.5rem;
 }
 
+@media (prefers-color-scheme: dark) {
+    .status-spinner {
+        border: 3px solid rgba(255,255,255,.2);
+    }
+}
+
 .success-icon {
     font-size: 4rem;
     color: #25D366;
@@ -222,6 +369,13 @@
 .text-muted {
     color: #6c757d;
     font-size: 0.875rem;
+    transition: color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .text-muted {
+        color: #a0a0a0;
+    }
 }
 
 .auth-method-selector {
@@ -238,6 +392,16 @@
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
+    background: white;
+    color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+    .auth-option {
+        background: #2d2d2d;
+        border: 2px solid #404040;
+        color: #e0e0e0;
+    }
 }
 
 .auth-option:hover {
@@ -245,9 +409,21 @@
     background: #f8fff9;
 }
 
+@media (prefers-color-scheme: dark) {
+    .auth-option:hover {
+        background: #1a2d1f;
+    }
+}
+
 .auth-option.selected {
     border-color: #25D366;
     background: #f8fff9;
+}
+
+@media (prefers-color-scheme: dark) {
+    .auth-option.selected {
+        background: #1a2d1f;
+    }
 }
 
 .auth-option i {
@@ -259,12 +435,26 @@
 .auth-option h5 {
     margin: 0.5rem 0;
     color: #333;
+    transition: color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .auth-option h5 {
+        color: #e0e0e0;
+    }
 }
 
 .auth-option p {
     margin: 0;
     color: #6c757d;
     font-size: 0.875rem;
+    transition: color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .auth-option p {
+        color: #a0a0a0;
+    }
 }
 
 .btn-secondary {
@@ -285,22 +475,27 @@
     transform: translateY(-2px);
 }
 
-.btn-primary {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 1rem;
-}
+
 
 .btn-primary:hover {
     background: #0056b3;
     transform: translateY(-2px);
+}
+/* The wrapper ensures there is a white background for the scanner to contrast against */
+.qr-wrapper {
+    background: #ffffff;
+    padding: 20px;         /* This creates the necessary 'Quiet Zone' */
+    display: inline-block;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.qr-image {
+    display: block;
+    width: 300px;          /* Set a fixed size that fits your UI */
+    height: 300px;
+    object-fit: contain;   /* IMPORTANT: Prevents the image from being cut off */
+    image-rendering: pixelated; /* Keeps the edges sharp */
 }
 </style>
 
@@ -608,7 +803,38 @@
         }, 1000);
     }
 
-    function displayQRCode(qrString) {
+function displayQRCode(qrData, qrType) {
+    const qrContainer = document.getElementById('qr-code-display');
+    
+    if (!qrData) {
+        console.error('No QR code data provided');
+        qrContainer.innerHTML = '<div style="padding: 2rem; color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i><br>No QR code received</div>';
+        return;
+    }
+    
+    // Handle different QR code formats
+    let imgSrc = '';
+    
+    // If qrType is provided, use it; otherwise detect from data
+    if (qrType === 'url' || qrData.startsWith('http://') || qrData.startsWith('https://')) {
+        // External URL
+        imgSrc = qrData;
+        console.log('QR Code Type: External URL');
+    } else if (qrData.startsWith('data:image')) {
+        // Already a data URL
+        imgSrc = qrData;
+        console.log('QR Code Type: Data URL');
+    } else {
+        // Raw base64 string
+        imgSrc = `data:image/png;base64,${qrData}`;
+        console.log('QR Code Type: Base64 string');
+    }
+    
+    console.log('Displaying QR code, src length:', imgSrc.length);
+    qrContainer.innerHTML = `<img src="${imgSrc}" style="width:300px; height:300px; border: 2px solid #25D366; border-radius: 10px;" onerror="this.onerror=null; this.src=''; this.alt='Failed to load QR code';" alt="WhatsApp QR Code">`;
+}
+
+    function displayQRCodeOld(qrString) {
         if (!qrString) {
             console.error('No QR code string provided');
             const qrContainer = document.getElementById('qr-code-display');
@@ -659,7 +885,7 @@
             
             if (data.success && data.qr_code) {
                 console.log('QR code refreshed successfully');
-                displayQRCode(data.qr_code);
+                displayQRCode(data.qr_code, data.qr_code_type);
             } else {
                 console.warn('QR refresh failed:', data.message);
             }
@@ -719,8 +945,8 @@
                     showSection('qr-code-section');
                     startCountdown(); // Start the countdown timer
 
-                    // Display the initial QR code
-                    displayQRCode(data.qr_code);
+                    // Display the initial QR code with type
+                    displayQRCode(data.qr_code, data.qr_code_type);
                     
                     // Start QR refresh mechanism (refresh every 30 seconds to avoid expiry)
                     startQRRefresh(data.session_id);

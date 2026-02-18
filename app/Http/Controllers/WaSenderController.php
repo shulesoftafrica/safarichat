@@ -145,35 +145,131 @@ class WaSenderController extends Controller
     }
 
     /**
-     * Generate QR code for session connection via unified notification service
+     * Generate QR code for session connection via WaSender API
+     * Uses POST /api/whatsapp-sessions/{id}/connect as per WaSender documentation
      */
     private function generateQRCode($sessionId)
     {
         try {
-            Log::info('Generating QR code via unified service', ['session_id' => $sessionId]);
-            
-            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
-            $result = $unifiedService->getQRCode($sessionId);
-            
-            if ($result['success'] ?? false) {
-                Log::info('QR code retrieved from unified service', [
-                    'session_id' => $sessionId,
-                    'has_qr_code' => !empty($result['qr_code'])
-                ]);
-                return $result['qr_code'];
-            } else {
-                Log::warning('Unified service QR generation failed, using fallback', [
-                    'session_id' => $sessionId,
-                    'error' => $result['message'] ?? 'Unknown error'
-                ]);
+            Log::info('Generating QR code via WaSender API', ['session_id' => $sessionId]);
+            $apiKey = config('services.wasender.access_token', 'de042e1a46b394de63bed34c5b2d9c55108db5061b075b29ce9225be30d7cca2');
+            if (!$apiKey) {
+                Log::warning('WaSender API key not configured, using placeholder QR');
                 return $this->generatePlaceholderQR($sessionId);
             }
+
+            // WaSender API endpoint for connecting and getting QR code (as per documentation)
+            // POST /api/whatsapp-sessions/{whatsappSession}/connect
+            $url = "https://www.wasenderapi.com/api/whatsapp-sessions/{$sessionId}/connect";
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Accept' => 'application/json',
+            ])->post($url);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                // WaSender returns: {"success": true, "data": {"status": "NEED_SCAN", "qrCode": "..."}}
+                $qrCodeString = $data['data']['qrCode'] ?? $data['data']['qr_code'] ?? null;
+                $status = $data['data']['status'] ?? null;
+
+                Log::info('QR code response from WaSender API', [
+                    'session_id' => $sessionId,
+                    'status' => $status,
+                    'has_qr_code' => !empty($qrCodeString),
+                    'response_keys' => array_keys($data['data'] ?? [])
+                ]);
+
+                if ($status === 'CONNECTED' || $status === 'connected') {
+                    return 'ALREADY_CONNECTED';
+                }
+                if (!$qrCodeString) {
+                    Log::warning('QR code not found in WaSender API response', [
+                        'session_id' => $sessionId,
+                        'response' => $data
+                    ]);
+                    return 'QR_GENERATION_FAILED';
+                }
+                
+                // Convert WaSender QR string to image data URL
+                $qrCodeImageData = $this->convertQRStringToImage($qrCodeString);
+                
+                Log::info('QR code string converted to image', [
+                    'session_id' => $sessionId,
+                    'type' => $qrCodeImageData['type'],
+                    'data_length' => strlen($qrCodeImageData['data'])
+                ]);
+                
+                // Return as array with type and data for frontend to handle properly
+                return $qrCodeImageData;
+            } else {
+                Log::error('Failed to get QR code from WaSender API', [
+                    'session_id' => $sessionId,
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 500)
+                ]);
+                return 'QR_GENERATION_FAILED';
+            }
         } catch (\Exception $e) {
-            Log::error('Error generating QR via unified service', [
+            Log::error('Error generating QR via WaSender API', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage()
             ]);
-            return $this->generatePlaceholderQR($sessionId);
+            return 'QR_GENERATION_FAILED';
+        }
+    }
+    
+    /**
+     * Convert WaSender QR string to image data URL
+     * WaSender returns a QR string like "2@DTMUHeYfa9/...", we need to convert it to an image
+     * Returns: {"type": "base64|url", "data": "..."}
+     */
+    private function convertQRStringToImage($qrString)
+    {
+        try {
+            // If it's already a data URL, extract the base64 part
+            if (strpos($qrString, 'data:image') === 0) {
+                preg_match('/data:image\/\w+;base64,(.+)/', $qrString, $matches);
+                if (isset($matches[1])) {
+                    return ['type' => 'base64', 'data' => $matches[1]];
+                }
+                return ['type' => 'base64', 'data' => $qrString];
+            }
+            
+            // If it's already a URL, return it as URL type
+            if (filter_var($qrString, FILTER_VALIDATE_URL)) {
+                return ['type' => 'url', 'data' => $qrString];
+            }
+
+            // Check if SimpleSoftwareIO QrCode is available
+            if (class_exists('SimpleSoftwareIO\\QrCode\\Generator')) {
+                $qrGenerator = new \SimpleSoftwareIO\QrCode\Generator();
+                $qrCodeImage = $qrGenerator->format('png')->size(300)->margin(2)->generate($qrString);
+                
+                // Convert to base64 (without prefix)
+                $base64 = base64_encode($qrCodeImage);
+                
+                Log::info('QR code generated with SimpleSoftwareIO', [
+                    'base64_length' => strlen($base64)
+                ]);
+                
+                return ['type' => 'base64', 'data' => $base64];
+            }
+
+            // Fallback: Use external API to generate QR code image
+            $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=" . urlencode($qrString);
+            
+            Log::info('Using external QR code generation service', ['url' => $qrCodeUrl]);
+            
+            return ['type' => 'url', 'data' => $qrCodeUrl];
+
+        } catch (\Exception $e) {
+            Log::error('Error converting QR string to image', [
+                'error' => $e->getMessage(),
+                'qr_string_length' => strlen($qrString)
+            ]);
+            
+            // Fallback to external service
+            return ['type' => 'url', 'data' => "https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=" . urlencode($qrString)];
         }
     }
     
@@ -217,21 +313,46 @@ class WaSenderController extends Controller
             $sessionData = null;
 
             if ($existingSession) {
-                Log::info('Using existing session', ['session_id' => $existingSession['id']]);
+                Log::info('Using existing session from WaSender', ['session_id' => $existingSession['id'], 'phone_number' => $phoneNumber]);
                 $sessionData = $existingSession;
             } else {
                 // Step 3: Create new session if not exists
                 Log::info('Creating new session for phone number', ['phone_number' => $phoneNumber]);
                 $createResponse = $this->createNewSession($phoneNumber, $instanceName);
                 
+                // If phone number already taken, fetch existing session and use it
                 if (!$createResponse['success']) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $createResponse['message']
-                    ], 500);
+                    $errorMessage = $createResponse['message'] ?? '';
+                    
+                    // Check if it's a "phone number already taken" error
+                    if (strpos(strtolower($errorMessage), 'phone number has already been taken') !== false ||
+                        strpos(strtolower($errorMessage), 'already been taken') !== false) {
+                        
+                        Log::warning('Phone number already taken, fetching existing session', ['phone_number' => $phoneNumber]);
+                        $existingSession = $this->checkExistingSession($phoneNumber);
+                        
+                        if ($existingSession) {
+                            Log::info('Successfully retrieved existing session after duplicate error', [
+                                'session_id' => $existingSession['id'],
+                                'phone_number' => $phoneNumber
+                            ]);
+                            $sessionData = $existingSession;
+                        } else {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Phone number already registered but existing session not found. Please contact support.'
+                            ], 500);
+                        }
+                    } else {
+                        // Other error occurred
+                        return response()->json([
+                            'success' => false,
+                            'message' => $createResponse['message'] ?? 'Failed to create session'
+                        ], 500);
+                    }
+                } else {
+                    $sessionData = $createResponse['data'];
                 }
-                
-                $sessionData = $createResponse['data'];
             }
 
             // Extract session details
@@ -290,23 +411,25 @@ class WaSenderController extends Controller
             // Step 5: Generate QR code for connection
             if ($authMethod === 'qr') {
                 // Clean up old QR files before generating new one
-              
                 $qrCode = $this->generateQRCode($sessionId);
+                
+                $isArray = is_array($qrCode);
+                $isString = is_string($qrCode);
                 
                 Log::info('QR Code generation result', [
                     'session_id' => $sessionId,
-                    'qr_code_type' => is_string($qrCode) ? 'string' : gettype($qrCode),
-                    'qr_code_preview' => is_string($qrCode) ? substr($qrCode, 0, 100) . '...' : $qrCode
+                    'is_array' => $isArray,
+                    'is_string' => $isString,
+                    'type' => $isArray ? ($qrCode['type'] ?? 'unknown') : gettype($qrCode),
+                    'preview' => $isArray ? ('Array with keys: ' . implode(', ', array_keys($qrCode))) : ($isString ? substr($qrCode, 0, 100) . '...' : $qrCode)
                 ]);
-                
+
                 if ($qrCode === 'ALREADY_CONNECTED') {
-                    // Session is already connected
                     $instance->update([
                         'status' => 'connected',
                         'connect_status' => 'ready',
                         'connected_at' => now()
                     ]);
-
                     return response()->json([
                         'success' => true,
                         'message' => 'WhatsApp session is already connected',
@@ -315,18 +438,51 @@ class WaSenderController extends Controller
                         'instance_id' => $instance->id
                     ]);
                 }
-                
+
+                // Retry QR generation once if failed (for the same session)
                 if ($qrCode === 'QR_GENERATION_FAILED') {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to generate QR code. Please try again or contact support.',
-                        'error' => 'QR_GENERATION_FAILED'
-                    ], 500);
+                    Log::warning('QR generation failed, retrying once for the same session', [
+                        'session_id' => $sessionId,
+                        'phone_number' => $phoneNumber
+                    ]);
+                    
+                    // Wait a moment before retrying
+                    sleep(2);
+                    
+                    // Retry QR generation for the same session
+                    $qrCodeRetry = $this->generateQRCode($sessionId);
+                    
+                    $isArrayRetry = is_array($qrCodeRetry);
+                    $isStringRetry = is_string($qrCodeRetry);
+                    
+                    Log::info('QR Code generation retry result', [
+                        'session_id' => $sessionId,
+                        'is_array' => $isArrayRetry,
+                        'is_string' => $isStringRetry,
+                        'type' => $isArrayRetry ? ($qrCodeRetry['type'] ?? 'unknown') : gettype($qrCodeRetry),
+                        'preview' => $isArrayRetry ? ('Array with keys: ' . implode(', ', array_keys($qrCodeRetry))) : ($isStringRetry ? substr($qrCodeRetry, 0, 100) . '...' : $qrCodeRetry)
+                    ]);
+                    
+                    if ($qrCodeRetry !== 'QR_GENERATION_FAILED' && $qrCodeRetry !== 'ALREADY_CONNECTED') {
+                        $qrCode = $qrCodeRetry;
+                        Log::info('QR code generation succeeded on retry');
+                    } else {
+                        // Still failed after retry
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to generate QR code. The session was created but QR code generation failed. Please try refreshing or contact support.',
+                            'error' => 'QR_GENERATION_FAILED',
+                            'session_id' => $sessionId,
+                            'instance_id' => $instance->id
+                        ], 500);
+                    }
                 }
 
-                // Update instance with QR code
+                // Update instance with QR code (store as JSON if it's an array)
+                $qrCodeToStore = is_array($qrCode) ? json_encode($qrCode) : $qrCode;
+                
                 $instance->update([
-                    'qr_code' => $qrCode,
+                    'qr_code' => $qrCodeToStore,
                     'qr_code_generated' => true,
                     'qr_code_generated_at' => now(),
                     'connect_status' => 'connecting'
@@ -335,7 +491,7 @@ class WaSenderController extends Controller
                 // Create default AI Sales Agent for this user if not exists
                 $this->createDefaultAiAgent($user);
 
-                // QR code is now a URL to the saved image file
+                // QR code for frontend
                 $qrCodeForFrontend = $qrCode;
 
                 Log::info('WhatsApp session creation completed with QR', [
@@ -344,24 +500,27 @@ class WaSenderController extends Controller
                     'instance_id' => $instance->id,
                     'has_qr_code' => !empty($qrCode),
                     'qr_code_stored' => !empty($instance->qr_code),
-                    'qr_url' => $qrCodeForFrontend
+                    'qr_code_is_array' => is_array($qrCode)
                 ]);
 
+                // Handle QR code format - it's now an array with type and data
+                $qrCodeData = is_array($qrCodeForFrontend) ? $qrCodeForFrontend : ['type' => 'base64', 'data' => $qrCodeForFrontend];
+                
                 $response = [
                     'success' => true,
                     'message' => 'QR code generated successfully. Scan with WhatsApp to connect.',
                     'session_id' => $sessionId,
                     'instance_id' => $instance->id,
-                    'qr_code' => $qrCodeForFrontend,
+                    'qr_code' => $qrCodeData['data'],
+                    'qr_code_type' => $qrCodeData['type'],
                     'auth_method' => 'qr',
                     'status' => 'NEED_SCAN',
                     'phone_number' => $phoneNumber,
                     // Debug information
                     'debug' => [
                         'api_key_configured' => !empty(config('services.wasender.access_token')),
-                        'qr_code_type' => 'image_url',
-                        'qr_code_url' => $qrCodeForFrontend,
-                        'is_url' => filter_var($qrCodeForFrontend, FILTER_VALIDATE_URL) !== false
+                        'qr_type' => $qrCodeData['type'],
+                        'data_length' => strlen($qrCodeData['data'])
                     ]
                 ];
 
@@ -439,11 +598,27 @@ class WaSenderController extends Controller
             // Return current status
             $currentStatus = $connectionStatus['status'] ?? $instance->status ?? 'pending';
             
+            // Decode QR code if it's JSON
+            $qrCodeStored = $instance->qr_code;
+            $qrCodeData = null;
+            $qrCodeType = 'base64';
+            
+            if ($qrCodeStored) {
+                $decoded = json_decode($qrCodeStored, true);
+                if (is_array($decoded) && isset($decoded['type']) && isset($decoded['data'])) {
+                    $qrCodeData = $decoded['data'];
+                    $qrCodeType = $decoded['type'];
+                } else {
+                    $qrCodeData = $qrCodeStored;
+                }
+            }
+            
             return response()->json([
                 'success' => true,
                 'status' => $currentStatus,
                 'message' => $this->getStatusMessage($currentStatus),
-                'qr_code' => $instance->qr_code,
+                'qr_code' => $qrCodeData,
+                'qr_code_type' => $qrCodeType,
                 'needs_scan' => $currentStatus === 'pending' || $currentStatus === 'NEED_SCAN'
             ]);
 
@@ -1829,6 +2004,65 @@ class WaSenderController extends Controller
                 'error' => 'Failed to retrieve QR code',
                 'message' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Refresh or retrieve QR code for a session (legacy route compatibility)
+     */
+    public function sessionQr(Request $request, $sessionId)
+    {
+        try {
+            $user = Auth::user();
+
+            // Try to find by wasender session id first, scoped to the user
+            $instance = WhatsappInstance::where('instance_id', $sessionId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            // If not found, try to find by local DB id
+            if (!$instance) {
+                $instance = WhatsappInstance::find($sessionId);
+                if ($instance && $instance->user_id !== $user->id) {
+                    return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+                }
+            }
+
+            if (!$instance) {
+                return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+            }
+
+            Log::info('Session QR requested', ['session_id' => $sessionId, 'instance_id' => $instance->id]);
+
+            $qrCode = $this->generateQRCode($instance->instance_id);
+
+            if ($qrCode === 'QR_GENERATION_FAILED') {
+                return response()->json(['success' => false, 'message' => 'Failed to generate QR code'], 500);
+            }
+
+            // Update instance record (store as JSON if it's an array)
+            $qrCodeToStore = is_array($qrCode) ? json_encode($qrCode) : $qrCode;
+            
+            $instance->update([
+                'qr_code' => $qrCodeToStore,
+                'qr_code_generated_at' => now(),
+                'status' => $instance->status
+            ]);
+
+            // Prepare response with QR code data
+            $qrCodeData = is_array($qrCode) ? $qrCode : ['type' => 'base64', 'data' => $qrCode];
+
+            return response()->json([
+                'success' => true,
+                'session_id' => $instance->instance_id,
+                'instance_id' => $instance->id,
+                'qr_code' => $qrCodeData['data'],
+                'qr_code_type' => $qrCodeData['type']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error generating session QR', ['session_id' => $sessionId, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Error generating QR code'], 500);
         }
     }
 

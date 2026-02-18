@@ -41,8 +41,43 @@ class AiSalesAgentController extends Controller
             $subscription_plan = 'trial';
             $ai_credits = 0;
         }
+        
+        // Get WhatsApp instance and fetch real-time status from WaSender API
+        $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())->first();
+        $realTimeStatus = null;
+        
+        if ($whatsappInstance && $whatsappInstance->instance_id) {
+            try {
+                $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+                $statusResult = $unifiedService->getSessionStatus($whatsappInstance->instance_id);
+                
+                if (isset($statusResult['success']) && $statusResult['success']) {
+                    $realTimeStatus = $statusResult['status'] ?? null;
+                    
+                    // Update database with real-time status to keep it in sync
+                    if ($realTimeStatus) {
+                        $whatsappInstance->update([
+                            'connect_status' => $realTimeStatus,
+                            'last_active_at' => now()
+                        ]);
+                    }
+                    
+                    Log::info('Real-time WaSender status fetched', [
+                        'instance_id' => $whatsappInstance->instance_id,
+                        'status' => $realTimeStatus
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to fetch real-time WaSender status', [
+                    'instance_id' => $whatsappInstance->instance_id,
+                    'error' => $e->getMessage()
+                ]);
+                // Fallback to database status if API fails
+                $realTimeStatus = $whatsappInstance->connect_status;
+            }
+        }
             
-        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits'));
+        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus'));
     }
 
     /**

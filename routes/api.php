@@ -268,6 +268,7 @@ Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whats
     Route::put('/{id}', 'WhatsappInstanceController@updateInstance');
     Route::delete('/{id}', 'WhatsappInstanceController@destroy');
     Route::get('/{id}/stats', 'WhatsappInstanceController@getInstanceStats');
+    Route::get('/{id}/status', 'WhatsappInstanceController@getStatus');
     Route::get('/{id}/reconnect', 'WhatsappInstanceController@reconnect');
     Route::get('/purposes', 'WhatsappInstanceController@getPurposes');
 });
@@ -275,6 +276,7 @@ Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whats
 // Additional routes with web auth for Blade templates
 Route::middleware('auth')->group(function () {
     Route::get('/whatsapp/instances/{id}/stats', 'WhatsappInstanceController@getInstanceStats');
+    Route::get('/whatsapp/instances/{id}/status', 'WhatsappInstanceController@getStatus');
     Route::get('/whatsapp/instances/{id}/reconnect', 'WhatsappInstanceController@reconnect');
     Route::get('/whatsapp/instances/count', function() {
         return response()->json(['count' => \App\Models\WhatsappInstance::where('user_id', auth()->id())->count()]);

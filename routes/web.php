@@ -262,6 +262,10 @@ Route::middleware('auth')->prefix('wasender')->name('wasender.')->group(function
         ->name('user-instances');
     Route::post('/disconnect/{instanceId}', [App\Http\Controllers\WaSenderController::class, 'disconnectInstance'])
         ->name('disconnect');
+
+    // Add missing QR code refresh endpoint
+    Route::get('/session-qr/{sessionId}', [App\Http\Controllers\WaSenderController::class, 'sessionQr'])
+        ->name('session-qr');
 });
 
 // Subscription Management Routes - Replaced with new billing system

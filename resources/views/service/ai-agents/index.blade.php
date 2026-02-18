@@ -97,10 +97,7 @@
                                 </div>
                             </div>
                             <div class="agent-card-body">
-                                @php
-                                    $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())->first();
-                                @endphp
-                                @if($whatsappInstance)
+                                @if($whatsappInstance ?? false)
                                     <h3 class="agent-name">{{ $whatsappInstance->display_name ?? $whatsappInstance->instance_name ?? 'Unnamed Instance' }}</h3>
                                     <p class="agent-company">WhatsApp Instance</p>
                                     <div class="agent-details">
@@ -115,12 +112,39 @@
                                         <div class="detail-item">
                                             <span class="label">Status:</span>
                                             <span class="value">
-                                                @if($whatsappInstance->connect_status === 'connected')
-                                                    <span class="badge bg-success">Connected</span>
-                                                @else
-                                                    <span class="badge bg-danger">Not Connected</span>
+                                                @php
+                                                    // Use real-time status from WaSender API if available, otherwise fallback to database
+                                                    $currentStatus = $realTimeStatus ?? $whatsappInstance->connect_status;
+                                                    $isConnected = in_array(strtolower($currentStatus), ['connected', 'ready', 'open']);
+                                                    $needsScan = in_array(strtoupper($currentStatus), ['NEED_SCAN', 'PENDING', 'QR_REQUIRED']);
+                                                @endphp
+                                                
+                                                @if($isConnected)
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle"></i> Connected
+                                                    </span>
+                                                    <small class="text-muted ms-1" style="font-size: 0.75rem;">
+                                                        (Live from WaSender)
+                                                    </small>
+                                                @elseif($needsScan)
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-qrcode"></i> Needs QR Scan
+                                                    </span>
                                                     <button class="btn btn-link p-0 ms-2" style="color:#0d6efd; font-size:0.9rem;" onclick="showReconnectModal('{{ $whatsappInstance->id }}')">
                                                         <i class="fas fa-qrcode"></i> Reconnect
+                                                    </button>
+                                                @else
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle"></i> {{ ucfirst($currentStatus) }}
+                                                    </span>
+                                                    <button class="btn btn-link p-0 ms-2" style="color:#0d6efd; font-size:0.9rem;" onclick="showReconnectModal('{{ $whatsappInstance->id }}')">
+                                                        <i class="fas fa-qrcode"></i> Reconnect
+                                                    </button>
+                                                @endif
+                                                
+                                                @if($realTimeStatus)
+                                                    <button class="btn btn-link p-0 ms-1" style="color:#6c757d; font-size:0.75rem;" onclick="refreshStatus('{{ $whatsappInstance->id }}')" title="Refresh status">
+                                                        <i class="fas fa-sync-alt"></i>
                                                     </button>
                                                 @endif
                                             </span>
@@ -257,6 +281,45 @@
                                                             alert('Error deleting WhatsApp instance');
                                                         });
                                                     });
+                                            }
+                                            
+                                            function refreshStatus(instanceId) {
+                                                // Show loading indicator
+                                                const refreshIcon = event.target.closest('button').querySelector('i');
+                                                if (refreshIcon) {
+                                                    refreshIcon.classList.add('fa-spin');
+                                                }
+                                                
+                                                // Fetch real-time status from WaSender API
+                                                fetch(`{{ url('/api/whatsapp/instances') }}/${instanceId}/status`, {
+                                                    method: 'GET',
+                                                    headers: {
+                                                        'Accept': 'application/json',
+                                                        'Content-Type': 'application/json',
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                    },
+                                                    credentials: 'same-origin'
+                                                })
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    if (refreshIcon) {
+                                                        refreshIcon.classList.remove('fa-spin');
+                                                    }
+                                                    
+                                                    if (data.success) {
+                                                        // Reload the page to show updated status
+                                                        location.reload();
+                                                    } else {
+                                                        alert('Failed to refresh status: ' + (data.message || 'Unknown error'));
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    if (refreshIcon) {
+                                                        refreshIcon.classList.remove('fa-spin');
+                                                    }
+                                                    console.error('Error refreshing status:', error);
+                                                    alert('Error refreshing status. Please try again.');
+                                                });
                                             }
                                             </script>
                                 </div>

@@ -275,6 +275,71 @@ class WhatsappInstanceController extends Controller
     }
 
     /**
+     * Get real-time connection status from WaSender API
+     */
+    public function getStatus($id)
+    {
+        // Verify user owns this instance
+        $instance = WhatsappInstance::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$instance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instance not found or access denied'
+            ], 404);
+        }
+
+        try {
+            // Fetch real-time status from WaSender API
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            $statusResult = $unifiedService->getSessionStatus($instance->instance_id);
+
+            if (isset($statusResult['success']) && $statusResult['success']) {
+                $realTimeStatus = $statusResult['status'] ?? null;
+
+                // Update database with real-time status
+                if ($realTimeStatus) {
+                    $instance->update([
+                        'connect_status' => $realTimeStatus,
+                        'last_active_at' => now()
+                    ]);
+                }
+
+                \Log::info('Real-time WaSender status fetched via API', [
+                    'instance_id' => $instance->instance_id,
+                    'status' => $realTimeStatus
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'status' => $realTimeStatus,
+                    'instance' => $instance,
+                    'message' => 'Status updated successfully'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch status from WaSender API',
+                    'error' => $statusResult['error'] ?? 'Unknown error'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch real-time WaSender status', [
+                'instance_id' => $instance->instance_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Reconnect WhatsApp instance (generate new QR code)
      */
     public function reconnect($id)
