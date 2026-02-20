@@ -512,6 +512,37 @@
 
         <!-- Content -->
         <div class="setup-content">
+            @php
+                // Double-check if user already has connected WhatsApp (fallback)
+                $connectedInstance = Auth::user()->whatsappInstances()
+                    ->where('status', 'connected')
+                    ->first();
+            @endphp
+
+            @if($connectedInstance)
+                <!-- Already Connected Section -->
+                <div class="setup-section active" id="already-connected-section">
+                    <div style="text-align: center; padding: 2rem 0;">
+                        <div style="font-size: 4rem; color: #25D366; margin-bottom: 1rem;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h4 style="color: #333; margin-bottom: 1rem;">WhatsApp Already Connected!</h4>
+                        
+                        <div class="alert-success">
+                            <strong>Your WhatsApp number is already linked</strong><br>
+                            <small>Phone: {{ $connectedInstance->phone_number }}</small><br>
+                            <small>Connected: {{ $connectedInstance->connected_at->diffForHumans() }}</small>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <button class="btn-whatsapp" onclick="window.location.href='{{ route('home') }}'">
+                                Go to Dashboard
+                                <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @else
             <!-- Phone Input Section -->
             <div class="setup-section active" id="phone-input-section">
                 <h4 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Choose Authentication Method</h4>
@@ -635,6 +666,7 @@
                     </button>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>

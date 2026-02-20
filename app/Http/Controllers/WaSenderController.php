@@ -25,6 +25,26 @@ class WaSenderController extends Controller
      */
     public function index()
     {
+        // Check if user already has a connected WhatsApp instance
+        $connectedInstance = Auth::user()->whatsappInstances()
+            ->where('status', 'connected')
+            ->first();
+
+        if ($connectedInstance) {
+            // User already has connected WhatsApp, redirect to product setup
+            $hasProducts = Auth::user()->products()->exists();
+            
+            if (!$hasProducts) {
+                // Redirect to product setup
+                return redirect()->route('products.index')
+                    ->with('success', 'Your WhatsApp is already connected. Please define your products/services.');
+            }
+            
+            // Redirect to dashboard if products also exist
+            return redirect()->route('home')
+                ->with('info', 'Your WhatsApp is already connected.');
+        }
+
         return view('auth.business.wasender');
     }
 
