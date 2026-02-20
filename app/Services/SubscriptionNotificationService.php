@@ -102,6 +102,19 @@ class SubscriptionNotificationService
      */
     public function sendDailySummary(User $user, array $stats = []): void
     {
+        // Skip if user doesn't have an email address
+        if (empty($user->email)) {
+            \Illuminate\Support\Facades\Log::warning('Cannot send daily summary - user has no email', [
+                'user_id' => $user->id
+            ]);
+            
+            // Try to send WhatsApp summary as alternative
+            if (($stats['overdue_handoffs'] ?? 0) > 0 || ($stats['failed_messages'] ?? 0) > 10) {
+                $this->sendWhatsAppSummary($user, $stats);
+            }
+            return;
+        }
+        
         $yesterday = now()->subDay();
         $businessName = $user->business->name ?? 'Your Business';
         

@@ -17,7 +17,7 @@ class Lead extends Model
         'churn_notes', 'win_back_eligible_at', 'win_back_attempts', 'last_win_back_at',
         'final_price', 'deal_value', 'conversion_probability', 'lead_score',
         'assigned_agent_id', 'metadata', 'negative_sentiment_count', 'positive_sentiment_count',
-        'overall_sentiment_score'
+        'overall_sentiment_score', 'last_reply_at', 'last_chase_at', 'chase_count'
     ];
 
     protected $casts = [
@@ -28,11 +28,14 @@ class Lead extends Model
         'churn_date' => 'datetime',
         'win_back_eligible_at' => 'datetime',
         'last_win_back_at' => 'datetime',
+        'last_reply_at' => 'datetime',
+        'last_chase_at' => 'datetime',
         'final_price' => 'decimal:2',
         'deal_value' => 'decimal:2',
         'conversion_probability' => 'integer',
         'lead_score' => 'integer',
         'win_back_attempts' => 'integer',
+        'chase_count' => 'integer',
         'negative_sentiment_count' => 'integer',
         'positive_sentiment_count' => 'integer',
         'overall_sentiment_score' => 'decimal:2',

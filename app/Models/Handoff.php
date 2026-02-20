@@ -86,6 +86,18 @@ class Handoff extends Model
         return $this->hasOne(Conversation::class, 'lead_id', 'lead_id');
     }
 
+    public function aiSalesAgent()
+    {
+        return $this->hasOneThrough(
+            AiSalesAgent::class,
+            Lead::class,
+            'id',              // Foreign key on leads table
+            'id',              // Foreign key on ai_sales_agents table
+            'lead_id',         // Local key on handoffs table
+            'ai_sales_agent_id' // Local key on leads table
+        );
+    }
+
     // Scopes
     public function scopePending($query)
     {

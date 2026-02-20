@@ -225,11 +225,13 @@ class CronMonitorCommand extends Command
         
         foreach (array_reverse($lines) as $line) {
             if ($search) {
-                if (stripos($line, $search) !== false && preg_match('/\[([\d\-\s:]+)\]/', $line, $matches)) {
+                // Match only full datetime patterns: [YYYY-MM-DD HH:MM:SS]
+                if (stripos($line, $search) !== false && preg_match('/\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/', $line, $matches)) {
                     return $matches[1];
                 }
             } else {
-                if (preg_match('/\[([\d\-\s:]+)\]/', $line, $matches)) {
+                // Match only full datetime patterns: [YYYY-MM-DD HH:MM:SS]
+                if (preg_match('/\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/', $line, $matches)) {
                     return $matches[1];
                 }
             }

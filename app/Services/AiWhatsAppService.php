@@ -815,7 +815,10 @@ class AiWhatsAppService
     private function updateLeadEngagement(Lead $lead, array $sentiment, array $aiResult): void
     {
         $lead->increment('interaction_count');
-        $lead->update(['last_activity_at' => now()]);
+        $lead->update([
+            'last_activity_at' => now(),
+            'last_reply_at' => now()  // Track when lead last replied
+        ]);
 
         // Update sentiment tracking
         if ($sentiment['sentiment'] === 'negative') {
