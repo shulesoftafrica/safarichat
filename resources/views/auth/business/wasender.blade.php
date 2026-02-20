@@ -941,6 +941,19 @@ function displayQRCode(qrData, qrType) {
             if (data.success) {
                 currentSessionId = data.session_id;
                 
+                // Check if already connected (session already existed)
+                if (data.status === 'connected') {
+                    showSection('success-section');
+                    console.log('WhatsApp already connected');
+                    
+                    // Refresh page after 2 seconds to redirect to product setup
+                    setTimeout(() => {
+                        console.log('Refreshing page to load product setup...');
+                        window.location.reload();
+                    }, 2000);
+                    return;
+                }
+                
                 if (data.auth_method === 'qr') {
                     showSection('qr-code-section');
                     startCountdown(); // Start the countdown timer
@@ -1019,8 +1032,18 @@ function displayQRCode(qrData, qrType) {
                             if (countdownInterval) {
                                 clearInterval(countdownInterval);
                             }
+                            if (qrRefreshInterval) {
+                                clearInterval(qrRefreshInterval);
+                            }
+                            
                             showSection('success-section');
                             console.log('WhatsApp connection verified successfully');
+                            
+                            // Show success message and refresh page after 2 seconds to redirect to product setup
+                            setTimeout(() => {
+                                console.log('Refreshing page to load product setup...');
+                                window.location.reload();
+                            }, 2000);
                         } else {
                             console.log('Connection verification failed, continuing to wait...');
                         }
