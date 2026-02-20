@@ -202,6 +202,18 @@ class WaSenderController extends Controller
                 // Return as array with type and data for frontend to handle properly
                 return $qrCodeImageData;
             } else {
+                // Check if the error is because session is already connected
+                $responseBody = $response->json();
+                $errorMessage = $responseBody['message'] ?? '';
+                
+                if (stripos($errorMessage, 'already connected') !== false) {
+                    Log::info('WhatsApp session already connected', [
+                        'session_id' => $sessionId,
+                        'message' => $errorMessage
+                    ]);
+                    return 'ALREADY_CONNECTED';
+                }
+                
                 Log::error('Failed to get QR code from WaSender API', [
                     'session_id' => $sessionId,
                     'status' => $response->status(),
