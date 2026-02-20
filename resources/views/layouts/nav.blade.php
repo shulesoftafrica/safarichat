@@ -408,21 +408,7 @@ if (Auth::check()) {
                                 </form>-->
 
             </li>
-            <?php if ((int) Auth::user()->verified == 0) { ?>
-                <a href="#" class="alert icon-custom-alert alert-outline-pink b-round fade show" role="alert" data-toggle="modal" data-target="#verifyModal">                                            
-                    <i class="mdi mdi-alert-outline alert-icon"></i>
-                    <div class="alert-text">
-                        <strong>Welcome!</strong> Kindly check your Whatsapp to Verify your account.
-                    </div>
-
-                    <div class="alert-close">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true"><i class="mdi mdi-close text-danger"></i></span>
-                        </button>
-                    </div>
-                </a>
             <?php
-            }
             if (empty($package) && !empty(Auth::user()->usersEvents()->first())) {
                 ?>
                 {{-- <a href="<?= url('home/upgrade') ?>" class="alert icon-custom-alert alert-outline-pink b-round fade show">                                             --}}
