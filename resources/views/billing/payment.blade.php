@@ -34,8 +34,8 @@
                                     <div class="payment-icon mb-3">
                                         <i class="fas fa-university fa-3x text-success"></i>
                                     </div>
-                                    <h6 class="card-title">UCN Bank</h6>
-                                    <p class="card-text text-muted small">Pay via UCN Bank Transfer or Mobile Banking</p>
+                                    <h6 class="card-title">UCN (Lipa Namba)</h6>
+                                    <p class="card-text text-muted small">Pay via UCN (Lipa Namba) From Any Bank or Mobile Money</p>
                                     <button class="btn btn-outline-success w-100 payment-btn" data-method="ucn">
                                         <i class="fas fa-arrow-right"></i> Pay with UCN
                                     </button>

@@ -750,6 +750,20 @@ class Message extends Controller
                
                 $personalizedMessage = $this->personalizeMessage($message, $user);
                 
+                // Check if nurture mode should be applied (for ghosting contacts)
+                $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $personalizedMessage);
+                
+                // If nurture mode was applied, skip normal dispatch
+                // (ProcessNurtureMessageJob will handle sending after AI reframing)
+                if ($nurtureApplied) {
+                    Log::info("Nurture mode applied, skipping normal dispatch", [
+                        'phone' => $cleanPhone,
+                        'user_id' => Auth::id()
+                    ]);
+                    $delay += 3; // Still increment delay for next message
+                    continue; // Skip to next user
+                }
+                
                 // If there are attachments, send them first, then the text message
                 if (!empty($attachments)) {
                     foreach ($attachments as $attachment) {
@@ -2403,6 +2417,82 @@ class Message extends Controller
             }
             
             return null; // Will fall back to original English message
+        }
+    }
+    
+    /**
+     * Check if nurture mode should be applied for a contact
+     * 
+     * @param mixed $user Contact object containing guest_phone
+     * @param string $message Original message
+     * @return bool Whether nurture mode was applied
+     */
+    private function applyNurtureModeIfNeeded($user, $message)
+    {
+        try {
+            // Find contact by phone number
+            $phoneNumber = validate_phone_number($user->guest_phone);
+            if (!is_array($phoneNumber)) {
+                return false;
+            }
+            
+            $cleanPhone = $phoneNumber[1];
+            
+            // Find business contact
+            $contact = \App\Models\BusinessContact::where('guest_phone', $cleanPhone)
+                ->orWhere('guest_phone', 'LIKE', '%' . substr($cleanPhone, -9))
+                ->first();
+                
+            if (!$contact) {
+                Log::info("No contact found for nurture mode check", ['phone' => $cleanPhone]);
+                return false;
+            }
+            
+            // Check if ghosting
+            $ghostingAnalysis = \App\Services\GhostingDetector::analyze($contact->id);
+            
+            if (!$ghostingAnalysis['is_ghosting']) {
+                return false;
+            }
+            
+            // Check if opted out
+            if (\App\Services\GhostingDetector::hasOptedOut($contact->id)) {
+                Log::info("Contact has opted out, skipping nurture mode", ['contact_id' => $contact->id]);
+                return false;
+            }
+            
+            // Create a message queue entry for nurture processing
+            $queueEntry = \App\Models\MessageQueue::create([
+                'user_id' => Auth::id(),
+                'contact_id' => $contact->id,
+                'phone_number' => $cleanPhone,
+                'contact_name' => $contact->name ?? $user->guest_name,
+                'original_message' => $message,
+                'status' => 'staged',
+                'detected_language' => $ghostingAnalysis['detected_language'] ?? 'en',
+                'detected_tone' => $ghostingAnalysis['detected_tone'] ?? 'casual',
+                'relationship_stage' => 'ghosting',
+                'last_interaction_at' => $ghostingAnalysis['last_incoming_at'],
+            ]);
+            
+            // Dispatch nurture job
+            \App\Jobs\ProcessNurtureMessageJob::dispatch($queueEntry->id)
+                ->onQueue('ai_nurture');
+            
+            Log::info("Nurture mode applied for contact", [
+                'contact_id' => $contact->id,
+                'queue_entry_id' => $queueEntry->id,
+                'unanswered_count' => $ghostingAnalysis['unanswered_count']
+            ]);
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            Log::error("Error applying nurture mode", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
         }
     }
     

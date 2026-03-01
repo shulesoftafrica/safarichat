@@ -14,10 +14,12 @@ use Exception;
 class SystemWhatsAppService
 {
     protected ?WhatsappInstance $systemInstance;
+    protected ?MetaWhatsAppService $metaWhatsAppService;
     
-    public function __construct()
+    public function __construct(MetaWhatsAppService $metaWhatsAppService = null)
     {
         $this->systemInstance = WhatsappInstance::getSystemDefault();
+        $this->metaWhatsAppService = $metaWhatsAppService;
         
         if (!$this->systemInstance) {
             Log::warning('System default WhatsApp instance not configured');
@@ -26,11 +28,61 @@ class SystemWhatsAppService
     
     /**
      * Send OTP verification message to new user
+     * Uses Meta WhatsApp as primary, falls back to WaSender if Meta fails
      */
     public function sendOtpVerification(string $phoneNumber, string $otpCode, string $userName = null): bool
     {
+        // Try Meta WhatsApp first (if configured)
+        if ($this->metaWhatsAppService && $this->metaWhatsAppService->isConfigured()) {
+            try {
+                $response = $this->metaWhatsAppService->sendOtpTemplate($phoneNumber, $otpCode);
+                
+                if ($response['success'] ?? false) {
+                    Log::info('OTP sent via Meta WhatsApp', [
+                        'phone' => $phoneNumber,
+                        'message_id' => $response['data']['messages'][0]['id'] ?? null,
+                        'via' => $response['via'] ?? 'meta'
+                    ]);
+                    
+                    // Log success
+                    if ($this->systemInstance) {
+                        SystemMessageLog::logMessage(
+                            $this->systemInstance->id,
+                            $phoneNumber,
+                            'otp_verification',
+                            "OTP: {$otpCode}",
+                            'sent'
+                        );
+                    }
+                    
+                    return true;
+                }
+                
+                // Meta failed but may have already fallen back to WaSender
+                if (($response['via'] ?? null) === 'wasender' && $response['success']) {
+                    Log::info('OTP sent via WaSender (Meta fallback)', [
+                        'phone' => $phoneNumber,
+                        'meta_error' => $response['meta_error'] ?? null
+                    ]);
+                    return true;
+                }
+                
+                Log::warning('Meta WhatsApp OTP failed, falling back to legacy method', [
+                    'phone' => $phoneNumber,
+                    'error' => $response['error'] ?? 'Unknown error'
+                ]);
+                
+            } catch (Exception $e) {
+                Log::error('Meta WhatsApp OTP exception, falling back to legacy method', [
+                    'phone' => $phoneNumber,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        // Fallback to legacy WaSender method
         if (!$this->systemInstance) {
-            throw new Exception('System default WhatsApp instance not configured');
+            throw new Exception('System default WhatsApp instance not configured and Meta WhatsApp failed');
         }
 
         if (!$this->systemInstance->canSendMessageType('otp_verification')) {
@@ -98,9 +150,53 @@ class SystemWhatsAppService
 
     /**
      * Send password reset message
+     * Uses Meta WhatsApp as primary, falls back to WaSender if Meta fails
      */
     public function sendPasswordResetMessage(string $phoneNumber, string $otpCode, string $userName = null): bool
     {
+        // Try Meta WhatsApp first (if configured)
+        if ($this->metaWhatsAppService && $this->metaWhatsAppService->isConfigured()) {
+            try {
+                $response = $this->metaWhatsAppService->sendOtpTemplate($phoneNumber, $otpCode);
+                
+                if ($response['success'] ?? false) {
+                    Log::info('Password reset OTP sent via Meta WhatsApp', [
+                        'phone' => $phoneNumber,
+                        'message_id' => $response['data']['messages'][0]['id'] ?? null,
+                        'via' => $response['via'] ?? 'meta'
+                    ]);
+                    
+                    if ($this->systemInstance) {
+                        SystemMessageLog::logMessage(
+                            $this->systemInstance->id,
+                            $phoneNumber,
+                            'password_reset',
+                            "Password Reset OTP: {$otpCode}",
+                            'sent'
+                        );
+                    }
+                    
+                    return true;
+                }
+                
+                // Meta failed but may have already fallen back to WaSender
+                if (($response['via'] ?? null) === 'wasender' && $response['success']) {
+                    Log::info('Password reset OTP sent via WaSender (Meta fallback)', [
+                        'phone' => $phoneNumber,
+                        'meta_error' => $response['meta_error'] ?? null
+                    ]);
+                    return true;
+                }
+                
+            } catch (Exception $e) {
+                Log::error('Meta WhatsApp password reset exception, falling back to legacy method', [
+                    'phone' => $phoneNumber,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        // Fallback to legacy WaSender method
         if (!$this->systemInstance) {
             return false;
         }

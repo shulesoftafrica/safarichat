@@ -6,6 +6,7 @@ use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Services\BillingService;
 
 class Setup extends Controller {
@@ -19,32 +20,41 @@ class Setup extends Controller {
             return redirect('/home');
         }
         
-        // Load pricing plans from billing service (excluding free trial)
-        $products = BillingService::getProducts();
+        // Call live billing server API to get current pricing
+        $response = BillingService::getProducts();
         $pricingPlans = [];
-
-        if ($products['success'] && !empty($products['data'])) {
-            // Filter out free trial packages (price = 0) and only show packages with price > 0
-            // The new BillingService returns products directly in ['data'] array
-            $pricingPlans = collect($products['data'])
+        
+        Log::info('BillingService::getProducts() response', ['response' => $response]);
+        
+        if ($response['success'] && !empty($response['data'])) {
+            // Live API structure: data.price_plans[] (array of plan objects)
+            $plans = $response['data']['price_plans'] ?? [];
+            
+            // Transform to view format
+            $pricingPlans = collect($plans)
                 ->filter(function($plan) {
-                    return isset($plan['price']) && floatval($plan['price']) > 0;
+                    // Filter out trial plans (amount = 0)
+                    $amount = floatval($plan['amount'] ?? 0);
+                    return $amount > 0;
                 })
                 ->map(function($plan) {
-                    // Transform to format expected by view
+                    // Extract features from metadata.features
+                    $features = $plan['metadata']['features'] ?? [];
+                    
                     return [
-                        'name' => $plan['plan_name'] ?? ucfirst($plan['id']),
-                        'amount' => $plan['price'],
-                        'billing_interval' => $plan['billing_cycle'] ?? 'monthly',
+                        'name' => $plan['name'] ?? 'Plan',
+                        'amount' => floatval($plan['amount'] ?? 0),
+                        'billing_interval' => $plan['billing_interval'] ?? $plan['subscription_type'] ?? 'monthly',
                         'metadata' => [
-                            'features' => $plan['limits'] ?? []
+                            'features' => $features
                         ]
                     ];
                 })
                 ->values()
                 ->toArray();
-             
         }
+        
+        Log::info('Pricing plans for view', ['plans' => $pricingPlans]);
 
         return view('auth.login', ['pricingPlans' => $pricingPlans]);
     }
@@ -65,7 +75,7 @@ class Setup extends Controller {
         $phoneWithCountryCode = '255' . $cleanPhone;
         
         $verify_code = rand(192, 999) . substr(str_shuffle('123456789'), 0, 3);
-        $message = 'Hello, Your Verification Code is ' . $verify_code;
+        $message = $verify_code.' is your verification code.';
         $existing = DB::table('otpcodes')->where('phone', $phone)->where('status', 0)->first();
         if ($existing) {
             DB::table('otpcodes')->where('phone', $phone)->where('status', 0)->update([
@@ -77,7 +87,34 @@ class Setup extends Controller {
             'code' => bcrypt($verify_code)
             ]);
         }
-        $this->sendTextMessage($phoneWithCountryCode, $message, 'whatsapp','otp');
+        
+        // Use Meta WhatsApp Service for OTP sending with automatic fallback
+        try {
+            $metaService = app(\App\Services\MetaWhatsAppService::class);
+            $response = $metaService->sendOtpTemplate('+' . $phoneWithCountryCode, $verify_code);
+            
+            if (!($response['success'] ?? false)) {
+                // If Meta fails, fallback to legacy method
+                Log::warning('Meta WhatsApp OTP failed, using legacy method', [
+                    'phone' => $phoneWithCountryCode,
+                    'error' => $response['error'] ?? 'Unknown error'
+                ]);
+                $this->sendTextMessage($phoneWithCountryCode, $message, 'whatsapp','otp');
+            } else {
+                Log::info('OTP sent successfully via Meta WhatsApp', [
+                    'phone' => $phoneWithCountryCode,
+                    'via' => $response['via'] ?? 'meta'
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Fallback to legacy method on exception
+            Log::error('Meta WhatsApp OTP exception, using legacy method', [
+                'phone' => $phoneWithCountryCode,
+                'error' => $e->getMessage()
+            ]);
+            $this->sendTextMessage($phoneWithCountryCode, $message, 'whatsapp','otp');
+        }
+        
         $this->data['message']='';
 
          return view('auth.verify', $this->data);
@@ -203,7 +240,7 @@ class Setup extends Controller {
         $guests = \App\Models\BusinessContact::where('guest_phone', $phone[1])->first();
         if (!empty($guests)) {
             $verify_code = rand(192, 9999) . substr(str_shuffle('abcdefghkmnpqrst'), 0, 4);
-            $message = 'Hello, Your Verification Code is ' . $verify_code;
+            $message =  $verify_code.' is your verification code.';
             $messages = \App\Models\Message::firstOrCreate([
                         'body' => $message, 'user_id' => $guests->business->user_id, 'phone' => str_replace('@c.us', NULL, $phone[1])
             ]);

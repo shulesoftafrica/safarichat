@@ -33,22 +33,55 @@ class OutgoingMessage extends Model
         'metadata',
         'priority',
         'provider',
-        'external_id'
+        'external_id',
+        // Campaign tracking fields
+        'campaign_id',
+        'message_queue_id',
+        'original_message',
+        'is_personalized',
+        'personalization_metadata'
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'is_system_message' => 'boolean',
         'scheduled_at' => 'datetime',
-        'queued_at' => 'datetime'
+        'queued_at' => 'datetime',
+        'is_personalized' => 'boolean',
+        'personalization_metadata' => 'array'
     ];
 
     /**
-     * Get the original message
+     * Get the conversation this message belongs to
+     * @deprecated Use conversation() instead of message()
      */
     public function message()
     {
-        return $this->belongsTo(Message::class);
+        return $this->belongsTo(Conversation::class, 'message_id');
+    }
+
+    /**
+     * Get the conversation this message belongs to
+     */
+    public function conversation()
+    {
+        return $this->belongsTo(Conversation::class, 'message_id');
+    }
+
+    /**
+     * Get the campaign this message belongs to
+     */
+    public function campaign()
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    /**
+     * Get the message queue item this message was generated from
+     */
+    public function messageQueue()
+    {
+        return $this->belongsTo(MessageQueue::class);
     }
 
     /**

@@ -102,13 +102,13 @@ class BillingAlertService
             }
 
             // Check booking calendar limit
-            $calendarAlert = $this->checkBookingCalendarLimit($userId, $subscription->plan_type);
+            $calendarAlert = $this->checkBookingCalendarLimit($userId, $billingAccount->subscription_plan);
             if ($calendarAlert) {
                 $alerts[] = $calendarAlert;
             }
 
             // Check storage limit (if applicable)
-            $storageAlert = $this->checkStorageLimit($userId, $subscription->plan_type);
+            $storageAlert = $this->checkStorageLimit($userId, $billingAccount->subscription_plan);
             if ($storageAlert) {
                 $alerts[] = $storageAlert;
             }

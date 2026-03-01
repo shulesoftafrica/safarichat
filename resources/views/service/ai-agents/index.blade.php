@@ -183,7 +183,15 @@
 
                                             
                                             <script>
+                                            let statusCheckInterval = null;
+                                            
                                             function showReconnectModal(instanceId) {
+                                                // Clear any existing status check interval
+                                                if (statusCheckInterval) {
+                                                    clearInterval(statusCheckInterval);
+                                                    statusCheckInterval = null;
+                                                }
+                                                
                                                 fetch(`{{ url('/api/whatsapp/instances') }}/${instanceId}/reconnect`)
                                                     .then(response => response.json())
                                                     .then(data => {
@@ -195,18 +203,94 @@
                                                                     <img src='${qrCodeUrl}' alt='QR Code' style='max-width:300px; border: 1px solid #ddd; padding: 10px;'>
                                                                     <p class='mt-3'>Scan this QR code with your WhatsApp to reconnect.</p>
                                                                     <small class='text-muted'>QR code generated at: ${new Date(data.instance.qr_code_generated_at).toLocaleString()}</small>
+                                                                    <div class='mt-3' id='connectionStatus'>
+                                                                        <div class='spinner-border spinner-border-sm text-primary me-2' role='status'>
+                                                                            <span class='visually-hidden'>Loading...</span>
+                                                                        </div>
+                                                                        <span class='text-muted'>Waiting for scan...</span>
+                                                                    </div>
                                                                 </div>
                                                             `;
+                                                            
+                                                            // Start polling for connection status
+                                                            startStatusPolling(instanceId);
                                                         } else {
                                                             document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Unable to load QR code. Please try again later.</div>`;
                                                         }
-                                                        new bootstrap.Modal(document.getElementById('reconnectModal')).show();
+                                                        
+                                                        const modalElement = document.getElementById('reconnectModal');
+                                                        const modal = new bootstrap.Modal(modalElement);
+                                                        modal.show();
+                                                        
+                                                        // Clear interval when modal is closed
+                                                        modalElement.addEventListener('hidden.bs.modal', function () {
+                                                            if (statusCheckInterval) {
+                                                                clearInterval(statusCheckInterval);
+                                                                statusCheckInterval = null;
+                                                            }
+                                                        });
                                                     })
                                                     .catch(error => {
                                                         console.error('Reconnect error:', error);
                                                         document.getElementById('reconnectModalBody').innerHTML = `<div class='alert alert-danger'>Error loading QR code.</div>`;
                                                         new bootstrap.Modal(document.getElementById('reconnectModal')).show();
                                                     });
+                                            }
+                                            
+                                            function startStatusPolling(instanceId) {
+                                                // Poll every 2 seconds
+                                                statusCheckInterval = setInterval(function() {
+                                                    fetch(`{{ url('/api/whatsapp/instances') }}/${instanceId}/status`, {
+                                                        method: 'GET',
+                                                        headers: {
+                                                            'Accept': 'application/json',
+                                                            'Content-Type': 'application/json',
+                                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                        },
+                                                        credentials: 'same-origin'
+                                                    })
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.success && data.status) {
+                                                            const status = data.status.toLowerCase();
+                                                            const connectionStatusEl = document.getElementById('connectionStatus');
+                                                            
+                                                            if (status === 'connected' || status === 'ready' || status === 'open') {
+                                                                // Connected! Show success message and reload
+                                                                if (connectionStatusEl) {
+                                                                    connectionStatusEl.innerHTML = `
+                                                                        <div class='alert alert-success mb-0'>
+                                                                            <i class='fas fa-check-circle me-2'></i>
+                                                                            <strong>Connected successfully!</strong> Reloading page...
+                                                                        </div>
+                                                                    `;
+                                                                }
+                                                                
+                                                                // Clear the interval
+                                                                clearInterval(statusCheckInterval);
+                                                                statusCheckInterval = null;
+                                                                
+                                                                // Hide the warning banner immediately
+                                                                const warningBanner = document.querySelector('.whatsapp-warning-banner');
+                                                                if (warningBanner) {
+                                                                    warningBanner.style.transition = 'opacity 0.3s ease-out';
+                                                                    warningBanner.style.opacity = '0';
+                                                                    setTimeout(function() {
+                                                                        warningBanner.style.display = 'none';
+                                                                    }, 300);
+                                                                }
+                                                                
+                                                                // Reload the page after 1.5 seconds to show updated status
+                                                                setTimeout(function() {
+                                                                    location.reload();
+                                                                }, 1500);
+                                                            }
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        console.error('Status check error:', error);
+                                                    });
+                                                }, 2000); // Check every 2 seconds
                                             }
 
                                             function viewInstanceStats(instanceId) {
@@ -2033,6 +2117,32 @@ function purchaseCredits(amount) {
         }
     }
 }
+
+// Auto-hide warning banner when connection is successful
+document.addEventListener('DOMContentLoaded', function() {
+    const warningBanner = document.querySelector('.whatsapp-warning-banner');
+    if (warningBanner) {
+        // When status polling detects a connection, hide the banner
+        const observer = new MutationObserver(function(mutations) {
+            // Check if any instance shows as connected
+            const connectedBadges = document.querySelectorAll('.badge.bg-success');
+            if (connectedBadges.length > 0) {
+                // Fade out the warning banner
+                warningBanner.style.transition = 'opacity 0.5s ease-out';
+                warningBanner.style.opacity = '0';
+                setTimeout(function() {
+                    warningBanner.style.display = 'none';
+                }, 500);
+            }
+        });
+        
+        // Observe changes to the page (for when status updates)
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+});
 </script>
 
 @endsection

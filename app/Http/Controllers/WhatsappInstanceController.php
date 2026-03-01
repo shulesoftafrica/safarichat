@@ -301,10 +301,18 @@ class WhatsappInstanceController extends Controller
 
                 // Update database with real-time status
                 if ($realTimeStatus) {
+                    // Map API status to database-allowed enum values
+                    $mappedStatus = $this->mapApiStatusToDbStatus($realTimeStatus);
+                    
                     $instance->update([
-                        'connect_status' => $realTimeStatus,
+                        'connect_status' => $mappedStatus,
                         'last_active_at' => now()
                     ]);
+                    
+                    // Clear warning cache if instance is now connected
+                    if ($mappedStatus === 'ready') {
+                        \Cache::forget('whatsapp_disconnected_' . $instance->user_id);
+                    }
                 }
 
                 \Log::info('Real-time WaSender status fetched via API', [
@@ -525,5 +533,27 @@ class WhatsappInstanceController extends Controller
                 'message' => 'Error deleting instance: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Map API status to database-allowed status values
+     * Database enum: ['disconnected', 'connecting', 'ready', 'error']
+     * 
+     * @param string $apiStatus
+     * @return string
+     */
+    private function mapApiStatusToDbStatus(string $apiStatus): string
+    {
+        // Normalize to lowercase for comparison
+        $status = strtolower($apiStatus);
+        
+        // Map API statuses to database-allowed values
+        return match($status) {
+            'connected', 'ready', 'open' => 'ready',
+            'connecting', 'initializing', 'starting' => 'connecting',
+            'disconnected', 'closed', 'logged_out', 'offline' => 'disconnected',
+            'failed', 'error', 'timeout' => 'error',
+            default => 'disconnected' // Safe default
+        };
     }
 }

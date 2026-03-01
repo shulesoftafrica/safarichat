@@ -150,8 +150,9 @@
                     <div class="alert alert-warning">
                         <h6><i class="fas fa-exclamation-triangle"></i> Important Notes:</h6>
                         <ul class="mb-0">
-                            <li>Payment processing may take 24-48 hours for bank transfers</li>
-                            <li>Mobile banking payments are usually processed within 1-2 hours</li>
+                            <li>UCN (Lipa Namba) is ONLY applicable in Tanzania. </li>
+                            <li>If you have cash, put it your Mobile Money account or bank account before making the payment</li>
+                            <li>All Mobile Money supports Lipa Namba, but some banks (only few) still dont support Lipa Namba</li>
                             <li>Your subscription will be activated automatically once payment is confirmed</li>
                             <li>Keep your payment reference number: <strong>{{ $reference }}</strong></li>
                             <li>Contact support if payment is not reflected within 48 hours</li>

@@ -100,6 +100,27 @@ class Product extends Model
     }
 
     /**
+     * Get nurture messages for this product
+     */
+    public function nurtureMessages()
+    {
+        return $this->hasMany(NurtureLibrary::class, 'product_id')
+            ->orderBy('success_rate', 'DESC');
+    }
+
+    /**
+     * Get active nurture messages (used recently or high success rate)
+     */
+    public function activeNurtureMessages()
+    {
+        return $this->nurtureMessages()
+            ->where(function ($query) {
+                $query->where('usage_count', '>', 0)
+                      ->orWhere('created_at', '>=', now()->subDays(30));
+            });
+    }
+
+    /**
      * Get leads through lead products
      */
     public function leads()

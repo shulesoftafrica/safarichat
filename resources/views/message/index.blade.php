@@ -901,7 +901,7 @@
                                     <li>Personalize your messages and avoid generic mass content.</li>
                                     <li>Monitor your account for warnings or restrictions from WhatsApp.</li>
                                     <li>Review the full compliance guide here:<br>
-                                        <a href="https://wasenderapi.com/help/messaging/key-compliance-points-avoid-account-flagging-blocking" target="_blank" rel="noopener" style="word-break:break-all;color:#166534;font-weight:600;">https://wasenderapi.com/help/messaging/key-compliance-points-avoid-account-flagging-blocking</a>
+                                        <a href="{{ route('whatsapp-terms') }}" target="_blank" style="word-break:break-all;color:#166534;font-weight:600;">Read WhatsApp Terms & Compliance Guide</a>
                                     </li>
                                 </ul>
                                 <div class="alert alert-danger mt-4" style="font-size:1rem;font-weight:600;border-radius:12px;">

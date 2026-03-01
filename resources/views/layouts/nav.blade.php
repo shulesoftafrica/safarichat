@@ -136,8 +136,8 @@ if (Auth::check()) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= url('message') ?>">
-                                <i class="fas fa-paper-plane align-middle mr-2" title="Send Message"></i>{{__('Send Message')}}
+                            <a class="nav-link" href="<?= url('campaigns') ?>">
+                                <i class="fas fa-bullhorn align-middle mr-2" title="Sales Campaigns"></i>{{__('Sales Campaigns')}}
                             </a>
                         </li>
                         <!-- <li class="nav-item">

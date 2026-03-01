@@ -69,13 +69,37 @@ class BusinessContact extends Model
         'last_ai_interaction',
         'last_human_interaction',
         'crm_id',
-        'crm_data'
+        'crm_data',
+        // AI Personalization fields
+        'preferred_language',
+        'preferred_tone',
+        'last_message_sentiment',
+        'opt_out_status',
+        'opt_out_at',
+        'avg_reply_hour',
+        'engagement_score'
     ];
 
     /**
      * @var array
      */
     protected $hidden = ['updated_at'];
+
+    /**
+     * @var array
+     */
+    protected $casts = [
+        'opt_out_status' => 'boolean',
+        'opt_out_at' => 'datetime',
+        'engagement_score' => 'decimal:2',
+        'contacted_for_sales' => 'boolean',
+        'contacted_at' => 'datetime',
+        'handoff_requested_at' => 'datetime',
+        'handoff_assigned_at' => 'datetime',
+        'handoff_completed_at' => 'datetime',
+        'last_ai_interaction' => 'datetime',
+        'last_human_interaction' => 'datetime'
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -158,6 +182,15 @@ class BusinessContact extends Model
     public function creator()
     {
         return $this->belongsTo('App\Models\User', 'user_id');
+    }
+
+    /**
+     * Get all queued campaign messages for this contact
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function messageQueue()
+    {
+        return $this->hasMany('App\Models\MessageQueue', 'contact_id');
     }
 
     /**

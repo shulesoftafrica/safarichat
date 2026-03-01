@@ -31,6 +31,8 @@ class Kernel extends ConsoleKernel {
         Commands\MigrateCrmDataCommand::class,
         Commands\ProcessAppointmentRemindersCommand::class,
         Commands\ConvertUnengagedContactsCommand::class,
+        Commands\CheckWhatsappInstancesCommand::class,
+        Commands\SendScheduledMessagesCommand::class, // Phase 3: Campaign message scheduling
     ];
     public $emails;
 
@@ -85,6 +87,32 @@ class Kernel extends ConsoleKernel {
             ->withoutOverlapping()
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/cron-cleanup.log'));
+            
+        // Check WhatsApp instance connection status every 15 minutes
+        $schedule->command('whatsapp:check-instances')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/whatsapp-instances-check.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'WhatsApp instances check completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'WhatsApp instances check failed', 'error');
+            });
+        
+        // Phase 3: Send scheduled campaign messages every minute
+        $schedule->command('messages:send-scheduled --limit=100')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/scheduled-messages.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Scheduled messages processing completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Scheduled messages processing failed', 'error');
+            });
     }
 
     /**

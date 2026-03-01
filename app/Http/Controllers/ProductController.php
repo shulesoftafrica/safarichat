@@ -8,6 +8,7 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
+use App\Services\NurtureLibraryGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -227,6 +228,17 @@ class ProductController extends Controller
             // Add FAQs if provided
             $this->saveFAQs($product, $faqQuestions, $faqAnswers);
             
+            // Auto-generate nurture messages for this product
+            $nurtureMessages = collect([]);
+            try {
+                $generator = new NurtureLibraryGenerator();
+                $nurtureMessages = $generator->generateForProduct($product);
+                Log::info("Generated {$nurtureMessages->count()} nurture messages for product: {$product->name}");
+            } catch (\Exception $e) {
+                // Don't fail product creation if nurture generation fails
+                Log::warning("Nurture message generation failed for product {$product->id}: " . $e->getMessage());
+            }
+            
             DB::commit();
             
             // Check if this is the user's first product and onboarding is active
@@ -236,7 +248,9 @@ class ProductController extends Controller
             $response = [
                 'success' => true,
                 'message' => 'Product created successfully!',
-                'product' => $product->load('faqs')
+                'product' => $product->load('faqs'),
+                'nurture_messages_generated' => $nurtureMessages->count(),
+                'nurture_messages' => $nurtureMessages
             ];
             
             // If this is their first product during onboarding, suggest next step

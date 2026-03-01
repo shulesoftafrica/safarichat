@@ -97,12 +97,39 @@ class SendWhatsAppMessage implements ShouldQueue
             $outgoingMessage = $this->createOrUpdateOutgoingMessage();
 
             $result = null;
-    
-            if ($this->provider === 'unified_api') {
-                // Use Unified Notification API
+            
+            // Special handling for system messages: Try Meta API first, fallback to Unified API
+            if ($this->isSystemMessage()) {
+                Log::info('System message detected, attempting Meta WhatsApp API first', [
+                    'phone' => $this->phoneNumber,
+                    'message_type' => $this->messageType
+                ]);
+                
+                try {
+                    // Try Meta WhatsApp API first for system messages
+                    $result = $this->sendViaMetaWhatsAppApi($outgoingMessage);
+                    Log::info('System message sent successfully via Meta WhatsApp API', [
+                        'phone' => $this->phoneNumber,
+                        'message_id' => $outgoingMessage->id
+                    ]);
+                } catch (Exception $metaException) {
+                    // If Meta API fails, fallback to Unified API for system messages
+                    Log::warning('Meta WhatsApp API failed for system message, falling back to Unified API', [
+                        'phone' => $this->phoneNumber,
+                        'error' => $metaException->getMessage()
+                    ]);
+                    
+                    $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
+                    Log::info('System message sent successfully via Unified API (fallback)', [
+                        'phone' => $this->phoneNumber,
+                        'message_id' => $outgoingMessage->id
+                    ]);
+                }
+            } else if ($this->provider === 'unified_api') {
+                // Use Unified Notification API for non-system messages
                 $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
             } else {
-                // Fallback to legacy WaSender
+                // Fallback to legacy WaSender for non-system messages
                 $result = $this->sendViaWaSender($waSenderService, $outgoingMessage);
             }
 
@@ -218,6 +245,91 @@ class SendWhatsAppMessage implements ShouldQueue
             'queued_at' => now(),
             'retry_count' => 0
         ]);
+    }
+
+    /**
+     * Send message via Official Meta WhatsApp API using MetaWhatsAppService
+     */
+    private function sendViaMetaWhatsAppApi(OutgoingMessage $message)
+    {
+        // Use the MetaWhatsAppService for all Meta WhatsApp operations
+        $metaService = app(\App\Services\MetaWhatsAppService::class);
+        
+        if (!$metaService->isConfigured()) {
+            throw new Exception('Meta WhatsApp API credentials not configured');
+        }
+
+        $messageBody = is_array($this->messageData) ? 
+            ($this->messageData['message'] ?? json_encode($this->messageData)) : 
+            $this->messageData;
+        
+        // Detect if this is an OTP message and use appropriate method
+        $isOtpMessage = $this->messageType === 'otp_verification' || 
+                        $this->messageType === 'password_reset' ||
+                        preg_match('/(verification code|otp code|verify|your code is|\d{4,6})/i', $messageBody);
+        
+        $response = null;
+        
+        if ($isOtpMessage) {
+            // Extract OTP code from message
+            $otpCode = null;
+            if (preg_match('/(\d{4,6})/', $messageBody, $matches)) {
+                $otpCode = $matches[1];
+            }
+            
+            if ($otpCode) {
+                Log::info('Sending OTP via Meta WhatsApp template', [
+                    'phone' => $this->phoneNumber,
+                    'otp_length' => strlen($otpCode)
+                ]);
+                
+                // Use OTP template method
+                $response = $metaService->sendOtpTemplate($this->phoneNumber, $otpCode);
+            } else {
+                // Fallback to text message if OTP code not found
+                Log::warning('OTP pattern detected but code not extracted, using text message', [
+                    'phone' => $this->phoneNumber,
+                    'message' => $messageBody
+                ]);
+                $response = $metaService->sendTextMessage($this->phoneNumber, $messageBody);
+            }
+        } else {
+            // Use regular text message method for non-OTP messages
+            Log::info('Sending text message via Meta WhatsApp', [
+                'phone' => $this->phoneNumber,
+                'message_type' => $this->messageType ?? 'text'
+            ]);
+            
+            $response = $metaService->sendTextMessage($this->phoneNumber, $messageBody);
+        }
+        
+        // Handle response
+        if ($response['success'] ?? false) {
+            $messageId = null;
+            
+            // Extract message ID from response
+            if (isset($response['data']['messages'][0]['id'])) {
+                $messageId = $response['data']['messages'][0]['id'];
+            } elseif (isset($response['wasender_response']['message_id'])) {
+                // If fallback to WaSender was used
+                $messageId = $response['wasender_response']['message_id'];
+            }
+            
+            return [
+                'success' => true,
+                'message_id' => $messageId,
+                'external_id' => $messageId,
+                'status' => 'sent',
+                'via' => $response['via'] ?? 'meta',
+                'api_response' => $response['data'] ?? $response
+            ];
+        }
+        
+        // If failed, throw exception with detailed error
+        $errorMessage = $response['error'] ?? 'Unknown Meta WhatsApp API error';
+        $errorCode = $response['error_code'] ?? 'UNKNOWN';
+        
+        throw new Exception("Meta WhatsApp API error [{$errorCode}]: {$errorMessage}");
     }
 
     /**

@@ -230,6 +230,19 @@ Route::prefix('products/{product}')->group(function () {
     Route::get('/attachments/{attachment}', [App\Http\Controllers\Api\ProductAttachmentController::class, 'show']);
     Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\ProductAttachmentController::class, 'destroy']);
     Route::post('/attachments/{attachment}/reprocess', [App\Http\Controllers\Api\ProductAttachmentController::class, 'reprocessRAG']);
+    
+    // Nurture Messages Management
+    Route::get('/nurture-messages', [App\Http\Controllers\NurtureLibraryController::class, 'index']);
+    Route::post('/nurture-messages/generate', [App\Http\Controllers\NurtureLibraryController::class, 'generateForProduct']);
+    Route::post('/nurture-messages/regenerate', [App\Http\Controllers\NurtureLibraryController::class, 'regenerateForProduct']);
+});
+
+// Nurture Library CRUD
+Route::prefix('nurture-library')->group(function () {
+    Route::get('/{id}', [App\Http\Controllers\NurtureLibraryController::class, 'show']);
+    Route::post('/', [App\Http\Controllers\NurtureLibraryController::class, 'store']);
+    Route::put('/{id}', [App\Http\Controllers\NurtureLibraryController::class, 'update']);
+    Route::delete('/{id}', [App\Http\Controllers\NurtureLibraryController::class, 'destroy']);
 });
 
 // RAG Search API Routes
@@ -282,12 +295,16 @@ Route::middleware('auth')->group(function () {
         return response()->json(['count' => \App\Models\WhatsappInstance::where('user_id', auth()->id())->count()]);
     });
     
-    // Pricing Controls API endpoints (web session and API token authentication)
-    Route::middleware(['auth:web,sanctum'])->prefix('billing')->group(function () {
-        Route::get('/status', [BillingApiController::class, 'getBillingStatus']);
-        Route::get('/plans', [BillingApiController::class, 'getProductInfo']);
-        Route::post('/upgrade', [BillingApiController::class, 'upgradePlan']);
-        Route::post('/credits', [BillingApiController::class, 'purchaseCredits']);
+    // Pricing Controls API endpoints (web session authentication for frontend)
+    Route::prefix('billing')->group(function () {
+        Route::get('/status', [BillingApiController::class, 'getBillingStatus'])->middleware('auth:sanctum');
+        Route::get('/plans', [BillingApiController::class, 'getProductInfo'])->middleware('auth:sanctum');
+        Route::post('/upgrade', [BillingApiController::class, 'upgradePlan'])->middleware('auth:sanctum');
+        Route::post('/credits', [BillingApiController::class, 'purchaseCredits'])->middleware('auth:sanctum');
+        
+        // Wallet management routes
+        Route::get('/wallet/info', [BillingApiController::class, 'getWalletInfo'])->middleware('auth:sanctum');
+        Route::post('/wallet/topup', [BillingApiController::class, 'topUpWallet'])->middleware('auth:sanctum');
     });
 });
 

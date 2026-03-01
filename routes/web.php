@@ -100,6 +100,17 @@ Route::get('/message', [App\Http\Controllers\Message::class, 'index'])->name('me
 Route::post('/message/store', [App\Http\Controllers\Message::class, 'store'])->name('message.store');
 Route::post('/messages/buy', [App\Http\Controllers\Message::class, 'buy'])->name('messages.buy');
 Route::get('/message/report', [App\Http\Controllers\Message::class, 'report'])->name('message.report');
+
+// Sales Campaigns Routes (Phase 4)
+Route::get('/campaigns', [App\Http\Controllers\CampaignController::class, 'index'])->name('campaigns.index');
+Route::get('/campaigns/create', [App\Http\Controllers\CampaignController::class, 'create'])->name('campaigns.create');
+Route::post('/campaigns', [App\Http\Controllers\CampaignController::class, 'store'])->name('campaigns.store');
+Route::get('/campaigns/{id}/report', [App\Http\Controllers\CampaignController::class, 'report'])->name('campaigns.report');
+Route::post('/campaigns/{id}/pause', [App\Http\Controllers\CampaignController::class, 'pause'])->name('campaigns.pause');
+Route::post('/campaigns/{id}/resume', [App\Http\Controllers\CampaignController::class, 'resume'])->name('campaigns.resume');
+Route::post('/campaigns/{id}/clone', [App\Http\Controllers\CampaignController::class, 'clone'])->name('campaigns.clone');
+Route::delete('/campaigns/{id}', [App\Http\Controllers\CampaignController::class, 'destroy'])->name('campaigns.destroy');
+
 // Support system removed - use external support tools
 
 // Service routes
@@ -178,6 +189,11 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/privacy-policy', function() {
         return view('auth.privacy-policy');
     })->name('privacy-policy');
+    
+    // WhatsApp Terms and Compliance Guide
+    Route::get('/whatsapp-terms', function() {
+        return view('policies.whatsapp-terms');
+    })->name('whatsapp-terms');
 
     // User Types API endpoint
     Route::get('/api/user-types', [App\Http\Controllers\AiSalesAgentController::class, 'getUserTypes'])->name('api.user-types');
@@ -293,9 +309,13 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/billing/payment', [App\Http\Controllers\BillingController::class, 'showPayment'])->name('billing.payment');
     Route::post('/billing/process-payment', [App\Http\Controllers\BillingController::class, 'processPayment'])->name('billing.process-payment');
+    Route::get('/billing/stripe/success', [App\Http\Controllers\BillingController::class, 'stripeSuccess'])->name('billing.stripe.success');
     Route::get('/billing/success', [App\Http\Controllers\BillingController::class, 'paymentSuccess'])->name('billing.success');
     Route::get('/billing/cancel', [App\Http\Controllers\BillingController::class, 'paymentCancel'])->name('billing.cancel');
     Route::get('/billing/ucn-instructions/{reference}', [App\Http\Controllers\BillingController::class, 'showUCNInstructions'])->name('billing.ucn-instructions');
+    
+    // Wallet Management Page
+    Route::get('/billing/wallet', [App\Http\Controllers\BillingController::class, 'showWallet'])->name('billing.wallet');
 });
 
 // Booking Calendar Routes

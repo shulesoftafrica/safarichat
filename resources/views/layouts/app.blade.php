@@ -184,6 +184,9 @@ $(document).ready(ajax_setup);
                             @include('components.billing-alerts', ['billingAlerts' => $billingAlerts])
                             @endauth
 
+                            {{-- WhatsApp Connection Warning --}}
+                            @include('layouts.whatsapp-connection-warning')
+
                             @yield('content')
                         </div>
                     </div>

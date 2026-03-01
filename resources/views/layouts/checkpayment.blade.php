@@ -122,21 +122,13 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 <!-- Credits Option -->
                 <div class="card mt-4" style="border-left: 4px solid #28a745;">
                     <div class="card-body">
-                        <h6 class="card-title"><i class="fas fa-coins"></i> Purchase Additional Credits</h6>
-                        <p class="text-muted mb-3">Need more AI credits without upgrading your plan?</p>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <span class="input-group-text">TZS</span>
-                                    <input type="number" class="form-control" id="creditAmount" placeholder="Enter amount" min="1000" step="1000">
-                                </div>
-                                <small class="text-muted">Minimum: TZS 1,000</small>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-success w-100" onclick="purchaseCredits()">
-                                    <i class="fas fa-shopping-cart"></i> Buy Credits
-                                </button>
-                            </div>
+                        <h6 class="card-title"><i class="fas fa-wallet"></i> Top Up Your Wallet</h6>
+                        <p class="text-muted mb-3">Add credits to your wallet via UCN, Stripe, or Flutterwave</p>
+                        <div class="text-center">
+                            <a href="{{ route('billing.wallet') }}" class="btn btn-success btn-lg">
+                                <i class="fas fa-wallet"></i> Go to Wallet & Top Up
+                            </a>
+                            <p class="text-muted small mt-2">Manage your wallet balance and payment methods</p>
                         </div>
                     </div>
                 </div>

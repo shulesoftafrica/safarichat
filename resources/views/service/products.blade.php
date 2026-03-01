@@ -786,6 +786,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info" id="manageNurtureMessagesBtn" onclick="manageNurtureMessages()" style="display: none;">
+                    <i class="fas fa-comments"></i>
+                    Manage Nurture Messages
+                </button>
                 <button type="button" class="btn btn-primary" onclick="editProductFromView()">
                     <i class="fas fa-edit"></i>
                     Edit Product
@@ -3352,8 +3356,26 @@ function saveProduct() {
                        // closeModalAndRefresh();
                     });
             } else {
-                showNotification(data.message || 'Product saved successfully!', 'success');
-                closeModalAndRefresh();
+                // Check if nurture messages were generated
+                if (data.nurture_messages_generated && data.nurture_messages_generated > 0) {
+                    console.log('Nurture messages generated:', data.nurture_messages_generated);
+                    showNotification(data.message || 'Product saved successfully!', 'success');
+                    
+                    // Close the product modal first using jQuery (Bootstrap 4)
+                    $('#addProductModal').modal('hide');
+                    
+                    // Show nurture messages modal after a brief delay
+                    setTimeout(() => {
+                        showNurtureMessagesModal(
+                            data.product.id,
+                            data.product.name,
+                            data.nurture_messages || []
+                        );
+                    }, 500);
+                } else {
+                    showNotification(data.message || 'Product saved successfully!', 'success');
+                    closeModalAndRefresh();
+                }
             }
         } else {
             throw new Error(data.message || 'Failed to save product');
@@ -4460,11 +4482,21 @@ function displayProductDetails(product) {
             </div>
         </div>
     `;
+    
+    // Store product details for nurture messages management
+    currentViewingProductId = product.id;
+    currentViewingProductName = product.name;
+    
+    // Show the "Manage Nurture Messages" button
+    const manageNurtureBtn = document.getElementById('manageNurtureMessagesBtn');
+    if (manageNurtureBtn) {
+        manageNurtureBtn.style.display = 'inline-block';
+    }
 }
 
 function editProductFromView() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('viewProductModal'));
-    modal.hide();
+    // Close view modal using jQuery (Bootstrap 4)
+    $('#viewProductModal').modal('hide');
     // Get product ID from the current view and edit it
     // This would need to be implemented based on how you store the current product ID
 }
@@ -4570,5 +4602,63 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Global variable to store current product ID for nurture messages
+let currentViewingProductId = null;
+let currentViewingProductName = null;
+
+// Function to manage nurture messages (called from view product modal)
+function manageNurtureMessages() {
+    if (!currentViewingProductId) {
+        showNotification('Product ID not available', 'error');
+        return;
+    }
+    
+    // Close view product modal using jQuery (Bootstrap 4)
+    $('#viewProductModal').modal('hide');
+    
+    // Fetch nurture messages for this product
+    fetch(`/api/products/${currentViewingProductId}/nurture-messages`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="_token"]')?.value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Nurture messages response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('Nurture messages data:', data);
+        if (data.success) {
+            showNurtureMessagesModal(
+                currentViewingProductId,
+                currentViewingProductName || 'Product',
+                data.nurture_messages || data.messages || []
+            );
+        } else {
+            showNotification(data.message || 'Failed to load nurture messages', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading nurture messages:', error);
+        showNotification('Error loading nurture messages: ' + error.message, 'error');
+    });
+}
+
 </script>
+
+<!-- Include Nurture Messages Modal -->
+@include('products.partials.nurture-messages-modal')
+
 @endsection

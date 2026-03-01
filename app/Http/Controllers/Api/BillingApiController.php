@@ -186,11 +186,12 @@ class BillingApiController extends Controller
             $productsCount = DB::table('products')->where('business_id', $business->id)->count();
             $channelsCount = DB::table('whatsapp_instances')->where('user_id', $user->id)->count() ?: 1;
             
-            // Get AI credits from user wallet or business
-            $aiCredits = $user->ai_credits ?? $business->ai_credits ?? 0;
+            // Get billing account and AI credits
+            $billingAccount = $user->billingAccount;
+            $aiCredits = $billingAccount ? $billingAccount->ai_credits : 0;
             
             // Determine current plan and limits
-            $plan = $user->subscription_plan ?? $business->subscription_plan ?? 'trial';
+            $plan = $billingAccount ? $billingAccount->subscription_plan : 'trial';
             $planLimits = BillingService::getPlanLimits($plan);
             
             // Build comprehensive status response
@@ -297,17 +298,18 @@ class BillingApiController extends Controller
                 ], 404);
             }
             
-            $serverBalance = $user->ai_credits ?? 0;
+            // Get current balance from billing account
+            $serverBalance = \App\Services\BillingService::getRemainingCredits($user);
             
             // Calculate total deductions
             $totalDeductions = collect($deductions)->sum('amount');
             
-            // Apply deductions to server balance
-            $newServerBalance = max(0, $serverBalance - $totalDeductions);
+            // Apply deductions via BillingService
+            if ($totalDeductions > 0) {
+                \App\Services\BillingService::deductCredits($user, $totalDeductions, 'Synced credit deductions');
+            }
             
-            // Update server balance
-            $user->ai_credits = $newServerBalance;
-            $user->save();
+            $newServerBalance = max(0, $serverBalance - $totalDeductions);
             
             // Log all deductions for audit
             foreach ($deductions as $deduction) {
@@ -390,7 +392,8 @@ class BillingApiController extends Controller
                 ]);
             }
             
-            $availableCredits = $user->ai_credits ?? 0;
+            // Get credits from billing account
+            $availableCredits = \App\Services\BillingService::getRemainingCredits($user);
             
             if ($availableCredits < $creditsNeeded) {
                 Log::info("Server-side credit verification failed for customer {$customerId}", [
@@ -495,7 +498,8 @@ class BillingApiController extends Controller
      */
     private function getSubscriptionStatus($user, $business)
     {
-        $expiryDate = $user->subscription_expires_at ?? $business->subscription_expires_at ?? null;
+        $billingAccount = $user->billingAccount;
+        $expiryDate = $billingAccount ? $billingAccount->subscription_expires_at : null;
         
         if (!$expiryDate || now()->greaterThan($expiryDate)) {
             return 'expired';
@@ -509,7 +513,8 @@ class BillingApiController extends Controller
      */
     private function getSubscriptionExpiry($user, $business)
     {
-        $expiryDate = $user->subscription_expires_at ?? $business->subscription_expires_at;
+        $billingAccount = $user->billingAccount;
+        $expiryDate = $billingAccount ? $billingAccount->subscription_expires_at : null;
         
         return $expiryDate ? $expiryDate->toISOString() : now()->addDays(3)->toISOString(); // Default 3 days for trial
     }
@@ -535,7 +540,8 @@ class BillingApiController extends Controller
             }
             
             // Check if this is actually an upgrade
-            $currentPlan = $user->subscription_plan ?? 'trial';
+            $billingAccount = $user->billingAccount;
+            $currentPlan = $billingAccount ? $billingAccount->subscription_plan : 'trial';
             $planHierarchy = ['trial' => 0, 'starter' => 1, 'pro' => 2, 'premium' => 3];
             
             if ($planHierarchy[$planCode] <= $planHierarchy[$currentPlan]) {
@@ -669,25 +675,24 @@ class BillingApiController extends Controller
             // Calculate credits (1 TZS = 1 credit for simplicity)
             $credits = $amount;
             
-            // Add credits to user
-            $user->increment('ai_credits', $credits);
+            // Add credits to billing account (single source of truth)
+            \App\Services\BillingService::addCredits($user, $credits, "Credit purchase - TZS {$amount}");
             
-            // Also update business if exists
-            if ($user->business) {
-                $user->business->increment('ai_credits', $credits);
-            }
+            // Get updated balance
+            $newBalance = \App\Services\BillingService::getRemainingCredits($user);
             
             Log::info('Credits purchased', [
                 'user_id' => $user->id,
                 'amount' => $amount,
-                'credits_added' => $credits
+                'credits_added' => $credits,
+                'new_balance' => $newBalance
             ]);
             
             return response()->json([
                 'success' => true,
                 'message' => "Successfully added {$credits} AI credits!",
                 'credits_added' => $credits,
-                'new_balance' => $user->ai_credits
+                'new_balance' => $newBalance
             ]);
             
         } catch (\Exception $e) {
@@ -833,6 +838,216 @@ class BillingApiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve plan information'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wallet information including balance and UCN reference
+     */
+    public function getWalletInfo(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $billingAccount = $user->billingAccount;
+            $balance = $billingAccount ? $billingAccount->ai_credits : 0;
+
+            // Get or create UCN reference from billing platform
+            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
+            $apiKey = config('services.billing.api_key');
+
+            try {
+                // Try to fetch existing wallet from billing platform
+                $customerId = $user->id;
+                $productCode = 'safarichat';
+
+                $response = Http::withHeaders([
+                    'X-API-Key' => $apiKey,
+                    'Accept' => 'application/json'
+                ])->get("{$billingApiUrl}/wallet/{$customerId}", [
+                    'product_code' => $productCode
+                ]);
+
+                $ucnReference = null;
+
+                if ($response->successful() && isset($response->json()['data'])) {
+                    $walletData = $response->json()['data'];
+                    
+                    // Look for ai_credits wallet
+                    if (isset($walletData['wallets'])) {
+                        foreach ($walletData['wallets'] as $wallet) {
+                            if ($wallet['wallet_type'] === 'ai_credits' && $wallet['product_code'] === 'safarichat') {
+                                $ucnReference = $wallet['ucn_reference'] ?? null;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If no UCN reference found, create wallet
+                if (!$ucnReference) {
+                    $createResponse = Http::withHeaders([
+                        'X-API-Key' => $apiKey,
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json'
+                    ])->post("{$billingApiUrl}/wallet/create", [
+                        'student_id' => $customerId,
+                        'product_code' => $productCode,
+                        'wallet_type' => 'ai_credits',
+                        'customer' => [
+                            'name' => $user->name,
+                            'phone' => $user->phone ?? '',
+                            'email' => $user->email
+                        ]
+                    ]);
+
+                    if ($createResponse->successful() && isset($createResponse->json()['data']['ucn_reference'])) {
+                        $ucnReference = $createResponse->json()['data']['ucn_reference'];
+                    }
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'balance' => $balance,
+                        'ucn_reference' => $ucnReference,
+                        'wallet_type' => 'ai_credits',
+                        'currency' => 'TZS'
+                    ]
+                ]);
+
+            } catch (\Exception $apiError) {
+                Log::warning('Failed to fetch UCN from billing platform, using local balance only', [
+                    'error' => $apiError->getMessage()
+                ]);
+
+                // Return local balance without UCN reference
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'balance' => $balance,
+                        'ucn_reference' => null,
+                        'wallet_type' => 'ai_credits',
+                        'currency' => 'TZS'
+                    ]
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get wallet info', [
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve wallet information'
+            ], 500);
+        }
+    }
+
+    /**
+     * Top up wallet via payment gateway
+     */
+    public function topUpWallet(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $amount = $request->input('amount');
+            $paymentMethod = $request->input('payment_method', 'stripe');
+            $walletType = $request->input('wallet_type', 'ai_credits');
+
+            // Validate amount
+            if (!$amount || $amount < 1000) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Minimum top-up amount is TZS 1,000'
+                ], 400);
+            }
+
+            // Calculate units (credits) - 1 TZS = 1 credit
+            $units = $amount;
+            $unitPrice = 1;
+
+            // Create invoice via billing platform
+            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
+            $apiKey = config('services.billing.api_key');
+
+            $invoiceData = [
+                'product_code' => 'safarichat',
+                'invoice_type' => 'wallet_topup',
+                'customer' => [
+                    'name' => $user->name,
+                    'phone' => $user->phone ?? '',
+                    'email' => $user->email
+                ],
+                'amount' => $amount,
+                'currency' => 'TZS',
+                'units' => $units,
+                'unit_price' => $unitPrice,
+                'wallet_type' => $walletType,
+                'success_url' => route('billing.success', ['type' => 'wallet_topup']),
+                'cancel_url' => route('billing.cancel'),
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'payment_method' => $paymentMethod,
+                    'timestamp' => now()->toISOString()
+                ]
+            ];
+
+            $response = Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($billingApiUrl . '/create-invoice', $invoiceData);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                
+                Log::info('Wallet top-up invoice created', [
+                    'user_id' => $user->id,
+                    'amount' => $amount,
+                    'units' => $units,
+                    'invoice_id' => $responseData['data']['invoice']['invoice_id'] ?? 'unknown'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Top-up initiated successfully',
+                    'data' => [
+                        'invoice_id' => $responseData['data']['invoice']['invoice_id'] ?? null,
+                        'payment_url' => $responseData['data']['payment_session']['payment_url'] ?? null,
+                        'amount' => $amount,
+                        'credits' => $units
+                    ]
+                ]);
+            } else {
+                throw new \Exception('Billing API returned error: ' . $response->body());
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to initiate wallet top-up', [
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate top-up. Please try again.'
             ], 500);
         }
     }

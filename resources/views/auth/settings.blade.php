@@ -739,9 +739,9 @@
                                                     <div class="credit-amount">{{ number_format($available_credits) }}</div>
                                                     <div class="credit-label">Available AI Credits</div>
                                                     <small class="d-block mt-2" style="opacity: 0.8;">1 Credit = 4 AI Tokens</small>
-                                                    <button class="btn btn-light btn-sm mt-3" onclick="if(window.pricingControls) { window.pricingControls.showModal('AI Credits', 'Purchase additional AI credits to power your automated conversations.', false); } else { showUpgradeModal('AI Credits', 'Purchase additional AI credits to power your automated conversations.', false); }">
-                                                        <i class="fas fa-plus"></i> Buy More Credits
-                                                    </button>
+                                                    <a href="{{ route('billing.wallet') }}" class="btn btn-success btn-sm mt-3">
+                                                        <i class="fas fa-wallet"></i> Top Up Wallet
+                                                    </a>
                                                 </div>
                                                 
                                                 <!-- Quick Actions -->
