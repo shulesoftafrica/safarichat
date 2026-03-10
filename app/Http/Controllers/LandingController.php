@@ -299,7 +299,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "Hi there! I'm your AI Sales Agent. I help businesses close more deals through intelligent WhatsApp conversations. What can I tell you about my sales capabilities?",
-            'price' => "I offer transparent pricing starting from TSh 49,700/month for 497 AI messages. Each message I handle is actual sales work - qualifying leads, answering questions, and closing deals. What's your monthly conversation volume?",
+            'price' => "I offer transparent pricing starting from TSh 69,000/month for 497 AI messages. Each message I handle is actual sales work - qualifying leads, answering questions, and closing deals. What's your monthly conversation volume?",
             'help' => "I specialize in complete sales cycles - from lead capture to deal closure. I work 24/7, speak multiple languages, and never miss a follow-up. I can increase your conversion rates by 35% typically. What specific sales challenge are you facing?",
             'default' => "That's a great question! As your AI Sales Agent, I handle everything from lead qualification to price negotiation. I work within your guidelines to close deals professionally. Would you like to see specific examples of how I've helped other businesses?"
         ];
@@ -324,7 +324,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "¡Hola! Soy tu nuevo Agente de Ventas IA. Ayudo a empresas a cerrar más ventas a través de conversaciones inteligentes por WhatsApp. ¿Qué te gustaría saber sobre mis capacidades de ventas?",
-            'price' => "Ofrezco precios transparentes desde TSh 49,700/mes por 497 mensajes IA. Cada mensaje que manejo es trabajo real de ventas. ¿Cuál es tu volumen mensual de conversaciones?",
+            'price' => "Ofrezco precios transparentes desde TSh 69,000/mes por 497 mensajes IA. Cada mensaje que manejo es trabajo real de ventas. ¿Cuál es tu volumen mensual de conversaciones?",
             'help' => "Me especializo en ciclos completos de ventas. Trabajo 24/7, hablo múltiples idiomas y nunca pierdo seguimiento. Típicamente aumento las tasas de conversión en 35%. ¿Qué desafío específico de ventas tienes?",
             'default' => "¡Excelente pregunta! Como tu Agente de Ventas IA, manejo todo desde calificación de leads hasta negociación de precios. ¿Te gustaría ver ejemplos específicos de cómo he ayudado a otras empresas?"
         ];
@@ -334,7 +334,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "Olá! Sou seu novo Agente de Vendas IA. Ajudo empresas a fechar mais negócios através de conversas inteligentes no WhatsApp. O que gostaria de saber sobre minhas capacidades de vendas?",
-            'price' => "Ofereço preços transparentes a partir de TSh 49.700/mês por 497 mensagens IA. Cada mensagem que gerencio é trabalho real de vendas. Qual é seu volume mensal de conversas?",
+            'price' => "Ofereço preços transparentes a partir de TSh 69.000/mês por 497 mensagens IA. Cada mensagem que gerencio é trabalho real de vendas. Qual é seu volume mensal de conversas?",
             'help' => "Especializo-me em ciclos completos de vendas. Trabalho 24/7, falo múltiplos idiomas e nunca perco follow-ups. Tipicamente aumento as taxas de conversão em 35%. Que desafio específico de vendas você tem?",
             'default' => "Excelente pergunta! Como seu Agente de Vendas IA, gerencio tudo desde qualificação de leads até negociação de preços. Gostaria de ver exemplos específicos de como ajudei outras empresas?"
         ];
@@ -344,7 +344,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "नमस्ते! मैं आपका नया AI सेल्स एजेंट हूं। मैं व्यापारों को WhatsApp पर बुद्धिमान बातचीत के जरिए अधिक डील्स बंद करने में मदद करता हूं। मेरी सेल्स क्षमताओं के बारे में क्या जानना चाहेंगे?",
-            'price' => "मैं TSh 49,700/महीने से 497 AI संदेशों के लिए पारदर्शी कीमतें देता हूं। हर संदेश जो मैं संभालता हूं वह वास्तविक सेल्स काम है। आपका मासिक बातचीत वॉल्यूम क्या है?",
+            'price' => "मैं TSh 69,000/महीने से 497 AI संदेशों के लिए पारदर्शी कीमतें देता हूं। हर संदेश जो मैं संभालता हूं वह वास्तविक सेल्स काम है। आपका मासिक बातचीत वॉल्यूम क्या है?",
             'help' => "मैं पूर्ण सेल्स साइकिल्स में विशेषज्ञ हूं। मैं 24/7 काम करता हूं, कई भाषाएं बोलता हूं और कभी फॉलो-अप नहीं चूकता। आमतौर पर मैं कन्वर्जन रेट्स 35% बढ़ाता हूं। आपकी विशिष्ट सेल्स चुनौती क्या है?",
             'default' => "बेहतरीन सवाल! आपके AI सेल्स एजेंट के रूप में, मैं लीड क्वालिफिकेशन से लेकर प्राइस नेगोसिएशन तक सब कुछ संभालता हूं। क्या आप देखना चाहेंगे कि मैंने दूसरे बिजनेसेस की कैसे मदद की है?"
         ];
@@ -354,7 +354,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "مرحباً! أنا وكيل المبيعات الذكي الجديد. أساعد الشركات في إغلاق المزيد من الصفقات من خلال محادثات ذكية على واتساب. ماذا تود أن تعرف عن قدراتي في المبيعات؟",
-            'price' => "أقدم أسعاراً شفافة تبدأ من 49,700 شلن تنزاني شهرياً مقابل 497 رسالة ذكية. كل رسالة أتعامل معها هي عمل مبيعات حقيقي. ما حجم محادثاتك الشهرية؟",
+            'price' => "أقدم أسعاراً شفافة تبدأ من 69,000 شلن تنزاني شهرياً مقابل 497 رسالة ذكية. كل رسالة أتعامل معها هي عمل مبيعات حقيقي. ما حجم محادثاتك الشهرية؟",
             'help' => "أتخصص في دورات مبيعات كاملة. أعمل 24/7، أتحدث لغات متعددة ولا أفوت أي متابعة أبداً. عادة ما أزيد معدلات التحويل بنسبة 35%. ما التحدي المحدد في المبيعات الذي تواجهه؟",
             'default' => "سؤال ممتاز! كوكيل مبيعات ذكي، أتعامل مع كل شيء من تأهيل العملاء المحتملين إلى التفاوض على الأسعار. هل تود رؤية أمثلة محددة لكيفية مساعدتي للشركات الأخرى؟"
         ];
@@ -364,7 +364,7 @@ class LandingController extends Controller
     {
         return [
             'hello' => "Salut ! Je suis votre nouvel Agent Commercial IA. J'aide les entreprises à conclure plus d'affaires grâce à des conversations intelligentes sur WhatsApp. Que souhaitez-vous savoir sur mes capacités commerciales ?",
-            'price' => "J'offre des prix transparents à partir de 49 700 TSh/mois pour 497 messages IA. Chaque message que je gère est du vrai travail commercial. Quel est votre volume mensuel de conversations ?",
+            'price' => "J'offre des prix transparents à partir de 69 000 TSh/mois pour 497 messages IA. Chaque message que je gère est du vrai travail commercial. Quel est votre volume mensuel de conversations ?",
             'help' => "Je me spécialise dans les cycles de vente complets. Je travaille 24h/24 et 7j/7, parle plusieurs langues et ne manque jamais de suivi. J'augmente généralement les taux de conversion de 35%. Quel défi commercial spécifique avez-vous ?",
             'default' => "Excellente question ! En tant qu'Agent Commercial IA, je gère tout, de la qualification des prospects à la négociation des prix. Aimeriez-vous voir des exemples spécifiques de la façon dont j'ai aidé d'autres entreprises ?"
         ];

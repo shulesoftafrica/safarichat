@@ -106,10 +106,10 @@
                 
                 <!-- Navigation -->
                 <nav class="hidden md:flex space-x-8">
-                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors">{{ $content['navigation']['features'] ?? 'Features' }}</a>
-                    <a href="#pricing" class="text-gray-600 hover:text-primary transition-colors">{{ $content['navigation']['pricing'] ?? 'Pricing' }}</a>
-                    <a href="#demo" class="text-gray-600 hover:text-primary transition-colors">Demo</a>
-                    <a href="#contact" class="text-gray-600 hover:text-primary transition-colors">Contact</a>
+                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors">{{ __('landing.navigation.features') }}</a>
+                    <a href="#pricing" class="text-gray-600 hover:text-primary transition-colors">{{ __('landing.navigation.pricing') }}</a>
+                    <a href="#demo" class="text-gray-600 hover:text-primary transition-colors">{{ __('landing.navigation.demo') }}</a>
+                    <a href="#contact" class="text-gray-600 hover:text-primary transition-colors">{{ __('landing.navigation.contact') }}</a>
                 </nav>
                 
                 <!-- Language Switcher -->
@@ -127,7 +127,7 @@
                     
                     <!-- Login Button -->
                     <a href="{{ route('login') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
-                        {{ $content['navigation']['login'] ?? 'Login' }}
+                        {{ __('landing.navigation.login') }}
                     </a>
                 </div>
             </div>
@@ -139,25 +139,25 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center fade-in">
                 <h1 class="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                    {{ ($content['hero']['title'] ?? null) ?: 'Hi, I\'m your new AI Sales Agent. I close deals 24/7 while you focus on growing your business.' }}
+                    {{ __('landing.hero.title') }}
                 </h1>
                 <p class="text-xl lg:text-2xl mb-8 opacity-90 max-w-4xl mx-auto leading-relaxed">
-                    {{ ($content['hero']['subtitle'] ?? null) ?: 'I handle complete sales conversations, qualify your prospects, negotiate the best prices, and hand you ready-to-close deals.' }}
+                    {{ __('landing.hero.subtitle') }}
                 </p>
                 
                 <!-- CTAs -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                     <button onclick="scrollToDemo()" class="bg-secondary text-dark px-8 py-4 rounded-lg font-semibold hover:bg-secondary/90 transition-colors text-lg">
-                        {{ ($content['hero']['cta_primary'] ?? null) ?: 'Meet Your New Sales Rep' }}
+                        {{ __('landing.hero.cta_primary') }}
                     </button>
                     <button onclick="scrollToROI()" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition-colors text-lg">
-                        {{ ($content['hero']['cta_secondary'] ?? null) ?: 'See How Much I\'ll Earn You' }}
+                        {{ __('landing.hero.cta_secondary') }}
                     </button>
                 </div>
                 
                 <!-- Trust Indicators -->
                 <p class="text-sm opacity-80 max-w-3xl mx-auto">
-                    {{ ($content['hero']['trust_indicators'] ?? null) ?: 'I\'ve successfully closed deals for 500+ businesses globally. Available 24/7/365. Proven results guaranteed.' }}
+                    {{ __('landing.hero.trust_indicators') }}
                 </p>
             </div>
         </div>
@@ -166,22 +166,22 @@
     <!-- Track Record Section -->
     <section class="py-16 bg-accent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl font-bold text-dark mb-4">{{ $content['track_record']['title'] ?? 'My Track Record' }}</h2>
-            <p class="text-xl text-gray-600 mb-12">{{ $content['track_record']['results'] ?? 'Proven results across industries' }}</p>
+            <h2 class="text-3xl font-bold text-dark mb-4">{{ __('landing.track_record.title') }}</h2>
+            <p class="text-xl text-gray-600 mb-12">{{ __('landing.track_record.results') }}</p>
             
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <div class="text-3xl font-bold text-primary mb-2">500+</div>
-                    <div class="text-gray-600">Businesses Served</div>
+                    <div class="text-3xl font-bold text-primary mb-2">{{ __('landing.track_record.stats.businesses.number') }}</div>
+                    <div class="text-gray-600">{{ __('landing.track_record.stats.businesses.label') }}</div>
                 </div>
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <div class="text-3xl font-bold text-primary mb-2">2M+</div>
-                    <div class="text-gray-600">Conversations Handled</div>
+                    <div class="text-3xl font-bold text-primary mb-2">{{ __('landing.track_record.stats.conversations.number') }}</div>
+                    <div class="text-gray-600">{{ __('landing.track_record.stats.conversations.label') }}</div>
                 </div>
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <div class="text-3xl font-bold text-primary mb-2">$50M+</div>
-                    <div class="text-gray-600">Deals Tracked</div>
+                    <div class="text-3xl font-bold text-primary mb-2">{{ __('landing.track_record.stats.deals.number') }}</div>
+                    <div class="text-gray-600">{{ __('landing.track_record.stats.deals.label') }}</div>
                 </div>
             </div>
         </div>
@@ -190,14 +190,14 @@
     <!-- Problems & Solutions Section -->
     <section class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ $content['problems_solutions']['title'] ?? 'Problems I Solve → Value I Deliver' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ __('landing.problems_solutions.title') }}</h2>
             
             <div class="grid lg:grid-cols-2 gap-12 items-start">
                 <!-- Problems -->
                 <div class="bg-red-50 rounded-lg p-8">
-                    <h3 class="text-2xl font-bold text-red-700 mb-6">{{ $content['problems_solutions']['problems_title'] ?? 'Your Current Sales Challenges' }}</h3>
+                    <h3 class="text-2xl font-bold text-red-700 mb-6">{{ __('landing.problems_solutions.problems_title') }}</h3>
                     <ul class="space-y-4">
-                        @foreach($content['problems_solutions']['problems'] ?? [] as $problem)
+                        @foreach(__('landing.problems_solutions.problems') as $problem)
                         <li class="flex items-start">
                             <span class="text-red-500 mr-3">❌</span>
                             <span class="text-gray-700">{{ $problem }}</span>
@@ -208,9 +208,9 @@
                 
                 <!-- Solutions -->
                 <div class="bg-green-50 rounded-lg p-8">
-                    <h3 class="text-2xl font-bold text-green-700 mb-6">{{ $content['problems_solutions']['solutions_title'] ?? 'How I Solve Them Personally' }}</h3>
+                    <h3 class="text-2xl font-bold text-green-700 mb-6">{{ __('landing.problems_solutions.solutions_title') }}</h3>
                     <ul class="space-y-4">
-                        @foreach($content['problems_solutions']['solutions'] ?? [] as $solution)
+                        @foreach(__('landing.problems_solutions.solutions') as $solution)
                         <li class="flex items-start">
                             <span class="text-green-500 mr-3">✅</span>
                             <span class="text-gray-700">{{ $solution }}</span>
@@ -225,14 +225,13 @@
     <!-- Core Skills Section -->
     <section id="features" class="py-20 bg-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ ($content['skills']['title'] ?? null) ?: 'My Core Sales Skills' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ __('landing.skills.title') }}</h2>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @if(isset($content['skills']['sales_conversations']) && is_array($content['skills']['sales_conversations']))
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['sales_conversations']['title'] ?? 'Sales Conversations' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4">{{ __('landing.skills.sales_conversations.title') }}</h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['sales_conversations']['points'] ?? []) as $point)
+                        @foreach(__('landing.skills.sales_conversations.points') as $point)
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
                             {{ $point }}
@@ -240,13 +239,11 @@
                         @endforeach
                     </ul>
                 </div>
-                @endif
 
-                @if(isset($content['skills']['lead_management']) && is_array($content['skills']['lead_management']))
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['lead_management']['title'] ?? 'Lead Management' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4">{{ __('landing.skills.lead_management.title') }}</h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['lead_management']['points'] ?? []) as $point)
+                        @foreach(__('landing.skills.lead_management.points') as $point)
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
                             {{ $point }}
@@ -254,13 +251,11 @@
                         @endforeach
                     </ul>
                 </div>
-                @endif
 
-                @if(isset($content['skills']['campaigns']) && is_array($content['skills']['campaigns']))
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['campaigns']['title'] ?? 'Campaign Management' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4">{{ __('landing.skills.campaigns.title') }}</h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['campaigns']['points'] ?? []) as $point)
+                        @foreach(__('landing.skills.campaigns.points') as $point)
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
                             {{ $point }}
@@ -268,13 +263,11 @@
                         @endforeach
                     </ul>
                 </div>
-                @endif
 
-                @if(isset($content['skills']['collaboration']) && is_array($content['skills']['collaboration']))
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['collaboration']['title'] ?? 'Team Collaboration' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4">{{ __('landing.skills.collaboration.title') }}</h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['collaboration']['points'] ?? []) as $point)
+                        @foreach(__('landing.skills.collaboration.points') as $point)
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
                             {{ $point }}
@@ -282,13 +275,11 @@
                         @endforeach
                     </ul>
                 </div>
-                @endif
 
-                @if(isset($content['skills']['whatsapp_management']) && is_array($content['skills']['whatsapp_management']))
                 <div class="bg-white rounded-lg p-6 shadow-sm">
-                    <h3 class="text-xl font-bold text-primary mb-4">{{ $content['skills']['whatsapp_management']['title'] ?? 'WhatsApp Management' }}</h3>
+                    <h3 class="text-xl font-bold text-primary mb-4">{{ __('landing.skills.whatsapp_management.title') }}</h3>
                     <ul class="space-y-2 text-gray-600">
-                        @foreach(($content['skills']['whatsapp_management']['points'] ?? []) as $point)
+                        @foreach(__('landing.skills.whatsapp_management.points') as $point)
                         <li class="flex items-start">
                             <span class="text-primary mr-2">•</span>
                             {{ $point }}
@@ -296,7 +287,6 @@
                         @endforeach
                     </ul>
                 </div>
-                @endif
             </div>
         </div>
     </section>
@@ -305,8 +295,8 @@
     <section id="demo" class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['demo']['title'] ?? null) ?: 'See Me In Action' }}</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ ($content['demo']['description'] ?? null) ?: 'Interactive chat where you can talk to me directly' }}</p>
+                <h2 class="text-4xl font-bold text-dark mb-4">{{ __('landing.demo.title') }}</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ __('landing.demo.description') }}</p>
             </div>
             
             <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
@@ -314,26 +304,26 @@
                 <div class="bg-primary text-white p-4 flex items-center">
                     <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
                     <div>
-                        <div class="font-semibold">AI Sales Agent</div>
-                        <div class="text-sm opacity-75">Online • Responds instantly</div>
+                        <div class="font-semibold">{{ __('landing.demo.chat_header') }}</div>
+                        <div class="text-sm opacity-75">{{ __('landing.demo.chat_status') }}</div>
                     </div>
                 </div>
                 
                 <!-- Chat Messages -->
                 <div id="chatMessages" class="h-96 overflow-y-auto p-4 bg-gray-50">
                     <div class="chat-bubble-ai">
-                        {{ ($content['demo']['welcome'] ?? null) ?: 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!' }}
+                        {{ __('landing.demo.welcome') }}
                     </div>
                 </div>
                 
                 <!-- Chat Input -->
                 <div class="border-t bg-white p-4">
                     <div class="flex space-x-2">
-                        <input type="text" id="chatInput" placeholder="Type your message..." 
+                        <input type="text" id="chatInput" placeholder="{{ __('landing.demo.chat_placeholder') }}" 
                                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         <button onclick="sendMessage()" 
                                 class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-                            Send
+                            {{ __('landing.demo.chat_button') }}
                         </button>
                     </div>
                 </div>
@@ -345,48 +335,48 @@
     <section id="roi" class="py-20 bg-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">Calculate How Much Money I'll Make You</h2>
-                <p class="text-xl text-gray-600">See exact revenue projections based on your business</p>
+                <h2 class="text-4xl font-bold text-dark mb-4">{{ __('landing.roi_calculator.title') }}</h2>
+                <p class="text-xl text-gray-600">{{ __('landing.roi_calculator.description') }}</p>
             </div>
             
             <div class="max-w-4xl mx-auto grid lg:grid-cols-2 gap-8">
                 <!-- Input Form -->
                 <div class="bg-white rounded-lg p-8 shadow-sm">
-                    <h3 class="text-2xl font-bold mb-6">Your Business Details</h3>
+                    <h3 class="text-2xl font-bold mb-6">{{ __('landing.roi_calculator.section_title') }}</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Team Size</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.roi_calculator.form.team_size') }}</label>
                             <input type="number" id="teamSize" value="3" min="1" 
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Average Deal Size ({{ $currency }})</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.roi_calculator.form.deal_size') }} ({{ $currency }})</label>
                             <input type="number" id="avgDealSize" value="1000" min="1"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Leads</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.roi_calculator.form.monthly_leads') }}</label>
                             <input type="number" id="monthlyLeads" value="100" min="1"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Current Conversion Rate (%)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.roi_calculator.form.conversion_rate') }}</label>
                             <input type="number" id="conversionRate" value="10" min="0" max="100" step="0.1"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <button onclick="calculateROI()" 
                                 class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                            Calculate My Value
+                            {{ __('landing.roi_calculator.form.calculate_button') }}
                         </button>
                     </div>
                 </div>
                 
                 <!-- Results Display -->
                 <div class="bg-white rounded-lg p-8 shadow-sm">
-                    <h3 class="text-2xl font-bold mb-6">Your ROI with AI Sales Agent</h3>
+                    <h3 class="text-2xl font-bold mb-6">{{ __('landing.roi_calculator.results_title') }}</h3>
                     <div id="roiResults" class="space-y-4">
                         <div class="text-center text-gray-500 py-8">
-                            <p>Enter your details and click "Calculate My Value" to see your personalized ROI projection</p>
+                            <p>{{ __('landing.roi_calculator.results_placeholder') }}</p>
                         </div>
                     </div>
                 </div>
@@ -398,76 +388,76 @@
     <section id="pricing" class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['pricing']['header'] ?? null) ?: 'Simple, transparent pricing — only pay for the AI messages you use.' }}</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ ($content['pricing']['subheader'] ?? null) ?: 'Choose a plan based on your monthly message volume. Higher plans include more AI sales messages at a lower cost per message.' }}</p>
+                <h2 class="text-4xl font-bold text-dark mb-4">{{ __('landing.pricing.header') }}</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ __('landing.pricing.subheader') }}</p>
             </div>
             
             <div class="grid md:grid-cols-3 gap-8">
                 <!-- Starter Plan -->
                 <div class="pricing-card bg-white rounded-lg p-8 border-2 border-gray-200 relative">
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['starter_plan'] ?? null) ?: 'Starter Plan' }}</h3>
+                    <h3 class="text-2xl font-bold text-dark mb-2">{{ __('landing.pricing.starter_plan') }}</h3>
                     <div class="text-4xl font-bold text-primary mb-4">
                         {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['starter']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
+                        <span class="text-lg font-normal text-gray-600">{{ __('landing.pricing.per_month') }}</span>
                     </div>
                    
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['starter']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
+                    <p class="text-gray-600 mb-6">{{ __('landing.pricing.includes') }} {{ number_format($pricingData['plans']['starter']['messages'] ?? 0) }} {{ __('landing.pricing.ai_messages') }}</p>
                     <div class="text-sm text-gray-500 mb-6">
-                        {{ ($content['pricing']['effective_rate'] ?? null) ?: 'Effective rate' }}: {{ $pricingData['symbol'] }}{{ $pricingData['plans']['starter']['rate'] }} {{ ($content['pricing']['per_message'] ?? null) ?: 'per message' }}
+                        {{ __('landing.pricing.effective_rate') }}: {{ $pricingData['symbol'] }}{{ $pricingData['plans']['starter']['rate'] }} {{ __('landing.pricing.per_message') }}
                     </div>
                     
                     <button class="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
+                        {{ __('landing.pricing.get_started') }}
                     </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: Small businesses, startups</p>
+                    <p class="text-sm text-gray-500 mt-4">{{ __('landing.pricing.perfect_for') }}: Small businesses, startups</p>
                 </div>
                 
                 <!-- Pro Plan -->
                 <div class="pricing-card bg-white rounded-lg p-8 border-2 border-primary relative transform scale-105">
                     <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span class="bg-secondary text-dark px-4 py-1 rounded-full text-sm font-semibold">{{ ($content['pricing']['most_popular'] ?? null) ?: 'Most Popular' }}</span>
+                        <span class="bg-secondary text-dark px-4 py-1 rounded-full text-sm font-semibold">{{ __('landing.pricing.most_popular') }}</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['pro_plan'] ?? null) ?: 'Pro Plan' }}</h3>
+                    <h3 class="text-2xl font-bold text-dark mb-2">{{ __('landing.pricing.pro_plan') }}</h3>
                     <div class="text-4xl font-bold text-primary mb-4">
                         {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['pro']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
+                        <span class="text-lg font-normal text-gray-600">{{ __('landing.pricing.per_month') }}</span>
                     </div>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ is_array($pricingData['plans']['pro']['messages']) ? number_format($pricingData['plans']['pro']['messages'][0] ?? 0) : number_format($pricingData['plans']['pro']['messages']) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['pro']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
+                    <p class="text-gray-600 mb-6">{{ __('landing.pricing.includes') }} {{ is_array($pricingData['plans']['pro']['messages']) ? number_format($pricingData['plans']['pro']['messages'][0] ?? 0) : number_format($pricingData['plans']['pro']['messages']) }} {{ __('landing.pricing.ai_messages') }}</p>
+                    <p class="text-gray-600 mb-6">{{ __('landing.pricing.includes') }} {{ number_format($pricingData['plans']['pro']['messages'] ?? 0) }} {{ __('landing.pricing.ai_messages') }}</p>
                     <div class="text-sm text-gray-500 mb-6">
                     </div>
                     <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
+                        {{ __('landing.pricing.get_started') }}
                     </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: Growing businesses, schools</p>
+                    <p class="text-sm text-gray-500 mt-4">{{ __('landing.pricing.perfect_for') }}: Growing businesses, schools</p>
                 </div>
                 
                 <!-- Enterprise Plan -->
                 <div class="pricing-card bg-white rounded-lg p-8 border-2 border-gray-200 relative">
                     <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span class="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">{{ ($content['pricing']['best_value'] ?? null) ?: 'Best Value' }}</span>
+                        <span class="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">{{ __('landing.pricing.best_value') }}</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-dark mb-2">{{ ($content['pricing']['enterprise_plan'] ?? null) ?: 'Enterprise Plan' }}</h3>
+                    <h3 class="text-2xl font-bold text-dark mb-2">{{ __('landing.pricing.enterprise_plan') }}</h3>
                     <div class="text-4xl font-bold text-primary mb-4">
                         {{ $pricingData['symbol'] }}{{ number_format($pricingData['plans']['enterprise']['price'], 2) }}
-                        <span class="text-lg font-normal text-gray-600">{{ ($content['pricing']['per_month'] ?? null) ?: '/month' }}</span>
+                        <span class="text-lg font-normal text-gray-600">{{ __('landing.pricing.per_month') }}</span>
                     </div>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ is_array($pricingData['plans']['enterprise']['messages']) ? number_format($pricingData['plans']['enterprise']['messages'][0] ?? 0) : number_format($pricingData['plans']['enterprise']['messages']) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
-                    <p class="text-gray-600 mb-6">{{ ($content['pricing']['includes'] ?? null) ?: 'Includes' }} {{ number_format($pricingData['plans']['enterprise']['messages'] ?? 0) }} {{ ($content['pricing']['ai_messages'] ?? null) ?: 'AI messages' }}</p>
+                    <p class="text-gray-600 mb-6">{{ __('landing.pricing.includes') }} {{ is_array($pricingData['plans']['enterprise']['messages']) ? number_format($pricingData['plans']['enterprise']['messages'][0] ?? 0) : number_format($pricingData['plans']['enterprise']['messages']) }} {{ __('landing.pricing.ai_messages') }}</p>
+                    <p class="text-gray-600 mb-6">{{ __('landing.pricing.includes') }} {{ number_format($pricingData['plans']['enterprise']['messages'] ?? 0) }} {{ __('landing.pricing.ai_messages') }}</p>
                     <div class="text-sm text-gray-500 mb-6">
                     </div>
                     <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                        {{ ($content['pricing']['get_started'] ?? null) ?: 'Get Started' }}
+                        {{ __('landing.pricing.get_started') }}
                     </button>
-                    <p class="text-sm text-gray-500 mt-4">{{ ($content['pricing']['perfect_for'] ?? null) ?: 'Perfect for' }}: High-volume organizations</p>
+                    <p class="text-sm text-gray-500 mt-4">{{ __('landing.pricing.perfect_for') }}: High-volume organizations</p>
                 </div>
             </div>
             
             <p class="text-center text-gray-600 mt-8 max-w-3xl mx-auto">
-                {{ ($content['pricing']['footer_note'] ?? null) ?: 'SafariChat helps you close deals — every AI message is a real sales interaction that moves your customers toward buying.' }}
+                {{ __('landing.pricing.footer_note') }}
             </p>
             <p class="text-center text-sm text-gray-500 mt-4">
-                {{ ($content['pricing']['overage_rate'] ?? null) ?: 'Additional messages at' }} {{ $pricingData['symbol'] }}{{ $pricingData['plans']['overage_rate'] }} {{ ($content['pricing']['per_message'] ?? null) ?: 'per message' }}
+                {{ __('landing.pricing.overage.description') }} {{ $pricingData['symbol'] }}{{ $pricingData['plans']['overage_rate'] }} {{ __('landing.pricing.per_message') }}
             </p>
         </div>
     </section>
@@ -475,31 +465,31 @@
     <!-- Industries Section -->
     <section class="py-20 bg-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ $content['industries']['title'] ?? 'Industries Where I Excel' }}</h2>
+            <h2 class="text-4xl font-bold text-center text-dark mb-16">{{ __('landing.industries.title') }}</h2>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🏦</div>
                     <h3 class="text-lg font-semibold mb-2">Financial Services</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['financial'] ?? 'I\'ve helped banks automate loan applications' }}</p>
+                    <p class="text-gray-600 text-sm">{{ __('landing.industries.financial') }}</p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🎓</div>
                     <h3 class="text-lg font-semibold mb-2">Education</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['education'] ?? 'I handle student inquiries expertly' }}</p>
+                    <p class="text-gray-600 text-sm">{{ __('landing.industries.education') }}</p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">🛒</div>
                     <h3 class="text-lg font-semibold mb-2">E-commerce</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['ecommerce'] ?? 'I recommend products and recover sales' }}</p>
+                    <p class="text-gray-600 text-sm">{{ __('landing.industries.ecommerce') }}</p>
                 </div>
                 
                 <div class="bg-white rounded-lg p-6 shadow-sm text-center">
                     <div class="text-4xl mb-4">💼</div>
                     <h3 class="text-lg font-semibold mb-2">Professional Services</h3>
-                    <p class="text-gray-600 text-sm">{{ $content['industries']['professional'] ?? 'I book appointments flawlessly' }}</p>
+                    <p class="text-gray-600 text-sm">{{ __('landing.industries.professional') }}</p>
                 </div>
             </div>
         </div>
@@ -509,20 +499,20 @@
     <section id="contact" class="py-20">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-dark mb-4">{{ ($content['contact_form']['title'] ?? null) ?: 'How to Get Started Working With Me' }}</h2>
-                <p class="text-xl text-gray-600">Ready to hire your AI Sales Agent? Let's discuss your needs.</p>
+                <h2 class="text-4xl font-bold text-dark mb-4">{{ __('landing.contact_form.title') }}</h2>
+                <p class="text-xl text-gray-600">{{ __('landing.contact_form.subtitle') }}</p>
             </div>
             
             <div class="bg-white rounded-lg shadow-lg p-8">
                 <form id="contactForm" class="space-y-6">
                     <div class="grid md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.contact_form.fields.company_name') }}</label>
                             <input type="text" name="company" required 
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.contact_form.fields.your_name') }}</label>
                             <input type="text" name="name" required 
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
@@ -530,34 +520,34 @@
                     
                     <div class="grid md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.contact_form.fields.email') }}</label>
                             <input type="email" name="email" required 
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.contact_form.fields.industry') }}</label>
                             <select name="industry" required 
                                     class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
-                                <option value="">Select Industry</option>
-                                <option value="financial">Financial Services</option>
-                                <option value="education">Education</option>
-                                <option value="ecommerce">E-commerce</option>
-                                <option value="healthcare">Healthcare</option>
-                                <option value="real-estate">Real Estate</option>
-                                <option value="other">Other</option>
+                                <option value="">{{ __('landing.contact_form.fields.select_industry') }}</option>
+                                <option value="financial">{{ __('landing.contact_form.industries.financial') }}</option>
+                                <option value="education">{{ __('landing.contact_form.industries.education') }}</option>
+                                <option value="ecommerce">{{ __('landing.contact_form.industries.ecommerce') }}</option>
+                                <option value="healthcare">{{ __('landing.contact_form.industries.healthcare') }}</option>
+                                <option value="real-estate">{{ __('landing.contact_form.industries.real_estate') }}</option>
+                                <option value="other">{{ __('landing.contact_form.industries.other') }}</option>
                             </select>
                         </div>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">What's your biggest sales challenge?</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('landing.contact_form.fields.message') }}</label>
                         <textarea name="message" rows="4" required 
                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
                     </div>
                     
                     <button type="submit" 
                             class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                        Get Started with AI Sales Agent
+                        {{ __('landing.contact_form.button_submit') }}
                     </button>
                 </form>
             </div>
@@ -573,48 +563,46 @@
                     <div class="flex items-center mb-4">
                         <span class="text-xl font-bold text-secondary">SafariChat</span>
                     </div>
-                    <p class="text-gray-300 mb-4">{{ $content['footer']['tagline'] ?? 'Your Personal AI Sales Professional' }}</p>
+                    <p class="text-gray-300 mb-4">{{ __('landing.footer.tagline') }}</p>
                 </div>
                 
                 <!-- Links -->
                 <div>
                     <h4 class="font-semibold mb-4">Company</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['contact'] ?? 'Contact' }}</a></li>
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['enterprise_sales'] ?? 'Enterprise Sales' }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors">{{ __('landing.footer.contact') }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors">{{ __('landing.footer.enterprise_sales') }}</a></li>
                     </ul>
                 </div>
                 
                 <div>
                     <h4 class="font-semibold mb-4">Resources</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['technical_docs'] ?? 'Technical Documentation' }}</a></li>
-                        <li><a href="#" class="hover:text-secondary transition-colors">{{ $content['footer']['api_documentation'] ?? 'API Documentation' }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors">{{ __('landing.footer.technical_docs') }}</a></li>
+                        <li><a href="#" class="hover:text-secondary transition-colors">{{ __('landing.footer.api_documentation') }}</a></li>
                     </ul>
                 </div>
                 
                 <div>
                     <h4 class="font-semibold mb-4">Legal</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="/privacy" class="hover:text-secondary transition-colors">{{ $content['footer']['privacy_policy'] ?? 'Privacy Policy' }}</a></li>
-                        <li><a href="/terms" class="hover:text-secondary transition-colors">{{ $content['footer']['terms_of_service'] ?? 'Terms of Service' }}</a></li>
+                        <li><a href="/privacy" class="hover:text-secondary transition-colors">{{ __('landing.footer.privacy_policy') }}</a></li>
+                        <li><a href="/terms" class="hover:text-secondary transition-colors">{{ __('landing.footer.terms_of_service') }}</a></li>
                     </ul>
                 </div>
             </div>
             
             <!-- Compliance Badges -->
-            @if(isset($content['compliance']))
             <div class="border-t border-gray-700 pt-8 mb-8">
-                <h4 class="font-semibold mb-4">{{ $content['compliance']['title'] }}</h4>
+                <h4 class="font-semibold mb-4">{{ __('landing.compliance.title') }}</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    @foreach($content['compliance']['badges'] as $badge)
+                    @foreach(__('landing.compliance.badges') as $badge)
                     <div class="bg-gray-700 rounded px-3 py-2 text-xs text-center">
                         ✓ {{ $badge }}
                     </div>
                     @endforeach
                 </div>
             </div>
-            @endif
             
             <!-- Copyright -->
             <div class="border-t border-gray-700 pt-8 text-center text-gray-400">
@@ -782,13 +770,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Thank you! We\'ll be in touch soon.');
+                    alert('{{ __('landing.contact_form.success_message') }}');
                     this.reset();
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Something went wrong. Please try again.');
+                alert('{{ __('landing.contact_form.error_message') }}');
             });
         });
 

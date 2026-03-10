@@ -44,9 +44,9 @@
                     </div>
                     <small class="text-muted">
                         @if(isset($alert['stats']['remaining']))
-                            {{ number_format($alert['stats']['remaining']) }} remaining
+                            {{ number_format($alert['stats']['remaining']) }} {{ __('common.remaining') }}
                         @else
-                            {{ $alert['stats']['current'] }}/{{ $alert['stats']['max'] }} used
+                            {{ $alert['stats']['current'] }}/{{ $alert['stats']['max'] }} {{ __('common.used') }}
                         @endif
                     </small>
                 @endif
@@ -70,7 +70,7 @@
     <div class="card-header bg-primary text-white">
         <h6 class="mb-0">
             <i class="fas fa-credit-card me-2"></i>
-            Subscription: {{ $billingSummary['plan_type'] }}
+            {{ __('common.subscription') }}: {{ $billingSummary['plan_type'] }}
         </h6>
     </div>
     <div class="card-body">
@@ -78,7 +78,7 @@
         @if(!$billingSummary['credits']['unlimited'])
         <div class="mb-3">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <small class="text-muted">AI Credits</small>
+                <small class="text-muted">{{ __('common.ai_credits') }}</small>
                 <small class="fw-bold">{{ number_format($billingSummary['credits']['remaining']) }}</small>
             </div>
             <div class="progress" style="height: 6px;">
@@ -96,8 +96,8 @@
         </div>
         @else
         <div class="mb-3">
-            <small class="text-muted">AI Credits:</small>
-            <span class="badge bg-success ms-2">Unlimited</span>
+            <small class="text-muted">{{ __('common.ai_credits') }}:</small>
+            <span class="badge bg-success ms-2">{{ __('common.unlimited') }}</span>
         </div>
         @endif
 
@@ -105,7 +105,7 @@
         @if(!$billingSummary['contacts']['unlimited'])
         <div class="mb-3">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <small class="text-muted">Contacts</small>
+                <small class="text-muted">{{ __('common.contacts') }}</small>
                 <small class="fw-bold">{{ $billingSummary['contacts']['current'] }}/{{ $billingSummary['contacts']['limit'] }}</small>
             </div>
             <div class="progress" style="height: 6px;">
@@ -123,17 +123,17 @@
         </div>
         @else
         <div class="mb-3">
-            <small class="text-muted">Contacts:</small>
-            <span class="badge bg-success ms-2">Unlimited</span>
+            <small class="text-muted">{{ __('common.contacts') }}:</small>
+            <span class="badge bg-success ms-2">{{ __('common.unlimited') }}</span>
         </div>
         @endif
 
         {{-- Booking Calendars --}}
         <div class="mb-0">
             <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">Booking Calendars</small>
+                <small class="text-muted">{{ __('common.booking_calendars') }}</small>
                 @if($billingSummary['calendars']['unlimited'])
-                    <span class="badge bg-success">Unlimited</span>
+                    <span class="badge bg-success">{{ __('common.unlimited') }}</span>
                 @else
                     <small class="fw-bold">{{ $billingSummary['calendars']['current'] }}/{{ $billingSummary['calendars']['limit'] }}</small>
                 @endif
@@ -146,7 +146,7 @@
         <div class="alert alert-warning p-2 mb-0">
             <small>
                 <i class="fas fa-clock me-1"></i>
-                Trial ends: {{ \Carbon\Carbon::parse($billingSummary['trial_ends_at'])->diffForHumans() }}
+                {{ __('common.trial_ends') }}: {{ \Carbon\Carbon::parse($billingSummary['trial_ends_at'])->diffForHumans() }}
             </small>
         </div>
         @endif
@@ -166,5 +166,88 @@
 }
 .billing-alerts-container .alert-info {
     border-left-color: #0dcaf0;
+}
+
+/* Dark Mode Support for Billing Alerts */
+.dark-mode .billing-alerts-container .alert {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .billing-alerts-container .alert-danger {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-left-color: #ef4444 !important;
+    color: #fecaca !important;
+}
+
+.dark-mode .billing-alerts-container .alert-warning {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-left-color: #f59e0b !important;
+    color: #fde68a !important;
+}
+
+.dark-mode .billing-alerts-container .alert-info {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-left-color: #3b82f6 !important;
+    color: #bfdbfe !important;
+}
+
+.dark-mode .billing-alerts-container .alert strong {
+    color: #f7fafc !important;
+    font-weight: 700 !important;
+}
+
+.dark-mode .billing-alerts-container .alert div {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .billing-alerts-container .alert .text-muted,
+.dark-mode .billing-alerts-container .alert small {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .card {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .card-header {
+    background: #374151 !important;
+    border-bottom-color: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .card-header h6 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .card-body {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .card-body small {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .card-body .text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .badge.bg-success {
+    background: #10b981 !important;
+    color: white !important;
+}
+
+.dark-mode .alert.alert-warning {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-color: #f59e0b !important;
+    color: #fde68a !important;
+}
+
+.dark-mode .progress {
+    background-color: #4a5568 !important;
 }
 </style>

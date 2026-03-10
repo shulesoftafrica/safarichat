@@ -7,13 +7,13 @@
             <div class="page-title-box d-flex justify-content-between align-items-center">
                 <div>
                     <h4 class="page-title">
-                        <i class="fas fa-calendar-check text-success mr-2"></i>Appointment Details
+                        <i class="fas fa-calendar-check text-success mr-2"></i>{{ __("appointments.details_title") }}
                     </h4>
-                    <p class="text-muted mb-0">View and manage appointment information</p>
+                    <p class="text-muted mb-0">{{ __("appointments.details_subtitle") }}</p>
                 </div>
                 <div>
                     <a href="{{ route('appointments.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left mr-1"></i>Back to List
+                        <i class="fas fa-arrow-left mr-1"></i>{{ __("appointments.actions.back_to_list") }}
                     </a>
                 </div>
             </div>
@@ -43,7 +43,7 @@
         <!-- Main Appointment Info -->
         <div class="col-lg-8">
             <div class="card shadow-sm mb-4 border-primary">
-                <div class="card-header bg-gradient-primary text-white">
+                <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>{{ $appointment->title }}</h4>
                         @php
@@ -65,7 +65,7 @@
                         <div class="col-md-4">
                             <div class="info-box text-center p-3 bg-light rounded">
                                 <i class="far fa-calendar fa-2x text-primary mb-2"></i>
-                                <h6 class="text-muted mb-1">Date</h6>
+                                <h6 class="text-muted mb-1">{{ __("appointments.details.date") }}</h6>
                                 <p class="mb-0 h5">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('M d, Y') }}</p>
                                 <p class="mb-0 text-muted small">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('l') }}</p>
                             </div>
@@ -73,15 +73,15 @@
                         <div class="col-md-4">
                             <div class="info-box text-center p-3 bg-light rounded">
                                 <i class="far fa-clock fa-2x text-success mb-2"></i>
-                                <h6 class="text-muted mb-1">Time</h6>
+                                <h6 class="text-muted mb-1">{{ __("appointments.details.time") }}</h6>
                                 <p class="mb-0 h5">{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('g:i A') }}</p>
-                                <p class="mb-0 text-muted small">{{ $appointment->duration_minutes ?? 60 }} minutes</p>
+                                <p class="mb-0 text-muted small">{{ $appointment->duration_minutes ?? 60 }} {{ __("appointments.details.minutes") }}</p>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="info-box text-center p-3 bg-light rounded">
                                 <i class="fas fa-tag fa-2x text-info mb-2"></i>
-                                <h6 class="text-muted mb-1">Type</h6>
+                                <h6 class="text-muted mb-1">{{ __("appointments.details.type") }}</h6>
                                 <p class="mb-0 h5">{{ ucfirst(str_replace('_', ' ', $appointment->appointment_type)) }}</p>
                                 <p class="mb-0 text-muted small">{{ $appointment->created_at->diffForHumans() }}</p>
                             </div>
@@ -92,7 +92,7 @@
                     @if($appointment->description)
                     <div class="mb-4">
                         <div class="border-left-primary p-3 bg-light">
-                            <h6 class="text-primary mb-2"><i class="fas fa-file-alt mr-2"></i>Description</h6>
+                            <h6 class="text-primary mb-2"><i class="fas fa-file-alt mr-2"></i>{{ __("appointments.details.description") }}</h6>
                             <p class="mb-0" style="white-space: pre-wrap;">{{ $appointment->description }}</p>
                         </div>
                     </div>
@@ -102,7 +102,7 @@
                     <hr>
                     <div class="row mb-3">
                         <div class="col-12">
-                            <h6 class="text-muted mb-1"><i class="fas fa-map-marker-alt mr-1"></i>Location</h6>
+                            <h6 class="text-muted mb-1"><i class="fas fa-map-marker-alt mr-1"></i>{{ __("appointments.details.location") }}</h6>
                             <p class="mb-0">{{ $appointment->location }}</p>
                         </div>
                     </div>
@@ -112,7 +112,7 @@
                     <hr>
                     <div class="row mb-3">
                         <div class="col-12">
-                            <h6 class="text-muted mb-1"><i class="fas fa-link mr-1"></i>Meeting Link</h6>
+                            <h6 class="text-muted mb-1"><i class="fas fa-link mr-1"></i>{{ __("appointments.details.meeting_link") }}</h6>
                             <p class="mb-0">
                                 <a href="{{ $appointment->meeting_link }}" target="_blank" class="text-primary">
                                     {{ $appointment->meeting_link }} <i class="fas fa-external-link-alt ml-1"></i>
@@ -126,7 +126,7 @@
                     <hr>
                     <div class="row">
                         <div class="col-12">
-                            <h6 class="text-muted mb-1"><i class="fas fa-sticky-note mr-1"></i>Notes</h6>
+                            <h6 class="text-muted mb-1"><i class="fas fa-sticky-note mr-1"></i>{{ __("appointments.details.notes") }}</h6>
                             <p class="mb-0">{{ $appointment->notes }}</p>
                         </div>
                     </div>
@@ -135,7 +135,7 @@
                     @if($appointment->cancellation_reason)
                     <hr>
                     <div class="alert alert-warning mb-0">
-                        <h6 class="mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>Cancellation Reason</h6>
+                        <h6 class="mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>{{ __("appointments.details.cancellation_reason") }}</h6>
                         <p class="mb-0">{{ $appointment->cancellation_reason }}</p>
                     </div>
                     @endif
@@ -145,8 +145,8 @@
             <!-- Customer Information -->
             @if($appointment->lead)
             <div class="card shadow-sm mb-4 border-info">
-                <div class="card-header bg-gradient-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-user-circle mr-2"></i>Customer Information</h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-circle mr-2"></i>{{ __("appointments.details.customer_info") }}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row align-items-center mb-3">
@@ -156,7 +156,7 @@
                                     <i class="fas fa-user fa-2x"></i>
                                 </div>
                                 <div class="media-body">
-                                    <h6 class="text-muted mb-1 small">Customer Name</h6>
+                                    <h6 class="text-muted mb-1 small">{{ __("appointments.details.customer_name") }}</h6>
                                     <h4 class="mb-0 font-weight-bold">
                                         @if($appointment->lead->contact && $appointment->lead->contact->guest_name)
                                             {{ $appointment->lead->contact->guest_name }}
@@ -173,7 +173,7 @@
                                     <i class="fab fa-whatsapp fa-2x"></i>
                                 </div>
                                 <div class="media-body">
-                                    <h6 class="text-muted mb-1 small">Phone Number</h6>
+                                    <h6 class="text-muted mb-1 small">{{ __("appointments.details.phone_number") }}</h6>
                                     @php
                                         $phone = $appointment->lead->phone_number ?? ($appointment->lead->contact->guest_phone ?? 'N/A');
                                     @endphp
@@ -194,7 +194,7 @@
                     <hr>
                     <div class="row">
                         <div class="col-12">
-                            <h6 class="text-muted mb-1 small"><i class="fas fa-envelope mr-1"></i>Email</h6>
+                            <h6 class="text-muted mb-1 small"><i class="fas fa-envelope mr-1"></i>{{ __("appointments.details.email") }}</h6>
                             <p class="mb-0 h6">
                                 <a href="mailto:{{ $appointment->lead->email }}" class="text-primary">{{ $appointment->lead->email }}</a>
                             </p>
@@ -224,13 +224,13 @@
                 </div>
                 <div class="card-body">
                     @if($appointment->status == 'pending')
-                    <button class="btn btn-success btn-block mb-2" onclick="confirmAppointment()">
+                    <button class="btn-primary btn-block mb-2" onclick="confirmAppointment()">
                         <i class="fas fa-check mr-2"></i>Confirm Appointment
                     </button>
                     @endif
 
                     @if(in_array($appointment->status, ['pending', 'confirmed']))
-                    <button class="btn btn-warning btn-block mb-2" onclick="showRescheduleModal()">
+                    <button class="btn-secondary btn-block mb-2" onclick="showRescheduleModal()">
                         <i class="fas fa-calendar-alt mr-2"></i>Reschedule
                     </button>
                     
@@ -390,8 +390,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">Reschedule</button>
+                    <button type="button" class="btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-secondary">Reschedule</button>
                 </div>
             </form>
         </div>
@@ -427,14 +427,6 @@
 
 @push('styles')
 <style>
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.bg-gradient-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-}
-
 .info-box {
     transition: all 0.3s ease;
     border: 1px solid #e0e0e0;

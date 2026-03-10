@@ -18,6 +18,8 @@ return [
     'navigation' => [
         'features' => 'Features',
         'pricing' => 'Pricing', 
+        'demo' => 'Demo',
+        'contact' => 'Contact',
         'case_studies' => 'Case Studies',
         'enterprise' => 'Enterprise',
         'login' => 'Login'
@@ -25,7 +27,21 @@ return [
 
     'track_record' => [
         'title' => 'My Track Record',
-        'results' => 'I\'ve helped 500+ organizations increase sales • I\'ve handled 2M+ successful conversations • I\'ve tracked over $50M in closed deals'
+        'results' => 'I\'ve helped 500+ organizations increase sales • I\'ve handled 2M+ successful conversations • I\'ve tracked over $50M in closed deals',
+        'stats' => [
+            'businesses' => [
+                'number' => '500+',
+                'label' => 'Businesses Served'
+            ],
+            'conversations' => [
+                'number' => '2M+',
+                'label' => 'Conversations Handled'
+            ],
+            'deals' => [
+                'number' => '$50M+',
+                'label' => 'Deals Tracked'
+            ]
+        ]
     ],
 
     'problems_solutions' => [
@@ -93,13 +109,41 @@ return [
     'demo' => [
         'title' => 'See Me In Action',
         'description' => 'Interactive chat where you can talk to me directly',
+        'chat_header' => 'AI Sales Agent',
+        'chat_status' => 'Online • Responds instantly',
+        'chat_placeholder' => 'Type your message...',
+        'chat_button' => 'Send',
+        'welcome' => 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!',
         'examples' => 'Real conversations I\'ve had with customers (names removed for privacy)',
-        'test_drive' => 'Test drive where you can see how I handle your specific industry'
+        'test_drive' => 'Test drive where you can see how I handle your specific industry',
+        'sales_inquiry_customer' => 'Hi, I\'m interested in your loan products. What options do you have?',
+        'sales_inquiry_ai' => 'Great! I\'d be happy to help you find the perfect loan. We offer personal loans from $1,000-$50,000 with rates starting at 8.5%. What amount are you considering and what\'s it for?',
+        'product_question_customer' => 'Do you have payment plans for your courses?',
+        'product_question_ai' => 'Yes! We offer flexible payment plans to make our courses accessible. You can pay in 3, 6, or 12 monthly installments with 0% interest. Which course interests you?',
+        'pricing_customer' => 'That seems expensive. Can you do better on the price?',
+        'pricing_ai' => 'I understand budget is important! Let me see what I can do. For qualified customers, I can offer a 15% discount if you decide today. This brings your investment down to $850. Plus, this includes our 6-month money-back guarantee. What do you think?'
     ],
 
     'roi_calculator' => [
         'title' => 'Calculate How Much Money I\'ll Make You',
-        'description' => 'Interactive tool showing exactly how much revenue I\'ll generate',
+        'description' => 'See exact revenue projections based on your business',
+        'section_title' => 'Your Business Details',
+        'form' => [
+            'team_size' => 'Team Size',
+            'deal_size' => 'Average Deal Size',
+            'monthly_leads' => 'Monthly Leads',
+            'conversion_rate' => 'Current Conversion Rate (%)',
+            'calculate_button' => 'Calculate My Value'
+        ],
+        'results_title' => 'Your ROI with AI Sales Agent',
+        'results_placeholder' => 'Enter your details and click "Calculate My Value" to see your personalized ROI projection',
+        'results' => [
+            'additional_revenue' => 'Additional Annual Revenue',
+            'cost_savings' => 'Annual Cost Savings',
+            'roi_percentage' => 'ROI Percentage',
+            'monthly_cost' => 'AI Service Cost',
+            'net_profit' => 'Net Annual Profit Increase'
+        ],
         'inputs' => [
             'team_size' => 'Your team size',
             'deal_size' => 'Average deal size', 
@@ -114,19 +158,23 @@ return [
 
     'industries' => [
         'title' => 'Industries Where I Excel',
-        'financial' => [
+        'financial' => 'I\'ve helped banks automate loan applications and customer onboarding',
+        'education' => 'I handle student inquiries, course enrollment, and parent communications expertly',
+        'ecommerce' => 'I recommend products, support orders, and recover abandoned purchases',
+        'professional' => 'I book appointments, schedule consultations, and manage follow-ups flawlessly',
+        'financial_full' => [
             'title' => 'Financial Services',
             'description' => 'I\'ve helped banks automate loan applications and customer onboarding'
         ],
-        'education' => [
+        'education_full' => [
             'title' => 'Education', 
             'description' => 'I handle student inquiries, course enrollment, and parent communications expertly'
         ],
-        'ecommerce' => [
+        'ecommerce_full' => [
             'title' => 'E-commerce',
             'description' => 'I recommend products, support orders, and recover abandoned purchases'
         ],
-        'professional' => [
+        'professional_full' => [
             'title' => 'Professional Services',
             'description' => 'I book appointments, schedule consultations, and manage follow-ups flawlessly'
         ]
@@ -292,6 +340,26 @@ return [
 
     'contact_form' => [
         'title' => 'How to Get Started Working With Me',
+        'subtitle' => 'Ready to hire your AI Sales Agent? Let\'s discuss your needs.',
+        'button_submit' => 'Get Started with AI Sales Agent',
+        'fields' => [
+            'company_name' => 'Company Name',
+            'your_name' => 'Your Name',
+            'email' => 'Email',
+            'industry' => 'Industry',
+            'select_industry' => 'Select Industry',
+            'message' => 'What\'s your biggest sales challenge?'
+        ],
+        'industries' => [
+            'financial' => 'Financial Services',
+            'education' => 'Education',
+            'ecommerce' => 'E-commerce',
+            'healthcare' => 'Healthcare',
+            'real_estate' => 'Real Estate',
+            'other' => 'Other'
+        ],
+        'success_message' => 'Thank you! We\'ll be in touch soon.',
+        'error_message' => 'Something went wrong. Please try again.',
         'meet_me' => [
             'title' => 'Meet Me Form',
             'company_name' => 'Your company name',
@@ -353,17 +421,5 @@ return [
             'I never sleep or take time off - Available across all time zones, never miss opportunities',
             'I specialize in your industry - I learn your business terminology and sector-specific approaches'
         ]
-    ],
-
-    'demo' => [
-        'title' => 'See Me In Action',
-        'description' => 'Interactive chat where you can talk to me directly',
-        'welcome' => 'Hi! I\'m your AI Sales Agent. Ask me anything about how I can help grow your business!',
-        'sales_inquiry_customer' => 'Hi, I\'m interested in your loan products. What options do you have?',
-        'sales_inquiry_ai' => 'Great! I\'d be happy to help you find the perfect loan. We offer personal loans from $1,000-$50,000 with rates starting at 8.5%. What amount are you considering and what\'s it for?',
-        'product_question_customer' => 'Do you have payment plans for your courses?',
-        'product_question_ai' => 'Yes! We offer flexible payment plans to make our courses accessible. You can pay in 3, 6, or 12 monthly installments with 0% interest. Which course interests you?',
-        'pricing_customer' => 'That seems expensive. Can you do better on the price?',
-        'pricing_ai' => 'I understand budget is important! Let me see what I can do. For qualified customers, I can offer a 15% discount if you decide today. This brings your investment down to $850. Plus, this includes our 6-month money-back guarantee. What do you think?'
     ]
 ];

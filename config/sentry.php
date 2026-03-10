@@ -82,6 +82,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | HTTP Client Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure timeouts for Sentry HTTP client to prevent blocking requests.
+    | This prevents long delays when Sentry servers are unreachable.
+    |
+    */
+
+    'http_timeout' => 2, // Timeout after 2 seconds
+    'http_connect_timeout' => 1, // Connection timeout 1 second
+    'http_proxy' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Sentry Breadcrumbs
     |--------------------------------------------------------------------------
     |

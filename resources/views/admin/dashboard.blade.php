@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafariChat Admin Dashboard</title>
+    <title>{{ __('admin.dashboard.page_title') }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; }
@@ -43,7 +43,7 @@
         /* Cards and other styles remain the same */
         .card { background: white; padding: 25px; margin: 15px 0; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        .stat-card { text-align: center; padding: 25px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; }
+        .stat-card { text-align: center; padding: 25px; background: var(--gray-50); border-radius: 10px; }
         .stat-number { font-size: 2.2em; font-weight: bold; color: #007cba; margin-bottom: 8px; }
         .stat-label { color: #6c757d; font-size: 14px; font-weight: 500; }
         
@@ -58,8 +58,6 @@
         input:focus { outline: none; border-color: #007cba; box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1); }
         .btn { display: inline-block; padding: 12px 24px; background: #007cba; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 500; transition: background 0.3s; text-decoration: none; }
         .btn:hover { background: #005580; }
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #c82333; }
         .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #f5c6cb; }
         .error-row { background: #fff3cd !important; }
@@ -74,8 +72,8 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>🦁 SafariChat Admin Dashboard</h1>
-        <a href="/admin/logout">Logout</a>
+        <h1>{{ __('admin.dashboard.brand_header') }}</h1>
+        <a href="/admin/logout">{{ __('admin.dashboard.logout_link') }}</a>
     </div>
     
     <!-- Admin Layout -->
@@ -83,9 +81,9 @@
         <!-- Sidebar Navigation -->
         <div class="sidebar">
             <ul class="sidebar-nav">
-                <li><a href="#" class="nav-link active" data-section="overview"><span class="icon">📊</span>System Overview</a></li>
+                <li><a href="#" class="nav-link active" data-section="overview"><span class="icon">📊</span>{{ __('admin.nav.overview') }}</a></li>
                 <li><a href="#" class="nav-link" data-section="pricing"><span class="icon">💰</span>Pricing Management</a></li>
-                <li><a href="#" class="nav-link" data-section="health"><span class="icon">🏥</span>System Health</a></li>
+                <li><a href="#" class="nav-link" data-section="health"><span class="icon">🏥</span>{{ __('admin.nav.health') }}</a></li>
                 <li><a href="#" class="nav-link" data-section="billing-sync"><span class="icon">🔄</span>Billing Sync</a></li>
             </ul>
         </div>
@@ -336,7 +334,7 @@
                 <div style="margin-top: 30px;">
                     <form action="/admin/clear-cache" method="POST" style="display: inline;">
                         @csrf
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Clear all system caches? This may temporarily slow down the application.')">
+                        <button type="submit" class="btn-danger" onclick="return confirm('Clear all system caches? This may temporarily slow down the application.');">
                             🧹 Clear All Caches
                         </button>
                     </form>

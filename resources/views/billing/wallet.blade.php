@@ -6,9 +6,9 @@
         <div class="col-lg-10">
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-wallet"></i> My Wallet & Credits</h2>
+                <h2><i class="fas fa-wallet"></i> {{ __("billing.page_titles.wallet") }}</h2>
                 <a href="{{ url('/home/settings') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Settings
+                    <i class="fas fa-arrow-left"></i> {{ __("billing.actions.back_to_settings") }}
                 </a>
             </div>
 
@@ -22,17 +22,17 @@
                                     <i class="fas fa-coins"></i>
                                 </div>
                                 <div>
-                                    <h6 class="text-muted mb-1">Available AI Credits</h6>
+                                    <h6 class="text-muted mb-1">{{ __("billing.wallet.available_credits") }}</h6>
                                     <h1 class="mb-0" style="font-size: 3rem; font-weight: 700; color: #667eea;" id="walletBalance">
-                                        <span class="spinner-border spinner-border-sm" role="status"></span> Loading...
+                                        <span class="spinner-border spinner-border-sm" role="status"></span> {{ __("billing.wallet.loading") }}
                                     </h1>
-                                    <small class="text-muted">1 Credit = 4 AI Tokens</small>
+                                    <!-- <small class="text-muted">1 Credit = 4 AI Tokens</small> -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4 text-end">
                             <span class="badge bg-success" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                                <i class="fas fa-check-circle"></i> Active
+                                <i class="fas fa-check-circle"></i> {{ __("billing.wallet.active") }}
                             </span>
                         </div>
                     </div>
@@ -46,20 +46,20 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="mb-1"><i class="fas fa-box"></i> Current Plan</h5>
+                            <h5 class="mb-1"><i class="fas fa-box"></i> {{ __("billing.plan.current_plan") }}</h5>
                             <h3 class="mb-0" style="color: #667eea;">{{ ucfirst($subscription_plan) }}</h3>
                             <small class="text-muted">
                                 @if($subscription_expires_at)
-                                    Expires: {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
+                                    {{ __("billing.plan.expires") }} {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
                                 @else
-                                    Trial Mode
+                                    {{ __("billing.plan.trial_mode") }}
                                 @endif
                             </small>
                         </div>
                         @if($subscription_plan !== 'premium')
                         <div>
                             <a href="{{ url('/home/settings#availablePlansSection') }}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-arrow-up"></i> Upgrade Plan
+                                <i class="fas fa-arrow-up"></i> {{ __("billing.plan.upgrade_button") }}
                             </a>
                         </div>
                         @endif
@@ -69,11 +69,11 @@
 
             <!-- Top Up Wallet Section -->
             <div class="card shadow-lg" style="border-radius: 15px; border: none;">
-                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0;">
-                    <h4 class="text-white mb-0"><i class="fas fa-credit-card"></i> Top Up Your Wallet</h4>
+                <div class="card-header" style="background: var(--primary-color); border-radius: 15px 15px 0 0;">
+                    <h4 class="text-white mb-0"><i class="fas fa-credit-card"></i> {{ __("billing.wallet.top_up") }}</h4>
                 </div>
                 <div class="card-body p-4">
-                    <p class="text-muted mb-4">Choose your preferred payment method to add credits to your wallet</p>
+                    <p class="text-muted mb-4">{{ __("billing.wallet.top_up_description") }}</p>
 
                     <!-- Payment Options in One Row -->
                     <div class="row g-4">
@@ -83,21 +83,21 @@
                                 <div class="payment-icon mb-3" style="font-size: 3rem; color: #10b981;">
                                     <i class="fas fa-university"></i>
                                 </div>
-                                <h5 style="color: #1f2937; font-weight: 600;">UCN (Lipa Namba)</h5>
-                                <p class="text-muted small mb-3">Pay via any bank or mobile money (Tanzania Only)</p>
+                                <h5 style="color: #1f2937; font-weight: 600;">{{ __("billing.payment_methods.ucn.name") }}</h5>
+                                <p class="text-muted small mb-3">{{ __("billing.payment_methods.ucn.tanzania_only") }}</p>
                                 
                                 <div class="ucn-number-display mb-3" style="background: white; padding: 1.5rem; border-radius: 8px; border: 2px dashed #10b981;">
-                                    <small class="d-block text-muted mb-2">Send payment to:</small>
+                                    <small class="d-block text-muted mb-2">{{ __("billing.wallet.send_payment_to") }}</small>
                                     <h3 class="mb-0" style="color: #10b981; font-weight: 700; font-family: monospace;" id="ucnNumber">
                                         <span class="spinner-border spinner-border-sm"></span>
                                     </h3>
                                     <button class="btn btn-sm btn-outline-success mt-2" onclick="copyUCN()" id="copyUcnBtn" style="display: none;">
-                                        <i class="fas fa-copy"></i> Copy Number
+                                        <i class="fas fa-copy"></i> {{ __("billing.wallet.copy_number") }}
                                     </button>
                                 </div>
 
                                 <div class="alert alert-info" style="font-size: 0.85rem;">
-                                    <i class="fas fa-info-circle"></i> Send any amount to top up your wallet instantly
+                                    <i class="fas fa-info-circle"></i> {{ __("billing.wallet.top_up_instruction") }}
                                 </div>
                             </div>
                         </div>
@@ -148,7 +148,7 @@
                                     <small class="text-muted">Minimum: TZS 1,000</small>
                                 </div>
 
-                                <button class="btn btn-warning btn-lg w-100" id="flutterwavePayBtn" disabled onclick="processPayment('flutterwave')">
+                                <button class="btn-primary btn-lg w-100" id="flutterwavePayBtn" disabled onclick="processPayment('flutterwave')">
                                     <i class="fas fa-mobile-alt"></i> Pay with Flutterwave
                                 </button>
                             </div>
@@ -194,7 +194,7 @@
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: rgba(255,255,255,0.05);
     animation: pulse 15s ease-in-out infinite;
 }
 
@@ -264,14 +264,10 @@ function togglePaymentButton(method) {
     if (amount && amount >= 1000) {
         button.disabled = false;
         button.classList.remove('btn-secondary');
-        if (method === 'stripe') {
-            button.classList.add('btn-primary');
-        } else {
-            button.classList.add('btn-warning');
-        }
+        button.classList.add('btn-primary');
     } else {
         button.disabled = true;
-        button.classList.remove('btn-primary', 'btn-warning');
+        button.classList.remove('btn-primary');
         button.classList.add('btn-secondary');
     }
 }

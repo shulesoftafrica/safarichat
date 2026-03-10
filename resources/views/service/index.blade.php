@@ -27,12 +27,14 @@
             <nav class="sidebar shadow-sm">
                 <ul class="sidebar-nav nav flex-column py-3">
                     <li>
-                        <a href="{{ url('service/index') }}" class="nav-link{{ request()->is('service/index') ? ' active' : '' }}">
+                        <a href="{{ url('service/index') }}" class="nav-link{{ request()->routeIs('service.*') && !request()->is('service/jd') ? ' active' : '' }}">
+                            <i class="fas fa-box me-2"></i>
                             <span>Products</span>
                         </a>
                     </li>
                     <li>
                         <a href="{{ url('service/jd') }}" class="nav-link{{ request()->is('service/jd') ? ' active' : '' }}">
+                            <i class="fas fa-briefcase me-2"></i>
                             <span>Job Description</span>
                         </a>
                     </li>
@@ -274,12 +276,12 @@
 }
 
 .reports-header {
-    background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+    background: var(--primary-color);
     border-radius: 14px;
     padding: 18px 18px 12px 18px;
     color: white;
     margin-bottom: 18px;
-    box-shadow: 0 4px 16px rgba(37, 211, 102, 0.10);
+    box-shadow: 0 4px 16px rgba(59, 89, 152, 0.10);
 }
 
 .reports-title {
@@ -414,6 +416,34 @@
     }
 }
 
+/* Dark Mode Styles for Sidebar */
+.dark-mode .sidebar {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+
+.dark-mode .sidebar-nav .nav-link {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .sidebar-nav .nav-link.active,
+.dark-mode .sidebar-nav .nav-link:hover {
+    background: rgba(14, 165, 233, 0.15) !important;
+    color: #0ea5e9 !important;
+}
+
+.dark-mode .sidebar-nav .nav-link .metric-icon {
+    background: #4a5568 !important;
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .content-area {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+
 /* Service Document Styles */
 .service-documents .document-item {
     cursor: pointer;
@@ -438,15 +468,15 @@
 }
 
 .document-icon.pdf {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: #dc2626;
 }
 
 .document-icon.word {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: #2563eb;
 }
 
 .document-icon.text {
-    background: linear-gradient(135deg, #059669, #047857);
+    background: #059669;
 }
 
 .btn-preview, .btn-download {

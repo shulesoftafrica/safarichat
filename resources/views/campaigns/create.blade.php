@@ -6,13 +6,13 @@
     
     .compose-container {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         min-height: 100vh;
         padding: 20px;
     }
     
     .compose-header {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+        background: var(--primary-color);
         border-radius: 20px 20px 0 0;
         padding: 30px;
         color: white;
@@ -497,283 +497,408 @@
         }
     }
 
+    /* ========== AI-POWERED SECTION STYLING ========== */
+    
+    /* Light Mode - AI Section */
+    .alert-inline.alert-info {
+        background: rgba(59, 130, 246, 0.1) !important;
+        border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .ai-section-title {
+        color: #1f2937 !important;
+        font-weight: 700 !important;
+    }
+    
+    .ai-section-title .fa-sparkles {
+        color: #eab308 !important;
+    }
+    
+    .ai-section-text {
+        color: #374151 !important;
+    }
+    
+    .ai-feature-list {
+        color: #6a1b9a !important;
+    }
+    
+    .ai-feature-list li {
+        color: #6a1b9a !important;
+    }
+    
+    .ai-feature-list b {
+        color: #4a148c !important;
+    }
+    
+    .ai-check-icon {
+        color: #9c27b0 !important;
+    }
+    
+    .ai-info-alert {
+        background: #e1f5fe !important;
+        color: #01579b !important;
+        border: 1px solid #81d4fa !important;
+    }
+    
+    .ai-info-alert b {
+        color: #01579b !important;
+    }
+    
+    .ai-info-alert .fa-info-circle {
+        color: #0277bd !important;
+    }
+
     /* Dark Mode Styles */
     .dark-mode .compose-container {
-        background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%) !important;
+        background: var(--gray-900) !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode .compose-header {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%) !important;
+        background: var(--primary-color) !important;
     }
 
     .dark-mode .compose-main {
-        background: #2d3748 !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+        background: #1f2937 !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     }
 
     .dark-mode .compose-form {
-        background: #2d3748 !important;
+        background: #1f2937 !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode .form-label {
         color: #f7fafc !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .form-control-modern {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
-        color: #e2e8f0 !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .form-control-modern:focus {
-        background: #4a5568 !important;
+        background: #374151 !important;
         border-color: #25d366 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
     }
 
     .dark-mode .form-control-modern.is-invalid {
-        background: #4a5568 !important;
+        background: #374151 !important;
         border-color: #f56565 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .form-control-modern.is-valid {
-        background: #4a5568 !important;
+        background: #374151 !important;
         border-color: #48bb78 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .invalid-feedback {
-        color: #fed7d7 !important;
+        color: #fca5a5 !important;
+        font-weight: 500 !important;
     }
 
     .dark-mode .valid-feedback {
-        color: #c6f6d5 !important;
+        color: #86efac !important;
+        font-weight: 500 !important;
     }
 
     .dark-mode .recipient-card {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode .recipient-card:hover {
-        background: #2a4a3d !important;
+        background: rgba(37, 211, 102, 0.15) !important;
         border-color: #25d366 !important;
+        box-shadow: 0 8px 25px rgba(37, 211, 102, 0.25) !important;
     }
 
     .dark-mode .recipient-card.selected {
-        background: #2a4a3d !important;
+        background: rgba(37, 211, 102, 0.15) !important;
         border-color: #25d366 !important;
+        box-shadow: 0 8px 25px rgba(37, 211, 102, 0.25) !important;
     }
 
     .dark-mode .recipient-title {
         color: #f7fafc !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .recipient-desc {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
+        font-weight: 400 !important;
+    }
+    
+    .dark-mode .recipient-icon {
+        opacity: 0.95 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
     }
 
     .dark-mode .contact-tags {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
     }
 
     .dark-mode .contact-tags:focus-within {
-        background: #4a5568 !important;
+        background: #374151 !important;
         border-color: #25d366 !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
     }
 
     .dark-mode .contact-input {
         background: none !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .contact-input::placeholder {
-        color: #a0aec0 !important;
+        color: #9ca3af !important;
+        opacity: 0.8 !important;
     }
 
     .dark-mode .message-composer {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
     }
 
     .dark-mode .message-composer:focus-within {
         border-color: #25d366 !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
     }
 
     .dark-mode .message-attachments {
-        background: #4a5568 !important;
-        border-bottom: 1px solid #718096 !important;
+        background: #374151 !important;
+        border-bottom: 1px solid #4b5563 !important;
     }
 
     .dark-mode .attachment-item {
-        background: #2d3748 !important;
+        background: #1f2937 !important;
+        border: 1px solid #4b5563 !important;
     }
 
     .dark-mode .attachment-icon {
-        color: #a0aec0 !important;
+        color: #9ca3af !important;
     }
 
     .dark-mode .hashtag-suggestions {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     }
 
     .dark-mode .hashtag-item {
-        border-bottom: 1px solid #718096 !important;
+        border-bottom: 1px solid #4b5563 !important;
     }
 
     .dark-mode .hashtag-item:hover,
     .dark-mode .hashtag-item.selected {
-        background: #2a4a3d !important;
+        background: rgba(37, 211, 102, 0.15) !important;
     }
 
     .dark-mode .hashtag-name {
-        color: #25d366 !important;
+        color: #34d399 !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .hashtag-desc {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
     }
 
     .dark-mode .message-input {
         background: none !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .message-input::placeholder {
-        color: #a0aec0 !important;
+        color: #9ca3af !important;
+        opacity: 0.8 !important;
     }
 
     .dark-mode .action-btn {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
     }
 
     .dark-mode .action-btn:hover {
-        background: #718096 !important;
+        background: #4b5563 !important;
         color: #f7fafc !important;
     }
 
     .dark-mode .send-btn {
         background: #25d366 !important;
         color: white !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .send-btn:disabled {
-        background: #718096 !important;
-        color: #a0aec0 !important;
+        background: #4b5563 !important;
+        color: #9ca3af !important;
     }
 
     .dark-mode .char-counter {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
     }
 
     .dark-mode .stats-bar {
-        background: #4a5568 !important;
-        border-top: 1px solid #718096 !important;
-        color: #a0aec0 !important;
+        background: #374151 !important;
+        border-top: 1px solid #4b5563 !important;
+        color: #cbd5e0 !important;
     }
 
     .dark-mode .status-dot {
-        background: #48bb78 !important;
+        background: #34d399 !important;
     }
 
     .dark-mode .floating-send {
         background: #25d366 !important;
-        box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4) !important;
+        box-shadow: 0 4px 20px rgba(37, 211, 102, 0.5) !important;
     }
 
     .dark-mode .modal-content {
-        background: #2d3748 !important;
+        background: #1f2937 !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode .modal-header {
-        background: #4a5568 !important;
-        border-bottom: 1px solid #718096 !important;
+        background: #374151 !important;
+        border-bottom: 1px solid #4b5563 !important;
     }
 
     .dark-mode .modal-footer {
-        background: #4a5568 !important;
-        border-top: 1px solid #718096 !important;
+        background: #374151 !important;
+        border-top: 1px solid #4b5563 !important;
     }
 
     .dark-mode .modal-body {
-        background: #2d3748 !important;
+        background: #1f2937 !important;
     }
 
     .dark-mode .alert {
-        border-color: #718096 !important;
+        border-color: #4b5563 !important;
     }
 
     .dark-mode .alert-danger {
-        background: rgba(245, 101, 101, 0.1) !important;
-        border-color: #f56565 !important;
-        color: #fed7d7 !important;
+        background: rgba(239, 68, 68, 0.2) !important;
+        border-color: #ef4444 !important;
+        color: #fca5a5 !important;
     }
 
     .dark-mode .alert-success {
-        background: rgba(72, 187, 120, 0.1) !important;
-        border-color: #48bb78 !important;
-        color: #c6f6d5 !important;
+        background: rgba(52, 211, 153, 0.2) !important;
+        border-color: #34d399 !important;
+        color: #86efac !important;
     }
 
     .dark-mode .alert-warning {
-        background: rgba(237, 137, 54, 0.1) !important;
-        border-color: #ed8936 !important;
-        color: #faf089 !important;
+        background: rgba(251, 191, 36, 0.2) !important;
+        border-color: #fbbf24 !important;
+        color: #fcd34d !important;
     }
 
     .dark-mode .alert-info {
-        background: rgba(99, 179, 237, 0.1) !important;
+        background: rgba(99, 179, 237, 0.2) !important;
         border-color: #63b3ed !important;
-        color: #bee3f8 !important;
+        color: #93c5fd !important;
     }
 
     .dark-mode .close {
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
         opacity: 1 !important;
     }
 
     .dark-mode .close:hover {
-        color: #f7fafc !important;
-    }
-
-    .dark-mode .text-muted {
-        color: #a0aec0 !important;
-    }
-
-    .dark-mode small {
-        color: #a0aec0 !important;
-    }
-
-    .dark-mode .btn-outline-warning {
-        color: #ed8936 !important;
-        border-color: #ed8936 !important;
-    }
-
-    .dark-mode .btn-outline-warning:hover {
-        background-color: #ed8936 !important;
         color: #ffffff !important;
     }
 
+    .dark-mode .text-muted {
+        color: #cbd5e0 !important;
+    }
+
+    .dark-mode small {
+        color: #cbd5e0 !important;
+    }
+    
+    /* Dark Mode - AI Section Overrides */
+    .dark-mode .alert-inline.alert-info {
+        background: rgba(59, 130, 246, 0.1) !important;
+        border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .dark-mode .ai-section-title {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .ai-section-title .fa-sparkles {
+        color: #fbbf24 !important;
+    }
+    
+    .dark-mode .ai-section-text {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .ai-section-text b {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .ai-feature-list {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .ai-feature-list li {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .ai-feature-list b {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .ai-check-icon {
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .ai-info-alert {
+        background: rgba(52, 211, 153, 0.15) !important;
+        border: 1px solid rgba(52, 211, 153, 0.3) !important;
+        color: #86efac !important;
+    }
+    
+    .dark-mode .ai-info-alert b {
+        color: #a7f3d0 !important;
+    }
+    
+    .dark-mode .ai-info-alert .fa-info-circle {
+        color: #34d399 !important;
+    }
+
+    .dark-mode .btn-outline-warning {
+        color: #fbbf24 !important;
+        border-color: #fbbf24 !important;
+    }
+
+    .dark-mode .btn-outline-warning:hover {
+        background-color: #fbbf24 !important;
+        color: #111827 !important;
+    }
+
     .dark-mode .btn-success {
-        background-color: #48bb78 !important;
-        border-color: #48bb78 !important;
+        background-color: #34d399 !important;
+        border-color: #34d399 !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .card {
-        background: #4a5568 !important;
-        border-color: #718096 !important;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
     }
 
     .dark-mode .card-body {
-        background: #4a5568 !important;
+        background: #374151 !important;
         color: #e2e8f0 !important;
     }
 
@@ -783,6 +908,7 @@
 
     .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4, .dark-mode h5, .dark-mode h6 {
         color: #f7fafc !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode p, .dark-mode span, .dark-mode div {
@@ -790,33 +916,40 @@
     }
 
     .dark-mode select {
-        background-color: #4a5568 !important;
-        border-color: #718096 !important;
-        color: #e2e8f0 !important;
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode select:focus {
-        background-color: #4a5568 !important;
+        background-color: #374151 !important;
         border-color: #25d366 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
+    }
+
+    .dark-mode select option {
+        background-color: #374151 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode input[type="file"] {
-        background-color: #4a5568 !important;
-        border-color: #718096 !important;
-        color: #e2e8f0 !important;
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode textarea {
-        background-color: #4a5568 !important;
-        border-color: #718096 !important;
-        color: #e2e8f0 !important;
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode textarea:focus {
-        background-color: #4a5568 !important;
+        background-color: #374151 !important;
         border-color: #25d366 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
     }
 
     .dark-mode ul {
@@ -828,11 +961,11 @@
     }
 
     .dark-mode a {
-        color: #63b3ed !important;
+        color: #60a5fa !important;
     }
 
     .dark-mode a:hover {
-        color: #90cdf4 !important;
+        color: #93c5fd !important;
     }
 
     .dark-mode .fas, .dark-mode .fab {
@@ -840,12 +973,269 @@
     }
 
     .dark-mode #loading-overlay > div > div {
-        background: #2d3748 !important;
+        background: #1f2937 !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode #loading-overlay h5 {
         color: #f7fafc !important;
+    }
+
+    /* ========== IMPROVED DARK MODE READABILITY ========== */
+    
+    /* AI-Powered Section - Dark Mode */
+    .dark-mode .alert-inline.alert-info {
+        background: rgba(99, 179, 237, 0.15) !important;
+        border: 1px solid #4b5563 !important;
+    }
+    
+    .dark-mode .alert-inline .card-body {
+        background: transparent !important;
+    }
+    
+    /* AI Section Title */
+    .dark-mode .ai-section-title {
+        color: #f7fafc !important;
+        font-weight: 700 !important;
+    }
+    
+    .dark-mode .ai-section-title .fa-sparkles {
+        color: #fbbf24 !important;
+    }
+    
+    /* AI Section Text */
+    .dark-mode .ai-section-text {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .ai-section-text b {
+        color: #f7fafc !important;
+    }
+    
+    /* AI Feature Lists */
+    .dark-mode .ai-feature-list {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .ai-feature-list li {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .ai-feature-list b {
+        color: #f7fafc !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Check Icons - Green in Dark Mode */
+    .dark-mode .ai-check-icon {
+        color: #34d399 !important;
+    }
+    
+    /* Info Alert Box in AI Section */
+    .dark-mode .ai-info-alert {
+        background: rgba(52, 211, 153, 0.15) !important;
+        border: 1px solid rgba(52, 211, 153, 0.3) !important;
+        color: #86efac !important;
+    }
+    
+    .dark-mode .ai-info-alert b {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .ai-info-alert .fa-info-circle {
+        color: #34d399 !important;
+    }
+    
+    /* Legacy support for old selectors */
+    .dark-mode .alert-inline ul {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .alert-inline ul li {
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .alert-inline ul li b {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .alert-inline .fa-check-circle {
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .alert-inline .alert.alert-info {
+        background: rgba(52, 211, 153, 0.15) !important;
+        border: 1px solid rgba(52, 211, 153, 0.3) !important;
+        color: #86efac !important;
+    }
+    
+    .dark-mode .alert-inline .alert.alert-info b {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .alert-inline .alert.alert-info .fa-info-circle {
+        color: #34d399 !important;
+    }
+    
+    /* Recipient Cards - Improve description visibility */
+    .dark-mode .recipient-desc {
+        color: #cbd5e0 !important;
+        font-weight: 400 !important;
+    }
+    
+    .dark-mode .recipient-title {
+        color: #f7fafc !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Recipient icon backgrounds - make them more visible */
+    .dark-mode .recipient-icon {
+        opacity: 0.9 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Text muted improvements */
+    .dark-mode .text-muted,
+    .dark-mode small.text-muted {
+        color: #cbd5e0 !important;
+    }
+    
+    /* Compose subtitle */
+    .dark-mode .compose-subtitle {
+        color: #e2e8f0 !important;
+        opacity: 0.95 !important;
+    }
+    
+    /* Form labels - ensure they're bright enough */
+    .dark-mode .form-label {
+        color: #f7fafc !important;
+        font-weight: 600 !important;
+    }
+    
+    .dark-mode .form-label i {
+        color: #34d399 !important;
+        margin-right: 4px !important;
+    }
+    
+    /* Ensure all FontAwesome icons are visible */
+    .dark-mode .fas,
+    .dark-mode .fa,
+    .dark-mode .fab,
+    .dark-mode .far {
+        opacity: 1 !important;
+    }
+    
+    /* Compose header icons */
+    .dark-mode .compose-header .fas {
+        color: #ffffff !important;
+    }
+    
+    /* All heading improvements */
+    .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4, .dark-mode h5, .dark-mode h6 {
+        color: #f7fafc !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Placeholder text visibility */
+    .dark-mode .form-control-modern::placeholder,
+    .dark-mode input::placeholder,
+    .dark-mode textarea::placeholder {
+        color: #a0aec0 !important;
+        opacity: 0.8 !important;
+    }
+    
+    /* Better borders for inputs */
+    .dark-mode .form-control-modern {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .form-control-modern:focus {
+        background: #374151 !important;
+        border-color: #25d366 !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
+    }
+    
+    /* Contact tags improvements */
+    .dark-mode .contact-tags {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+    }
+    
+    .dark-mode .contact-tags:focus-within {
+        background: #374151 !important;
+        border-color: #25d366 !important;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2) !important;
+    }
+    
+    .dark-mode .contact-input {
+        color: #f7fafc !important;
+    }
+    
+    /* Message composer improvements */
+    .dark-mode .message-composer {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+    }
+    
+    .dark-mode .message-input {
+        color: #f7fafc !important;
+    }
+    
+    /* Select dropdown improvements */
+    .dark-mode select.form-control-modern {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode select.form-control-modern option {
+        background: #374151 !important;
+        color: #f7fafc !important;
+    }
+    
+    /* Card backgrounds */
+    .dark-mode .card {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+    }
+    
+    .dark-mode .card-body {
+        background: #374151 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    /* Ensure Font Awesome icons don't inherit problematic colors */
+    .dark-mode .fas:not(.ai-check-icon):not(.fa-sparkles):not(.fa-info-circle) {
+        color: inherit !important;
+    }
+    
+    /* Robot icon in AI section */
+    .dark-mode .fa-robot {
+        color: #ffffff !important;
+    }
+    
+    /* Form section spacing and visibility */
+    .dark-mode .form-section {
+        margin-bottom: 32px !important;
+    }
+    
+    /* Improve button visibility */
+    .dark-mode .btn {
+        font-weight: 500 !important;
+    }
+    
+    .dark-mode .btn-primary {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .btn-secondary {
+        background-color: #6b7280 !important;
+        border-color: #6b7280 !important;
+        color: #ffffff !important;
     }
 </style>
 
@@ -854,40 +1244,40 @@
         <div class="compose-header">
             <h1 class="compose-title">
                 <i class="fas fa-bullhorn"></i>
-                Create Sales Campaign
+                {{ __('campaigns.create.title') }}
             </h1>
-            <p class="compose-subtitle">Send personalized WhatsApp campaigns to your contacts with AI-powered automation</p>
-                        <div class="card shadow-sm border-0 my-4" style="background:linear-gradient(135deg,#ede7f6 0%,#f3e5f5 100%);border-radius:18px;border-left:5px solid #9c27b0;">
+            <p class="compose-subtitle">{{ __('campaigns.create.subtitle') }}</p>
+                        <div class="alert-inline alert-info my-4" style="border-radius:18px;">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-start" style="gap:18px;">
-                                    <div style="background:#ba68c8;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(156,39,176,0.25);flex-shrink:0;">
+                                    <div style="border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(59, 130, 246, 0.25);flex-shrink:0;background:#3b82f6;">
                                         <i class="fas fa-robot" style="color:white;font-size:1.75rem;"></i>
                                     </div>
                                     <div style="flex:1;">
-                                        <div style="font-size:1.25rem;font-weight:700;color:#6a1b9a;margin-bottom:10px;">
-                                            <i class="fas fa-sparkles" style="color:#ba68c8;"></i> AI-Powered Hyper-Personalization
+                                        <div class="ai-section-title" style="font-size:1.25rem;font-weight:700;margin-bottom:10px;">
+                                            <i class="fas fa-sparkles"></i> {{ __('campaigns.create.ai_personalization') }}
                                         </div>
-                                        <p style="font-size:0.95rem;color:#4a148c;line-height:1.7;margin-bottom:15px;">
-                                            This isn't bulk messaging—it's <b>intelligent, one-to-one conversations at scale</b>. Our AI analyzes each recipient individually to create personalized messages that feel human and relevant.
+                                        <p class="ai-section-text" style="font-size:0.95rem;line-height:1.7;margin-bottom:15px;">
+                                            {{ __('campaigns.create.ai_benefits_title') }}
                                         </p>
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <ul style="font-size:0.9rem;color:#6a1b9a;line-height:1.8;margin:0;padding-left:20px;">
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Analyzes conversation history</b> to understand context</li>
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Detects language & tone</b> preferences automatically</li>
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Personalizes each message</b> based on relationship stage</li>
+                                                <ul class="ai-feature-list" style="font-size:0.9rem;line-height:1.8;margin:0;padding-left:20px;">
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.analyzes_history') }}</li>
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.detects_language') }}</li>
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.personalizes_message') }}</li>
                                                 </ul>
                                             </div>
                                             <div class="col-md-6">
-                                                <ul style="font-size:0.9rem;color:#6a1b9a;line-height:1.8;margin:0;padding-left:20px;">
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Schedules optimal send times</b> per recipient</li>
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Filters negative sentiment</b> for human review</li>
-                                                    <li><i class="fas fa-check-circle" style="color:#9c27b0;"></i> <b>Increases engagement</b> 2-3x vs generic messages</li>
+                                                <ul class="ai-feature-list" style="font-size:0.9rem;line-height:1.8;margin:0;padding-left:20px;">
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.schedules_times') }}</li>
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.filters_sentiment') }}</li>
+                                                    <li><i class="fas fa-check-circle ai-check-icon"></i> {{ __('campaigns.create.ai_benefits.increases_engagement') }}</li>
                                                 </ul>
                                             </div>
                                         </div>
-                                        <div class="alert alert-info mt-3 mb-0" style="background:#e1f5fe;border:none;border-radius:10px;font-size:0.9rem;color:#01579b;">
-                                            <i class="fas fa-info-circle"></i> <b>How it works:</b> Your template message is analyzed and customized for each contact based on their chat history, interests, and communication style—making every message feel personal and relevant.
+                                        <div class="alert alert-info ai-info-alert mt-3 mb-0" style="border-radius:10px;font-size:0.9rem;">
+                                            {{ __('campaigns.create.ai_how_it_works') }}
                                         </div>
                                     </div>
                                 </div>
@@ -899,7 +1289,7 @@
             <!-- Error Display Section -->
             @if ($errors->any())
                 <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
-                    <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+                    <h6><i class="fas fa-exclamation-triangle"></i> {{ __('campaigns.validation.fix_errors') }}</h6>
                     <ul class="mb-0">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -944,41 +1334,41 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="recipient-card" data-value="1">
-                                <div class="recipient-icon" style="background: #dcfce7; color: #16a34a;">
+                                <div class="recipient-icon" style="background: #dcfce7; color: #16a34a;border:2px solid #86efac;">
                                     <i class="fas fa-globe"></i>
                                 </div>
-                                <h3 class="recipient-title">All Contacts</h3>
-                                <p class="recipient-desc">Send to everyone in your contact list</p>
+                                <h3 class="recipient-title">{{ __('campaigns.create.all_contacts') }}</h3>
+                                <p class="recipient-desc">{{ __('campaigns.create.all_contacts_desc') }}</p>
                             </div>
                         </div>
                         
                         <div class="col-md-6">
                             <div class="recipient-card" data-value="2">
-                                <div class="recipient-icon" style="background: #dbeafe; color: #2563eb;">
+                                <div class="recipient-icon" style="background: #dbeafe; color: #2563eb;border:2px solid #60a5fa;">
                                     <i class="fas fa-filter"></i>
                                 </div>
-                                <h3 class="recipient-title">Select Lead Status</h3>
-                                <p class="recipient-desc">Choose contacts by their lead status</p>
+                                <h3 class="recipient-title">{{ __('campaigns.create.lead_status') }}</h3>
+                                <p class="recipient-desc">{{ __('campaigns.create.lead_status_desc') }}</p>
                             </div>
                         </div>
                         
                         <div class="col-md-6">
                             <div class="recipient-card" data-value="6">
-                                <div class="recipient-icon" style="background: #ede9fe; color: #7c3aed;">
+                                <div class="recipient-icon" style="background: #ede9fe; color: #7c3aed;border:2px solid #a78bfa;">
                                     <i class="fas fa-edit"></i>
                                 </div>
-                                <h3 class="recipient-title">Custom Numbers</h3>
-                                <p class="recipient-desc">Enter specific phone numbers manually</p>
+                                <h3 class="recipient-title">{{ __('campaigns.create.custom_numbers') }}</h3>
+                                <p class="recipient-desc">{{ __('campaigns.create.custom_numbers_desc') }}</p>
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="recipient-card" data-value="7">
-                                <div class="recipient-icon" style="background: #fef9c3; color: #ca8a04;">
+                                <div class="recipient-icon" style="background: #fef9c3; color: #ca8a04;border:2px solid #fbbf24;">
                                     <i class="fas fa-file-excel"></i>
                                 </div>
-                                <h3 class="recipient-title">Upload Excel</h3>
-                                <p class="recipient-desc">Upload an Excel file with phone numbers</p>
+                                <h3 class="recipient-title">{{ __('campaigns.create.upload_excel') }}</h3>
+                                <p class="recipient-desc">{{ __('campaigns.create.upload_excel_desc') }}</p>
                             </div>
                         </div>
                     </div>
@@ -990,10 +1380,10 @@
                 <!-- Lead Status Selection (Hidden by default) -->
                 <div class="form-section" id="categorySection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-tag"></i> Select Lead Status
+                        <i class="fas fa-tag"></i> {{ __('campaigns.create.lead_status') }}
                     </label>
                     <select class="form-control-modern @error('lead_status') is-invalid @enderror" name="lead_status" id="categorySelect">
-                        <option value="">Choose a lead status...</option>
+                        <option value="">{{ __('campaigns.create.lead_status_placeholder') }}</option>
                         @if(isset($lead_statuses))
                             @foreach ($lead_statuses as $status_value => $status_label)
                                 <option value="{{ $status_value }}" {{ old('lead_status') == $status_value ? 'selected' : '' }}>{{ $status_label }}</option>
@@ -1009,10 +1399,10 @@
                 <!-- Custom Numbers Input (Hidden by default) -->
                 <div class="form-section" id="customNumbersSection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-phone"></i> Enter Phone Numbers
+                        <i class="fas fa-phone"></i> {{ __('campaigns.create.enter_phone_numbers') }}
                     </label>
                     <div class="contact-tags @error('custom_numbers') is-invalid @enderror" id="contactTags">
-                        <input type="text" class="contact-input" placeholder="Type phone numbers separated by comma or space..." id="contactInput">
+                        <input type="text" class="contact-input" placeholder="{{ __('campaigns.create.contact_input_placeholder') }}" id="contactInput">
                     </div>
                     <input type="hidden" name="custom_numbers" id="customNumbersInput" value="{{ old('custom_numbers') }}">
                     @error('custom_numbers')
@@ -1021,14 +1411,14 @@
                     <div id="custom-numbers-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-lightbulb"></i> 
-                        Enter numbers with country code (e.g., +255712345678)
+                        {{ __('campaigns.create.phone_help_text') }}
                     </small>
                 </div>
 
                 <!-- Excel Upload Input (Hidden by default) -->
                 <div class="form-section" id="excelUploadSection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-file-excel"></i> Upload Excel File
+                        <i class="fas fa-file-excel"></i> {{ __('campaigns.create.upload_excel') }}
                     </label>
                     <input type="file" class="form-control-modern @error('excel_contacts') is-invalid @enderror" name="excel_contacts" id="excelContactsInput" accept=".xls,.xlsx,.csv">
                     @error('excel_contacts')
@@ -1037,7 +1427,7 @@
                     <div id="excel-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-info-circle"></i>
-                        Upload an Excel file (.xls, .xlsx, .csv) with a column containing name (optional) as name, and phone number as phone (Mandatory).
+                        {{ __('campaigns.create.excel_help_text') }}
                     </small>
                 </div>
 
@@ -1057,7 +1447,7 @@
                         <div class="hashtag-suggestions" id="hashtagSuggestions">
                             <div class="hashtag-item" data-hashtag="#name">
                                 <div class="hashtag-name">#name</div>
-                                <div class="hashtag-desc">Customer's full name</div>
+                                <div class="hashtag-desc">{{ __('campaigns.create.hashtag_name_desc') }}</div>
                             </div>
                         </div>
                         
@@ -1065,7 +1455,7 @@
                         <div class="message-input-area">
                             <textarea 
                                 class="message-input @error('message') is-invalid @enderror" 
-                                placeholder="Type your message here... Use #name for hashtag customer name"
+                                placeholder="{{ __('campaigns.create.message_placeholder') }}"
                                 name="message" 
                                 id="messageInput"
                                 rows="1"
@@ -1079,22 +1469,27 @@
                             
                             <div class="input-actions">
                                 <!-- File Upload -->
-                                <button type="button" class="action-btn" id="attachBtn" title="Attach files">
+                                <button type="button" class="action-btn" id="attachBtn" title="{{ __('campaigns.create.attach_files') }}">
                                     <i class="fas fa-paperclip"></i>
                                 </button>
                                 
                                 <!-- Camera -->
-                                <button type="button" class="action-btn" id="cameraBtn" title="Take photo">
+                                <button type="button" class="action-btn" id="cameraBtn" title="{{ __('campaigns.create.take_photo') }}">
                                     <i class="fas fa-camera"></i>
                                 </button>
                                 
+                                <!-- Emoji Picker -->
+                                <button type="button" class="action-btn" id="emojiBtn" title="{{ __('campaigns.create.add_emoji') }}">
+                                    <i class="fas fa-smile"></i>
+                                </button>
+                                
                                 <!-- Audio -->
-                                <button type="button" class="action-btn" id="audioBtn" title="Record audio">
+                                <button type="button" class="action-btn" id="audioBtn" title="{{ __('campaigns.create.record_audio') }}">
                                     <i class="fas fa-microphone"></i>
                                 </button>
                                 
                                 <!-- Send Button -->
-                                <button type="submit" class="action-btn send-btn" id="sendBtn" disabled title="Send message">
+                                <button type="submit" class="action-btn send-btn" id="sendBtn" disabled title="{{ __('campaigns.create.send_message') }}">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
@@ -1113,14 +1508,14 @@
                 <!-- Message Stats -->
                 <div class="stats-bar">
                     <div class="message-stats">
-                        <span id="wordCount">0 words</span>
-                        <span id="smsCount">1 SMS</span>
-                        <span id="recipientCount">0 recipients</span>
+                        <span id="wordCount">0 {{ __('campaigns.create.word_count') }}</span>
+                        <span id="smsCount">1 {{ __('campaigns.create.sms_count') }}</span>
+                        <span id="recipientCount">0 {{ __('campaigns.create.recipient_count') }}</span>
                     </div>
                     
                     <div class="status-indicator">
                         <div class="status-dot"></div>
-                        <span>WhatsApp Connected</span>
+                        <span>{{ __('campaigns.create.whatsapp_connected') }}</span>
                     </div>
                 </div>
             </form>
@@ -1591,11 +1986,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('excelContactsInput').classList.add('is-invalid');
                 }
                 
-                // Validate file size (5MB limit)
-                if (excelFile.size > 5 * 1024 * 1024) {
+                // Validate file size (2MB limit to prevent 413 error)
+                if (excelFile.size > 2 * 1024 * 1024) {
                     isValid = false;
-                    errors.push('File size too large. Maximum 5MB allowed');
-                    showValidationError('excel', 'File size too large. Maximum 5MB allowed');
+                    const sizeMB = (excelFile.size / (1024 * 1024)).toFixed(2);
+                    errors.push(`Excel file is too large (${sizeMB}MB). Maximum 2MB allowed`);
+                    showValidationError('excel', `File size ${sizeMB}MB exceeds 2MB limit`);
                     document.getElementById('excelContactsInput').classList.add('is-invalid');
                 }
             }
@@ -1620,17 +2016,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate attached files
         if (attachedFiles.length > 0) {
-            const oversizedFiles = attachedFiles.filter(file => file.size > 16 * 1024 * 1024);
+            // Calculate total size of all attached files
+            const totalFileSize = attachedFiles.reduce((sum, file) => sum + file.size, 0);
+            const maxTotalSize = 8 * 1024 * 1024; // 8MB total limit to avoid 413 error
+            
+            if (totalFileSize > maxTotalSize) {
+                isValid = false;
+                const totalSizeMB = (totalFileSize / (1024 * 1024)).toFixed(2);
+                errors.push(`Total file size (${totalSizeMB}MB) exceeds 8MB limit. Please reduce the number or size of files.`);
+                showValidationError('message', `Total file size too large (${totalSizeMB}MB). Maximum 8MB total allowed.`);
+            }
+            
+            const oversizedFiles = attachedFiles.filter(file => file.size > 5 * 1024 * 1024); // Reduced to 5MB per file
             if (oversizedFiles.length > 0) {
                 isValid = false;
-                errors.push('Some attached files are too large. Maximum 16MB per file');
-                showValidationError('message', 'Some attached files are too large. Maximum 16MB per file');
+                const fileNames = oversizedFiles.map(f => f.name).join(', ');
+                errors.push(`Files too large: ${fileNames}. Maximum 5MB per file.`);
+                showValidationError('message', 'Some files are too large. Maximum 5MB per file.');
             }
 
-            if (attachedFiles.length > 10) {
+            if (attachedFiles.length > 5) { // Reduced to 5 files max
                 isValid = false;
-                errors.push('Too many files attached. Maximum 10 files allowed');
-                showValidationError('message', 'Too many files attached. Maximum 10 files allowed');
+                errors.push(`Too many files attached (${attachedFiles.length}). Maximum 5 files allowed.`);
+                showValidationError('message', 'Too many files attached. Maximum 5 files allowed.');
             }
         }
 
@@ -1650,68 +2058,126 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
 
-        // Append attached files to FormData for submission
+        // Always use AJAX submission for consistent error handling
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        // Add attached files to FormData if any
         if (attachedFiles.length > 0) {
-            e.preventDefault(); // Prevent normal form submission
-            
-            const formData = new FormData(this);
-            
-            // Add attached files to FormData
             attachedFiles.forEach((file, index) => {
                 formData.append('files[]', file);
             });
+        }
+        
+        // Debug: Log form data
+        console.log('Submitting campaign with criteria:', selectedCriteria);
+        console.log('Form action:', this.action);
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
+        }
+        
+        // Show loading state
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        sendBtn.disabled = true;
+        floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        floatingSendBtn.disabled = true;
+        
+        // Add loading overlay
+        showLoadingOverlay();
+        
+        // Submit with fetch
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value
+            }
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             
-            // Show loading state
-            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            sendBtn.disabled = true;
-            floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            floatingSendBtn.disabled = true;
+            // Check if response is ok
+            if (!response.ok) {
+                return response.json().then(data => {
+                    console.error('Error response data:', data);
+                    throw { status: response.status, data: data };
+                }).catch(err => {
+                    console.error('Failed to parse error response:', err);
+                    if (err.data) throw err;
+                    throw { status: response.status, data: { message: 'Server error occurred' } };
+                });
+            }
+            return response.json().then(data => {
+                console.log('Success response data:', data);
+                return data;
+            });
+        })
+        .then(data => {
+            // Remove loading overlay
+            document.getElementById('loading-overlay')?.remove();
             
-            // Add loading overlay
-            showLoadingOverlay();
-            
-            // Submit with fetch
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value
-                }
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
+            if (data.success) {
+                // Show success message
+                alert(data.message || 'Campaign created successfully!');
+                
+                // Redirect to campaigns list
+                if (data.redirect) {
+                    window.location.href = data.redirect;
                 } else {
-                    return response.text().then(text => {
-                        document.open();
-                        document.write(text);
-                        document.close();
-                    });
+                    window.location.href = '{{ route("campaigns.index") }}';
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while sending the message. Please try again.');
+            } else {
+                // Handle validation errors
+                if (data.errors) {
+                    let errorMessages = [];
+                    for (let field in data.errors) {
+                        errorMessages = errorMessages.concat(data.errors[field]);
+                    }
+                    showErrorSummary(errorMessages);
+                } else {
+                    alert(data.message || 'An error occurred. Please try again.');
+                }
+                
                 // Reset loading state
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 sendBtn.disabled = false;
                 floatingSendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 floatingSendBtn.disabled = false;
-                document.getElementById('loading-overlay')?.remove();
-            });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             
-            return false;
-        }
-
-        // Show loading state for normal submission (no files)
-        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        sendBtn.disabled = true;
-        floatingSendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        floatingSendBtn.disabled = true;
-
-        // Add loading overlay
-        showLoadingOverlay();
+            // Remove loading overlay
+            document.getElementById('loading-overlay')?.remove();
+            
+            // Show detailed error if available
+            let errorMessage = 'An error occurred while sending the message. Please try again.';
+            if (error.data && error.data.message) {
+                errorMessage = error.data.message;
+            } else if (error.data && error.data.errors) {
+                let errorMessages = [];
+                for (let field in error.data.errors) {
+                    errorMessages = errorMessages.concat(error.data.errors[field]);
+                }
+                showErrorSummary(errorMessages);
+                errorMessage = 'Please fix the errors and try again.';
+            }
+            
+            alert(errorMessage);
+            
+            // Reset loading state
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            sendBtn.disabled = false;
+            floatingSendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            floatingSendBtn.disabled = false;
+        });
+        
+        return false;
     });
 
     function clearValidationErrors() {

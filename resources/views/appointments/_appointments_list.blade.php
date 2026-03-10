@@ -1,8 +1,8 @@
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-12 mb-3">
-        <a href="javascript:void(0)" onclick="$('#bookingModal').modal('show')" class="btn btn-primary btn-lg">
-            <i class="fas fa-plus-circle mr-2"></i>Book New Appointment
+        <a href="javascript:void(0)" onclick="$('#bookingModal').modal('show')" class="btn-primary">
+            <i class="fas fa-plus-circle mr-2"></i>{{ __("appointments.actions.book_new") }}
         </a>
     </div>
     
@@ -11,7 +11,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Upcoming</h6>
+                        <h6 class="text-muted mb-1">{{ __("appointments.stats.upcoming") }}</h6>
                         <h3 class="mb-0 text-primary">{{ $stats['upcoming'] ?? 0 }}</h3>
                     </div>
                     <div class="flex-shrink-0">
@@ -27,7 +27,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Pending</h6>
+                        <h6 class="text-muted mb-1">{{ __("appointments.stats.pending") }}</h6>
                         <h3 class="mb-0 text-warning">{{ $stats['pending'] ?? 0 }}</h3>
                     </div>
                     <div class="flex-shrink-0">
@@ -43,7 +43,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Completed</h6>
+                        <h6 class="text-muted mb-1">{{ __("appointments.stats.completed") }}</h6>
                         <h3 class="mb-0 text-success">{{ $stats['completed'] ?? 0 }}</h3>
                     </div>
                     <div class="flex-shrink-0">
@@ -59,7 +59,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">No-Show Rate</h6>
+                        <h6 class="text-muted mb-1">{{ __("appointments.stats.no_show_rate") }}</h6>
                         <h3 class="mb-0 text-danger">{{ number_format($stats['no_show_rate'] ?? 0, 1) }}%</h3>
                     </div>
                     <div class="flex-shrink-0">
@@ -77,42 +77,42 @@
         <form method="GET" action="{{ route('appointments.index') }}" id="filterForm">
             <div class="row align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">Status</label>
+                    <label class="form-label">{{ __("appointments.filters.status_label") }}</label>
                     <select name="status" class="form-control" onchange="document.getElementById('filterForm').submit()">
-                        <option value="">All Statuses</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                        <option value="no_show" {{ request('status') == 'no_show' ? 'selected' : '' }}>No Show</option>
+                        <option value="">{{ __("appointments.filters.all_statuses") }}</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __("appointments.status.pending") }}</option>
+                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>{{ __("appointments.status.confirmed") }}</option>
+                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>{{ __("appointments.status.completed") }}</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>{{ __("appointments.status.cancelled") }}</option>
+                        <option value="no_show" {{ request('status') == 'no_show' ? 'selected' : '' }}>{{ __("appointments.status.no_show") }}</option>
                     </select>
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Type</label>
+                    <label class="form-label">{{ __("appointments.filters.type_label") }}</label>
                     <select name="type" class="form-control" onchange="document.getElementById('filterForm').submit()">
-                        <option value="">All Types</option>
-                        <option value="demo" {{ request('type') == 'demo' ? 'selected' : '' }}>Demo</option>
-                        <option value="consultation" {{ request('type') == 'consultation' ? 'selected' : '' }}>Consultation</option>
-                        <option value="follow_up" {{ request('type') == 'follow_up' ? 'selected' : '' }}>Follow Up</option>
-                        <option value="meeting" {{ request('type') == 'meeting' ? 'selected' : '' }}>Meeting</option>
-                        <option value="call" {{ request('type') == 'call' ? 'selected' : '' }}>Call</option>
+                        <option value="">{{ __("appointments.filters.all_types") }}</option>
+                        <option value="demo" {{ request('type') == 'demo' ? 'selected' : '' }}>{{ __("appointments.types.demo") }}</option>
+                        <option value="consultation" {{ request('type') == 'consultation' ? 'selected' : '' }}>{{ __("appointments.types.consultation") }}</option>
+                        <option value="follow_up" {{ request('type') == 'follow_up' ? 'selected' : '' }}>{{ __("appointments.types.follow_up") }}</option>
+                        <option value="meeting" {{ request('type') == 'meeting' ? 'selected' : '' }}>{{ __("appointments.types.meeting") }}</option>
+                        <option value="call" {{ request('type') == 'call' ? 'selected' : '' }}>{{ __("appointments.types.call") }}</option>
                     </select>
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">From Date</label>
+                    <label class="form-label">{{ __("appointments.filters.from_date_label") }}</label>
                     <input type="date" name="from_date" class="form-control" value="{{ request('from_date') }}" onchange="document.getElementById('filterForm').submit()">
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">To Date</label>
+                    <label class="form-label">{{ __("appointments.filters.to_date_label") }}</label>
                     <input type="date" name="to_date" class="form-control" value="{{ request('to_date') }}" onchange="document.getElementById('filterForm').submit()">
                 </div>
 
                 <div class="col-md-2">
                     <a href="{{ route('appointments.index') }}" class="btn btn-secondary btn-block">
-                        <i class="fas fa-redo mr-1"></i>Reset
+                        <i class="fas fa-redo mr-1"></i>{{ __("appointments.actions.reset") }}
                     </a>
                 </div>
             </div>
@@ -125,24 +125,24 @@
     <div class="card-header bg-white">
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
-                <i class="fas fa-list mr-2"></i>Appointments List
+                <i class="fas fa-list mr-2"></i>{{ __("appointments.table.title") }}
             </h5>
-            <span class="badge badge-primary badge-pill">{{ $appointments->total() }} Total</span>
+            <span class="badge badge-primary badge-pill">{{ $appointments->total() }} {{ __("appointments.stats.total") }}</span>
         </div>
     </div>
     <div class="card-body p-0">
         @if($appointments->count() > 0)
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table-standard mb-0">
                 <thead class="bg-light">
                     <tr>
-                        <th>Date & Time</th>
-                        <th>Customer</th>
-                        <th>Type</th>
-                        <th>Duration</th>
-                        <th>Status</th>
-                        <th>Booking Slot</th>
-                        <th class="text-center">Actions</th>
+                        <th>{{ __("appointments.table.date_time") }}</th>
+                        <th>{{ __("appointments.table.customer") }}</th>
+                        <th>{{ __("appointments.table.type") }}</th>
+                        <th>{{ __("appointments.table.duration") }}</th>
+                        <th>{{ __("appointments.table.status") }}</th>
+                        <th>{{ __("appointments.table.booking_slot") }}</th>
+                        <th class="text-center">{{ __("appointments.table.actions") }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -179,27 +179,27 @@
                         </td>
                         <td>
                             @if($appointment->bookingSlot)
-                                <i class="fas fa-check-circle text-success" title="Slot Reserved"></i>
+                                <i class="fas fa-check-circle text-success" title="{{ __("appointments.slot.reserved") }}"></i>
                                 <small class="text-muted">{{ ucfirst($appointment->bookingSlot->status) }}</small>
                             @else
-                                <i class="fas fa-exclamation-triangle text-warning" title="No Slot"></i>
-                                <small class="text-muted">Legacy</small>
+                                <i class="fas fa-exclamation-triangle text-warning" title="{{ __("appointments.slot.no_slot") }}"></i>
+                                <small class="text-muted">{{ __("appointments.slot.legacy") }}</small>
                             @endif
                         </td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ route('appointments.show', $appointment->id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <a href="{{ route('appointments.show', $appointment->id) }}" class="btn btn-sm btn-outline-primary" title="{{ __("appointments.actions.view_details") }}">
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 
                                 @if($appointment->status == 'pending')
-                                <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmAppointment({{ $appointment->id }})" title="Confirm">
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmAppointment({{ $appointment->id }})" title="{{ __("appointments.actions.confirm") }}">
                                     <i class="fas fa-check"></i>
                                 </button>
                                 @endif
                                 
                                 @if(in_array($appointment->status, ['pending', 'confirmed']))
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelAppointment({{ $appointment->id }})" title="Cancel">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelAppointment({{ $appointment->id }})" title="{{ __("appointments.actions.cancel") }}">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 @endif
@@ -213,9 +213,9 @@
         @else
         <div class="text-center py-5">
             <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-            <p class="text-muted">No appointments found</p>
+            <p class="text-muted">{{ __("appointments.empty.no_appointments") }}</p>
             @if(request()->hasAny(['status', 'type', 'from_date', 'to_date']))
-            <a href="{{ route('appointments.index') }}" class="btn btn-sm btn-primary">Clear Filters</a>
+            <a href="{{ route('appointments.index') }}" class="btn btn-sm btn-primary">{{ __("appointments.actions.clear_filters") }}</a>
             @endif
         </div>
         @endif

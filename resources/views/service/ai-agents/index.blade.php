@@ -37,12 +37,12 @@
                                 </div>
                             </div>
                             <div class="credits-actions">
-                                <button class="btn-mini success" onclick="showPurchaseCreditsModal()" title="Add Credits">
+                                <button class="btn-sm btn-secondary" onclick="showPurchaseCreditsModal()" title="Add Credits">
                                     <i class="fas fa-plus"></i>
                                     Add Credits
                                 </button>
                                 @if($subscription_plan !== 'premium')
-                                    <button class="btn-mini primary" onclick="showUpgradeModal('general')" title="Upgrade Plan">
+                                    <button class="btn-sm btn-primary" onclick="showUpgradeModal('general')" title="Upgrade Plan">
                                         <i class="fas fa-arrow-up"></i>
                                         Upgrade
                                     </button>
@@ -60,7 +60,7 @@
                             </button>
                         </div>
                         @if($agents->count() === 0)
-                            <a href="{{ route('ai-agents.create') }}" class="btn btn-create ms-2">
+                            <a href="{{ route('ai-agents.create') }}" class="btn-primary ms-2">
                                 <i class="fas fa-plus-circle me-2"></i>
                                 Create AI Agent
                             </a>
@@ -75,7 +75,7 @@
             <div class="mb-4">
                 <h2 class="mb-2" style="font-weight:700; color:#4b3fa7;">Configure and Manage New Sales Agents</h2>
                 <p class="mb-3" style="color:#6c757d;">This section allows you to add, configure, and manage your WhatsApp sales agents. Each agent can automate and personalize your customer conversations.</p>
-                <button id="createAgentBtn" class="btn btn-primary-lg" onclick="handleCreateAgent()">
+                <button id="createAgentBtn" class="btn-primary" onclick="handleCreateAgent()">
                     <i class="fas fa-plus-circle me-2"></i>
                     Create New Sales Agent
                 </button>
@@ -459,7 +459,7 @@
                     <h2>No AI Sales Agents Yet</h2>
                     <p>Create your first intelligent sales assistant to start automating customer conversations on WhatsApp.</p>
                     <div class="empty-actions">
-                        <button id="createAgentBtn" class="btn btn-primary-lg" onclick="handleCreateAgent()">
+                        <button id="createAgentBtn" class="btn-primary" onclick="handleCreateAgent()">
                             <i class="fas fa-plus-circle me-2"></i>
                             Create Your First Agent
                         </button>
@@ -529,7 +529,7 @@
 <style>
 /* Modern AI Agents Management Styles */
 .ai-agents-management {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gray-50);
     min-height: 100vh;
     padding: 2rem 0;
 }
@@ -550,7 +550,7 @@
 .header-icon {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-brand);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -567,34 +567,13 @@
     font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-brand);
 }
 
 .page-subtitle {
     color: #6c757d;
     font-size: 1.1rem;
     margin: 0.5rem 0 0 0;
-}
-
-.btn-create {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-create:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    color: white;
 }
 
 .content-wrapper {
@@ -793,48 +772,81 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
+    margin-top: 2rem;
 }
 
 .stat-card {
-    padding: 1.5rem;
+    padding: 2rem 1.75rem;
     border-radius: 15px;
     color: white;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
 .stat-card.primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+    color: #ffffff;
 }
 
 .stat-card.success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: #ffffff;
 }
 
 .stat-card.warning {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+    color: #ffffff;
 }
 
 .stat-card.info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: #ffffff;
+}
+
+.stat-icon {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    min-height: 70px;
 }
 
 .stat-icon i {
     font-size: 2.5rem;
-    opacity: 0.8;
+    opacity: 1;
+    color: #ffffff;
+}
+
+.stat-info {
+    flex: 1;
 }
 
 .stat-info h3 {
-    font-size: 2rem;
+    font-size: 2.25rem;
     font-weight: 700;
-    margin: 0;
+    margin: 0 0 0.25rem 0;
+    color: #ffffff;
+    line-height: 1.2;
 }
 
 .stat-info p {
     margin: 0;
-    opacity: 0.9;
-    font-size: 0.9rem;
+    opacity: 0.95;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 0.3px;
 }
 
 /* Empty State */
@@ -846,7 +858,7 @@
 .empty-icon {
     width: 120px;
     height: 120px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-brand);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -873,27 +885,6 @@
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
-}
-
-.btn-primary-lg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary-lg:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    color: white;
-    text-decoration: none;
 }
 
 .empty-features {
@@ -949,6 +940,30 @@
     
     .stats-row {
         grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .stat-icon {
+        min-width: 60px;
+        min-height: 60px;
+        padding: 0.875rem;
+    }
+
+    .stat-icon i {
+        font-size: 2rem;
+    }
+
+    .stat-info h3 {
+        font-size: 1.875rem;
+    }
+
+    .stat-info p {
+        font-size: 0.875rem;
     }
     
     .header-content {
@@ -976,22 +991,22 @@
 }
 
 .plan-badge[data-plan="premium"] {
-    background: linear-gradient(45deg, #6f42c1, #8b5cf6) !important;
+    background: var(--primary-brand) !important;
     color: white !important;
 }
 
 .plan-badge[data-plan="pro"] {
-    background: linear-gradient(45deg, #28a745, #34ce57) !important;
-    color: white !important;
+    background: var(--success-bg) !important;
+    color: var(--success-text) !important;
 }
 
 .plan-badge[data-plan="starter"] {
-    background: linear-gradient(45deg, #fd7e14, #ffa726) !important;
-    color: white !important;
+    background: var(--warning-bg) !important;
+    color: var(--warning-text) !important;
 }
 
 .plan-badge[data-plan="trial"] {
-    background: linear-gradient(45deg, #6c757d, #868e96) !important;
+    background: var(--gray-500) !important;
     color: white !important;
 }
 
@@ -1044,43 +1059,6 @@
     border-left: 1px solid #dee2e6;
 }
 
-.btn-mini {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.btn-mini.success {
-    background: linear-gradient(45deg, #28a745, #20c997);
-    color: white;
-}
-
-.btn-mini.success:hover {
-    background: linear-gradient(45deg, #20c997, #28a745);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
-}
-
-.btn-mini.primary {
-    background: linear-gradient(45deg, #007bff, #0056b3);
-    color: white;
-}
-
-.btn-mini.primary:hover {
-    background: linear-gradient(45deg, #0056b3, #007bff);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
-}
-
 .action-buttons-group {
     display: flex;
     gap: 0.4rem;
@@ -1101,11 +1079,6 @@
         border-left: none;
         border-top: 1px solid #dee2e6;
         padding-top: 0.4rem;
-    }
-    
-    .btn-mini {
-        font-size: 0.65rem;
-        padding: 0.2rem 0.4rem;
     }
 }
 
@@ -1145,7 +1118,7 @@
 
 /* Dark Mode Styles */
 .dark-mode .ai-agents-management {
-    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    background: var(--gray-800);
 }
 
 .dark-mode .page-header {
@@ -1155,10 +1128,7 @@
 }
 
 .dark-mode .page-title {
-    background: linear-gradient(135deg, #90cdf4 0%, #a78bfa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-brand);
 }
 
 .dark-mode .page-subtitle {
@@ -1214,7 +1184,47 @@
 }
 
 .dark-mode .stat-card {
-    border: 1px solid #718096;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .stat-card.primary {
+    background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
+    color: #ffffff;
+}
+
+.dark-mode .stat-card.success {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    color: #ffffff;
+}
+
+.dark-mode .stat-card.warning {
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    color: #ffffff;
+}
+
+.dark-mode .stat-card.info {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+    color: #ffffff;
+}
+
+.dark-mode .stat-icon {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .stat-icon i {
+    color: #ffffff;
+    opacity: 1;
+}
+
+.dark-mode .stat-info h3 {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.dark-mode .stat-info p {
+    color: #ffffff;
+    opacity: 0.95;
+    font-weight: 500;
 }
 
 .dark-mode .empty-state h2 {
@@ -1610,13 +1620,13 @@
 
 /* Dark mode for upgrade buttons */
 .dark-mode .btn-upgrade {
-    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+    background: var(--primary-brand) !important;
     border: none !important;
     color: #ffffff !important;
 }
 
 .dark-mode .btn-upgrade:hover {
-    background: linear-gradient(45deg, #5a6fd8, #6a4190) !important;
+    background: var(--primary-hover) !important;
     color: #ffffff !important;
 }
 

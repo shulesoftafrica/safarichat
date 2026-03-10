@@ -26,25 +26,31 @@ class Setup extends Controller {
         
         Log::info('BillingService::getProducts() response', ['response' => $response]);
         
-        if ($response['success'] && !empty($response['data'])) {
-            // Live API structure: data.price_plans[] (array of plan objects)
+        if ($response['success'] && !empty($response['data']['price_plans'])) {
             $plans = $response['data']['price_plans'] ?? [];
             
-            // Transform to view format
             $pricingPlans = collect($plans)
                 ->filter(function($plan) {
-                    // Filter out trial plans (amount = 0)
                     $amount = floatval($plan['amount'] ?? 0);
                     return $amount > 0;
                 })
                 ->map(function($plan) {
-                    // Extract features from metadata.features
-                    $features = $plan['metadata']['features'] ?? [];
+                    // Parse metadata JSON string to array
+                    $metadata = [];
+                    if (!empty($plan['metadata'])) {
+                        $metadata = is_string($plan['metadata']) 
+                            ? json_decode($plan['metadata'], true) 
+                            : $plan['metadata'];
+                    }
+                    
+                    $features = $metadata['features'] ?? [];
                     
                     return [
                         'name' => $plan['name'] ?? 'Plan',
                         'amount' => floatval($plan['amount'] ?? 0),
-                        'billing_interval' => $plan['billing_interval'] ?? $plan['subscription_type'] ?? 'monthly',
+                        'billing_interval' => $plan['billing_interval'] ?? 'monthly',
+                        'currency' => trim($plan['currency'] ?? 'TZS'),
+                        'setup_fee' => floatval($plan['setup_fee'] ?? 0),
                         'metadata' => [
                             'features' => $features
                         ]

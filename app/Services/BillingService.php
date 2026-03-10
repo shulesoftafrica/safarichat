@@ -19,7 +19,7 @@ class BillingService
     const CACHE_PREFIX = 'billing_status_';
     const CACHE_DURATION = 7200; // 2 hours in seconds
     const FALLBACK_DURATION = 1800; // 30 minutes for emergency fallbacks
-    const PRODUCT_CODE = 'safarichat'; // Default product code
+    const PRODUCT_CODE = 4; // Default product code
     
     private static function getBillingApiBase()
     {
@@ -61,7 +61,8 @@ class BillingService
     {
         try {
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => config('services.billing.api_key'),
+                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
+                'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])->get(self::getBillingApiBase() . "/customers/{$customerId}/complete-status");
             
@@ -330,15 +331,16 @@ class BillingService
             // Set default parameters
             $queryParams = array_merge([
             ], $params);
-            
-            $apiUrl = self::getBillingApiBase() . "/products/by-code/".self::PRODUCT_CODE;
+    
+            $apiUrl = self::getBillingApiBase() . "/products/".self::PRODUCT_CODE;
             Log::info("Fetching products catalog", [
                 'api_url' => $apiUrl,
                 'query_params' => $queryParams
             ]);
             
             $response = Http::timeout(10)->withHeaders([
-                'Authorization' => 'Bearer ' . config('services.billing.api_key'),
+                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
+                'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])->get($apiUrl, $queryParams);
             
@@ -418,7 +420,8 @@ class BillingService
             $productCode = $productCode ?? self::PRODUCT_CODE;
             
             $response = Http::timeout(10)->withHeaders([
-                'X-API-Key' => config('services.billing.api_key'),
+                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
+                'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])->get(self::getBillingApiBase() . "/products", [
                 'product_code' => $productCode,

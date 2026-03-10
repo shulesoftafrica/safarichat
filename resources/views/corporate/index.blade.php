@@ -85,7 +85,7 @@
     }
 
     .nav-cta {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 12px 24px;
         border-radius: 8px;
@@ -102,7 +102,7 @@
 
     /* Hero Section */
     .corporate-hero {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 100px 20px;
         text-align: center;
@@ -269,7 +269,7 @@
 
     /* Transformation Section */
     .corporate-transformation {
-        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        background: var(--gray-50);
         padding: 80px 0;
     }
 
@@ -348,7 +348,7 @@
     }
 
     .package-detail-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        background: white;
         padding: 40px;
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -414,7 +414,7 @@
 
     /* ROI Section */
     .corporate-roi {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 80px 0;
     }
@@ -491,7 +491,7 @@
         display: flex;
         gap: 25px;
         padding: 35px;
-        background: linear-gradient(135deg, #f8f9fa 0%, white 100%);
+        background: white;
         border-radius: 15px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease;
@@ -523,7 +523,7 @@
 
     /* Corporate Pricing Section */
     .corporate-pricing-section {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        background: var(--gray-800);
         color: white;
         padding: 80px 0;
         text-align: center;
@@ -597,7 +597,7 @@
 
     /* Final CTA Section */
     .corporate-final-cta {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 100px 20px;
         text-align: center;
@@ -735,7 +735,7 @@
     }
 
     .modal-header {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 25px 30px;
         border-radius: 15px 15px 0 0;
@@ -820,7 +820,7 @@
     }
 
     .btn-submit {
-        background: linear-gradient(135deg, var(--primary) 0%, #166975 100%);
+        background: var(--primary-color);
         color: white;
         padding: 15px 30px;
         border: none;

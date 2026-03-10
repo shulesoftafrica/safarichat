@@ -166,7 +166,7 @@ CRM in under 5 minutes. No technical expertise needed!
 💡 Did you know we also offer free migration support? Our team handles 
 the entire setup for you.
 
-🔗 Join here: https://meet.safarichat.com/demo/12345
+🔗 Join here: https://meet.safarichat.ai/demo/12345
 
 Can you confirm you'll make it? 😊
 

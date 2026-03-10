@@ -9,7 +9,7 @@
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('home') }}</a></li>
                         <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('event') }}</a></li>
-                        <li class="breadcrumb-item active">{{ __('sms_sent') }}</li>
+                        <li class="breadcrumb-item active">{{ __("messaging.sent_title") }}</li>
                     </ol>
                 </div>
             </div><!--end page-title-box-->
@@ -20,18 +20,18 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h4 class="mt-0 header-title">{{ __('sms_sent') }}</h4>
-                    <p class="text-muted mb-3">{{ __('manage_list_of_nessage_sent') }}</p>
+                    <h4 class="mt-0 header-title">{{ __("messaging.sent.table_title") }}</h4>
+                    <p class="text-muted mb-3">{{ __("messaging.sent_subtitle") }}</p>
                     <div class="row">
                         <div class="col-4 align-self-center">  </div>
                         <div class="col-4 align-self-center">
                             <div class="form-group">
-                                <label>{{ __('select_channel') }}</label>
+                                <label>{{ __("messaging.sent.select_channel") }}</label>
                                 <select class="form-control" name="channel" onchange="window.location.href = '<?= url('message/sent') ?>/' + this.value">
                                     <option value=""></option>
                                     <!-- <option value="phone-sms">{{ __('phone_sms') }}</option> -->
-                                    <option value="1">{{ __('quick_sms') }}</option>
-                                    <option value="2">{{ __('whatsapp') }}</option>
+                                    <option value="1">{{ __("messaging.sent.quick_sms") }}</option>
+                                    <option value="2">{{ __("messaging.sent.whatsapp") }}</option>
                                     <!-- <option value="email">{{ __('email') }}</option> -->
                                 </select>
                             </div>
@@ -39,15 +39,15 @@
                     </div>
                     <br/>
 
-                    <table id="mainTable" class="table table-striped  mb-0 dataTable" style="cursor: pointer;">
+                    <table id="mainTable" class="table-standard mb-0 dataTable" style="cursor: pointer;">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>{{ __('phone') }}</th>
-                                <th>{{ __('body') }}</th>
-                                <th>{{ __('type') }}</th>
-                                <th>{{ __('status') }}</th>
-                                <th>{{ __('actions') }}</th>
+                                <th>{{ __("messaging.sent.phone") }}</th>
+                                <th>{{ __("messaging.sent.body") }}</th>
+                                <th>{{ __("messaging.sent.type") }}</th>
+                                <th>{{ __("messaging.sent.status") }}</th>
+                                <th>{{ __("messaging.sent.actions") }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -58,7 +58,7 @@
                                     <td><?=$message->body?></td>
                                     <td><?=$message->type?></td>
                                     <td><?=$message->status?></td>
-                                    <td>{{ __('actions') }}</td>
+                                    <td>{{ __("messaging.sent.actions") }}</td>
                                 </tr>
                             <?php }
                             ?>

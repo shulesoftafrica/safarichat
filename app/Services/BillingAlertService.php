@@ -145,7 +145,7 @@ class BillingAlertService
                 'message' => 'Your AI assistant cannot respond to customers. Top up immediately.',
                 'action' => [
                     'text' => 'Top Up Now',
-                    'url' => url('home/settings')
+                    'url' => url('billing/wallet')
                 ],
                 'icon' => '🚨',
                 'stats' => [
@@ -162,7 +162,7 @@ class BillingAlertService
                 'message' => sprintf('Only %s credits remaining (%.1f%%). Your AI will stop soon.', number_format($remaining), $percentage),
                 'action' => [
                     'text' => 'Top Up Now',
-                    'url' => url('home/settings')
+                    'url' => url('billing/wallet')
                 ],
                 'icon' => '⚠️',
                 'stats' => [

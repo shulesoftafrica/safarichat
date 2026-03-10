@@ -4,17 +4,17 @@
     <!-- Onboarding Message -->
     @if(request('onboarding') === 'true' || request('incomplete') === 'products' || session('onboarding_message'))
     <div class="onboarding-alert">
-        <div class="alert alert-info alert-dismissible fade show" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; margin-bottom: 2rem;">
+        <div class="alert-inline alert-info alert-dismissible fade show" style="margin-bottom: 2rem;">
             <div class="d-flex align-items-center">
                 <div class="me-3">
                     <i class="fas fa-rocket fa-2x"></i>
                 </div>
                 <div class="flex-grow-1">
-                    <h5 class="mb-1" style="color: white;"><strong>🎯 Almost There! Set Up Your First Product/Service</strong></h5>
+                    <h5 class="mb-1"><strong>🎯 Almost There! Set Up Your First Product/Service</strong></h5>
                     <p class="mb-0">Before you can start selling, you need to define at least one product or service. This helps our AI understand what you're selling and how to engage with customers.</p>
                 </div>
             </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     </div>
     @endif
@@ -72,7 +72,7 @@
     
     <div class="products-table-container">
         <div class="table-responsive">
-            <table class="table table-hover" id="productsTable">
+            <table class="table-standard" id="productsTable">
                 <thead>
                     <tr>
                         <th style="width: 40px;">
@@ -102,10 +102,9 @@
                             class="{{ $product->is_active_campaign ? 'campaign-active' : '' }}">
                             <td>
                                 <input type="checkbox" class="product-checkbox" value="{{ $product->id }}" onchange="updateBulkActions()">
-                            </td>
                             <td>
                                 <div class="product-info d-flex align-items-center">
-                                    <div class="product-image me-3">
+                                    <div class="product-image me-4">
                                         @if($product->hasImage())
                                             <img src="{{ $product->getImageFile() }}" alt="{{ $product->name }}" class="product-thumb">
                                         @else
@@ -785,12 +784,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-info" id="manageNurtureMessagesBtn" onclick="manageNurtureMessages()" style="display: none;">
+                <button type="button" class="btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn-secondary" id="manageNurtureMessagesBtn" onclick="manageNurtureMessages()" style="display: none;">
                     <i class="fas fa-comments"></i>
                     Manage Nurture Messages
                 </button>
-                <button type="button" class="btn btn-primary" onclick="editProductFromView()">
+                <button type="button" class="btn-primary" onclick="editProductFromView()">
                     <i class="fas fa-edit"></i>
                     Edit Product
                 </button>
@@ -824,12 +823,13 @@
     }
     
     .btn-add-product {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        background: var(--primary-brand, #3b5998) !important;
+        color: white !important;
         border: none;
         border-radius: 8px;
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 4px 15px rgba(59, 89, 152, 0.3);
         transition: all 0.3s ease;
     }
     
@@ -888,11 +888,12 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
-        font-weight: 500;
+        font-weight: 600;
         text-transform: uppercase;
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     
     .badge-service {
@@ -1130,7 +1131,7 @@
     .product-placeholder {
         width: 50px;
         height: 50px;
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        background: var(--gray-100);
         border: 2px solid #d1d5db;
         border-radius: 8px;
         display: flex;
@@ -1142,7 +1143,7 @@
     }
     
     .product-placeholder:hover {
-        background: linear-gradient(135deg, #e2e8f0, #d1d5db);
+        background: var(--gray-200);
         border-color: #9ca3af;
     }
     
@@ -1270,16 +1271,16 @@
     }
     
     .product-type-selector .form-check-input:checked + .form-check-label {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        background: var(--primary-color);
         color: white;
-        border-color: #6366f1;
+        border-color: var(--primary-color);
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 4px 15px rgba(59, 89, 152, 0.3);
     }
     
     .service-fields {
         border: 2px dashed #10b981;
-        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        background: #f0fdf4;
     }
     
     .service-fields .section-title {
@@ -1288,7 +1289,7 @@
     
     .campaign-section {
         border: 2px solid #f59e0b;
-        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        background: #fffbeb;
     }
     
     .campaign-section .section-title {
@@ -1330,7 +1331,7 @@
     }
     
     .ai-config-badge {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: #10b981;
         color: white;
         font-size: 0.75rem;
         padding: 0.25rem 0.75rem;
@@ -1339,7 +1340,7 @@
     }
     
     .rag-badge {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        background: #3b82f6;
         color: white;
         font-size: 0.75rem;
         padding: 0.25rem 0.75rem;
@@ -1349,7 +1350,7 @@
     
     .form-section.ai-enhanced {
         border: 2px solid #3b82f6;
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        background: #eff6ff;
     }
     
     .form-section.ai-enhanced .section-title {
@@ -1474,15 +1475,15 @@
     }
     
     .document-icon.pdf {
-        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        background: #dc2626;
     }
     
     .document-icon.word {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        background: #2563eb;
     }
     
     .document-icon.text {
-        background: linear-gradient(135deg, #059669, #047857);
+        background: #059669;
     }
     
     .document-details h6 {
@@ -1578,7 +1579,7 @@
     }
 
     .dark-mode .btn-add-product {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        background: var(--primary-color) !important;
     }
 
     .dark-mode .products-table-container {
@@ -1601,36 +1602,199 @@
     .dark-mode .table tbody td {
         background: #2d3748 !important;
         border-bottom: 1px solid #4a5568 !important;
-        color: #e2e8f0 !important;
-    }
-
-    .dark-mode .table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .dark-mode .campaign-active {
-        background-color: rgba(245, 158, 11, 0.1) !important;
-        border-left: 3px solid #f59e0b !important;
-    }
-
-    .dark-mode .campaign-active:hover {
-        background-color: rgba(245, 158, 11, 0.15) !important;
-    }
-
-    .dark-mode .product-name {
         color: #f7fafc !important;
     }
 
+    .dark-mode .table tbody tr {
+        background: #2d3748 !important;
+    }
+
+    .dark-mode .table tbody tr:nth-child(odd) {
+        background: #1e293b !important;
+    }
+
+    .dark-mode .table tbody tr:nth-child(odd) td {
+        background: #1e293b !important;
+    }
+
+    .dark-mode .table tbody tr:nth-child(even) td {
+        background: #2d3748 !important;
+    }
+
+    .dark-mode .table tbody tr:hover {
+        background: rgba(99, 179, 237, 0.15) !important;
+    }
+
+    .dark-mode .table tbody tr:hover td {
+        background: rgba(99, 179, 237, 0.15) !important;
+        color: #ffffff !important;
+    }
+
+    .dark-mode .campaign-active {
+        background-color: #fbbf24 !important;
+        border-left: 3px solid #f59e0b !important;
+    }
+
+    .dark-mode .campaign-active td {
+        background-color: #fbbf24 !important;
+        color: #1a1f2e !important;
+    }
+
+    .dark-mode .campaign-active:hover {
+        background-color: #fcd34d !important;
+    }
+
+    .dark-mode .campaign-active:hover td {
+        background-color: #fcd34d !important;
+        color: #1a1f2e !important;
+    }
+
+    .dark-mode .campaign-active .product-name {
+        color: #1a1f2e !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .product-description {
+        color: #1e293b !important;
+        font-weight: 500 !important;
+    }
+
+    .dark-mode .campaign-active .product-meta {
+        color: #334155 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .text-muted {
+        color: #475569 !important;
+        font-weight: 500 !important;
+    }
+
+    .dark-mode .campaign-active small.text-muted {
+        color: #475569 !important;
+        font-weight: 500 !important;
+    }
+
+    .dark-mode .campaign-active .leads-label {
+        color: #334155 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .meta-divider {
+        color: #64748b !important;
+    }
+
+    .dark-mode .campaign-active .text-success {
+        color: #059669 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .text-warning {
+        color: #d97706 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .text-danger {
+        color: #dc2626 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .badge {
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .leads-count-circle {
+        background-color: #1a1f2e !important;
+        color: #fbbf24 !important;
+        border: 2px solid #1a1f2e !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .pricing-info .retail-price {
+        color: #047857 !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .pricing-info .wholesale-price {
+        color: #0369a1 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .pricing-info .discount-info {
+        color: #dc2626 !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .price-amount {
+        color: #1a1f2e !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .price-period,
+    .dark-mode .campaign-active .price-label {
+        color: #334155 !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .pricing-label {
+        color: #1e293b !important;
+        font-weight: 600 !important;
+    }
+
+    .dark-mode .campaign-active .stock-quantity {
+        color: #1a1f2e !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .campaign-active .meta-item {
+        color: #334155 !important;
+    }
+
+    .dark-mode .campaign-active .meta-item strong {
+        color: #1e293b !important;
+        font-weight: 700 !important;
+    }
+
+    .dark-mode .product-name {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+
     .dark-mode .product-description {
-        color: #cbd5e0 !important;
+        color: #f7fafc !important;
     }
 
     .dark-mode .product-meta {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
+        font-weight: 500 !important;
     }
 
     .dark-mode .meta-divider {
-        color: #718096 !important;
+        color: #9ca3af !important;
+    }
+
+    .dark-mode .text-muted {
+        color: #cbd5e0 !important;
+    }
+
+    .dark-mode small.text-muted {
+        color: #cbd5e0 !important;
+        font-weight: 500 !important;
+    }
+
+    .dark-mode .text-success {
+        color: #4ade80 !important;
+    }
+
+    .dark-mode .text-warning {
+        color: #fbbf24 !important;
+    }
+
+    .dark-mode .text-danger {
+        color: #f87171 !important;
+    }
+
+    .dark-mode .stock-status {
+        font-weight: 600 !important;
     }
 
     .dark-mode .product-thumb {
@@ -1642,13 +1806,13 @@
     }
 
     .dark-mode .product-placeholder {
-        background: linear-gradient(135deg, #4a5568, #2d3748) !important;
+        background: var(--gray-700) !important;
         border-color: #718096 !important;
         color: #a0aec0 !important;
     }
 
     .dark-mode .product-placeholder:hover {
-        background: linear-gradient(135deg, #2d3748, #1a1f2e) !important;
+        background: var(--gray-800) !important;
         border-color: #4a5568 !important;
     }
 
@@ -1681,12 +1845,14 @@
 
     .dark-mode .leads-count-circle.bg-light {
         background-color: #4a5568 !important;
-        color: #cbd5e0 !important;
+        color: #f7fafc !important;
         border: 1px solid #4a5568 !important;
+        font-weight: 600 !important;
     }
 
     .dark-mode .leads-label {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
+        font-weight: 500 !important;
     }
 
     .dark-mode .btn-edit {
@@ -1727,9 +1893,9 @@
     }
 
     .dark-mode .product-type-selector .form-check-input:checked + .form-check-label {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        background: var(--primary-color) !important;
         color: white !important;
-        border-color: #6366f1 !important;
+        border-color: var(--primary-color) !important;
     }
 
     .dark-mode .service-fields {
@@ -1870,19 +2036,19 @@
 
     .dark-mode .badge-light {
         background-color: #4a5568 !important;
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
+        font-weight: 600 !important;
     }
 
-    .dark-mode .text-muted {
-        color: #a0aec0 !important;
+    .dark-mode .badge-campaign {
+        background-color: #fbbf24 !important;
+        color: #1a1f2e !important;
+        font-weight: 700 !important;
+        text-shadow: none !important;
     }
 
     .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4, .dark-mode h5, .dark-mode h6 {
         color: #f7fafc !important;
-    }
-
-    .dark-mode p, .dark-mode span, .dark-mode div {
-        color: #e2e8f0 !important;
     }
 
     .dark-mode .close {
@@ -2100,7 +2266,7 @@
     }
 
     .dark-mode .onboarding-alert .alert {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: var(--primary-color) !important;
         color: white !important;
     }
 
@@ -2643,7 +2809,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         previewDiv.innerHTML = `
                             <div class="position-relative">
                                 <img src="${e.target.result}" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" onclick="removeImagePreview(this)" style="margin: 2px;">
+                                <button type="button" class="btn-sm btn-danger position-absolute top-0 end-0" onclick="removeImagePreview(this)" style="margin: 2px;">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>

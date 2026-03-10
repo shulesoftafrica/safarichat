@@ -12,7 +12,7 @@
     }
     
     .reports-header {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+        background: var(--primary-color);
         border-radius: 20px;
         padding: 30px;
         color: white;
@@ -191,10 +191,10 @@
     }
     
     .insights-card {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        background: var(--gray-50);
         border-radius: 16px;
         padding: 24px;
-        border: 1px solid #bae6fd;
+        border: 1px solid var(--gray-200);
         margin-bottom: 20px;
     }
     
@@ -323,7 +323,7 @@
     }
     
     .export-btn {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
+        background: var(--primary-color);
         border: none;
         color: white;
         padding: 10px 20px;
@@ -376,21 +376,21 @@
             <div class="col-md-8">
                 <h1 class="reports-title">
                     <i class="fas fa-chart-line"></i>
-                    WhatsApp Business Analytics
+                    {{ __("messaging.report_title") }}
                 </h1>
-                <p class="reports-subtitle">Track your customer engagement and business growth through WhatsApp messaging</p>
+                <p class="reports-subtitle">{{ __("messaging.report_subtitle") }}</p>
                 
                 <div class="period-selector">
-                    <button class="period-btn" onclick="changePeriod('today')">Today</button>
-                    <button class="period-btn active" onclick="changePeriod('week')">This Week</button>
-                    <button class="period-btn" onclick="changePeriod('month')">This Month</button>
-                    <button class="period-btn" onclick="changePeriod('quarter')">Quarter</button>
+                    <button class="period-btn" onclick="changePeriod('today')">{{ __("messaging.report.period_selector.today") }}</button>
+                    <button class="period-btn active" onclick="changePeriod('week')">{{ __("messaging.report.period_selector.week") }}</button>
+                    <button class="period-btn" onclick="changePeriod('month')">{{ __("messaging.report.period_selector.month") }}</button>
+                    <button class="period-btn" onclick="changePeriod('quarter')">{{ __("messaging.report.period_selector.custom") }}</button>
                 </div>
             </div>
             <div class="col-md-4 text-center">
                 <button class="export-btn" onclick="exportReport()">
                     <i class="fas fa-download"></i>
-                    Export Report
+                    {{ __('report.buttons.export_report') }}
                 </button>
             </div>
         </div>
@@ -404,13 +404,13 @@
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <div class="metric-value">{{ number_format($whatsapp_sent) }}</div>
-                <div class="metric-label">WhatsApp Messages Sent</div>
+                <div class="metric-label">{{ __('report.metrics.whatsapp_sent.label') }}</div>
                 <span class="metric-trend trend-up">
                     <i class="fas fa-arrow-up"></i> 
                     @if($messages_sent_week > 0)
-                        {{ $messages_sent_week }} this week
+                        {{ $messages_sent_week }} {{ __('report.metrics.time.this_week') }}
                     @else
-                        Total messages
+                        {{ __('report.metrics.whatsapp_sent.total') }}
                     @endif
                 </span>
             </div>
@@ -423,10 +423,10 @@
                     <i class="fas fa-reply"></i>
                 </div>
                 <div class="metric-value">{{ number_format($whatsapp_received) }}</div>
-                <div class="metric-label">Customer Responses</div>
+                <div class="metric-label">{{ __('report.metrics.responses.label') }}</div>
                 <span class="metric-trend trend-up">
                     <i class="fas fa-arrow-up"></i> 
-                    {{ $response_rate }}% response rate
+                    {{ $response_rate }}% {{ __('report.metrics.responses.rate_suffix') }}
                 </span>
             </div>
         </div>
@@ -438,9 +438,9 @@
                     <i class="fas fa-comments"></i>
                 </div>
                 <div class="metric-value">{{ number_format($active_conversations) }}</div>
-                <div class="metric-label">Active Conversations</div>
+                <div class="metric-label">{{ __('report.metrics.conversations.label') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> Last 30 days
+                    <i class="fas fa-arrow-up"></i> {{ __('report.metrics.time.last_30_days') }}
                 </span>
             </div>
         </div>
@@ -458,9 +458,9 @@
                         0%
                     @endif
                 </div>
-                <div class="metric-label">Message Success Rate</div>
+                <div class="metric-label">{{ __('report.metrics.success_rate.label') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> Delivery success
+                    <i class="fas fa-arrow-up"></i> {{ __('report.metrics.success_rate.trend') }}
                 </span>
             </div>
         </div>
@@ -472,7 +472,7 @@
             <div class="insights-card">
                 <h3 class="insights-title">
                     <i class="fas fa-lightbulb"></i>
-                    Business Impact Insights
+                    {{ __('report.insights.section_title') }}
                 </h3>
                 
                 <div class="insight-item">
@@ -482,18 +482,18 @@
                     <div class="insight-content">
                         <div class="insight-text">
                             @if($active_conversations > 0)
-                                {{ $active_conversations }} active customer conversations this month
+                                {{ $active_conversations }} {{ __('report.insights.conversations.active_this_month') }}
                             @else
-                                Ready to start engaging customers via WhatsApp
+                                {{ __('report.insights.conversations.ready_to_start') }}
                             @endif
                         </div>
                         <div class="insight-desc">
                             @if($response_rate > 50)
-                                Excellent response rate of {{ $response_rate }}% shows customers love WhatsApp communication
+                                {{ __('report.insights.response.excellent_prefix') }} {{ $response_rate }}% {{ __('report.insights.response.excellent_suffix') }}
                             @elseif($response_rate > 25)
-                                Good {{ $response_rate }}% response rate - customers are engaging with your messages
+                                {{ __('report.insights.response.good_prefix') }} {{ $response_rate }}% {{ __('report.insights.response.good_suffix') }}
                             @else
-                                WhatsApp typically gets 10x better response rates than email marketing
+                                {{ __('report.insights.response.general_benefit') }}
                             @endif
                         </div>
                     </div>
@@ -506,12 +506,12 @@
                     <div class="insight-content">
                         <div class="insight-text">
                             @if($messages_sent_today > 0)
-                                {{ $messages_sent_today }} messages sent today
+                                {{ $messages_sent_today }} {{ __('report.insights.messages_today.sent_today') }}
                             @else
-                                Ready to send instant messages to customers
+                                {{ __('report.insights.messages_today.ready') }}
                             @endif
                         </div>
-                        <div class="insight-desc">WhatsApp messages are typically read within 3 minutes vs 6+ hours for email</div>
+                        <div class="insight-desc">{{ __('report.insights.messages_today.read_time_comparison') }}</div>
                     </div>
                 </div>
                 
@@ -521,15 +521,15 @@
                     </div>
                     <div class="insight-content">
                         <div class="insight-text">
-                            Estimated messaging cost: TSh {{ number_format($total_messaging_cost) }}
+                            {{ __('report.insights.cost.estimated_cost') }} TSh {{ number_format($total_messaging_cost) }}
                         </div>
                         <div class="insight-desc">
                             @if($roi_percentage > 100)
-                                Excellent ROI of {{ $roi_percentage }}%! WhatsApp is generating strong returns
+                                {{ __('report.insights.roi.excellent_prefix') }} {{ $roi_percentage }}%! {{ __('report.insights.roi.excellent_suffix') }}
                             @elseif($roi_percentage > 0)
-                                Positive ROI of {{ $roi_percentage }}% - your WhatsApp investment is paying off
+                                {{ __('report.insights.roi.positive_prefix') }} {{ $roi_percentage }}% - {{ __('report.insights.roi.positive_suffix') }}
                             @else
-                                WhatsApp typically costs 75% less than traditional advertising per customer reached
+                                {{ __('report.insights.cost.cost_comparison') }}
                             @endif
                         </div>
                     </div>
@@ -541,13 +541,13 @@
                     </div>
                     <div class="insight-content">
                         <div class="insight-text">
-                            {{ number_format($total_contacts) }} total contacts ready for messaging
+                            {{ number_format($total_contacts) }} {{ __('report.insights.contacts.total_ready') }}
                         </div>
                         <div class="insight-desc">
                             @if($contacts_messaged > 0)
-                                You've reached {{ number_format($contacts_messaged) }} unique customers via WhatsApp
+                                {{ __('report.insights.contacts.reached_prefix') }} {{ number_format($contacts_messaged) }} {{ __('report.insights.contacts.reached_suffix') }}
                             @else
-                                Start engaging your contacts to build stronger customer relationships
+                                {{ __('report.insights.contacts.start_engaging') }}
                             @endif
                         </div>
                     </div>
@@ -559,38 +559,38 @@
             <div class="comparison-card">
                 <h3 class="chart-title">
                     <i class="fas fa-balance-scale"></i>
-                    WhatsApp vs Traditional Channels
+                    {{ __('report.comparison.section_title') }}
                 </h3>
                 
                 <div class="comparison-item">
-                    <span class="comparison-label">Read Rate</span>
-                    <span class="comparison-value" style="color: #16a34a;">98% vs 20%</span>
+                    <span class="comparison-label">{{ __('report.comparison.read_rate.label') }}</span>
+                    <span class="comparison-value" style="color: #16a34a;">{{ __('report.comparison.read_rate.value') }}</span>
                 </div>
                 
                 <div class="comparison-item">
-                    <span class="comparison-label">Response Rate</span>
-                    <span class="comparison-value" style="color: #16a34a;">{{ $response_rate }}% vs 2%</span>
+                    <span class="comparison-label">{{ __('report.comparison.response_rate.label') }}</span>
+                    <span class="comparison-value" style="color: #16a34a;">{{ $response_rate }}% {{ __('report.comparison.response_rate.value_suffix') }}</span>
                 </div>
                 
                 <div class="comparison-item">
-                    <span class="comparison-label">Cost per Message</span>
-                    <span class="comparison-value" style="color: #16a34a;">TSh 50 vs TSh 200</span>
+                    <span class="comparison-label">{{ __('report.comparison.cost_per_message.label') }}</span>
+                    <span class="comparison-value" style="color: #16a34a;">{{ __('report.comparison.cost_per_message.value') }}</span>
                 </div>
                 
                 <div class="comparison-item">
-                    <span class="comparison-label">Delivery Speed</span>
-                    <span class="comparison-value" style="color: #16a34a;">Instant vs 24hrs</span>
+                    <span class="comparison-label">{{ __('report.comparison.delivery_speed.label') }}</span>
+                    <span class="comparison-value" style="color: #16a34a;">{{ __('report.comparison.delivery_speed.value') }}</span>
                 </div>
                 
                 <div class="comparison-item">
-                    <span class="comparison-label">Customer Preference</span>
-                    <span class="comparison-value" style="color: #16a34a;">{{ number_format($customer_satisfaction, 1) }}/5 vs 2.8/5</span>
+                    <span class="comparison-label">{{ __('report.comparison.customer_preference.label') }}</span>
+                    <span class="comparison-value" style="color: #16a34a;">{{ number_format($customer_satisfaction, 1) }}/5 {{ __('report.comparison.customer_preference.value_suffix') }}</span>
                 </div>
                 
                 @if($roi_percentage > 0)
                 <div style="background: #dcfce7; color: #16a34a; padding: 12px; border-radius: 8px; margin-top: 16px; text-align: center;">
-                    <strong>ROI: {{ $roi_percentage }}%</strong><br>
-                    <small>Your WhatsApp investment is generating excellent returns!</small>
+                    <strong>{{ __('report.comparison.roi.label') }} {{ $roi_percentage }}%</strong><br>
+                    <small>{{ __('report.comparison.roi.message') }}</small>
                 </div>
                 @endif
             </div>
@@ -604,7 +604,7 @@
                 <div class="chart-header">
                     <h3 class="chart-title">
                         <i class="fas fa-chart-area"></i>
-                        Customer Engagement Performance
+                        {{ __('report.performance.section_title') }}
                     </h3>
                 </div>
                 
@@ -669,15 +669,15 @@
                 <div class="engagement-metrics">
                     <div class="engagement-item">
                         <div class="engagement-value">{{ number_format($whatsapp_sent + $sms_sent) }}</div>
-                        <div class="engagement-label">Total Messages</div>
+                        <div class="engagement-label">{{ __("messaging.report.metrics.total_sent") }}</div>
                     </div>
                     <div class="engagement-item">
                         <div class="engagement-value">{{ number_format($successful_messages) }}</div>
-                        <div class="engagement-label">Successfully Delivered</div>
+                        <div class="engagement-label">{{ __("messaging.report.metrics.delivered") }}</div>
                     </div>
                     <div class="engagement-item">
                         <div class="engagement-value">{{ number_format($whatsapp_received) }}</div>
-                        <div class="engagement-label">Customer Responses</div>
+                        <div class="engagement-label">{{ __("messaging.report.metrics.replied") }}</div>
                     </div>
                     <div class="engagement-item">
                         <div class="engagement-value">{{ number_format($estimated_leads) }}</div>
@@ -884,7 +884,7 @@
                     </div>
                 </div>
                 
-                <div style="background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%); padding: 20px; border-radius: 12px; text-align: center;">
+                <div class="alert-inline alert-success" style="padding: 20px; border-radius: 12px; text-align: center;">
                     <h4 style="color: #16a34a; margin-bottom: 8px;">🎯 Your WhatsApp Success Score</h4>
                     @php
                         $success_score = 0;

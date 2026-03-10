@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafariChat Admin Login</title>
+    <title>{{ __('admin.login.page_title') }}</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #007cba 0%, #005580 100%);
+            background: var(--primary-color);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -119,8 +119,8 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1>🦁 SafariChat</h1>
-            <p>Admin Dashboard Access</p>
+            <h1>🦁 {{ __('admin.login.brand_name') }}</h1>
+            <p>{{ __('admin.login.subtitle') }}</p>
         </div>
         
         @if ($errors->any())
@@ -138,21 +138,21 @@
         <form method="POST" action="/admin/login">
             @csrf
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">{{ __('admin.login.username_label') }}</label>
                 <input type="text" id="username" name="username" required value="{{ old('username') }}">
             </div>
             
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{ __('admin.login.password_label') }}</label>
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit" class="btn">Login to Dashboard</button>
+            <button type="submit" class="btn">{{ __('admin.login.login_button') }}</button>
         </form>
         
         <div class="footer">
-            <p>SafariChat Admin Panel &copy; {{ date('Y') }}</p>
-            <p><strong>Default:</strong> admin / safari123</p>
+            <p>{{ __('admin.login.footer_text') }} &copy; {{ date('Y') }}</p>
+            <p><strong>{{ __('admin.login.default_credentials') }}</strong> admin / safari123</p>
         </div>
     </div>
 </body>

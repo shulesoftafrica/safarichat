@@ -4,9 +4,10 @@
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
+    /* ========== LIGHT MODE (DEFAULT) STYLES ========== */
     .campaigns-container {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: #f9fafb;
         min-height: 100vh;
         padding: 20px;
     }
@@ -17,7 +18,7 @@
         padding: 30px;
         color: white;
         margin-bottom: 30px;
-        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
+        box-shadow: 0 10px 40px rgba(59, 89, 152, 0.2);
     }
     
     .campaigns-title {
@@ -195,7 +196,7 @@
     
     .progress-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         transition: width 0.3s ease;
     }
     
@@ -243,7 +244,7 @@
     
     .action-btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 4px 12px rgba(59, 89, 152, 0.4);
         color: white;
     }
     
@@ -309,6 +310,149 @@
         border-color: #667eea;
         color: white;
     }
+    
+    /* ========== DARK MODE STYLES ========== */
+    .dark-mode .campaigns-container {
+        background: #1a1a1a !important;
+    }
+    
+    .dark-mode .campaigns-header {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+        box-shadow: 0 10px 40px rgba(66, 153, 225, 0.3) !important;
+    }
+    
+    .dark-mode .campaigns-title,
+    .dark-mode .campaigns-subtitle {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .create-campaign-btn {
+        background: #f7fafc !important;
+        color: #4299e1 !important;
+    }
+    
+    .dark-mode .create-campaign-btn:hover {
+        background: #e2e8f0 !important;
+        color: #3182ce !important;
+    }
+    
+    .dark-mode .campaigns-table-card {
+        background: #2d3748 !important;
+        border: 1px solid #4a5568 !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .dark-mode .table-header-bar {
+        border-bottom: 2px solid #4a5568 !important;
+    }
+    
+    .dark-mode .table-title {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .filter-select {
+        background: #1a202c !important;
+        border-color: #4a5568 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .filter-select:focus {
+        border-color: #4299e1 !important;
+    }
+    
+    .dark-mode .campaigns-table {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .campaigns-table thead th {
+        background: #374151 !important;
+        color: #f7fafc !important;
+        border-bottom: 2px solid #4a5568 !important;
+    }
+    
+    .dark-mode .campaigns-table tbody td {
+        border-bottom: 1px solid #4a5568 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .campaigns-table tbody tr:hover {
+        background: #374151 !important;
+    }
+    
+    .dark-mode .progress-bar-container {
+        background: #4a5568 !important;
+    }
+    
+    .dark-mode .progress-bar-fill {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    }
+    
+    .dark-mode .progress-text {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .action-btn-primary {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    }
+    
+    .dark-mode .action-btn-secondary {
+        background: #4a5568 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .action-btn-secondary:hover {
+        background: #374151 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .action-btn-danger {
+        background: #f56565 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .action-btn-danger:hover {
+        background: #e53e3e !important;
+    }
+    
+    /* Empty State Dark Mode */
+    .dark-mode .empty-state {
+        background: transparent !important;
+    }
+    
+    .dark-mode .empty-state-icon {
+        color: #4a5568 !important;
+    }
+    
+    .dark-mode .empty-state-title {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .empty-state-text {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .pagination .page-link {
+        background: #2d3748 !important;
+        border-color: #4a5568 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+        border-color: #4299e1 !important;
+    }
+    
+    .dark-mode .alert-success {
+        background: #2d5f45 !important;
+        border-color: #38a169 !important;
+        color: #9ae6b4 !important;
+    }
+    
+    .dark-mode .alert-danger {
+        background: #5f2d2d !important;
+        border-color: #e53e3e !important;
+        color: #fc8181 !important;
+    }
 </style>
 
 <div class="campaigns-container">
@@ -318,16 +462,16 @@
             <div class="col-md-8">
                 <div class="campaigns-title">
                     <i class="fas fa-bullhorn"></i>
-                    Sales Campaigns
+                    {{ __('campaigns.page_title') }}
                 </div>
                 <p class="campaigns-subtitle">
-                    Manage and track your WhatsApp marketing campaigns in one place
+                    {{ __('campaigns.page_subtitle') }}
                 </p>
             </div>
             <div class="col-md-4 text-right">
                 <a href="{{ route('campaigns.create') }}" class="create-campaign-btn">
                     <i class="fas fa-plus-circle"></i>
-                    Create New Campaign
+                    {{ __('campaigns.actions.create_new') }}
                 </a>
             </div>
         </div>
@@ -359,16 +503,16 @@
         <div class="table-header-bar">
             <h3 class="table-title">
                 <i class="fas fa-list mr-2"></i>
-                Your Campaigns ({{ $campaigns->total() }})
+                {{ __('campaigns.table.title') }} ({{ $campaigns->total() }})
             </h3>
             <div class="filter-controls">
                 <select class="filter-select" id="statusFilter" onchange="filterCampaigns()">
-                    <option value="">All Statuses</option>
-                    <option value="completed">Completed</option>
-                    <option value="sending">Active</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="paused">Paused</option>
-                    <option value="failed">Failed</option>
+                    <option value="">{{ __('campaigns.status.all') }}</option>
+                    <option value="completed">{{ __('campaigns.status.completed') }}</option>
+                    <option value="sending">{{ __('campaigns.status.active') }}</option>
+                    <option value="scheduled">{{ __('campaigns.status.scheduled') }}</option>
+                    <option value="paused">{{ __('campaigns.status.paused') }}</option>
+                    <option value="failed">{{ __('campaigns.status.failed') }}</option>
                 </select>
             </div>
         </div>
@@ -377,12 +521,12 @@
         <table class="campaigns-table">
             <thead>
                 <tr>
-                    <th>Campaign Name</th>
-                    <th>Recipients</th>
-                    <th>Status</th>
-                    <th>Progress</th>
-                    <th>Metrics</th>
-                    <th>Actions</th>
+                    <th>{{ __('campaigns.table.campaign_name') }}</th>
+                    <th>{{ __('campaigns.table.recipients') }}</th>
+                    <th>{{ __('campaigns.table.status') }}</th>
+                    <th>{{ __('campaigns.table.progress') }}</th>
+                    <th>{{ __('campaigns.table.metrics') }}</th>
+                    <th>{{ __('campaigns.table.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -400,7 +544,7 @@
                     <td>
                         <strong style="font-size: 1.25rem; color: #374151;">{{ $campaign->total_recipients }}</strong>
                         <br>
-                        <span style="font-size: 0.875rem; color: #9ca3af;">contacts</span>
+                        <span style="font-size: 0.875rem; color: #9ca3af;">{{ __('campaigns.table.contacts') }}</span>
                     </td>
                     <td>
                         <span class="status-badge status-{{ $campaign->status }}">
@@ -413,40 +557,40 @@
                             <div class="progress-bar-fill" style="width: {{ $campaign->progress_percentage }}%"></div>
                         </div>
                         <div class="progress-text">
-                            {{ $campaign->sent_count + $campaign->failed_count }}/{{ $campaign->total_recipients }} sent
+                            {{ $campaign->sent_count + $campaign->failed_count }}/{{ $campaign->total_recipients }} {{ __('campaigns.table.sent') }}
                             ({{ $campaign->progress_percentage }}%)
                         </div>
                     </td>
                     <td>
                         @if($campaign->analytics)
-                        <span class="metric-badge success" title="Read Rate">
+                        <span class="metric-badge success" title="{{ __('campaigns.metrics.read_rate') }}">
                             <i class="fas fa-eye"></i>
                             {{ number_format($campaign->analytics->read_rate, 1) }}%
                         </span>
-                        <span class="metric-badge info" title="Reply Rate">
+                        <span class="metric-badge info" title="{{ __('campaigns.metrics.reply_rate') }}">
                             <i class="fas fa-reply"></i>
                             {{ number_format($campaign->analytics->reply_rate, 1) }}%
                         </span>
                         @else
-                        <span style="color: #9ca3af; font-size: 0.875rem;">No data yet</span>
+                        <span style="color: #9ca3af; font-size: 0.875rem;">{{ __('campaigns.table.no_data_yet') }}</span>
                         @endif
                     </td>
                     <td>
-                        <a href="{{ route('campaigns.report', $campaign->id) }}" class="action-btn action-btn-primary" title="View Report">
-                            <i class="fas fa-chart-line"></i> Report
+                        <a href="{{ route('campaigns.report', $campaign->id) }}" class="action-btn action-btn-primary" title="{{ __('campaigns.actions.view_report') }}">
+                            <i class="fas fa-chart-line"></i> {{ __('campaigns.actions.view_report') }}
                         </a>
                         
                         @if($campaign->status === 'sending' || $campaign->status === 'scheduled')
                         <form action="{{ route('campaigns.pause', $campaign->id) }}" method="POST" style="display: inline;">
                             @csrf
-                            <button type="submit" class="action-btn action-btn-secondary" title="Pause Campaign">
+                            <button type="submit" class="action-btn action-btn-secondary" title="{{ __('campaigns.actions.pause') }}">
                                 <i class="fas fa-pause"></i>
                             </button>
                         </form>
                         @elseif($campaign->status === 'paused')
                         <form action="{{ route('campaigns.resume', $campaign->id) }}" method="POST" style="display: inline;">
                             @csrf
-                            <button type="submit" class="action-btn action-btn-secondary" title="Resume Campaign">
+                            <button type="submit" class="action-btn action-btn-secondary" title="{{ __('campaigns.actions.resume') }}">
                                 <i class="fas fa-play"></i>
                             </button>
                         </form>
@@ -454,7 +598,7 @@
                         
                         <form action="{{ route('campaigns.clone', $campaign->id) }}" method="POST" style="display: inline;">
                             @csrf
-                            <button type="submit" class="action-btn action-btn-secondary" title="Clone Campaign">
+                            <button type="submit" class="action-btn action-btn-secondary" title="{{ __('campaigns.actions.clone') }}">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </form>
@@ -474,13 +618,13 @@
             <div class="empty-state-icon">
                 <i class="fas fa-inbox"></i>
             </div>
-            <h3 class="empty-state-title">No Campaigns Yet</h3>
+            <h3 class="empty-state-title">{{ __('campaigns.empty.title') }}</h3>
             <p class="empty-state-text">
-                Create your first sales campaign to start reaching customers via WhatsApp
+                {{ __('campaigns.empty.subtitle') }}
             </p>
             <a href="{{ route('campaigns.create') }}" class="create-campaign-btn">
                 <i class="fas fa-plus-circle"></i>
-                Create Your First Campaign
+                {{ __('campaigns.actions.create_first') }}
             </a>
         </div>
         @endif

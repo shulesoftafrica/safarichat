@@ -588,3 +588,108 @@ function validate_phone_number_old($number)
         return $valid;
     }
 }
+
+// ============================================================================
+// Translation Helper Functions
+// ============================================================================
+
+if (!function_exists('trans_choice_smart')) {
+    /**
+     * Smart pluralization with fallback
+     */
+    function trans_choice_smart($key, $count = 1, array $replace = [], $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::trans_choice_smart($key, $count, $replace, $locale);
+    }
+}
+
+if (!function_exists('trans_with_fallback')) {
+    /**
+     * Translation with graceful fallback to English
+     */
+    function trans_with_fallback($key, array $replace = [], $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::trans_with_fallback($key, $replace, $locale);
+    }
+}
+
+if (!function_exists('trans_attribute')) {
+    /**
+     * Translate form attributes for validation messages
+     */
+    function trans_attribute($attribute)
+    {
+        return \App\Helpers\TranslationHelper::trans_attribute($attribute);
+    }
+}
+
+if (!function_exists('get_locale_name')) {
+    /**
+     * Get locale name in native language
+     */
+    function get_locale_name($locale = null)
+    {
+        return \App\Helpers\TranslationHelper::getLocaleName($locale);
+    }
+}
+
+if (!function_exists('is_rtl')) {
+    /**
+     * Check if current locale is RTL
+     */
+    function is_rtl($locale = null)
+    {
+        return \App\Helpers\TranslationHelper::isRtl($locale);
+    }
+}
+
+if (!function_exists('get_direction')) {
+    /**
+     * Get text direction for current locale
+     */
+    function get_direction($locale = null)
+    {
+        return \App\Helpers\TranslationHelper::getDirection($locale);
+    }
+}
+
+if (!function_exists('trans_date')) {
+    /**
+     * Translate and format date
+     */
+    function trans_date($date, $format = 'F j, Y', $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::transDate($date, $format, $locale);
+    }
+}
+
+if (!function_exists('trans_relative_time')) {
+    /**
+     * Get relative time (e.g., "2 hours ago")
+     */
+    function trans_relative_time($date, $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::transRelativeTime($date, $locale);
+    }
+}
+
+if (!function_exists('trans_number')) {
+    /**
+     * Format number according to locale
+     */
+    function trans_number($number, $decimals = 0, $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::transNumber($number, $decimals, $locale);
+    }
+}
+
+if (!function_exists('trans_currency')) {
+    /**
+     * Format currency according to locale
+     */
+    function trans_currency($amount, $currency = 'TZS', $locale = null)
+    {
+        return \App\Helpers\TranslationHelper::transCurrency($amount, $currency, $locale);
+    }
+}
+

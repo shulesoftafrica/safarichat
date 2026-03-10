@@ -16,6 +16,28 @@ if (Auth::check()) {
 <!-- Add Font Awesome CDN for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
+    /* Force FontAwesome to load properly */
+    .fa, .fas, .far, .fab, .fal, .fad {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        display: inline-block;
+        font-style: normal;
+        font-variant: normal;
+        text-rendering: auto;
+        line-height: 1;
+    }
+    
+    .fab {
+        font-family: "Font Awesome 6 Brands" !important;
+        font-weight: 400 !important;
+    }
+    
+    .fas {
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 900 !important;
+    }
+    
     /* Submenu styling */
     .nav-second-level {
         padding-left: 0;
@@ -48,6 +70,145 @@ if (Auth::check()) {
         transform: rotate(0deg);
         transition: transform 0.3s ease;
     }
+    
+    /* Ensure navigation icons are always visible */
+    .nav-link i {
+        display: inline-block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+        min-width: 16px !important;
+        text-align: center !important;
+        font-size: 14px !important;
+        margin-right: 8px !important;
+        vertical-align: middle !important;
+    }
+    
+    .nav-link span {
+        vertical-align: middle !important;
+    }
+    
+    .nav-link i.fa, 
+    .nav-link i.fas, 
+    .nav-link i.far, 
+    .nav-link i.fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    }
+    
+    /* Dark mode icon visibility */
+    .dark-mode .nav-link i {
+        opacity: 0.9 !important;
+    }
+    
+    .dark-mode .nav-link:hover i {
+        opacity: 1 !important;
+    }
+    
+    /* ========== USER DROPDOWN MENU DARK MODE STYLES ========== */
+    
+    /* User Profile Dropdown Toggle */
+    .dark-mode .nav-user {
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+        border: 1px solid #4a5568 !important;
+        border-radius: 8px !important;
+        padding: 6px 12px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .dark-mode .nav-user:hover {
+        background: linear-gradient(135deg, #374151 0%, #2d3748 100%) !important;
+        border-color: #4299e1 !important;
+        box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3) !important;
+    }
+    
+    .dark-mode .nav-user-name {
+        color: #f7fafc !important;
+        font-weight: 500 !important;
+    }
+    
+    .dark-mode .nav-user img.rounded-circle {
+        border: 2px solid #4a5568 !important;
+    }
+    
+    /* User Dropdown Menu */
+    .dark-mode .dropdown-menu {
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+        border: 1px solid #4a5568 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+        padding: 8px 0 !important;
+        margin-top: 8px !important;
+    }
+    
+    /* Dropdown Items */
+    .dark-mode .dropdown-item {
+        color: #f7fafc !important;
+        padding: 10px 20px !important;
+        transition: all 0.2s ease !important;
+        border-radius: 6px !important;
+        margin: 2px 8px !important;
+    }
+    
+    .dark-mode .dropdown-item:hover {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+        color: #ffffff !important;
+        transform: translateX(4px) !important;
+    }
+    
+    .dark-mode .dropdown-item i {
+        color: #cbd5e0 !important;
+        margin-right: 8px !important;
+    }
+    
+    .dark-mode .dropdown-item:hover i {
+        color: #ffffff !important;
+    }
+    
+    /* Dropdown Divider */
+    .dark-mode .dropdown-divider {
+        border-top: 1px solid #4a5568 !important;
+        margin: 8px 0 !important;
+    }
+    
+    /* Logout Item (bg-light override) */
+    .dark-mode .dropdown-item.bg-light {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
+        color: #f7fafc !important;
+        font-weight: 600 !important;
+    }
+    
+    .dark-mode .dropdown-item.bg-light:hover {
+        background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%) !important;
+        color: #ffffff !important;
+    }
+    
+    /* Language Dropdown Specific */
+    .dropdown-item.active {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    .dark-mode .dropdown-menu img {
+        opacity: 0.9 !important;
+        transition: opacity 0.2s ease !important;
+    }
+    
+    .dark-mode .dropdown-item:hover img {
+        opacity: 1 !important;
+    }
+    
+    .dark-mode .dropdown-item.active {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Dropdown Menu Right Alignment */
+    .dark-mode .dropdown-menu-right {
+        right: 0 !important;
+left: auto !important;
+    }
 </style>
 <!-- leftbar-tab-menu -->
 <div class="leftbar-tab-menu">
@@ -63,11 +224,11 @@ if (Auth::check()) {
             if (!preg_match('/upgrade/', url()->current()) && Auth::user()->usersEvents()->count() > 0) {
                 ?>
 
-                <a href="#MetricaCRM" class="nav-link active" data-toggle="tooltip-custom" data-placement="right" title="" data-original-title="Message" data-trigger="hover">
+                <a href="#MetricaCRM" class="nav-link active" data-toggle="tooltip-custom" data-placement="right" title="" data-original-title="{{ __('navigation.safari_ai') }}" data-trigger="hover">
                     <i data-feather="grid" class="align-self-center menu-icon icon-dual"></i>
 
                 </a>
-                <h6>{{__('message')}}</h6> 
+                <h6>{{ __('navigation.safari_ai') }}</h6> 
 
                 <!--                <a href="#services" class="nav-link active" data-toggle="tooltip-custom" data-placement="right" title="" data-original-title="Services" data-trigger="hover">
                                     <i data-feather="package" class="align-self-center menu-icon icon-dual"></i>
@@ -121,53 +282,53 @@ if (Auth::check()) {
                 ?>
                 <div id="MetricaCRM" class="main-icon-menu-pane <?= !in_array(request()->segment(1), ['message', 'business']) ? 'active' : '' ?> ">
                     <div class="title-box">
-                        <h6 class="menu-title">{{__('category')}}</h6>       
+                        <h6 class="menu-title">{{ __('navigation.category') }}</h6>       
                     </div>
 
                     <ul class="nav in mm-show">
                         <li class="nav-item active">
                             <a class="nav-link" href="<?= url('/') ?>">
-                                <i class="fab fa-whatsapp align-middle mr-2" title="Summary"></i>{{__('summary')}}
+                                <i class="fab fa-whatsapp" style="color: #25d366;"></i><span>{{ __('navigation.summary') }}</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('guest') ?>">
-                                <i class="fas fa-address-book"></i>{{__('Customers')}}
+                                <i class="fas fa-address-book" style="color: #3b82f6;"></i><span>{{ __('navigation.customers') }}</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('campaigns') ?>">
-                                <i class="fas fa-bullhorn align-middle mr-2" title="Sales Campaigns"></i>{{__('Sales Campaigns')}}
+                                <i class="fas fa-chart-line" style="color: #f59e0b;"></i><span>{{ __('navigation.sales_campaigns') }}</span>
                             </a>
                         </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/whatsappGroup') ?>">
-                                <i class="fas fa-object-group align-middle mr-2" title="Groups"></i>{{__('Groups')}}
+                                <i class="fas fa-object-group align-middle mr-2" title="Groups"></i>{{ __('navigation.groups') }}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/sent') ?>">
-                                <i class="fab fa-whatsapp-square align-middle mr-2" title="Channels"></i>{{__('Channels')}}
+                                <i class="fab fa-whatsapp-square align-middle mr-2" title="Channels"></i>{{ __('navigation.channels') }}
                             </a>
                         </li> -->
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/schedule') ?>">
-                                <i class="fas fa-calendar-alt align-middle mr-2" title="Schedule"></i>{{__('schedule')}}
+                                <i class="fas fa-calendar-alt align-middle mr-2" title="Schedule"></i>{{ __('navigation.schedule') }}
                             </a>
                         </li> -->
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('products') ?>">
-                                <i class="fas fa-cube align-middle mr-2" style="color: #667eea;" title="Products"></i>{{__('Products')}}
+                                <i class="fas fa-box" style="color: #667eea;"></i><span>{{ __('navigation.products') }}</span>
                             </a>
                         </li>
                          <li class="nav-item">
                             <a class="nav-link" href="<?= url('ai-agents') ?>">
-                                <i class="fas fa-brain align-middle mr-2" style="color: #764ba2;" title="Sales Agents"></i>{{__('Sales Agents')}}
+                                <i class="fas fa-robot" style="color: #764ba2;"></i><span>{{ __('navigation.sales_agents') }}</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= route('appointments.index') ?>">
-                                <i class="fas fa-calendar-check align-middle mr-2" style="color: #10b981;" title="Appointments"></i>{{__('Appointments')}}
+                                <i class="fas fa-calendar-check" style="color: #10b981;"></i><span>{{ __('navigation.appointments') }}</span>
                                 @if(isset($pendingAppointmentsCount) && $pendingAppointmentsCount > 0)
                                 <span class="badge badge-soft-danger ml-1">{{ $pendingAppointmentsCount }}</span>
                                 @endif
@@ -175,12 +336,12 @@ if (Auth::check()) {
                         </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link" href="<?= url('whatsapp/instances') ?>">
-                                <i class="fas fa-mobile-alt align-middle mr-2" title="WhatsApp Lines"></i>WhatsApp Lines
+                                <i class="fas fa-mobile-alt align-middle mr-2" title="WhatsApp Lines"></i>{{ __('navigation.whatsapp_lines') }}
                             </a>
                         </li> -->
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('message/report') ?>">
-                                <i class="fas fa-chart-bar align-middle mr-2" title="Reports"></i>{{__('reports')}}
+                                <i class="fas fa-chart-bar align-middle mr-2" title="Reports"></i>{{ __('navigation.reports') }}
                             </a>
                         </li>
                     
@@ -196,19 +357,19 @@ if (Auth::check()) {
                     <?php if (!$hasConnectedWhatsApp) { ?>
                         <div class="mb-3">
                             <i class="fab fa-whatsapp" style="font-size: 3rem; color: #25D366; margin-bottom: 1rem;"></i>
-                            <h5 style="color: #333; margin-bottom: 0.5rem;">Connect WhatsApp First</h5>
-                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Please connect your WhatsApp account to access the dashboard.</p>
+                            <h5 style="color: #333; margin-bottom: 0.5rem;">{{ __('navigation.setup.connect_whatsapp_title') }}</h5>
+                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">{{ __('navigation.setup.connect_whatsapp_message') }}</p>
                             <a href="{{ route('business.wasender') }}" class="btn btn-success">
-                                <i class="fab fa-whatsapp mr-2"></i>Connect WhatsApp
+                                <i class="fab fa-whatsapp mr-2"></i>{{ __('navigation.setup.connect_whatsapp_button') }}
                             </a>
                         </div>
                     <?php } elseif (!$hasProducts) { ?>
                         <div class="mb-3">
                             <i class="fas fa-box" style="font-size: 3rem; color: #007bff; margin-bottom: 1rem;"></i>
-                            <h5 style="color: #333; margin-bottom: 0.5rem;">Define Your Products</h5>
-                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Please define at least one product or service to access the full dashboard.</p>
+                            <h5 style="color: #333; margin-bottom: 0.5rem;">{{ __('navigation.setup.define_products_title') }}</h5>
+                            <p style="margin-bottom: 1rem; font-size: 0.9rem;">{{ __('navigation.setup.define_products_message') }}</p>
                             <a href="{{ route('products.index') }}" class="btn btn-primary">
-                                <i class="fas fa-plus mr-2"></i>Add Products
+                                <i class="fas fa-plus mr-2"></i>{{ __('navigation.setup.add_products_button') }}
                             </a>
                         </div>
                     <?php } ?>
@@ -235,10 +396,10 @@ if (Auth::check()) {
             <?php if ($showNavigation) { ?>
             <div id="services" class="main-icon-menu-pane ">
                 <div class="title-box">
-                    <h6 class="menu-title">{{__('services')}}</h6>     
+                    <h6 class="menu-title">{{ __('navigation.services') }}</h6>     
                 </div>
                 <ul class="nav">
-                    <li class="nav-item"><a class="nav-link btn btn-outline-success waves-effect waves-light" href="<?= url('service/search') ?>"><i class="mdi mdi-file-search-outline"></i> {{__('search')}} </a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-outline-success waves-effect waves-light" href="<?= url('service/search') ?>"><i class="mdi mdi-file-search-outline"></i> {{ __('navigation.search') }} </a></li>
                     <?php
                     // $services = \App\Models\Service::all();
                     // foreach ($services as $service) {
@@ -247,7 +408,7 @@ if (Auth::check()) {
                     <?php
                     //}
                     ?>
-                    <li class="nav-item"><a class="nav-link btn btn-outline-success waves-effect waves-light" href="<?= url('service/selected') ?>">{{__('selected_services')}}</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-outline-success waves-effect waves-light" href="<?= url('service/selected') ?>">{{ __('navigation.selected_services') }}</a></li>
                 </ul>
             </div><!-- end Authentication-->
             <?php } // End showNavigation check for services ?>
@@ -265,17 +426,62 @@ if (Auth::check()) {
                        <li class="hidden-sm">
                             <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="javascript: void(0);" role="button"
                                 aria-haspopup="false" aria-expanded="false">
-                                 {{ app()->getLocale() == 'sw' ? 'Swahili' : 'English' }}
-                                 <img src="{{ asset(ROOT.'assets/images/flags/' . (app()->getLocale() == 'sw' ? 'tanzania_flag.jpg' : 'us_flag.jpg')) }}" class="ml-2" height="16" alt=""/>
+                                 @php
+                                     $locale = app()->getLocale();
+                                     $languages = [
+                                         'en' => 'English',
+                                         'es' => 'Español',
+                                         'pt' => 'Português',
+                                         'pt-br' => 'Português',
+                                         'hi' => 'हिंदी',
+                                         'ar' => 'العربية',
+                                         'fr' => 'Français',
+                                         'sw' => 'Kiswahili'
+                                     ];
+                                     $flags = [
+                                         'en' => 'us_flag.jpg',
+                                         'es' => 'spain_flag.jpg',
+                                         'pt' => 'italy_flag.jpg',
+                                         'pt-br' => 'italy_flag.jpg',
+                                         'hi' => 'russia_flag.jpg',
+                                         'ar' => 'germany_flag.jpg',
+                                         'fr' => 'french_flag.jpg',
+                                         'sw' => 'tanzania_flag.jpg'
+                                     ];
+                                     $currentLang = $languages[$locale] ?? 'English';
+                                     $currentFlag = $flags[$locale] ?? 'us_flag.jpg';
+                                 @endphp
+                                 {{ $currentLang }}
+                                 <img src="{{ asset(ROOT.'assets/images/flags/' . $currentFlag) }}" class="ml-2" height="16" alt=""/>
                                  <i class="mdi mdi-chevron-down"></i> 
                             </a>
                             <div class="dropdown-menu dropdown-menu-right">
-                                 <a class="dropdown-item" href="{{ url('lang/en') }}">
+                                 <a class="dropdown-item {{ $locale == 'en' ? 'active' : '' }}" href="{{ url('lang/en') }}">
                                       <span>English</span>
                                       <img src="{{ asset(ROOT.'assets/images/flags/us_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
                                  </a>
-                                 <a class="dropdown-item" href="{{ url('lang/sw') }}">
-                                      <span>Swahili</span>
+                                 <a class="dropdown-item {{ $locale == 'es' ? 'active' : '' }}" href="{{ url('lang/es') }}">
+                                      <span>Español</span>
+                                      <img src="{{ asset(ROOT.'assets/images/flags/spain_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
+                                 </a>
+                                 <a class="dropdown-item {{ in_array($locale, ['pt', 'pt-br']) ? 'active' : '' }}" href="{{ url('lang/pt') }}">
+                                      <span>Português</span>
+                                      <img src="{{ asset(ROOT.'assets/images/flags/italy_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
+                                 </a>
+                                 <a class="dropdown-item {{ $locale == 'hi' ? 'active' : '' }}" href="{{ url('lang/hi') }}">
+                                      <span>हिंदी</span>
+                                      <img src="{{ asset(ROOT.'assets/images/flags/russia_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
+                                 </a>
+                                 <a class="dropdown-item {{ $locale == 'ar' ? 'active' : '' }}" href="{{ url('lang/ar') }}">
+                                      <span>العربية</span>
+                                      <img src="{{ asset(ROOT.'assets/images/flags/germany_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
+                                 </a>
+                                 <a class="dropdown-item {{ $locale == 'fr' ? 'active' : '' }}" href="{{ url('lang/fr') }}">
+                                      <span>Français</span>
+                                      <img src="{{ asset(ROOT.'assets/images/flags/french_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
+                                 </a>
+                                 <a class="dropdown-item {{ $locale == 'sw' ? 'active' : '' }}" href="{{ url('lang/sw') }}">
+                                      <span>Kiswahili</span>
                                       <img src="{{ asset(ROOT.'assets/images/flags/tanzania_flag.jpg') }}" alt="" class="ml-2 float-right" height="14"/>
                                  </a>
                             </div>
@@ -329,13 +535,13 @@ if (Auth::check()) {
                         <?php
                     if (Auth::user()->usersEvents()->count() > 0) {
                     ?>
-                    <a class="dropdown-item" href="<?= url('home/settings') ?>"><i class="dripicons-gear text-muted mr-2"></i> {{__('settings')}}</a>
+                    <a class="dropdown-item" href="<?= url('home/settings') ?>"><i class="dripicons-gear text-muted mr-2"></i> {{ __('navigation.settings') }}</a>
                     <?php }?>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item bg-light" href="{{ route('logout') }}"
                        onclick="event.preventDefault();
                                document.getElementById('logout-form').submit();">
-                        <i class="dripicons-exit text-muted mr-2"></i> {{ __('Logout') }}
+                        <i class="dripicons-exit text-muted mr-2"></i> {{ __('navigation.logout') }}
                     </a>
 
                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -344,7 +550,7 @@ if (Auth::check()) {
                 </div>
             </li>
                     <li class="mr-2">
-                        <button id="theme-toggle" class="btn btn-outline-secondary nav-link" style="border: none; background: none;" title="Toggle Dark/Light Mode">
+                        <button id="theme-toggle" class="btn btn-outline-secondary nav-link" style="border: none; background: none;" title="{{ __('navigation.toggle_dark_mode') }}">
                             <i id="theme-toggle-icon" data-feather="moon" class="align-self-center"></i>
                         </button>
                         <script>
@@ -437,45 +643,52 @@ if (Auth::check()) {
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title mt-0" id="exampleModalLabel">Email & Phone Verification</h5>
+                    <h5 class="modal-title mt-0" id="exampleModalLabel">{{ __('navigation.verification.modal_title') }}</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p>From Your Email or Your WhatsApp Inbox, kindly enter the code you have received</p>
+                    <p>{{ __('navigation.verification.enter_code_message') }}</p>
                     <div class="form-group">
-                        <label for="code_verification">Enter Verification Code</label>
+                        <label for="code_verification">{{ __('navigation.verification.enter_code_label') }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group2" name="code" class="form-control" placeholder="Code">
+                            <input type="text" id="example-input2-group2" name="code" class="form-control" placeholder="{{ __('navigation.verification.code_placeholder') }}">
 
                             <span class="input-group-append">
-                                <button type="button" class="btn  btn-sm btn-primary" id="verify_account">Submit</button>
+                                <button type="button" class="btn  btn-sm btn-primary" id="verify_account">{{ __('navigation.verification.submit_button') }}</button>
                             </span>
 
                         </div> 
                         <p><span id="feedback_message"></span></p>
                     </div>
-                    <h2>Or</h2>
-                    <p>Click here : 
+                    <h2>{{ __('navigation.verification.or_label') }}</h2>
+                    <p>{{ __('navigation.verification.resend_label') }} 
                         <!--To <a href="#" data-id="email" class="btn btn-outline-primary resend_code">Resend Email</a> ,--> 
-                        To <a href="#" data-id="whatsapp" class="btn btn-outline-success resend_code">Resend Whatsapp Message</a></p>
+                        To <a href="#" data-id="whatsapp" class="btn btn-outline-success resend_code">{{ __('navigation.verification.resend_whatsapp') }}</a></p>
                     <br/>
                     <hr/>
-                    <p>NB; Account not verified will be deleted automatically after 24 hours</p>
+                    <p>{{ __('navigation.verification.note') }}</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('navigation.verification.close_button') }}</button>
                 </div>
             </div>
         </div>
     </div>
     <script type="text/javascript">
+        // Localized messages for JavaScript
+        const i18n = {
+            fieldRequired: "{{ __('navigation.verification.field_required') }}",
+            wrongCode: "{{ __('navigation.verification.wrong_code') }}",
+            success: "{{ __('navigation.verification.success') }}"
+        };
+        
         verify_account = function () {
             $('#verify_account').mousedown(function () {
                 var val = $('#example-input2-group2').val();
                 if ($.trim(val) == '') {
-                    $('#feedback_message').html('This field is required').addClass('alert alert-danger');
+                    $('#feedback_message').html(i18n.fieldRequired).addClass('alert alert-danger');
                 } else {
                     $.ajax({
                         type: 'POST',
@@ -488,7 +701,7 @@ if (Auth::check()) {
                                 ;
                                 window.location.reload();
                             } else {
-                                $('#feedback_message').html('Wrong code supplied').addClass('alert alert-danger');
+                                $('#feedback_message').html(i18n.wrongCode).addClass('alert alert-danger');
                                 ;
                             }
 
@@ -507,7 +720,7 @@ if (Auth::check()) {
                         if (data == 'success') {
                             $('#feedback_message').html(data).addClass('alert alert-success');
                         } else {
-                            $('#feedback_message').html('Wrong code supplied').addClass('alert alert-danger');
+                            $('#feedback_message').html(i18n.wrongCode).addClass('alert alert-danger');
                             ;
                         }
 

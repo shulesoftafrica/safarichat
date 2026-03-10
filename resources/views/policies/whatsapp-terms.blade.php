@@ -9,7 +9,7 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: var(--gray-50, #F9FAFB);
             padding: 40px 20px;
             min-height: 100vh;
         }
@@ -37,7 +37,7 @@
             font-size: 1.1rem;
         }
         .warning-banner {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            background: var(--warning-bg, #fef3c7);
             border-left: 5px solid #f59e0b;
             padding: 20px 25px;
             border-radius: 10px;
@@ -49,7 +49,7 @@
             margin-bottom: 10px;
         }
         .danger-banner {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            background: var(--error-bg, #fee2e2);
             border-left: 5px solid #dc2626;
             padding: 20px 25px;
             border-radius: 10px;

@@ -33,6 +33,7 @@ class Kernel extends ConsoleKernel {
         Commands\ConvertUnengagedContactsCommand::class,
         Commands\CheckWhatsappInstancesCommand::class,
         Commands\SendScheduledMessagesCommand::class, // Phase 3: Campaign message scheduling
+        Commands\PersonalizeCampaignMessages::class,  // AI-powered campaign personalization
     ];
     public $emails;
 
@@ -112,6 +113,19 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Scheduled messages processing failed', 'error');
+            });
+        
+        // AI Campaign Personalization: Process staged messages every 5 minutes
+        $schedule->command('campaigns:personalize --limit=200 --batch=50')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/campaign-personalization.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Campaign personalization processing completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Campaign personalization processing failed', 'error');
             });
     }
 

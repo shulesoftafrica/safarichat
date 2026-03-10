@@ -6,31 +6,25 @@
     
     .compose-container {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         min-height: 100vh;
         padding: 20px;
     }
     
-    .compose-header {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
-        border-radius: 20px 20px 0 0;
-        padding: 30px;
-        color: white;
-        margin-bottom: 0;
-    }
-    
-    .compose-title {
-        font-size: 2rem;
+    /* Using dashboard-header component from design system */
+    .compose-header .compose-title {
+        font-size: 1.8rem;
         font-weight: 700;
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         gap: 12px;
+        color: var(--gray-900);
     }
     
-    .compose-subtitle {
+    .compose-header .compose-subtitle {
         font-size: 1rem;
-        opacity: 0.9;
+        color: var(--gray-600);
         margin: 0;
     }
     
@@ -499,12 +493,20 @@
 
     /* Dark Mode Styles */
     .dark-mode .compose-container {
-        background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%) !important;
+        background: var(--gray-900) !important;
         color: #e2e8f0 !important;
     }
 
     .dark-mode .compose-header {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%) !important;
+        background: var(--gray-800) !important;
+    }
+    
+    .dark-mode .compose-header .compose-title {
+        color: var(--gray-50) !important;
+    }
+    
+    .dark-mode .compose-header .compose-subtitle {
+        color: var(--gray-400) !important;
     }
 
     .dark-mode .compose-main {
@@ -851,32 +853,33 @@
 
 <div class="compose-container">
     <div class="container-fluid">
-        <div class="compose-header">
-            <h1 class="compose-title">
-                <i class="fab fa-whatsapp"></i>
-                WhatsApp Message Composer
-            </h1>
-            <p class="compose-subtitle">Send personalized WhatsApp messages to your contacts instantly</p>
-                        <div class="card shadow-sm border-0 my-4" style="background:linear-gradient(90deg,#fffbe6 60%,#fff 100%);border-radius:18px;">
-                            <div class="card-body d-flex flex-column flex-md-row align-items-center justify-content-between p-4" style="gap:18px;">
-                                <div class="d-flex align-items-center" style="gap:18px;">
-                                    <div style="background:#fff3cd;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px #ffe082;">
-                                        <i class="fas fa-exclamation-triangle" style="color:#f59e42;font-size:2rem;"></i>
-                                    </div>
-                                    <div style="max-width:600px;">
-                                        <div style="font-size:1.15rem;font-weight:600;color:#b45309;">WhatsApp Compliance Notice</div>
-                                        <div style="font-size:1rem;color:#7c2d12;line-height:1.6;margin-top:2px;">
-                                            <b>Do <u>NOT</u> use this page for BULK-SMS or mass promotional messages. Only send messages to numbers belonging to people who know you.</b><br>
-                                            This tool is strictly for WhatsApp messaging. Using it for bulk SMS can result in <b>account flagging or blocking</b>.<br>
-                                            <span style="color:#b91c1c;font-weight:500;">For important compliance guidance,</span> <span class="d-inline d-md-none"><br></span>
-                                            <button type="button" class="btn btn-sm btn-outline-warning ml-1" data-toggle="modal" data-target="#complianceModal" style="font-size:1rem;font-weight:600;vertical-align:middle;">
-                                                <i class="fas fa-info-circle"></i> Read More
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <!-- Dashboard Header (Clean Professional Design) -->
+        <div class="dashboard-header compose-header">
+            <div class="dashboard-header-content">
+                <div class="greeting">
+                    <h1 class="compose-title">
+                        <i class="fab fa-whatsapp"></i>
+                        {{ __("messaging.compose_title") }}
+                    </h1>
+                    <p class="compose-subtitle">{{ __("messaging.compose_subtitle") }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Compliance Notice (Inline Alert) -->
+        <div class="alert-inline alert-warning" style="margin-bottom: var(--space-6);">
+            <div class="alert-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="alert-content">
+                <strong>{{ __("messaging.compliance.notice_title") }}</strong>
+                <p>{{ __("messaging.compliance.notice_text") }}</p>
+            </div>
+            <div style="margin-left: auto; padding-left: var(--space-4);">
+                <button type="button" class="btn-secondary btn-sm" data-toggle="modal" data-target="#complianceModal">
+                    <i class="fas fa-info-circle"></i> {{ __("messaging.compliance.read_more") }}
+                </button>
+            </div>
         </div>
 
                 <!-- Compliance Modal -->
@@ -885,7 +888,7 @@
                         <div class="modal-content" style="border-radius:18px;overflow:hidden;">
                             <div class="modal-header" style="background:#f3f4f6;">
                                 <h5 class="modal-title" id="complianceModalLabel" style="font-weight:700;color:#166534;">
-                                    <i class="fas fa-shield-alt text-success"></i> WhatsApp Messaging Compliance Guidance
+                                    <i class="fas fa-shield-alt text-success"></i> {{ __("messaging.compliance.modal_title") }}
                                 </h5>
                                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
@@ -893,23 +896,23 @@
                             </div>
                             <div class="modal-body" style="background:#fffbe6;">
                                 <div style="font-size:1.1rem;color:#7c2d12;margin-bottom:10px;">
-                                    <b>Never use this tool for SMS or mass promotional messaging.</b> WhatsApp has strict policies to prevent spam and protect user privacy. Violating these can result in your account being flagged or permanently blocked.
+                                    {{ __("messaging.compliance.modal_intro") }}
                                 </div>
                                 <ul style="font-size:1rem;color:#92400e;line-height:1.7;">
-                                    <li>Only send messages to users who have <b>opted in</b> to receive WhatsApp communications from you.</li>
-                                    <li>Do <b>not</b> send unsolicited or bulk promotional messages.</li>
-                                    <li>Personalize your messages and avoid generic mass content.</li>
-                                    <li>Monitor your account for warnings or restrictions from WhatsApp.</li>
-                                    <li>Review the full compliance guide here:<br>
-                                        <a href="{{ route('whatsapp-terms') }}" target="_blank" style="word-break:break-all;color:#166534;font-weight:600;">Read WhatsApp Terms & Compliance Guide</a>
+                                    <li>{{ __("messaging.compliance.rules.opt_in") }}</li>
+                                    <li>{{ __("messaging.compliance.rules.no_bulk") }}</li>
+                                    <li>{{ __("messaging.compliance.rules.personalize") }}</li>
+                                    <li>{{ __("messaging.compliance.rules.monitor") }}</li>
+                                    <li>{{ __("messaging.compliance.rules.review_guide") }}<br>
+                                        <a href="{{ route('whatsapp-terms') }}" target="_blank" style="word-break:break-all;color:#166534;font-weight:600;">{{ __("messaging.compliance.read_terms") }}</a>
                                     </li>
                                 </ul>
                                 <div class="alert alert-danger mt-4" style="font-size:1rem;font-weight:600;border-radius:12px;">
-                                    <i class="fas fa-ban"></i> Failure to comply may result in your WhatsApp account being <span style="color:#b91c1c;">flagged, restricted, or banned</span>.
+                                    <i class="fas fa-ban"></i> {{ __("messaging.compliance.failure_warning") }}
                                 </div>
                             </div>
                             <div class="modal-footer" style="background:#f3f4f6;">
-                                <button type="button" class="btn btn-success" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn-secondary" data-dismiss="modal">{{ __("messaging.compliance.close") }}</button>
                             </div>
                         </div>
                     </div>
@@ -919,7 +922,7 @@
             <!-- Error Display Section -->
             @if ($errors->any())
                 <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
-                    <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+                    <h6><i class="fas fa-exclamation-triangle"></i> {{ __("messaging.validation.fix_errors") }}</h6>
                     <ul class="mb-0">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -958,7 +961,7 @@
                 <!-- Recipients Selection -->
                 <div class="form-section">
                     <label class="form-label">
-                        <i class="fas fa-users"></i> Who do you want to message?
+                        <i class="fas fa-users"></i> {{ __("messaging.compose.recipient_selection") }}
                     </label>
                     
                     <div class="row">
@@ -967,8 +970,8 @@
                                 <div class="recipient-icon" style="background: #dcfce7; color: #16a34a;">
                                     <i class="fas fa-globe"></i>
                                 </div>
-                                <h3 class="recipient-title">All Contacts</h3>
-                                <p class="recipient-desc">Send to everyone in your contact list</p>
+                                <h3 class="recipient-title">{{ __("messaging.compose.all_contacts") }}</h3>
+                                <p class="recipient-desc">{{ __("messaging.compose.all_contacts_desc") }}</p>
                             </div>
                         </div>
                         
@@ -977,8 +980,8 @@
                                 <div class="recipient-icon" style="background: #dbeafe; color: #2563eb;">
                                     <i class="fas fa-filter"></i>
                                 </div>
-                                <h3 class="recipient-title">Select Lead Status</h3>
-                                <p class="recipient-desc">Choose contacts by their lead status</p>
+                                <h3 class="recipient-title">{{ __("messaging.compose.lead_status") }}</h3>
+                                <p class="recipient-desc">{{ __("messaging.compose.lead_status_desc") }}</p>
                             </div>
                         </div>
                         
@@ -987,8 +990,8 @@
                                 <div class="recipient-icon" style="background: #ede9fe; color: #7c3aed;">
                                     <i class="fas fa-edit"></i>
                                 </div>
-                                <h3 class="recipient-title">Custom Numbers</h3>
-                                <p class="recipient-desc">Enter specific phone numbers manually</p>
+                                <h3 class="recipient-title">{{ __("messaging.compose.custom_numbers") }}</h3>
+                                <p class="recipient-desc">{{ __("messaging.compose.custom_numbers_desc") }}</p>
                             </div>
                         </div>
 
@@ -997,8 +1000,8 @@
                                 <div class="recipient-icon" style="background: #fef9c3; color: #ca8a04;">
                                     <i class="fas fa-file-excel"></i>
                                 </div>
-                                <h3 class="recipient-title">Upload Excel</h3>
-                                <p class="recipient-desc">Upload an Excel file with phone numbers</p>
+                                <h3 class="recipient-title">{{ __("messaging.compose.upload_excel") }}</h3>
+                                <p class="recipient-desc">{{ __("messaging.compose.upload_excel_desc") }}</p>
                             </div>
                         </div>
                     </div>
@@ -1010,10 +1013,10 @@
                 <!-- Lead Status Selection (Hidden by default) -->
                 <div class="form-section" id="categorySection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-tag"></i> Select Lead Status
+                        <i class="fas fa-tag"></i> {{ __("messaging.compose.select_lead_status") }}
                     </label>
                     <select class="form-control-modern @error('lead_status') is-invalid @enderror" name="lead_status" id="categorySelect">
-                        <option value="">Choose a lead status...</option>
+                        <option value="">{{ __("messaging.compose.choose_lead_status") }}</option>
                         @if(isset($lead_statuses))
                             @foreach ($lead_statuses as $status_value => $status_label)
                                 <option value="{{ $status_value }}" {{ old('lead_status') == $status_value ? 'selected' : '' }}>{{ $status_label }}</option>
@@ -1029,10 +1032,10 @@
                 <!-- Custom Numbers Input (Hidden by default) -->
                 <div class="form-section" id="customNumbersSection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-phone"></i> Enter Phone Numbers
+                        <i class="fas fa-phone"></i> {{ __("messaging.compose.enter_phone_numbers") }}
                     </label>
                     <div class="contact-tags @error('custom_numbers') is-invalid @enderror" id="contactTags">
-                        <input type="text" class="contact-input" placeholder="Type phone numbers separated by comma or space..." id="contactInput">
+                        <input type="text" class="contact-input" placeholder="{{ __("messaging.compose.phone_placeholder") }}" id="contactInput">
                     </div>
                     <input type="hidden" name="custom_numbers" id="customNumbersInput" value="{{ old('custom_numbers') }}">
                     @error('custom_numbers')
@@ -1041,14 +1044,14 @@
                     <div id="custom-numbers-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-lightbulb"></i> 
-                        Enter numbers with country code (e.g., +255712345678)
+                        {{ __("messaging.compose.phone_help") }}
                     </small>
                 </div>
 
                 <!-- Excel Upload Input (Hidden by default) -->
                 <div class="form-section" id="excelUploadSection" style="display: none;">
                     <label class="form-label">
-                        <i class="fas fa-file-excel"></i> Upload Excel File
+                        <i class="fas fa-file-excel"></i> {{ __("messaging.compose.upload_excel_label") }}
                     </label>
                     <input type="file" class="form-control-modern @error('excel_contacts') is-invalid @enderror" name="excel_contacts" id="excelContactsInput" accept=".xls,.xlsx,.csv">
                     @error('excel_contacts')
@@ -1057,14 +1060,14 @@
                     <div id="excel-validation-feedback" class="invalid-feedback" style="display: none;"></div>
                     <small class="text-muted mt-2 d-block">
                         <i class="fas fa-info-circle"></i>
-                        Upload an Excel file (.xls, .xlsx, .csv) with a column containing name (optional) as name, and phone number as phone (Mandatory).
+                        {{ __("messaging.compose.excel_help") }}
                     </small>
                 </div>
 
                 <!-- Message Composer -->
                 <div class="form-section">
                     <label class="form-label">
-                        <i class="fas fa-pen"></i> Your Message
+                        <i class="fas fa-pen"></i> {{ __("messaging.compose.your_message") }}
                     </label>
                     
                     <div class="message-composer" id="messageComposer">
@@ -1077,7 +1080,7 @@
                         <div class="hashtag-suggestions" id="hashtagSuggestions">
                             <div class="hashtag-item" data-hashtag="#name">
                                 <div class="hashtag-name">#name</div>
-                                <div class="hashtag-desc">Customer's full name</div>
+                                <div class="hashtag-desc">{{ __("messaging.compose.hashtag_name_desc") }}</div>
                             </div>
                         </div>
                         
@@ -1085,7 +1088,7 @@
                         <div class="message-input-area">
                             <textarea 
                                 class="message-input @error('message') is-invalid @enderror" 
-                                placeholder="Type your message here... Use #name for hashtag customer name"
+                                placeholder="{{ __("messaging.compose.message_placeholder") }}"
                                 name="message" 
                                 id="messageInput"
                                 rows="1"
@@ -1099,22 +1102,22 @@
                             
                             <div class="input-actions">
                                 <!-- File Upload -->
-                                <button type="button" class="action-btn" id="attachBtn" title="Attach files">
+                                <button type="button" class="action-btn" id="attachBtn" title="{{ __("messaging.compose.attach_files") }}">
                                     <i class="fas fa-paperclip"></i>
                                 </button>
                                 
                                 <!-- Camera -->
-                                <button type="button" class="action-btn" id="cameraBtn" title="Take photo">
+                                <button type="button" class="action-btn" id="cameraBtn" title="{{ __("messaging.compose.take_photo") }}">
                                     <i class="fas fa-camera"></i>
                                 </button>
                                 
                                 <!-- Audio -->
-                                <button type="button" class="action-btn" id="audioBtn" title="Record audio">
+                                <button type="button" class="action-btn" id="audioBtn" title="{{ __("messaging.compose.record_audio") }}">
                                     <i class="fas fa-microphone"></i>
                                 </button>
                                 
                                 <!-- Send Button -->
-                                <button type="submit" class="action-btn send-btn" id="sendBtn" disabled title="Send message">
+                                <button type="submit" class="action-btn send-btn" id="sendBtn" disabled title="{{ __("messaging.compose.send_message") }}">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
@@ -1133,14 +1136,14 @@
                 <!-- Message Stats -->
                 <div class="stats-bar">
                     <div class="message-stats">
-                        <span id="wordCount">0 words</span>
-                        <span id="smsCount">1 SMS</span>
-                        <span id="recipientCount">0 recipients</span>
+                        <span id="wordCount">0 {{ __("messaging.compose.word_count") }}</span>
+                        <span id="smsCount">1 {{ __("messaging.compose.sms_count") }}</span>
+                        <span id="recipientCount">0 {{ __("messaging.compose.recipient_count") }}</span>
                     </div>
                     
                     <div class="status-indicator">
                         <div class="status-dot"></div>
-                        <span>WhatsApp Connected</span>
+                        <span id="whatsappStatus">{{ __("messaging.compose.whatsapp_connected") }}</span>
                     </div>
                 </div>
             </form>
@@ -1514,8 +1517,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const sms = Math.ceil(chars / 160) || 1;
         
         charCounter.textContent = `${chars}/1000`;
-        wordCount.textContent = `${words} words`;
-        smsCount.textContent = `${sms} SMS`;
+        wordCount.textContent = `${words} {{ __("messaging.compose.word_count") }}`;
+        smsCount.textContent = `${sms} {{ __("messaging.compose.sms_count") }}`;
         
         // Change color based on character limit
         if (chars > 1000) {
@@ -1540,7 +1543,7 @@ document.addEventListener('DOMContentLoaded', function() {
             count = excelFileName ? `Excel: ${excelFileName}` : 'Upload Excel file';
         }
         
-        recipientCount.textContent = typeof count === 'number' ? `${count} recipients` : count;
+        recipientCount.textContent = typeof count === 'number' ? `${count} {{ __("messaging.compose.recipient_count") }}` : count;
     }
 
     // Form Submission

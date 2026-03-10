@@ -2870,7 +2870,7 @@
                         <div class="pricing-badge">Starter</div>
                         <div class="free-trial-label">🎁 3 Days Free Trial</div>
                         <h3 class="pricing-title">Winga</h3>
-                        <div class="pricing-amount" data-base-price="49700"><span class="currency-symbol">TSh</span> <span class="price-value">49,700</span></div>
+                        <div class="pricing-amount" data-base-price="69000"><span class="currency-symbol">TSh</span> <span class="price-value">69,000</span></div>
                         <div class="pricing-period">497 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">100</span>/message</div>
                         <ul class="pricing-features">
                             <li>Perfect for startups & small shops</li>

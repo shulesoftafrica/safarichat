@@ -1,6 +1,541 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+/* Enhanced Typography */
+.page-title {
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+}
+
+.page-title-box p {
+    font-size: 0.95rem !important;
+}
+
+/* Dark Mode - Page Header */
+.dark-mode .page-title {
+    color: #f7fafc !important;
+}
+
+.dark-mode .page-title i {
+    color: #63b3ed !important;
+}
+
+.dark-mode .page-title-box p {
+    color: #cbd5e0 !important;
+}
+
+/* Dark Mode - Cards */
+.dark-mode .card {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+.dark-mode .card.shadow-sm {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark-mode .card.border-success {
+    border-color: #48bb78 !important;
+    border-width: 2px !important;
+}
+
+.dark-mode .card.border-warning {
+    border-color: #ed8936 !important;
+    border-width: 2px !important;
+}
+
+.dark-mode .card.border-primary {
+    border-color: #4299e1 !important;
+    border-width: 2px !important;
+}
+
+.dark-mode .card.border-secondary {
+    border-color: #718096 !important;
+    border-width: 2px !important;
+}
+
+/* Dark Mode - Override Bootstrap bg classes */
+.dark-mode .bg-white {
+    background-color: #2d3748 !important;
+}
+
+.dark-mode .bg-light {
+    background-color: #1a202c !important;
+}
+
+/* Dark Mode - Card Headers */
+.dark-mode .card-header {
+    background: #1a202c !important;
+    border-bottom-color: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .card-header.bg-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .card-header.bg-secondary {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .card-header h5,
+.dark-mode .card-header h6 {
+    color: #ffffff !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .card-header small {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 0.875rem !important;
+}
+
+/* Dark Mode - Card Body */
+.dark-mode .card-body {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .card-body p {
+    color: #e2e8f0 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+}
+
+.dark-mode .card-body p.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .card-body small {
+    color: #cbd5e0 !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+}
+
+.dark-mode .card-body small.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .card-body strong {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+}
+
+.dark-mode .card-body h6 {
+    color: #f7fafc !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .card-body h4 {
+    color: #f7fafc !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+/* Dark Mode - Card Footer */
+.dark-mode .card-footer {
+    background: #1a202c !important;
+    border-top-color: #4a5568 !important;
+}
+
+.dark-mode .card-footer.bg-light {
+    background: #1a202c !important;
+}
+
+.dark-mode .card-footer small {
+    color: #cbd5e0 !important;
+    font-size: 0.875rem !important;
+}
+
+/* Dark Mode - Badges */
+.dark-mode .badge {
+    font-weight: 500 !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.875rem !important;
+}
+
+.dark-mode .badge-soft-success {
+    background: rgba(72, 187, 120, 0.25) !important;
+    color: #68d391 !important;
+}
+
+.dark-mode .badge-soft-warning {
+    background: rgba(237, 137, 54, 0.25) !important;
+    color: #f6ad55 !important;
+}
+
+.dark-mode .badge-soft-secondary {
+    background: rgba(113, 128, 150, 0.25) !important;
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .badge-light {
+    background: rgba(237, 242, 247, 0.2) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid rgba(203, 213, 224, 0.3) !important;
+}
+
+/* Dark Mode - Progress Bars */
+.dark-mode .progress {
+    background: #1a202c !important;
+    border: 1px solid #4a5568 !important;
+}
+
+.dark-mode .progress-bar.bg-success {
+    background: linear-gradient(90deg, #48bb78 0%, #38a169 100%) !important;
+}
+
+.dark-mode .progress-bar.bg-warning {
+    background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%) !important;
+}
+
+/* Dark Mode - Text Colors */
+.dark-mode .text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .text-warning {
+    color: #f6ad55 !important;
+    font-weight: 500 !important;
+}
+
+.dark-mode .text-success {
+    color: #68d391 !important;
+}
+
+.dark-mode h4.text-muted {
+    color: #cbd5e0 !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .fa-4x {
+    color: #718096 !important;
+}
+
+/* Dark Mode - Alerts */
+.dark-mode .alert {
+    border-width: 1px !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+}
+
+.dark-mode .alert-success {
+    background: rgba(72, 187, 120, 0.15) !important;
+    border-color: #48bb78 !important;
+    color: #9ae6b4 !important;
+}
+
+.dark-mode .alert-danger {
+    background: rgba(245, 101, 101, 0.15) !important;
+    border-color: #f56565 !important;
+    color: #fc8181 !important;
+}
+
+.dark-mode .alert-warning {
+    background: rgba(237, 137, 54, 0.2) !important;
+    border-color: #ed8936 !important;
+    color: #fbd38d !important;
+}
+
+.dark-mode .alert-info {
+    background: rgba(66, 153, 225, 0.15) !important;
+    border-color: #4299e1 !important;
+    color: #90cdf4 !important;
+}
+
+.dark-mode .alert i {
+    color: inherit !important;
+}
+
+/* Dark Mode - Horizontal Rules */
+.dark-mode hr {
+    border-top-color: #4a5568 !important;
+    opacity: 1 !important;
+}
+
+/* Dark Mode - Button Groups */
+.dark-mode .btn-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    border-color: #3182ce !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3) !important;
+}
+
+.dark-mode .btn-primary:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%) !important;
+    border-color: #2c5282 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.5) !important;
+}
+
+.dark-mode .btn-primary:focus,
+.dark-mode .btn-primary:active {
+    background: linear-gradient(135deg, #2c5282 0%, #2a4365 100%) !important;
+    border-color: #2a4365 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.5) !important;
+}
+
+.dark-mode .btn-secondary {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 6px rgba(74, 85, 104, 0.3) !important;
+}
+
+.dark-mode .btn-secondary:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+    border-color: #2d3748 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 85, 104, 0.5) !important;
+}
+
+.dark-mode .btn-secondary:focus,
+.dark-mode .btn-secondary:active {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+    border-color: #1a202c !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(74, 85, 104, 0.5) !important;
+}
+
+.dark-mode .btn-sm.btn-secondary {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    padding: 0.375rem 0.75rem !important;
+    box-shadow: 0 2px 4px rgba(74, 85, 104, 0.3) !important;
+}
+
+.dark-mode .btn-sm.btn-secondary:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+    border-color: #2d3748 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(74, 85, 104, 0.5) !important;
+}
+
+.dark-mode .btn-warning {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+    border-color: #dd6b20 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 6px rgba(237, 137, 54, 0.3) !important;
+}
+
+.dark-mode .btn-warning:hover {
+    background: linear-gradient(135deg, #dd6b20 0%, #c05621 100%) !important;
+    border-color: #c05621 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(237, 137, 54, 0.5) !important;
+}
+
+.dark-mode .btn-sm.btn-warning {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+    border-color: #dd6b20 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 4px rgba(237, 137, 54, 0.3) !important;
+}
+
+.dark-mode .btn-outline-primary {
+    color: #63b3ed !important;
+    border-color: #4299e1 !important;
+    background: transparent !important;
+}
+
+.dark-mode .btn-outline-primary:hover {
+    background: #4299e1 !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-outline-info {
+    color: #76e4f7 !important;
+    border-color: #0bc5ea !important;
+    background: transparent !important;
+}
+
+.dark-mode .btn-outline-info:hover {
+    background: #0bc5ea !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-outline-danger {
+    color: #fc8181 !important;
+    border-color: #f56565 !important;
+    background: transparent !important;
+}
+
+.dark-mode .btn-outline-danger:hover {
+    background: #f56565 !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-outline-light {
+    color: #e2e8f0 !important;
+    border-color: #cbd5e0 !important;
+    background: rgba(226, 232, 240, 0.1) !important;
+}
+
+.dark-mode .btn-outline-light:hover {
+    background: rgba(226, 232, 240, 0.2) !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .btn-sm.btn-light {
+    background: rgba(237, 242, 247, 0.2) !important;
+    color: #2d3748 !important;
+    border-color: rgba(203, 213, 224, 0.3) !important;
+}
+
+.dark-mode .btn-sm.btn-outline-light {
+    color: #f7fafc !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Dark Mode - Icons */
+.dark-mode .card-body i.fas,
+.dark-mode .card-body i.far {
+    color: #90cdf4 !important;
+}
+
+.dark-mode .card-body i.text-success {
+    color: #68d391 !important;
+}
+
+.dark-mode i.fas,
+.dark-mode i.far {
+    color: #90cdf4 !important;
+}
+
+/* Dark Mode - Button Icons */
+.dark-mode .btn i.fas,
+.dark-mode .btn i.far {
+    color: inherit !important;
+}
+
+.dark-mode .btn-primary i,
+.dark-mode .btn-secondary i,
+.dark-mode .btn-warning i,
+.dark-mode .btn-danger i {
+    color: #ffffff !important;
+}
+
+/* General Button Improvements */
+.btn {
+    transition: all 0.2s ease !important;
+}
+
+.btn i {
+    transition: all 0.2s ease !important;
+}
+
+/* Dark Mode - Modal */
+.dark-mode .modal-content {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+.dark-mode .modal-header {
+    background: #1a202c !important;
+    border-bottom-color: #4a5568 !important;
+}
+
+.dark-mode .modal-header.bg-danger {
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
+}
+
+.dark-mode .modal-title {
+    color: #ffffff !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-body {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body p {
+    color: #e2e8f0 !important;
+    font-size: 1rem !important;
+}
+
+.dark-mode .modal-footer {
+    background: #2d3748 !important;
+    border-top-color: #4a5568 !important;
+}
+
+.dark-mode .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+}
+
+/* Dark Mode - Empty State */
+.dark-mode .card-body.text-center {
+    padding: 4rem 2rem !important;
+}
+
+.dark-mode .card-body.text-center p {
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Enhanced Spacing */
+.card-body .row.mb-3 {
+    margin-bottom: 1.25rem !important;
+}
+
+.card-body .row.mb-3 p {
+    margin-bottom: 0.25rem !important;
+}
+
+/* Improved readability for nested content */
+.dark-mode .d-flex strong {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .opacity-75 {
+    opacity: 0.9 !important;
+}
+
+/* Dark Mode - All divs inside cards */
+.dark-mode .card div {
+    color: #e2e8f0 !important;
+}
+
+/* Dark Mode - Force text visibility */
+.dark-mode .col-6 p,
+.dark-mode .col-6 strong,
+.dark-mode .col-6 small {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .col-6 small.text-muted {
+    color: #cbd5e0 !important;
+}
+
+/* Dark Mode - Ensure all paragraph text is visible */
+.dark-mode p.mb-0 {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode p.mb-0 strong {
+    color: #ffffff !important;
+}
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -64,7 +599,7 @@
                         </div>
                         @if($limitCheck['upgrade_required'])
                         <div>
-                            <button type="button" class="btn btn-sm btn-warning" onclick="showUpgradeModal('Booking Calendars', '{{ $limitCheck['message'] }}')">
+                            <button type="button" class="btn-sm btn-secondary" onclick="showUpgradeModal('Booking Calendars', '{{ $limitCheck['message'] }}')">
                                 <i class="fas fa-arrow-up mr-1"></i>Upgrade Plan
                             </button>
                         </div>
@@ -253,7 +788,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">Delete Calendar</button>
+                    <button type="submit" class="btn-danger" id="confirmDeleteBtn">Delete Calendar</button>
                 </div>
             </form>
         </div>

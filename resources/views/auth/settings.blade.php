@@ -422,6 +422,247 @@
 .dark-mode .text-secondary {
     color: #cccccc !important;
 }
+
+/* ========== BILLING & SUBSCRIPTION SECTION LIGHT MODE STYLES ========== */
+
+/* Light Mode - Ensure billing card text is visible */
+body:not(.dark-mode) .billing-card-body h5,
+body:not(.dark-mode) .billing-card-body p,
+body:not(.dark-mode) .billing-card-body h6 {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .billing-card-body .border.rounded strong {
+    color: #1e293b !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+}
+
+body:not(.dark-mode) .billing-card-body .border.rounded small.text-muted {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .billing-card-body .text-muted {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .credit-display {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+body:not(.dark-mode) .credit-display .credit-amount {
+    color: white !important;
+}
+
+body:not(.dark-mode) .credit-display .credit-label {
+    color: white !important;
+}
+
+body:not(.dark-mode) .credit-display small {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+body:not(.dark-mode) .billing-card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+/* ========== BILLING & SUBSCRIPTION SECTION DARK MODE STYLES ========== */
+
+/* Billing Card Container */
+.dark-mode .billing-card {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+    border: 1px solid #4a5568 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    margin-bottom: 20px !important;
+}
+
+.dark-mode .billing-card-header {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    color: #f7fafc !important;
+    font-weight: 600 !important;
+    padding: 16px 20px !important;
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: 2px solid #2c5282 !important;
+}
+
+.dark-mode .billing-card-header i {
+    color: #ffd700 !important;
+    margin-right: 8px !important;
+}
+
+.dark-mode .billing-card-body {
+    background-color: #2d3748 !important;
+    color: #f7fafc !important;
+    padding: 20px !important;
+}
+
+/* Plan Badges - Tier-based Styling */
+.dark-mode .plan-badge {
+    display: inline-block !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    margin: 4px !important;
+}
+
+/* Plan Tier Colors */
+.dark-mode .plan-badge.trial {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #a0aec0 !important;
+}
+
+.dark-mode .plan-badge.starter {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #22d3ee !important;
+}
+
+.dark-mode .plan-badge.pro {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #63b3ed !important;
+}
+
+.dark-mode .plan-badge.premium {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #fbbf24 !important;
+}
+
+/* Status Badge Colors */
+.dark-mode .plan-badge.active {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #68d391 !important;
+}
+
+.dark-mode .plan-badge.inactive,
+.dark-mode .plan-badge.expired {
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
+    color: #f7fafc !important;
+    border: 1px solid #fc8181 !important;
+}
+
+/* Feature Grid Boxes */
+.dark-mode .billing-card-body .border.rounded {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+    border: 2px solid #4b5563 !important;
+    border-radius: 10px !important;
+    padding: 16px 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark-mode .billing-card-body .border.rounded:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%) !important;
+    border-color: #4299e1 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3) !important;
+}
+
+.dark-mode .billing-card-body .border.rounded strong {
+    display: block !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: #f7fafc !important;
+    margin-bottom: 4px !important;
+}
+
+.dark-mode .billing-card-body .border.rounded small,
+.dark-mode .billing-card-body .border.rounded .text-muted {
+    color: #cbd5e0 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+
+/* Credit Display Section */
+.dark-mode .credit-display {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+    border: 2px solid #4a5568 !important;
+    border-radius: 12px !important;
+    padding: 24px !important;
+    text-align: center !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    margin-top: 20px !important;
+}
+
+.dark-mode .credit-amount {
+    font-size: 36px !important;
+    font-weight: 700 !important;
+    color: #f7fafc !important;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    margin-bottom: 8px !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark-mode .credit-label {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #cbd5e0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    margin-bottom: 16px !important;
+}
+
+/* Top Up Wallet Button */
+.dark-mode .credit-display .btn-sm.btn-primary,
+.dark-mode .btn-sm.btn-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    border: none !important;
+    color: #f7fafc !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 8px rgba(66, 153, 225, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark-mode .credit-display .btn-sm.btn-primary:hover,
+.dark-mode .btn-sm.btn-primary:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(66, 153, 225, 0.4) !important;
+}
+
+.dark-mode .credit-display .btn-sm.btn-primary i,
+.dark-mode .btn-sm.btn-primary i {
+    margin-right: 6px !important;
+}
+
+/* Quick Actions Panel */
+.dark-mode .quick-actions {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+    border: 1px solid #4a5568 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin-top: 20px !important;
+}
+
+.dark-mode .quick-actions h5 {
+    color: #f7fafc !important;
+    font-weight: 600 !important;
+    margin-bottom: 16px !important;
+}
+
+/* Fix text color in billing section */
+.dark-mode .billing-card-body h5,
+.dark-mode .billing-card-body p {
+    color: #f7fafc !important;
+}
+
+.dark-mode .billing-card-body .row .col-6 {
+    margin-bottom: 12px !important;
+}
 </style>
 
 <div class="container-fluid">
@@ -431,12 +672,12 @@
             <div class="page-title-box">
                 <div class="float-right">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="javascript:void(0);">Home</a></li>
-                        <li class="breadcrumb-item"><a href="javascript:void(0);">Profile</a></li>
-                        <li class="breadcrumb-item active">settings</li>
+                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __("settings.breadcrumb.home") }}</a></li>
+                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __("settings.breadcrumb.profile") }}</a></li>
+                        <li class="breadcrumb-item active">{{ __("settings.breadcrumb.settings") }}</li>
                     </ol>
                 </div>
-                <h4 class="page-title">General Settings</h4>
+                <h4 class="page-title">{{ __("settings.page_title.general_settings") }}</h4>
             </div><!--end page-title-box-->
         </div><!--end col-->
     </div>
@@ -446,41 +687,41 @@
             <div class="card">
                 <div class="card-body">
 
-                    <h4 class="mt-0 header-title">List of items to be set</h4>
-                    <p class="text-muted mb-3">Put the correct setting value to get the best out of the system
+                    <h4 class="mt-0 header-title">{{ __("settings.page_header.list_of_items") }}</h4>
+                    <p class="text-muted mb-3">{{ __("settings.page_header.settings_description") }}
                     </p>
 
 
                     <div class="row">
                         <div class="col-sm-3">
                             <div class="nav flex-column nav-pills text-center" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                                <a class="nav-link waves-effect waves-light active" id="v-pills-home-tab" data-toggle="pill" href="#v-pills-home" role="tab" aria-controls="v-pills-home" aria-selected="true">User Accounts</a>
-                                <a class="nav-link waves-effect waves-light " id="v-pills-subscription-tab" data-toggle="pill" href="#v-pills-subscription" role="tab" aria-controls="v-pills-subscription" aria-selected="false">Subscription & Billing</a>
+                                <a class="nav-link waves-effect waves-light active" id="v-pills-home-tab" data-toggle="pill" href="#v-pills-home" role="tab" aria-controls="v-pills-home" aria-selected="true">{{ __("settings.tabs.user_accounts") }}</a>
+                                <a class="nav-link waves-effect waves-light " id="v-pills-subscription-tab" data-toggle="pill" href="#v-pills-subscription" role="tab" aria-controls="v-pills-subscription" aria-selected="false">{{ __("settings.tabs.subscription_billing") }}</a>
                                 <!-- <a class="nav-link waves-effect waves-light " id="v-pills-settings-tab" data-toggle="pill" href="#v-pills-settings" role="tab" aria-controls="v-pills-settings" aria-selected="false">Customer Category</a> -->
-                                <a class="nav-link waves-effect waves-light " id="v-pills-business-tab" data-toggle="pill" href="#v-pills-business" role="tab" aria-controls="v-pills-business" aria-selected="false">Business Settings</a>
+                                <a class="nav-link waves-effect waves-light " id="v-pills-business-tab" data-toggle="pill" href="#v-pills-business" role="tab" aria-controls="v-pills-business" aria-selected="false">{{ __("settings.tabs.business_settings") }}</a>
                             </div>
                         </div>
                         <div class="col-sm-9">
                             <div class="tab-content mo-mt-2" id="v-pills-tabContent">
                                 <div class="tab-pane fade active show" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab">
                                     <div class="table-responsive">
-                                        <h4 class="mt-0 header-title">Manage User Accounts</h4>
-                                        <p class="text-muted mb-3">Each user account is able to login, and manage  activities, view reports and much more.. </p>
+                                        <h4 class="mt-0 header-title">{{ __("settings.user_accounts.title") }}</h4>
+                                        <p class="text-muted mb-3">{{ __("settings.user_accounts.description") }}</p>
                                         <div>
                                             <p> 
                     
 
                                             </p>
                                         </div>
-                                        <table class="table mb-0">
+                                        <table class="table-standard mb-0">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th>#</th>
-                                                    <th>Name</th>
-                                                    <th>Email</th>
-                                                    <th>Phone</th>
-                                                    <th>Date Registered</th>
-                                                    <th>Action</th>
+                                                    <th>{{ __("settings.user_accounts.table.hash") }}</th>
+                                                    <th>{{ __("settings.user_accounts.table.name") }}</th>
+                                                    <th>{{ __("settings.user_accounts.table.email") }}</th>
+                                                    <th>{{ __("settings.user_accounts.table.phone") }}</th>
+                                                    <th>{{ __("settings.user_accounts.table.date_registered") }}</th>
+                                                    <th>{{ __("settings.user_accounts.table.action") }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -498,7 +739,7 @@
                                                             <?php
                                                             if ($account->user->id == Auth::user()->id) {
                                                                 ?>
-                                                                <a onclick="editGuest('<?= $account->user->id ?>')" data-toggle="modal" href="#user_accounts"><i class="las la-pen text-info font-18"></i> Edit</a>
+                                                                <a onclick="editGuest('<?= $account->user->id ?>')" data-toggle="modal" href="#user_accounts"><i class="las la-pen text-info font-18"></i> {{ __("settings.user_accounts.action.edit") }}</a>
                                                             <?php } ?>
                                                             <!-- <a href="#"> <i class="las la-trash-alt text-danger font-18"></i> Delete</a> -->
                                                         </th>
@@ -516,8 +757,8 @@
                                 <!-- Subscription & Billing Tab -->
                                 <div class="tab-pane fade" id="v-pills-subscription" role="tabpanel" aria-labelledby="v-pills-subscription-tab">
                                     <div class="subscription-billing-container">
-                                        <h4 class="mt-0 header-title mb-1">Subscription & Billing</h4>
-                                        <p class="text-muted mb-4">Manage your subscription, view usage, and handle billing</p>
+                                        <h4 class="mt-0 header-title mb-1">{{ __("settings.subscription.title") }}</h4>
+                                        <p class="text-muted mb-4">{{ __("settings.subscription.description") }}</p>
                                         
                                         <style>
                                             .subscription-billing-container {
@@ -573,7 +814,7 @@
                                                 color: #991b1b;
                                             }
                                             .credit-display {
-                                                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                                 color: white;
                                                 padding: 24px;
                                                 border-radius: 12px;
@@ -661,7 +902,7 @@
                                             <div class="col-lg-8">
                                                 <div class="billing-card">
                                                     <div class="billing-card-header">
-                                                        <i class="fas fa-crown"></i> Current Subscription
+                                                        <i class="fas fa-crown"></i> {{ __("settings.subscription.current_subscription") }}
                                                     </div>
                                                     <div class="billing-card-body">
                                                         <div class="row align-items-center">
@@ -672,25 +913,25 @@
                                                                     </span>
                                                                 </h5>
                                                                 <p class="text-muted mb-2">
-                                                                    Status: 
+                                                                    {{ __("settings.subscription.status_label") }} 
                                                                     <span class="plan-badge {{ $subscription_status }}">
-                                                                        {{ ucfirst($subscription_status) }}
+                                                                        {{ ucfirst(__("settings.status." . $subscription_status)) }}
                                                                     </span>
                                                                 </p>
                                                                 @if($subscription_started_at)
                                                                 <p class="text-muted mb-1">
                                                                     <i class="fas fa-calendar-alt"></i> 
-                                                                    Started: {{ \Carbon\Carbon::parse($subscription_started_at)->format('M d, Y') }}
+                                                                    {{ __("settings.subscription.started_label") }} {{ \Carbon\Carbon::parse($subscription_started_at)->format('M d, Y') }}
                                                                 </p>
                                                                 @endif
                                                                 @if($subscription_expires_at)
                                                                 <p class="text-muted mb-1">
                                                                     <i class="fas fa-calendar-check"></i> 
                                                                     @if($subscription_status === 'trial')
-                                                                        Trial Expires: {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
-                                                                        <small>({{ \Carbon\Carbon::parse($subscription_expires_at)->diffInDays(now()) }} days left)</small>
+                                                                        {{ __("settings.subscription.trial_expires") }} {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
+                                                                        <small>({{ \Carbon\Carbon::parse($subscription_expires_at)->diffInDays(now()) }} {{ __("settings.subscription.days_left") }})</small>
                                                                     @else
-                                                                        Next Billing: {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
+                                                                        {{ __("settings.subscription.next_billing") }} {{ \Carbon\Carbon::parse($subscription_expires_at)->format('M d, Y') }}
                                                                     @endif
                                                                 </p>
                                                                 @endif
@@ -698,30 +939,30 @@
                                                             <div class="col-md-6 text-center">
                                                                 @if($billing_account)
                                                                 <div class="mt-3">
-                                                                    <h6 class="text-muted">Plan Features</h6>
+                                                                    <h6 class="text-muted">{{ __("settings.subscription.plan_features") }}</h6>
                                                                     <div class="row mt-2">
                                                                         <div class="col-6">
                                                                             <div class="text-center p-2 border rounded">
                                                                                 <strong>{{ $billing_account->max_contacts }}</strong>
-                                                                                <small class="d-block text-muted">Contacts</small>
+                                                                                <small class="d-block text-muted">{{ __("settings.subscription.contacts") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6">
                                                                             <div class="text-center p-2 border rounded">
                                                                                 <strong>{{ $billing_account->max_products }}</strong>
-                                                                                <small class="d-block text-muted">Products</small>
+                                                                                <small class="d-block text-muted">{{ __("settings.subscription.products") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6 mt-2">
                                                                             <div class="text-center p-2 border rounded">
                                                                                 <strong>{{ $billing_account->whatsapp_channels }}</strong>
-                                                                                <small class="d-block text-muted">WhatsApp Lines</small>
+                                                                                <small class="d-block text-muted">{{ __("settings.subscription.whatsapp_lines") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6 mt-2">
                                                                             <div class="text-center p-2 border rounded">
-                                                                                <strong>{{ $billing_account->customer_followups ? 'Yes' : 'No' }}</strong>
-                                                                                <small class="d-block text-muted">Followups</small>
+                                                                                <strong>{{ $billing_account->customer_followups ? __("settings.subscription.yes") : __("settings.subscription.no") }}</strong>
+                                                                                <small class="d-block text-muted">{{ __("settings.subscription.followups") }}</small>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -737,28 +978,28 @@
                                                 <!-- Credits Display -->
                                                 <div class="credit-display">
                                                     <div class="credit-amount">{{ number_format($available_credits) }}</div>
-                                                    <div class="credit-label">Available AI Credits</div>
-                                                    <small class="d-block mt-2" style="opacity: 0.8;">1 Credit = 4 AI Tokens</small>
-                                                    <a href="{{ route('billing.wallet') }}" class="btn btn-success btn-sm mt-3">
-                                                        <i class="fas fa-wallet"></i> Top Up Wallet
+                                                    <div class="credit-label">{{ __("settings.credits.available_credits") }}</div>
+                                                    <small class="d-block mt-2" style="opacity: 0.8;">{{ __("settings.credits.conversion_rate") }}</small>
+                                                    <a href="{{ route('billing.wallet') }}" class="btn-sm btn-primary mt-3">
+                                                        <i class="fas fa-wallet"></i> {{ __("settings.credits.top_up_wallet") }}
                                                     </a>
                                                 </div>
                                                 
                                                 <!-- Quick Actions -->
                                                 <div class="card">
                                                     <div class="card-body">
-                                                        <h6 class="mb-3">Quick Actions</h6>
+                                                        <h6 class="mb-3">{{ __("settings.quick_actions.title") }}</h6>
                                                         @if($subscription_plan !== 'premium')
                                                         <button class="quick-action-btn btn btn-primary mb-2" onclick="scrollToPlans()">
-                                                            <i class="fas fa-arrow-up"></i> Upgrade Plan
+                                                            <i class="fas fa-arrow-up"></i> {{ __("settings.quick_actions.upgrade_plan") }}
                                                         </button>
                                                         @endif
-                                                        <button class="quick-action-btn btn btn-info mb-2" onclick="showBillingHistoryModal()">
-                                                            <i class="fas fa-history"></i> Billing History
+                                                        <button class="quick-action-btn btn-secondary mb-2" onclick="showBillingHistoryModal()">
+                                                            <i class="fas fa-history"></i> {{ __("settings.quick_actions.billing_history") }}
                                                         </button>
                                                         @if($subscription_status === 'inactive' || $subscription_status === 'expired')
-                                                        <button class="quick-action-btn btn btn-success" onclick="if(window.pricingControls) { window.pricingControls.showModal(null, 'Your subscription has expired. Please reactivate to continue.', true); } else { showUpgradeModal(null, 'Your subscription has expired. Please reactivate to continue.', true); }">
-                                                            <i class="fas fa-redo"></i> Reactivate Now
+                                                        <button class="quick-action-btn btn-primary" onclick="if(window.pricingControls) { window.pricingControls.showModal(null, 'Your subscription has expired. Please reactivate to continue.', true); } else { showUpgradeModal(null, 'Your subscription has expired. Please reactivate to continue.', true); }">
+                                                            <i class="fas fa-redo"></i> {{ __("settings.quick_actions.reactivate_now") }}
                                                         </button>
                                                         @endif
                                                     </div>
@@ -768,7 +1009,7 @@
                                         
                                         <!-- Available Plans -->
                                         <div id="availablePlansSection">
-                                            <h5 class="mb-3"><i class="fas fa-box"></i> Available Packages</h5>
+                                            <h5 class="mb-3"><i class="fas fa-box"></i> {{ __("settings.packages.title") }}</h5>
                                             <div class="row">
                                                 @php
                                                     $planOrder = ['trial', 'starter', 'pro', 'premium'];
@@ -787,41 +1028,41 @@
                                                         <div class="col-lg-3 col-md-6 mb-4">
                                                             <div class="plan-comparison-card {{ $isCurrentPlan ? 'current-plan' : '' }} {{ $isRecommended ? 'recommended' : '' }}">
                                                                 @if($isRecommended && !$isCurrentPlan)
-                                                                <span class="recommended-badge">RECOMMENDED</span>
+                                                                <span class="recommended-badge">{{ __("settings.packages.recommended") }}</span>
                                                                 @endif
                                                                 @if($isCurrentPlan)
-                                                                <span class="recommended-badge" style="background: #10b981;">CURRENT</span>
+                                                                <span class="recommended-badge" style="background: #10b981;">{{ __("settings.packages.current") }}</span>
                                                                 @endif
                                                                 
                                                                 <h5 class="text-uppercase" style="color: #667eea; font-weight: 700;">
-                                                                    {{ $planCode === 'trial' ? 'Free Trial' : ucfirst($planCode) }}
+                                                                    {{ $planCode === 'trial' ? __("settings.packages.free_trial") : ucfirst(__("settings.plan." . $planCode)) }}
                                                                 </h5>
                                                                 
                                                                 <div class="plan-price">
                                                                     TZS {{ number_format($plan['price']) }}
-                                                                    <small class="text-muted" style="font-size: 0.5em;">/month</small>
+                                                                    <small class="text-muted" style="font-size: 0.5em;">{{ __("settings.packages.per_month") }}</small>
                                                                 </div>
                                                                 
                                                                 <p class="text-muted" style="font-size: 0.9rem; min-height: 40px;">
-                                                                    {{ $plan['description'] ?? 'Perfect for getting started' }}
+                                                                    {{ $plan['description'] ?? __("settings.packages.description_default") }}
                                                                 </p>
                                                                 
                                                                 <ul class="plan-features">
                                                                     <li>
                                                                         <i class="fas fa-check-circle"></i>
-                                                                        <span>{{ $plan['limits']['max_contacts'] }} Contacts</span>
+                                                                        <span>{{ $plan['limits']['max_contacts'] }} {{ __("settings.subscription.contacts") }}</span>
                                                                     </li>
                                                                     <li>
                                                                         <i class="fas fa-check-circle"></i>
-                                                                        <span>{{ $plan['limits']['max_products'] }} Products</span>
+                                                                        <span>{{ $plan['limits']['max_products'] }} {{ __("settings.subscription.products") }}</span>
                                                                     </li>
                                                                     <li>
                                                                         <i class="fas fa-check-circle"></i>
-                                                                        <span>{{ $plan['limits']['whatsapp_channels'] }} WhatsApp {{ $plan['limits']['whatsapp_channels'] > 1 ? 'Lines' : 'Line' }}</span>
+                                                                        <span>{{ $plan['limits']['whatsapp_channels'] }} WhatsApp {{ $plan['limits']['whatsapp_channels'] > 1 ? __("settings.packages.line_plural") : __("settings.packages.line_singular") }}</span>
                                                                     </li>
                                                                     <li>
                                                                         <i class="fas fa-check-circle"></i>
-                                                                        <span>{{ number_format($plan['price']) }} AI Credits</span>
+                                                                        <span>{{ number_format($plan['price']) }} {{ __("settings.packages.ai_credits") }}</span>
                                                                     </li>
                                                                     @if(isset($plan['features']))
                                                                         @foreach(array_slice(array_keys(array_filter($plan['features'])), 0, 3) as $feature)
@@ -835,15 +1076,15 @@
                                                                 
                                                                 @if($isCurrentPlan)
                                                                 <button class="btn btn-outline-success btn-block" disabled>
-                                                                    <i class="fas fa-check"></i> Current Plan
+                                                                    <i class="fas fa-check"></i> {{ __("settings.packages.current_plan_button") }}
                                                                 </button>
                                                                 @elseif($canUpgrade)
                                                                 <button class="btn btn-primary btn-block" onclick="window.upgradeToPlan('{{ $planCode }}', {{ $plan['price'] }})">
-                                                                    <i class="fas fa-arrow-up"></i> Upgrade Now
+                                                                    <i class="fas fa-arrow-up"></i> {{ __("settings.packages.upgrade_now") }}
                                                                 </button>
                                                                 @else
                                                                 <button class="btn btn-outline-secondary btn-block" disabled>
-                                                                    Not Available
+                                                                    {{ __("settings.packages.not_available") }}
                                                                 </button>
                                                                 @endif
                                                             </div>
@@ -863,33 +1104,33 @@
                                 <div class="tab-pane fade" id="v-pills-business" role="tabpanel" aria-labelledby="v-pills-business-tab">
                                     <form class="form-parsley"  novalidate="" action="{{url('home/settings')}}" method="post">
                                         <div class="form-group">
-                                            <label>Business Name</label>
-                                            <input type="text" class="form-control" name="name" value="{{ $business->name ?? '' }}" placeholder="Business Name">
+                                            <label>{{ __("settings.business.form.name_label") }}</label>
+                                            <input type="text" class="form-control" name="name" value="{{ $business->name ?? '' }}" placeholder="{{ __("settings.business.form.name_placeholder") }}">
                                         </div>
                                         
                                         <div class="form-group">
-                                            <label>Business Email</label>
-                                            <input type="email" class="form-control" name="email" value="{{ $business->email ?? '' }}" placeholder="Business Email">
+                                            <label>{{ __("settings.business.form.email_label") }}</label>
+                                            <input type="email" class="form-control" name="email" value="{{ $business->email ?? '' }}" placeholder="{{ __("settings.business.form.email_placeholder") }}">
                                         </div>
                                         
                                         <div class="form-group">
-                                            <label>Business Phone</label>
-                                            <input type="text" class="form-control" name="phone" value="{{ $business->phone ?? '' }}" placeholder="Business Phone">
+                                            <label>{{ __("settings.business.form.phone_label") }}</label>
+                                            <input type="text" class="form-control" name="phone" value="{{ $business->phone ?? '' }}" placeholder="{{ __("settings.business.form.phone_placeholder") }}">
                                         </div>
                                         
                                         <div class="form-group">
-                                            <label>Business Description</label>
-                                            <textarea class="form-control" name="descriptions" rows="4" placeholder="Describe your business">{{ $business->descriptions ?? '' }}</textarea>
+                                            <label>{{ __("settings.business.form.description_label") }}</label>
+                                            <textarea class="form-control" name="descriptions" rows="4" placeholder="{{ __("settings.business.form.description_placeholder") }}">{{ $business->descriptions ?? '' }}</textarea>
                                         </div>
                                         
                                         <div class="form-group">
-                                            <label>Website URL</label>
-                                            <input type="url" class="form-control" name="website" value="{{ $business->website ?? '' }}" placeholder="https://example.com">
+                                            <label>{{ __("settings.business.form.website_label") }}</label>
+                                            <input type="url" class="form-control" name="website" value="{{ $business->website ?? '' }}" placeholder="{{ __("settings.business.form.website_placeholder") }}">
                                         </div>
 
                                         <div class="form-group mb-0">
-                                            <button type="submit" class="btn btn-success waves-effect waves-light">
-                                                Save Business Settings
+                                            <button type="submit" class="btn-primary">
+                                                {{ __("settings.business.form.save_button") }}
                                             </button>
                                             <input type="hidden" value="business" name="table"/>
                                             <?= csrf_field() ?>
@@ -899,13 +1140,13 @@
                                 <div class="tab-pane fade " id="v-pills-settings" role="tabpanel" aria-labelledby="v-pills-settings-tab">
                                     <h4 class="mt-0 header-title">Customer Categories</h4>
                                     <p class="text-muted mb-3">Manage list of Customer categories</p>
-                                    <p>  <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal">
+                                    <p>  <button type="button" class="btn-primary" data-toggle="modal" data-target="#myModal">
                                             Add New Category
                                         </button></p>
                                     <!--<button type="button" class="btn btn-gradient-primary waves-effect waves-light" id="ajax-alert">Click me</button>-->
                                     <br/>
                                     <div class="table-responsive">
-                                        <table class="table mb-0">
+                                        <table class="table-standard mb-0">
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th>#</th>
@@ -986,8 +1227,8 @@
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_id" value="" name="edit"/>
                 <input type="hidden" id="edit_guest" value="event_guest_category" name="table"/>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">Save</button>
+                <button type="button" class="btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn-primary" data-toggle="tooltip" data-placement="top">Save</button>
             </div>
         </form>
 
@@ -1004,7 +1245,7 @@
 
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title mt-0" id="exampleModalLabel">Edit your information</h5>
+                    <h5 class="modal-title mt-0" id="exampleModalLabel">{{ __("settings.modal.user.title") }}</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
@@ -1014,30 +1255,30 @@
 
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">Name</label>
+                        <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.name_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group1" value="<?= Auth::user()->name ?>" name="name" class="form-control" placeholder="Name">
+                            <input type="text" id="example-input2-group1" value="<?= Auth::user()->name ?>" name="name" class="form-control" placeholder="{{ __("settings.modal.user.name_placeholder") }}">
 
                         </div>                                                    
                     </div>
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">Email</label>
+                        <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.email_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->email ?>" name="email" class="form-control" placeholder="Email">
+                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->email ?>" name="email" class="form-control" placeholder="{{ __("settings.modal.user.email_placeholder") }}">
                         </div>                                                    
                     </div>
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">Phone</label>
+                        <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.phone_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" class="form-control" placeholder="Phone">
+                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" class="form-control" placeholder="{{ __("settings.modal.user.phone_placeholder") }}">
 
                         </div>                                                    
                     </div>
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">User UUID (for API access)</label>
+                        <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.uuid_label") }}</label>
                         <div class="input-group">
                             <input type="text" id="user-uuid" value="<?= Auth::user()->uuid ?>" class="form-control" readonly>
                             <div class="input-group-append">
@@ -1046,7 +1287,7 @@
                                 </button>
                             </div>
                         </div>
-                        <small class="form-text text-muted">Use this UUID with your phone number for CRM API authentication</small>                                                    
+                        <small class="form-text text-muted">{{ __("settings.modal.user.uuid_help") }}</small>                                                    
                     </div>
 
 
@@ -1056,8 +1297,8 @@
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_id" value="" name="edit"/>
                 <input type="hidden" id="edit_guest" value="user" name="table"/>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">Save</button>
+                <button type="button" class="btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn-primary" data-toggle="tooltip" data-placement="top">Save</button>
             </div>
         </form>
 
@@ -1108,7 +1349,7 @@
     }
     
     function contactSales() {
-        alert('Contact sales@shulesoft.africa for custom Enterprise pricing');
+        alert('{{ __("settings.js.alert.contact_sales") }}');
     }
     
     // Subscription status checking removed - now handled by checkpayment.blade.php
@@ -1189,8 +1430,8 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-success" onclick="checkPaymentStatus()">
+                            <button type="button" class="btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn-primary" onclick="checkPaymentStatus()">
                                 <i class="las la-sync"></i> Check Payment Status
                             </button>
                         </div>
@@ -1226,11 +1467,11 @@
                     updateLipaNumberDetails(result.merchant_id, result.qr_code);
                 }
             } else {
-                alert('Payment initiation failed: ' + result.message);
+                alert('{{ __("settings.js.payment.initiation_failed") }} ' + result.message);
             }
         } catch (error) {
             console.error('Payment initiation error:', error);
-            alert('Failed to initiate payment. Please try again.');
+            alert('{{ __("settings.js.payment.failed_generic") }}');
         }
     }
     
@@ -1271,11 +1512,11 @@
                 $('#paywallModal').modal('hide');
                 location.reload(); // Refresh page to show updated subscription
             } else {
-                alert('Payment not yet received. Please complete payment and try again.');
+                alert('{{ __("settings.js.payment.not_received") }}');
             }
         } catch (error) {
             console.error('Payment check error:', error);
-            alert('Failed to check payment status.');
+            alert('{{ __("settings.js.payment.check_failed") }}');
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -1287,7 +1528,7 @@
             // For now, show a placeholder since we don't have payment history table yet
             const historyHTML = `
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table-standard">
                         <thead class="thead-light">
                             <tr>
                                 <th>Date</th>
@@ -1373,7 +1614,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="buyCreditPackage()">Purchase Credits</button>
+                <button type="button" class="btn-primary" onclick="buyCreditPackage()">Purchase Credits</button>
             </div>
         </div>
     </div>
@@ -1410,7 +1651,7 @@ function copyUUID() {
             button.classList.add('btn-outline-secondary');
         }, 2000);
     } catch (err) {
-        alert('Unable to copy UUID. Please select and copy manually.');
+        alert('{{ __("settings.js.uuid.copy_failed") }}');
     }
 }
 </script>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Sales Reports - Upgrade Required')
+@section('title', __('upgrade.sales_reports.page_title'))
 
 @section('content')
 <div class="page-content-wrapper">
@@ -11,11 +11,11 @@
                 <div class="col-sm-12">
                     <div class="page-title-box">
                         <h4 class="page-title">
-                            <i class="fas fa-chart-line mr-2"></i>Sales Reports & Analytics
+                            <i class="fas fa-chart-line mr-2"></i>{{ __('upgrade.sales_reports.header') }}
                         </h4>
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="{{url('home')}}">Dashboard</a></li>
-                            <li class="breadcrumb-item active">Sales Reports</li>
+                            <li class="breadcrumb-item"><a href="{{url('home')}}">{{ __('upgrade.sales_reports.breadcrumb.dashboard') }}</a></li>
+                            <li class="breadcrumb-item active">{{ __('upgrade.sales_reports.breadcrumb.sales_reports') }}</li>
                         </ol>
                     </div>
                 </div>
@@ -31,47 +31,47 @@
                             </div>
                             
                             <h2 class="text-primary mb-3">
-                                <i class="fas fa-lock mr-2"></i>Advanced Sales Reports
+                                <i class="fas fa-lock mr-2"></i>{{ __('upgrade.sales_reports.lock_title') }}
                             </h2>
                             
                             <p class="lead text-muted mb-4">
-                                Detailed sales analytics and reporting features are available in the <strong>Premium</strong> plan.
+                                {{ __('upgrade.sales_reports.description') }} <strong>{{ __('upgrade.sales_reports.premium_plan') }}</strong> {{ __('upgrade.sales_reports.plan_suffix') }}
                             </p>
                             
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <div class="feature-preview">
-                                        <h5><i class="fas fa-chart-bar text-success mr-2"></i>Revenue Analytics</h5>
-                                        <p class="text-muted">Track revenue trends and performance metrics</p>
+                                        <h5><i class="fas fa-chart-bar text-success mr-2"></i>{{ __('upgrade.sales_reports.features.revenue.title') }}</h5>
+                                        <p class="text-muted">{{ __('upgrade.sales_reports.features.revenue.description') }}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-preview">
-                                        <h5><i class="fas fa-users text-info mr-2"></i>Customer Insights</h5>
-                                        <p class="text-muted">Analyze customer behavior and engagement</p>
+                                        <h5><i class="fas fa-users text-info mr-2"></i>{{ __('upgrade.sales_reports.features.customers.title') }}</h5>
+                                        <p class="text-muted">{{ __('upgrade.sales_reports.features.customers.description') }}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-preview">
-                                        <h5><i class="fas fa-calendar-alt text-warning mr-2"></i>Time-based Reports</h5>
-                                        <p class="text-muted">Monthly, quarterly, and yearly reports</p>
+                                        <h5><i class="fas fa-calendar-alt text-warning mr-2"></i>{{ __('upgrade.sales_reports.features.time_based.title') }}</h5>
+                                        <p class="text-muted">{{ __('upgrade.sales_reports.features.time_based.description') }}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-preview">
-                                        <h5><i class="fas fa-download text-danger mr-2"></i>Export Reports</h5>
-                                        <p class="text-muted">Export data to PDF and Excel formats</p>
+                                        <h5><i class="fas fa-download text-danger mr-2"></i>{{ __('upgrade.sales_reports.features.export.title') }}</h5>
+                                        <p class="text-muted">{{ __('upgrade.sales_reports.features.export.description') }}</p>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="plan-comparison mb-4">
                                 <div class="current-plan">
-                                    <span class="badge badge-light">Current Plan: {{ ucfirst($current_plan) }}</span>
+                                    <span class="badge badge-light">{{ __('upgrade.sales_reports.plan_comparison.current_plan') }} {{ ucfirst($current_plan) }}</span>
                                 </div>
                                 <i class="fas fa-arrow-right mx-3 text-muted"></i>
                                 <div class="required-plan">
-                                    <span class="badge badge-primary">Required: {{ ucfirst($required_plan) }}</span>
+                                    <span class="badge badge-primary">{{ __('upgrade.sales_reports.plan_comparison.required_plan') }} {{ ucfirst($required_plan) }}</span>
                                 </div>
                             </div>
                             
@@ -79,19 +79,19 @@
                                 <button type="button" 
                                         class="btn btn-primary btn-lg px-5"
                                         onclick="showUpgradeModal('sales_reports')">
-                                    <i class="fas fa-rocket mr-2"></i>Upgrade to Premium
+                                    <i class="fas fa-rocket mr-2"></i>{{ __('upgrade.sales_reports.actions.upgrade_button') }}
                                 </button>
                                 
                                 <a href="{{url('home')}}" class="btn btn-outline-secondary btn-lg px-4 ml-3">
-                                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                                    <i class="fas fa-arrow-left mr-2"></i>{{ __('upgrade.sales_reports.actions.back_button') }}
                                 </a>
                             </div>
                             
                             <div class="mt-4 pt-3 border-top">
                                 <p class="text-muted mb-0">
                                     <small>
-                                        Need help choosing the right plan? 
-                                        <a href="mailto:support@safarichat.com">Contact our support team</a>
+                                        {{ __('upgrade.sales_reports.help.question') }} 
+                                        <a href="mailto:support@safarichat.ai">{{ __('upgrade.sales_reports.help.contact_support') }}</a>
                                     </small>
                                 </p>
                             </div>

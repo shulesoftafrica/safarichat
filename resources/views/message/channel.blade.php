@@ -19,10 +19,10 @@
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('home') }}</a></li>
                         <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('message') }}</a></li>
-                        <li class="breadcrumb-item active">{{ __('channels') }}</li>
+                        <li class="breadcrumb-item active">{{ __("messaging.channel_title") }}</li>
                     </ol>
                 </div>
-                <h4 class="page-title">{{ __('message_channels') }}</h4>
+                <h4 class="page-title">{{ __("messaging.channel_title") }}</h4>
             </div>
         </div>
     </div>

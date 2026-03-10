@@ -34,7 +34,7 @@
     }
     
     body {
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         line-height: 1.6;
         color: var(--gray-800);
     }
@@ -534,7 +534,7 @@
                     The SafariChat API provides programmatic access to our AI sales automation platform. You can send messages, manage contacts, analyze conversations, and integrate with your existing systems. Our API is RESTful, uses JSON for data exchange, and requires API key authentication.
                 </p>
                 <p class="section-content">
-                    <strong>Base URL:</strong> <code>https://api.safarichat.com/v2</code>
+                    <strong>Base URL:</strong> <code>https://api.safarichat.ai/v2</code>
                 </p>
             </section>
 
@@ -574,7 +574,7 @@ Content-Type: application/json</div>
                 </p>
 
                 <div class="code-title">Example: Send a Message</div>
-                <div class="code-block">curl -X POST "https://api.safarichat.com/v2/messages/send" \
+                <div class="code-block">curl -X POST "https://api.safarichat.ai/v2/messages/send" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -773,11 +773,11 @@ Content-Type: application/json</div>
                 </p>
 
                 <div class="code-title">Webhook Configuration</div>
-                <div class="code-block">curl -X POST "https://api.safarichat.com/v2/webhooks" \
+                <div class="code-block">curl -X POST "https://api.safarichat.ai/v2/webhooks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://yourapp.com/webhook/safarichat",
+    "url": "https://safarichat.ai/webhook/safarichat",
     "events": ["message.received", "message.sent", "ai.response"],
     "active": true
   }'</div>

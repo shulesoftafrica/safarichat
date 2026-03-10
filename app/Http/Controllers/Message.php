@@ -517,6 +517,48 @@ class Message extends Controller
     public function store(Request $request)
     {
         $criteria = $request->criteria;
+        
+        // Add debug logging
+        \Log::info('Campaign store request received', [
+            'criteria' => $criteria,
+            'is_ajax' => $request->ajax(),
+            'wants_json' => $request->wantsJson(),
+            'has_files' => $request->hasFile('files'),
+            'headers' => $request->headers->all(),
+            'user_id' => Auth::id()
+        ]);
+        
+        // Helper function to return either JSON or redirect based on request type
+        $responseHelper = function($success, $message, $errors = null, $redirectRoute = null) use ($request) {
+            if ($request->ajax() || $request->wantsJson()) {
+                if ($success) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message,
+                        'redirect' => $redirectRoute ?: route('campaigns.index')
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message,
+                        'errors' => $errors
+                    ], 422);
+                }
+            }
+            
+            if ($success) {
+                $route = $redirectRoute ?: route('campaigns.index');
+                return redirect($route)->with('success', $message);
+            } else {
+                return redirect()->back()->withErrors($errors ?: ['error' => $message])->withInput();
+            }
+        };
+        
+        // Validate criteria is provided
+        if (empty($criteria)) {
+            \Log::error('Campaign store: No criteria provided');
+            return $responseHelper(false, 'Please select who you want to message', ['criteria' => 'Please select a recipient type']);
+        }
 
         //save message to DB here first
         if (in_array('whatsapp', $request->source)) {
@@ -525,7 +567,7 @@ class Message extends Controller
                 ->where('connect_status', 'ready')
                 ->first();
             if (!$whatsappInstance) {
-                return redirect()->back()->withErrors(['error' => 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.']);
+                return $responseHelper(false, 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.', ['error' => 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.']);
             }
         }
 
@@ -544,7 +586,7 @@ class Message extends Controller
                 if ($file && $file->isValid()) {
                     // Validate file size (16MB limit for WhatsApp)
                     if ($file->getSize() > 16 * 1024 * 1024) {
-                        return redirect()->back()->withErrors(['files' => "File {$file->getClientOriginalName()} is too large. Maximum 16MB allowed."]);
+                        return $responseHelper(false, "File {$file->getClientOriginalName()} is too large. Maximum 16MB allowed.", ['files' => "File {$file->getClientOriginalName()} is too large. Maximum 16MB allowed."]);
                     }
 
                     // Validate file type
@@ -558,7 +600,7 @@ class Message extends Controller
                     ];
 
                     if (!in_array($file->getMimeType(), $allowedMimes)) {
-                        return redirect()->back()->withErrors(['files' => "File type {$file->getMimeType()} is not supported."]);
+                        return $responseHelper(false, "File type {$file->getMimeType()} is not supported.", ['files' => "File type {$file->getMimeType()} is not supported."]);
                     }
 
                     // Store the file
@@ -568,7 +610,7 @@ class Message extends Controller
                     $fullPath = storage_path('app/public/' . $filePath);
                     if (!file_exists($fullPath)) {
                         Log::error('File was not stored properly', ['path' => $fullPath]);
-                        return redirect()->back()->withErrors(['files' => "Failed to store file {$file->getClientOriginalName()}."]);
+                        return $responseHelper(false, "Failed to store file {$file->getClientOriginalName()}.", ['files' => "Failed to store file {$file->getClientOriginalName()}."]);
                     }
                     
                     $attachments[] = [
@@ -610,7 +652,7 @@ class Message extends Controller
             if ($request->hasFile('excel_contacts')) {
                 $file = $request->file('excel_contacts');
                 if (!$file->isValid()) {
-                    return redirect()->back()->withErrors(['excel_contacts' => 'Uploaded file is not valid.']);
+                    return $responseHelper(false, 'Uploaded file is not valid.', ['excel_contacts' => 'Uploaded file is not valid.']);
                 }
                 $extension = strtolower($file->getClientOriginalExtension());
                 if (in_array($extension, ['csv', 'xls', 'xlsx'])) {
@@ -620,7 +662,7 @@ class Message extends Controller
                         $header = fgetcsv($handle);
                         if (!$header || !in_array('phone', array_map('strtolower', $header)) || !in_array('name', array_map('strtolower', $header))) {
                             fclose($handle);
-                            return redirect()->back()->withErrors(['excel_contacts' => 'CSV file must contain "phone" and "name" columns.']);
+                            return $responseHelper(false, 'CSV file must contain "phone" and "name" columns.', ['excel_contacts' => 'CSV file must contain "phone" and "name" columns.']);
                         }
                         while (($row = fgetcsv($handle)) !== false) {
                             $rowData = array_combine($header, $row);
@@ -637,7 +679,7 @@ class Message extends Controller
                         }
                         fclose($handle);
                         if (empty($users)) {
-                            return redirect()->back()->withErrors(['excel_contacts' => 'No valid contacts found in the file.']);
+                            return $responseHelper(false, 'No valid contacts found in the file.', ['excel_contacts' => 'No valid contacts found in the file.']);
                         }
                     } else {
                         // Use Laravel Excel if available
@@ -646,7 +688,7 @@ class Message extends Controller
                             $sheet = $rows[0] ?? [];
                             $header = array_map('strtolower', $sheet[0] ?? []);
                             if (!in_array('phone', $header) || !in_array('name', $header)) {
-                                return redirect()->back()->withErrors(['excel_contacts' => 'Excel file must contain "phone" and "name" columns.']);
+                                return $responseHelper(false, 'Excel file must contain "phone" and "name" columns.', ['excel_contacts' => 'Excel file must contain "phone" and "name" columns.']);
                             }
                             foreach (array_slice($sheet, 1) as $row) {
                                 $rowData = array_combine($header, $row);
@@ -662,14 +704,14 @@ class Message extends Controller
                                 }
                             }
                             if (empty($users)) {
-                                return redirect()->back()->withErrors(['excel_contacts' => 'No valid contacts found in the file.']);
+                                return $responseHelper(false, 'No valid contacts found in the file.', ['excel_contacts' => 'No valid contacts found in the file.']);
                             }
                         } else {
-                            return redirect()->back()->withErrors(['excel_contacts' => 'Excel import package is not installed.']);
+                            return $responseHelper(false, 'Excel import package is not installed.', ['excel_contacts' => 'Excel import package is not installed.']);
                         }
                     }
                 } else {
-                    return redirect()->back()->withErrors(['excel_contacts' => 'Invalid file type. Only CSV, XLS, and XLSX are allowed.']);
+                    return $responseHelper(false, 'Invalid file type. Only CSV, XLS, and XLSX are allowed.', ['excel_contacts' => 'Invalid file type. Only CSV, XLS, and XLSX are allowed.']);
                 }
             }
             $users = collect($users);
@@ -691,11 +733,30 @@ class Message extends Controller
         }
         $successMessage .= " You will receive notifications as they are processed.";
         
-        return redirect()->back()->with('success', $successMessage);
+        // Check if this is an AJAX request
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $successMessage,
+                'redirect' => route('campaigns.index'),
+                'messageCount' => $messageCount,
+                'attachmentCount' => $attachmentCount
+            ]);
+        }
+        
+        return redirect()->route('campaigns.index')->with('success', $successMessage);
     }
 
     /**
-     * Queue messages for processing via WaSender
+     * Queue messages for AI personalization and delivery
+     * 
+     * NEW WORKFLOW (Following advanced_messaging.md):
+     * 1. Create Campaign record
+     * 2. Create MessageQueue entries for each recipient (status: staged)
+     * 3. Dispatch PersonalizeCampaignMessagesJob for AI analysis
+     * 4. AI personalizes based on conversation history, language, tone
+     * 5. Messages scheduled for optimal send time
+     * 6. ScheduleMessageSendJob delivers refined messages
      */
     private function queueMessages($users, $message, $sources, $attachments = [])
     {
@@ -710,7 +771,6 @@ class Message extends Controller
             'users_type' => gettype($users),
             'users_is_array' => is_array($users),
             'users_is_collection' => $users instanceof \Illuminate\Support\Collection,
-            'users_value' => $users,
             'sources' => $sources,
             'message' => substr($message, 0, 100) // First 100 chars
         ]);
@@ -723,13 +783,13 @@ class Message extends Controller
             $userCount = 0;
         }
         
-        Log::info('Queueing WhatsApp messages for delivery via WaSender', [
+        Log::info('Creating personalized campaign with AI processing', [
             'user_id' => Auth::id(),
             'recipient_count' => $userCount,
             'has_attachments' => !empty($attachments)
         ]);
 
-        // Get user's WhatsApp instance
+        // Get user's WhatsApp instance for validation
         $waSenderService = new WaSenderService();
         $instance = $waSenderService->getUserInstance(Auth::id());
        
@@ -738,8 +798,40 @@ class Message extends Controller
             return;
         }
 
-        // Queue individual messages with staggered delays
-        $delay = 0;
+        // STEP 1: Create Campaign record
+        $campaign = \App\Models\Campaign::create([
+            'user_id' => Auth::id(),
+            'business_id' => Auth::user()->business->id ?? null,
+            'campaign_name' => 'Campaign ' . now()->format('M d, Y H:i'),
+            'campaign_type' => \App\Models\Campaign::TYPE_BROADCAST,
+            'original_message' => $message,
+            'recipient_criteria' => [], // Can be enhanced with actual criteria
+            'total_recipients' => $userCount,
+            'queued_count' => 0, // Will be incremented as we create queue entries
+            'status' => \App\Models\Campaign::STATUS_STAGING,
+            'has_attachments' => !empty($attachments),
+            'started_at' => now()
+        ]);
+
+        Log::info('Campaign created for AI personalization', [
+            'campaign_id' => $campaign->id,
+            'campaign_name' => $campaign->campaign_name,
+            'total_recipients' => $userCount
+        ]);
+
+        // Prepare attachment context for AI
+        $attachmentContext = null;
+        if (!empty($attachments)) {
+            $attachmentContext = "Attachments included:\n";
+            foreach ($attachments as $attachment) {
+                $attachmentContext .= "- {$attachment['original_name']} ({$attachment['mime_type']})\n";
+            }
+        }
+
+        // STEP 2: Create MessageQueue entries for each recipient
+        $queuedCount = 0;
+        $nurtureCount = 0;
+
         foreach ($users as $user) {
             $user = (object) $user;
 
@@ -748,54 +840,85 @@ class Message extends Controller
             if (is_array($phoneNumber)) {
                 $cleanPhone = $phoneNumber[1];
                
-                $personalizedMessage = $this->personalizeMessage($message, $user);
-                
                 // Check if nurture mode should be applied (for ghosting contacts)
-                $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $personalizedMessage);
+                // Nurture mode has its own AI processing, so we skip adding to campaign queue
+                $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $message);
                 
-                // If nurture mode was applied, skip normal dispatch
-                // (ProcessNurtureMessageJob will handle sending after AI reframing)
                 if ($nurtureApplied) {
-                    Log::info("Nurture mode applied, skipping normal dispatch", [
+                    Log::info("Nurture mode applied, using separate nurture pipeline", [
                         'phone' => $cleanPhone,
                         'user_id' => Auth::id()
                     ]);
-                    $delay += 3; // Still increment delay for next message
-                    continue; // Skip to next user
+                    $nurtureCount++;
+                    continue; // Skip adding to campaign queue
                 }
                 
-                // If there are attachments, send them first, then the text message
-                if (!empty($attachments)) {
-                    foreach ($attachments as $attachment) {
-                        $this->queueMediaMessage($cleanPhone, $attachment, $personalizedMessage, $delay, $instance);
-                        $delay += 3; // Delay between each media message
-                    }
-                } else {
-                    // Queue the text message via WaSender
-                    SendWhatsAppMessage::dispatch(
-                        $personalizedMessage,    // messageData
-                        $cleanPhone,            // phoneNumber
-                        'whatsapp',             // source
-                        Auth::id(),             // userId
-                        null,                   // files
-                        null,                   // instanceId (legacy)
-                        [                       // options
-                            'whatsapp_instance_id' => $instance->id,
-                            'provider' => 'unified_api'
-                        ]
-                    )->delay(now()->addSeconds($delay));
-                }
-                
-                $delay += 3; // 3 second delay between messages to avoid rate limiting
+                // Find or create contact record for relationship tracking
+                $contact = \App\Models\BusinessContact::firstOrCreate(
+                    [
+                        'guest_phone' => $cleanPhone,
+                        'business_id' => Auth::user()->business->id ?? null
+                    ],
+                    [
+                        'guest_name' => $user->guest_name ?? 'Contact',
+                        'user_id' => Auth::id(),
+                        'engagement_score' => 50 // Default score
+                    ]
+                );
+
+                // Create MessageQueue entry (status: staged for AI personalization)
+                $messageQueue = \App\Models\MessageQueue::create([
+                    'campaign_id' => $campaign->id,
+                    'user_id' => Auth::id(),
+                    'contact_id' => $contact->id,
+                    'phone_number' => $cleanPhone,
+                    'contact_name' => $user->guest_name ?? $contact->guest_name ?? 'Contact',
+                    'original_message' => $message, // Store original message
+                    'refined_message' => null, // Will be filled by AI personalization
+                    'attachment_context' => $attachmentContext,
+                    'status' => \App\Models\MessageQueue::STATUS_STAGED, // Pending AI analysis
+                    'priority' => 5, // Default priority (1-10 scale)
+                    'provider' => \App\Models\MessageQueue::PROVIDER_WASENDER,
+                    'created_at' => now()
+                ]);
+
+                $queuedCount++;
+                $campaign->increment('queued_count');
+
+                Log::info('MessageQueue entry created for AI personalization', [
+                    'message_queue_id' => $messageQueue->id,
+                    'campaign_id' => $campaign->id,
+                    'contact_id' => $contact->id,
+                    'phone' => $cleanPhone
+                ]);
             }
         }
 
-        Log::info('Queued WhatsApp messages for processing', [
-            'user_id' => Auth::id(),
-            'total_queued' => $userCount,
-            'instance_id' => $instance->instance_id,
-            'attachment_count' => count($attachments)
+        // Update campaign with final counts
+        $campaign->update([
+            'status' => \App\Models\Campaign::STATUS_PROCESSING
         ]);
+
+        Log::info('Campaign staging complete', [
+            'campaign_id' => $campaign->id,
+            'queued_for_ai' => $queuedCount,
+            'nurture_mode' => $nurtureCount,
+            'total_recipients' => $userCount
+        ]);
+
+        // STEP 3: Dispatch AI personalization job
+        if ($queuedCount > 0) {
+            \App\Jobs\PersonalizeCampaignMessagesJob::dispatch($campaign->id)
+                ->onQueue('ai_personalization');
+            
+            Log::info('PersonalizeCampaignMessagesJob dispatched', [
+                'campaign_id' => $campaign->id,
+                'messages_to_personalize' => $queuedCount
+            ]);
+        }
+
+        // Note: Attachments will be sent during the final delivery phase
+        // by ScheduleMessageSendJob after AI personalization is complete
     }
 
     /**

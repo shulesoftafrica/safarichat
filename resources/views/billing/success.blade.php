@@ -23,10 +23,10 @@
                     
                     <div class="d-flex justify-content-center gap-3">
                         <a href="{{ route('ai-agents.index') }}" class="btn btn-primary">
-                            <i class="fas fa-robot"></i> Go to AI Agents
+                            <i class="fas fa-robot"></i> {{ __("billing.actions.back_to_agents") }}
                         </a>
-                        <a href="{{ route('home') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-home"></i> Dashboard
+                        <a href="{{ route('home') }}" class="btn btn-outline-success">
+                            <i class="fas fa-home"></i> {{ __("billing.actions.dashboard") }}
                         </a>
                     </div>
                 </div>

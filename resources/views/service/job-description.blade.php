@@ -6,7 +6,7 @@
         <!-- Onboarding Message -->
         @if(request('onboarding') === 'true')
         <div class="onboarding-alert">
-            <div class="alert alert-success alert-dismissible fade show" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white; margin-bottom: 2rem;">
+            <div class="alert alert-success alert-dismissible fade show" style="border: none; margin-bottom: 2rem;">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
                         <i class="fas fa-robot fa-2x"></i>
@@ -399,7 +399,7 @@
 <style>
 /* Modern AI Agent Creator Styles */
 .ai-agent-creator {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gray-50);
     min-height: 100vh;
     padding: 2rem 0;
 }
@@ -436,7 +436,7 @@
 .header-icon {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-brand);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -453,10 +453,7 @@
     font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-brand);
 }
 
 .page-subtitle {
@@ -2314,7 +2311,7 @@ function chooseInboundSales() {
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-success btn-lg w-100" onclick="goToDashboard()">
+                    <button class="btn-primary btn-lg w-100" onclick="goToDashboard()">
                         <i class="fas fa-tachometer-alt"></i>
                         Go to Dashboard
                     </button>

@@ -38,7 +38,7 @@ echo "=== NURTURE ENGINE END-TO-END TEST ===\n\n";
 
 // Step 1: Find or create test user
 echo "Step 1: Setting up test user...\n";
-$testUser = User::where('email', 'test@safarichat.com')->first();
+$testUser = User::where('email', 'test@safarichat.ai')->first();
 if (!$testUser) {
     $testUser = User::where('id', 1)->first(); // Use first user if test user doesn't exist
 }

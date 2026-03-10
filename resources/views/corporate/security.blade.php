@@ -34,7 +34,7 @@
     }
     
     body {
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         line-height: 1.6;
         color: var(--gray-800);
     }
@@ -615,11 +615,11 @@
             <div class="contact-info">
                 <div class="contact-item">
                     <span>📧</span>
-                    <span>security@safarichat.com</span>
+                    <span>security@safarichat.ai</span>
                 </div>
                 <div class="contact-item">
                     <span>🚨</span>
-                    <span>Emergency: +255 123 456 789</span>
+                    <span>Emergency: +255 689 908004</span>
                 </div>
                 <div class="contact-item">
                     <span>💬</span>

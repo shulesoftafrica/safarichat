@@ -6,13 +6,13 @@
     
     .report-container {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         min-height: 100vh;
         padding: 20px;
     }
     
     .report-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--primary-color);
         border-radius: 20px;
         padding: 30px;
         color: white;
@@ -209,16 +209,16 @@
                 </div>
                 <div class="report-subtitle">
                     <i class="fas fa-calendar-alt mr-2"></i>
-                    Created {{ $campaign->created_at->format('M d, Y') }} at {{ $campaign->created_at->format('g:i A') }}
+                    {{ __('campaigns.report.created') }} {{ $campaign->created_at->format('M d, Y') }} {{ __('campaigns.report.at') }} {{ $campaign->created_at->format('g:i A') }}
                     @if($campaign->completed_at)
-                    &nbsp;•&nbsp; Completed {{ $campaign->completed_at->format('M d, Y') }}
+                    &nbsp;•&nbsp; {{ __('campaigns.report.completed') }} {{ $campaign->completed_at->format('M d, Y') }}
                     @endif
                 </div>
             </div>
             <div class="col-md-4 text-right">
                 <a href="{{ route('campaigns.index') }}" class="back-btn">
                     <i class="fas fa-arrow-left"></i>
-                    Back to Campaigns
+                    {{ __('campaigns.report.back_to_campaigns') }}
                 </a>
             </div>
         </div>
@@ -231,10 +231,10 @@
                 <i class="fas fa-paper-plane"></i>
             </div>
             <div class="metric-value">{{ $campaign->sent_count }}</div>
-            <div class="metric-label">Messages Sent</div>
+            <div class="metric-label">{{ __('campaigns.report.messages_sent') }}</div>
             @if($campaign->total_recipients > 0)
             <div class="metric-percentage">
-                {{ number_format(($campaign->sent_count / $campaign->total_recipients) * 100, 1) }}% of total
+                {{ number_format(($campaign->sent_count / $campaign->total_recipients) * 100, 1) }}% {{ __('campaigns.report.of_total') }}
             </div>
             @endif
         </div>
@@ -244,10 +244,10 @@
                 <i class="fas fa-check-double"></i>
             </div>
             <div class="metric-value">{{ $analytics ? $analytics->total_delivered : 0 }}</div>
-            <div class="metric-label">Delivered</div>
+            <div class="metric-label">{{ __('campaigns.report.delivered') }}</div>
             @if($analytics && $analytics->delivery_rate > 0)
             <div class="metric-percentage">
-                {{ number_format($analytics->delivery_rate, 1) }}% delivery rate
+                {{ number_format($analytics->delivery_rate, 1) }}% {{ __('campaigns.report.delivery_rate') }}
             </div>
             @endif
         </div>
@@ -257,10 +257,10 @@
                 <i class="fas fa-eye"></i>
             </div>
             <div class="metric-value">{{ $analytics ? $analytics->total_read : 0 }}</div>
-            <div class="metric-label">Read</div>
+            <div class="metric-label">{{ __('campaigns.report.read') }}</div>
             @if($analytics && $analytics->read_rate > 0)
             <div class="metric-percentage">
-                {{ number_format($analytics->read_rate, 1) }}% read rate
+                {{ number_format($analytics->read_rate, 1) }}% {{ __('campaigns.report.read_rate') }}
             </div>
             @endif
         </div>
@@ -270,10 +270,10 @@
                 <i class="fas fa-reply"></i>
             </div>
             <div class="metric-value">{{ $analytics ? $analytics->total_replied : 0 }}</div>
-            <div class="metric-label">Replied</div>
+            <div class="metric-label">{{ __('campaigns.report.replied') }}</div>
             @if($analytics && $analytics->reply_rate > 0)
             <div class="metric-percentage">
-                {{ number_format($analytics->reply_rate, 1) }}% reply rate
+                {{ number_format($analytics->reply_rate, 1) }}% {{ __('campaigns.report.reply_rate') }}
             </div>
             @endif
         </div>
@@ -283,10 +283,10 @@
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
             <div class="metric-value">{{ $campaign->failed_count }}</div>
-            <div class="metric-label">Failed</div>
+            <div class="metric-label">{{ __('campaigns.report.failed') }}</div>
             @if($campaign->total_recipients > 0)
             <div class="metric-percentage" style="color: #ef4444;">
-                {{ number_format(($campaign->failed_count / $campaign->total_recipients) * 100, 1) }}% failure rate
+                {{ number_format(($campaign->failed_count / $campaign->total_recipients) * 100, 1) }}% {{ __('campaigns.report.failure_rate') }}
             </div>
             @endif
         </div>
@@ -296,10 +296,10 @@
                 <i class="fas fa-coins"></i>
             </div>
             <div class="metric-value">{{ $totalCost }}</div>
-            <div class="metric-label">Credits Spent</div>
+            <div class="metric-label">{{ __('campaigns.report.credits_spent') }}</div>
             @if($campaign->total_recipients > 0)
             <div class="metric-percentage" style="color: #6b7280;">
-                {{ number_format($totalCost / $campaign->total_recipients, 1) }} per message
+                {{ number_format($totalCost / $campaign->total_recipients, 1) }} {{ __('campaigns.report.per_message') }}
             </div>
             @endif
         </div>
@@ -310,7 +310,7 @@
     <div class="chart-card">
         <h3 class="chart-title">
             <i class="fas fa-smile mr-2"></i>
-            Reply Sentiment Analysis
+            {{ __('campaigns.report.reply_sentiment_analysis') }}
         </h3>
         <div class="row">
             <div class="col-md-4">
@@ -320,7 +320,7 @@
                         {{ $sentimentBreakdown['positive'] }}
                     </div>
                     <div style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">
-                        Positive Replies
+                        {{ __('campaigns.report.positive_replies') }}
                     </div>
                 </div>
             </div>
@@ -331,7 +331,7 @@
                         {{ $sentimentBreakdown['neutral'] }}
                     </div>
                     <div style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">
-                        Neutral Replies
+                        {{ __('campaigns.report.neutral_replies') }}
                     </div>
                 </div>
             </div>
@@ -342,7 +342,7 @@
                         {{ $sentimentBreakdown['negative'] }}
                     </div>
                     <div style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">
-                        Negative Replies
+                        {{ __('campaigns.report.negative_replies') }}
                     </div>
                 </div>
             </div>
@@ -355,15 +355,15 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="chart-title mb-0">
                 <i class="fas fa-list mr-2"></i>
-                Message Recipients ({{ $messages->count() }})
+                {{ __('campaigns.report.message_recipients') }} ({{ $messages->count() }})
             </h3>
             <div>
                 <select class="filter-select" id="messageStatusFilter" onchange="filterMessages()" style="border: 2px solid #e5e7eb; border-radius: 10px; padding: 8px 16px;">
-                    <option value="">All Statuses</option>
-                    <option value="sent">Sent</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="read">Read</option>
-                    <option value="failed">Failed</option>
+                    <option value="">{{ __('campaigns.report.all_statuses') }}</option>
+                    <option value="sent">{{ __('campaigns.status.sending') }}</option>
+                    <option value="delivered">{{ __('campaigns.report.delivered') }}</option>
+                    <option value="read">{{ __('campaigns.report.read') }}</option>
+                    <option value="failed">{{ __('campaigns.report.failed') }}</option>
                 </select>
             </div>
         </div>
@@ -372,21 +372,21 @@
             <table class="messages-table">
                 <thead>
                     <tr>
-                        <th>Contact</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>Sent At</th>
-                        <th>Delivered At</th>
-                        <th>Read At</th>
-                        <th>Reply</th>
-                        <th>Actions</th>
+                        <th>{{ __('campaigns.report.contact') }}</th>
+                        <th>{{ __('campaigns.report.phone') }}</th>
+                        <th>{{ __('campaigns.report.status') }}</th>
+                        <th>{{ __('campaigns.report.sent_at') }}</th>
+                        <th>{{ __('campaigns.report.delivered_at') }}</th>
+                        <th>{{ __('campaigns.report.read_at') }}</th>
+                        <th>{{ __('campaigns.report.reply') }}</th>
+                        <th>{{ __('campaigns.report.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($messages as $message)
                     <tr data-status="{{ $message->outgoingMessage->status ?? $message->status }}">
                         <td>
-                            <strong>{{ $message->contact_name ?? 'Unknown' }}</strong>
+                            <strong>{{ $message->contact_name ?? __('campaigns.report.unknown') }}</strong>
                         </td>
                         <td>
                             <span style="color: #6b7280;">{{ $message->phone_number }}</span>
@@ -425,7 +425,7 @@
                             @if($message->outgoingMessage && $message->outgoingMessage->reply_received)
                             <span class="sentiment-badge positive" title="{{ $message->outgoingMessage->reply_message }}">
                                 <i class="fas fa-comment-dots"></i>
-                                Replied
+                                {{ __('campaigns.report.replied_badge') }}
                             </span>
                             @else
                             <span style="color: #9ca3af;">-</span>
@@ -433,7 +433,7 @@
                         </td>
                         <td>
                             @if($message->contact_id)
-                            <a href="{{ url('guest/view/' . $message->contact_id) }}" class="action-link" title="View Contact">
+                            <a href="{{ url('guest/view/' . $message->contact_id) }}" class="action-link" title="{{ __('campaigns.report.view_contact') }}">
                                 <i class="fas fa-user"></i>
                             </a>
                             @endif
@@ -443,7 +443,7 @@
                     <tr>
                         <td colspan="8" style="text-align: center; padding: 40px; color: #9ca3af;">
                             <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 16px;"></i>
-                            <div>No messages found</div>
+                            <div>{{ __('campaigns.report.no_messages_found') }}</div>
                         </td>
                     </tr>
                     @endforelse
@@ -456,7 +456,7 @@
     <div class="chart-card">
         <h3 class="chart-title">
             <i class="fas fa-cog mr-2"></i>
-            Campaign Actions
+            {{ __('campaigns.report.campaign_actions') }}
         </h3>
         <div class="row">
             <div class="col-md-4">
@@ -464,7 +464,7 @@
                     @csrf
                     <button type="submit" class="btn btn-primary btn-block" style="border-radius: 12px; padding: 14px;">
                         <i class="fas fa-copy mr-2"></i>
-                        Clone This Campaign
+                        {{ __('campaigns.report.clone_campaign') }}
                     </button>
                 </form>
             </div>
@@ -472,9 +472,9 @@
             <div class="col-md-4">
                 <form action="{{ route('campaigns.pause', $campaign->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn btn-warning btn-block" style="border-radius: 12px; padding: 14px;">
+                    <button type="submit" class="btn-secondary btn-block" style="border-radius: 12px; padding: 14px;">
                         <i class="fas fa-pause mr-2"></i>
-                        Pause Campaign
+                        {{ __('campaigns.report.pause_campaign') }}
                     </button>
                 </form>
             </div>
@@ -482,9 +482,9 @@
             <div class="col-md-4">
                 <form action="{{ route('campaigns.resume', $campaign->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn btn-success btn-block" style="border-radius: 12px; padding: 14px;">
+                    <button type="submit" class="btn-primary btn-block" style="border-radius: 12px; padding: 14px;">
                         <i class="fas fa-play mr-2"></i>
-                        Resume Campaign
+                        {{ __('campaigns.report.resume_campaign') }}
                     </button>
                 </form>
             </div>

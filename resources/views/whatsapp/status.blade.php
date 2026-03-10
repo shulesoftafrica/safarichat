@@ -117,15 +117,15 @@
         <div class="status-header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2 style="margin: 0; color: #333;">WhatsApp Instance Status</h2>
-                    <p style="margin: 0.5rem 0 0 0; color: #666;">Monitor your WhatsApp connections and WaSender integration</p>
+                    <h2 style="margin: 0; color: #333;">{{ __("whatsapp_status.page_title") }}</h2>
+                    <p style="margin: 0.5rem 0 0 0; color: #666;">{{ __("whatsapp_status.page_subtitle") }}</p>
                 </div>
                 <div>
                     <button class="btn-test" onclick="refreshInstances()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                        <i class="fas fa-sync-alt"></i> {{ __("whatsapp_status.actions.refresh") }}
                     </button>
                     <button class="btn-test" onclick="testWaSenderConnection()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-plug"></i> Test WaSender
+                        <i class="fas fa-plug"></i> {{ __("whatsapp_status.actions.test_wasender") }}
                     </button>
                 </div>
             </div>
@@ -134,19 +134,19 @@
             <div class="connection-info">
                 <div class="info-item">
                     <div class="info-value" id="total-instances">-</div>
-                    <div class="info-label">Total Instances</div>
+                    <div class="info-label">{{ __("whatsapp_status.stats.total_instances") }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-value" id="connected-instances">-</div>
-                    <div class="info-label">Connected</div>
+                    <div class="info-label">{{ __("whatsapp_status.stats.connected") }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-value" id="connecting-instances">-</div>
-                    <div class="info-label">Connecting</div>
+                    <div class="info-label">{{ __("whatsapp_status.stats.connecting") }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-value" id="error-instances">-</div>
-                    <div class="info-label">Errors</div>
+                    <div class="info-label">{{ __("whatsapp_status.stats.errors") }}</div>
                 </div>
             </div>
         </div>
@@ -155,30 +155,30 @@
         <div id="instances-container">
             <div class="text-center" style="padding: 2rem;">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Loading...</span>
+                    <span class="sr-only">{{ __("whatsapp_status.loading.default") }}</span>
                 </div>
-                <p style="margin-top: 1rem;">Loading instances...</p>
+                <p style="margin-top: 1rem;">{{ __("whatsapp_status.loading.instances") }}</p>
             </div>
         </div>
 
         <!-- Test Section -->
         <div class="test-section">
-            <h4 style="margin-bottom: 1.5rem;">Send Test Message</h4>
+            <h4 style="margin-bottom: 1.5rem;">{{ __("whatsapp_status.test.title") }}</h4>
             <form id="test-message-form">
                 <div class="row">
                     <div class="col-md-3">
                         <select class="form-control" id="test-instance" required>
-                            <option value="">Select Instance</option>
+                            <option value="">{{ __("whatsapp_status.test.select_instance") }}</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <input type="text" class="form-control" id="test-chat-id" placeholder="Chat ID (e.g., 255700000000@c.us)" required>
+                        <input type="text" class="form-control" id="test-chat-id" placeholder="{{ __("whatsapp_status.test.chat_id_placeholder") }}" required>
                     </div>
                     <div class="col-md-4">
-                        <input type="text" class="form-control" id="test-message" placeholder="Test message" required>
+                        <input type="text" class="form-control" id="test-message" placeholder="{{ __("whatsapp_status.test.message_placeholder") }}" required>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn-test w-100">Send</button>
+                        <button type="submit" class="btn-test w-100">{{ __("whatsapp_status.actions.send") }}</button>
                     </div>
                 </div>
             </form>
@@ -208,11 +208,11 @@ function loadInstances() {
                 updateStats(response.data);
                 populateTestInstanceSelect(response.data);
             } else {
-                showError('Failed to load instances: ' + response.message);
+                showError('{{ __("whatsapp_status.alerts.load_failed", ["message" => ""]) }}'.replace(': ', ': ' + response.message));
             }
         },
         error: function(xhr, status, error) {
-            showError('Error loading instances: ' + error);
+            showError('{{ __("whatsapp_status.alerts.load_error", ["error" => ""]) }}'.replace(': ', ': ' + error));
         }
     });
 }
@@ -224,18 +224,31 @@ function displayInstances(instances) {
         container.html(`
             <div class="text-center" style="padding: 2rem;">
                 <i class="fas fa-inbox fa-3x text-muted"></i>
-                <h5 style="margin-top: 1rem; color: #666;">No WhatsApp instances found</h5>
-                <p style="color: #999;">Go to <a href="{{ url('auth/business/setup') }}">Setup Page</a> to connect your WhatsApp</p>
+                <h5 style="margin-top: 1rem; color: #666;">{{ __("whatsapp_status.empty.title") }}</h5>
+                <p style="color: #999;">{{ __("whatsapp_status.empty.description", ["url" => url("auth/business/setup")]) }}</p>
             </div>
         `);
         return;
     }
 
     let html = '';
+    const statusLabels = {
+        'connected': '{{ __("whatsapp_status.status.connected") }}',
+        'connecting': '{{ __("whatsapp_status.status.connecting") }}',
+        'disconnected': '{{ __("whatsapp_status.status.disconnected") }}',
+        'error': '{{ __("whatsapp_status.status.error") }}'
+    };
+    const createdLabel = '{{ __("whatsapp_status.instance.created") }}';
+    const lastSeenLabel = '{{ __("whatsapp_status.instance.last_seen") }}';
+    const neverLabel = '{{ __("whatsapp_status.instance.never") }}';
+    const idLabel = '{{ __("whatsapp_status.instance.id") }}';
+    const webhookLabel = '{{ __("whatsapp_status.instance.webhook_configured") }}';
+    
     instances.forEach(instance => {
         const statusClass = `status-${instance.status}`;
-        const lastSeen = instance.last_seen ? new Date(instance.last_seen).toLocaleString() : 'Never';
+        const lastSeen = instance.last_seen ? new Date(instance.last_seen).toLocaleString() : neverLabel;
         const createdAt = new Date(instance.created_at).toLocaleString();
+        const statusLabel = statusLabels[instance.status] || instance.status.toUpperCase();
         
         html += `
             <div class="instance-card">
@@ -244,16 +257,16 @@ function displayInstances(instances) {
                         <h5 style="margin: 0 0 0.5rem 0; color: #333;">${instance.instance_name}</h5>
                         <p style="margin: 0; color: #666;"><i class="fas fa-phone"></i> ${instance.phone_number}</p>
                         <p style="margin: 0.25rem 0 0 0; color: #999; font-size: 0.875rem;">
-                            <i class="fas fa-clock"></i> Created: ${createdAt}
-                            ${instance.last_seen ? `<br><i class="fas fa-eye"></i> Last seen: ${lastSeen}` : ''}
+                            <i class="fas fa-clock"></i> ${createdLabel} ${createdAt}
+                            ${instance.last_seen ? `<br><i class="fas fa-eye"></i> ${lastSeenLabel} ${lastSeen}` : ''}
                         </p>
                     </div>
                     <div style="text-align: right;">
-                        <span class="status-badge ${statusClass}">${instance.status.toUpperCase()}</span>
+                        <span class="status-badge ${statusClass}">${statusLabel}</span>
                         <div style="margin-top: 0.5rem;">
-                            <small style="color: #666;">ID: ${instance.instance_id}</small>
+                            <small style="color: #666;">${idLabel} ${instance.instance_id}</small>
                         </div>
-                        ${instance.webhook_url ? `<div style="margin-top: 0.25rem;"><small style="color: #666;"><i class="fas fa-link"></i> Webhook configured</small></div>` : ''}
+                        ${instance.webhook_url ? `<div style="margin-top: 0.25rem;"><small style="color: #666;"><i class="fas fa-link"></i> ${webhookLabel}</small></div>` : ''}
                     </div>
                 </div>
             </div>
@@ -277,7 +290,7 @@ function updateStats(instances) {
 
 function populateTestInstanceSelect(instances) {
     const select = $('#test-instance');
-    select.html('<option value="">Select Instance</option>');
+    select.html('<option value="">{{ __("whatsapp_status.test.select_instance") }}</option>');
     
     instances.filter(i => i.status === 'connected').forEach(instance => {
         select.append(`<option value="${instance.instance_id}">${instance.instance_name} (${instance.phone_number})</option>`);
@@ -297,13 +310,13 @@ function testWaSenderConnection() {
         },
         success: function(response) {
             if (response.success) {
-                alert('WaSender connection successful!');
+                alert('{{ __("whatsapp_status.alerts.wasender_success") }}');
             } else {
-                alert('WaSender connection failed: ' + response.message);
+                alert('{{ __("whatsapp_status.alerts.wasender_failed", ["message" => ""]) }}'.replace(': ', ': ' + response.message));
             }
         },
         error: function(xhr, status, error) {
-            alert('WaSender connection error: ' + error);
+            alert('{{ __("whatsapp_status.alerts.wasender_error", ["error" => ""]) }}'.replace(': ', ': ' + error));
         }
     });
 }
@@ -316,7 +329,7 @@ $('#test-message-form').on('submit', function(e) {
     const message = $('#test-message').val();
     
     if (!instanceId || !chatId || !message) {
-        alert('Please fill all fields');
+        alert('{{ __("whatsapp_status.test.fill_all_fields") }}');
         return;
     }
     
@@ -334,14 +347,14 @@ $('#test-message-form').on('submit', function(e) {
         }),
         success: function(response) {
             if (response.success) {
-                alert('Test message sent successfully!');
+                alert('{{ __("whatsapp_status.test.success") }}');
                 $('#test-message-form')[0].reset();
             } else {
-                alert('Failed to send message: ' + response.message);
+                alert('{{ __("whatsapp_status.test.failed", ["message" => ""]) }}'.replace(': ', ': ' + response.message));
             }
         },
         error: function(xhr, status, error) {
-            alert('Error sending message: ' + error);
+            alert('{{ __("whatsapp_status.test.error", ["error" => ""]) }}'.replace(': ', ': ' + error));
         }
     });
 });
@@ -350,9 +363,9 @@ function showError(message) {
     $('#instances-container').html(`
         <div class="text-center" style="padding: 2rem;">
             <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
-            <h5 style="margin-top: 1rem; color: #dc3545;">Error</h5>
+            <h5 style="margin-top: 1rem; color: #dc3545;">{{ __("whatsapp_status.error.title") }}</h5>
             <p style="color: #666;">${message}</p>
-            <button class="btn-test" onclick="loadInstances()">Try Again</button>
+            <button class="btn-test" onclick="loadInstances()">{{ __("whatsapp_status.actions.try_again") }}</button>
         </div>
     `);
 }

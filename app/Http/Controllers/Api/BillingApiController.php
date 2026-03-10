@@ -553,7 +553,7 @@ class BillingApiController extends Controller
             
             // Call billing API to create plan upgrade invoice
             $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
-            $apiKey = config('services.billing.api_key');
+            $accessToken = config('services.billing.access_token');
             
             $invoiceData = [
                 'product_code' => 'safarichat',
@@ -581,7 +581,7 @@ class BillingApiController extends Controller
             ];
 
             $response = Http::withHeaders([
-                'X-API-Key' => $apiKey,
+                'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])->post($billingApiUrl . '/create-invoice', $invoiceData);
@@ -861,7 +861,7 @@ class BillingApiController extends Controller
 
             // Get or create UCN reference from billing platform
             $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
-            $apiKey = config('services.billing.api_key');
+            $accessToken = config('services.billing.access_token');
 
             try {
                 // Try to fetch existing wallet from billing platform
@@ -869,7 +869,8 @@ class BillingApiController extends Controller
                 $productCode = 'safarichat';
 
                 $response = Http::withHeaders([
-                    'X-API-Key' => $apiKey,
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json',
                     'Accept' => 'application/json'
                 ])->get("{$billingApiUrl}/wallet/{$customerId}", [
                     'product_code' => $productCode
@@ -894,7 +895,7 @@ class BillingApiController extends Controller
                 // If no UCN reference found, create wallet
                 if (!$ucnReference) {
                     $createResponse = Http::withHeaders([
-                        'X-API-Key' => $apiKey,
+                        'Authorization' => 'Bearer ' . $accessToken,
                         'Content-Type' => 'application/json',
                         'Accept' => 'application/json'
                     ])->post("{$billingApiUrl}/wallet/create", [
@@ -985,7 +986,7 @@ class BillingApiController extends Controller
 
             // Create invoice via billing platform
             $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
-            $apiKey = config('services.billing.api_key');
+            $accessToken = config('services.billing.access_token');
 
             $invoiceData = [
                 'product_code' => 'safarichat',
@@ -1010,7 +1011,7 @@ class BillingApiController extends Controller
             ];
 
             $response = Http::withHeaders([
-                'X-API-Key' => $apiKey,
+                'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])->post($billingApiUrl . '/create-invoice', $invoiceData);

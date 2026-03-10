@@ -79,7 +79,7 @@ return [
 
     'billing' => [
         'api_url' => env('BILLING_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
-        'api_key' => env('BILLING_API_KEY','1|e0eSoNj3H63ppZfqwdBaZlM75PZhAUIQ6hi2IxkBb189940d'),
+        'access_token' => env('BILLING_ACCESS_TOKEN', ''),
         'webhook_secret' => env('BILLING_WEBHOOK_SECRET'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
     ],

@@ -46,10 +46,26 @@
 }
 
 /* Lead Status Badge Styles */
-.badge-orange { background-color: #fd7e14; }
-.badge-purple { background-color: #6f42c1; }
-.badge-teal { background-color: #20c997; }
-.badge-indigo { background-color: #6610f2; }
+.badge-orange { 
+    background-color: #fd7e14; 
+    color: white;
+    font-weight: 600;
+}
+.badge-purple { 
+    background-color: #6f42c1; 
+    color: white;
+    font-weight: 600;
+}
+.badge-teal { 
+    background-color: #20c997; 
+    color: white;
+    font-weight: 600;
+}
+.badge-indigo { 
+    background-color: #6610f2; 
+    color: white;
+    font-weight: 600;
+}
 
 /* International Telephone Input Styles */
 .iti { width: 100%; }
@@ -91,15 +107,88 @@
 .dark-mode .table tbody td {
     background-color: #2d3748 !important;
     border-color: #4a5568 !important;
-    color: #e2e8f0 !important;
+    color: #f7fafc !important;
 }
 
 .dark-mode .table-striped tbody tr:nth-of-type(odd) {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: #1e293b !important;
+}
+
+.dark-mode .table-striped tbody tr:nth-of-type(odd) td {
+    background-color: #1e293b !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .table-striped tbody tr:nth-of-type(even) td {
+    background-color: #2d3748 !important;
+    color: #f7fafc !important;
 }
 
 .dark-mode .table-hover tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.075) !important;
+    background-color: rgba(99, 179, 237, 0.15) !important;
+}
+
+.dark-mode .table-hover tbody tr:hover td {
+    background-color: rgba(99, 179, 237, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode DataTables support */
+.dark-mode .dataTable tbody tr,
+.dark-mode .dataTable tbody tr.even,
+.dark-mode table.dataTable tbody tr {
+    background-color: #2d3748 !important;
+}
+
+.dark-mode .dataTable tbody tr.odd,
+.dark-mode table.dataTable tbody tr.odd {
+    background-color: #1e293b !important;
+}
+
+.dark-mode .dataTable tbody td,
+.dark-mode table.dataTable tbody td {
+    background-color: transparent !important;
+    color: #f7fafc !important;
+    border-color: #4a5568 !important;
+}
+
+.dark-mode .dataTable tbody tr:hover,
+.dark-mode table.dataTable tbody tr:hover {
+    background-color: rgba(99, 179, 237, 0.2) !important;
+}
+
+.dark-mode .dataTable tbody tr:hover td,
+.dark-mode table.dataTable tbody tr:hover td {
+    color: #ffffff !important;
+}
+
+.dark-mode .dataTable thead th,
+.dark-mode table.dataTable thead th {
+    background-color: #4a5568 !important;
+    color: #f7fafc !important;
+    border-color: #4a5568 !important;
+}
+
+.dark-mode .table-standard,
+.dark-mode table.table-standard {
+    background-color: #2d3748 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .table-standard tbody tr,
+.dark-mode table.table-standard tbody tr {
+    background-color: #2d3748 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .table-standard tbody tr.odd {
+    background-color: #1e293b !important;
+}
+
+.dark-mode .table-standard tbody td,
+.dark-mode table.table-standard tbody td {
+    color: #f7fafc !important;
+    background-color: transparent !important;
 }
 
 .dark-mode .form-control {
@@ -254,43 +343,165 @@
 }
 
 .dark-mode .btn-outline-success {
-    color: #48bb78 !important;
-    border-color: #48bb78 !important;
+    color: #34d399 !important;
+    border-color: #34d399 !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 .dark-mode .btn-outline-success:hover {
-    background-color: #48bb78 !important;
+    background-color: #10b981 !important;
+    border-color: #34d399 !important;
     color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.4) !important;
+}
+
+.dark-mode .btn-success {
+    background-color: #10b981 !important;
+    border-color: #34d399 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-success:hover {
+    background-color: #059669 !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
+}
+
+.dark-mode .btn-primary {
+    background-color: #3b82f6 !important;
+    border-color: #60a5fa !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-primary:hover {
+    background-color: #2563eb !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
 }
 
 .dark-mode .btn-outline-primary {
-    color: #63b3ed !important;
-    border-color: #63b3ed !important;
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 .dark-mode .btn-outline-primary:hover {
-    background-color: #63b3ed !important;
+    background-color: #3b82f6 !important;
+    border-color: #60a5fa !important;
     color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.4) !important;
 }
 
 .dark-mode .btn-outline-info {
-    color: #63b3ed !important;
-    border-color: #63b3ed !important;
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 .dark-mode .btn-outline-info:hover {
-    background-color: #63b3ed !important;
+    background-color: #3b82f6 !important;
+    border-color: #60a5fa !important;
     color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.4) !important;
+}
+
+.dark-mode .btn-info {
+    background-color: #3b82f6 !important;
+    border-color: #60a5fa !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-info:hover {
+    background-color: #2563eb !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+}
+
+.dark-mode .btn-warning {
+    background-color: #f59e0b !important;
+    border-color: #fbbf24 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-warning:hover {
+    background-color: #d97706 !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5) !important;
+}
+
+.dark-mode .btn-danger {
+    background-color: #ef4444 !important;
+    border-color: #f87171 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-danger:hover {
+    background-color: #dc2626 !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
+}
+
+.dark-mode .btn-secondary {
+    background-color: #6b7280 !important;
+    border-color: #9ca3af !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-secondary:hover {
+    background-color: #4b5563 !important;
+    border-color: #6b7280 !important;
+    box-shadow: 0 0 12px rgba(107, 114, 128, 0.5) !important;
 }
 
 .dark-mode .btn-outline-secondary {
-    color: #a0aec0 !important;
-    border-color: #a0aec0 !important;
+    color: #9ca3af !important;
+    border-color: #9ca3af !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 .dark-mode .btn-outline-secondary:hover {
-    background-color: #a0aec0 !important;
-    color: #1a1f2e !important;
+    background-color: #6b7280 !important;
+    border-color: #9ca3af !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(156, 163, 175, 0.4) !important;
+}
+
+.dark-mode .btn-outline-warning {
+    color: #fbbf24 !important;
+    border-color: #fbbf24 !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-outline-warning:hover {
+    background-color: #f59e0b !important;
+    border-color: #fbbf24 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.4) !important;
+}
+
+.dark-mode .btn-outline-danger {
+    color: #f87171 !important;
+    border-color: #f87171 !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .btn-outline-danger:hover {
+    background-color: #ef4444 !important;
+    border-color: #f87171 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.4) !important;
 }
 
 .dark-mode .close {
@@ -345,6 +556,446 @@
     background-color: #2d3748 !important;
 }
 
+/* ========== MODAL CONSISTENCY FIXES ========== */
+/* Ensure modal has consistent size and styling in both light and dark modes */
+.planner-modal-bx .modal-dialog {
+    max-width: 600px !important;
+    width: 100% !important;
+}
+
+.planner-modal-bx .modal-content {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+.planner-modal-bx .modal-header {
+    border-radius: 12px 12px 0 0 !important;
+    padding: 20px 24px !important;
+}
+
+.planner-modal-bx .modal-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+}
+
+.planner-modal-bx .modal-body {
+    padding: 24px !important;
+}
+
+.planner-modal-bx .modal-footer {
+    padding: 16px 24px !important;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Light mode modal styling - Match Dark Mode Design */
+body:not(.dark-mode) .planner-modal-bx .modal-content {
+    background-color: #ffffff !important;
+    border: none !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-bottom: none !important;
+    color: white !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-footer {
+    background-color: #f8fafc !important;
+    border-top: 1px solid #e5e7eb !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-title {
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-header .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-header .close:hover {
+    opacity: 1 !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .modal-body {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx label {
+    color: #374151 !important;
+    font-weight: 500 !important;
+}
+
+body:not(.dark-mode) .planner-modal-bx .form-text {
+    color: #6b7280 !important;
+}
+
+/* Dark mode modal styling */
+.dark-mode .planner-modal-bx .modal-title {
+    color: #f7fafc !important;
+}
+
+.dark-mode .planner-modal-bx .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-bottom: none !important;
+}
+
+.dark-mode .planner-modal-bx .modal-header .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+}
+
+.dark-mode .planner-modal-bx .modal-header .close:hover {
+    opacity: 1 !important;
+}
+
+.dark-mode .planner-modal-bx .modal-footer {
+    background-color: #374151 !important;
+    border-top: 1px solid #4b5563 !important;
+}
+
+.dark-mode .planner-modal-bx .modal-body {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .planner-modal-bx label {
+    color: #f7fafc !important;
+}
+
+/* ========== ALL MODALS - CONSISTENT GRADIENT STYLING ========== */
+/* Apply gradient header to all modals, not just planner-modal-bx */
+
+/* Base modal styling for all modals */
+.modal-dialog {
+    max-width: 600px !important;
+}
+
+.modal-content {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+    border: none !important;
+}
+
+.modal-header {
+    border-radius: 12px 12px 0 0 !important;
+    padding: 20px 24px !important;
+}
+
+.modal-body {
+    padding: 24px !important;
+}
+
+.modal-footer {
+    padding: 16px 24px !important;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Light Mode - All Modals with Gradient Header */
+body:not(.dark-mode) .modal-content {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-bottom: none !important;
+}
+
+body:not(.dark-mode) .modal-header.bg-info,
+body:not(.dark-mode) .modal-header.bg-primary,
+body:not(.dark-mode) .modal-header.bg-success,
+body:not(.dark-mode) .modal-header.bg-warning,
+body:not(.dark-mode) .modal-header.bg-danger {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+body:not(.dark-mode) .modal-title {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+body:not(.dark-mode) .modal-header .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+}
+
+body:not(.dark-mode) .modal-header .close:hover {
+    opacity: 1 !important;
+}
+
+body:not(.dark-mode) .modal-header.text-white,
+body:not(.dark-mode) .modal-header .text-white {
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .modal-body {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .modal-footer {
+    background-color: #f8fafc !important;
+    border-top: 1px solid #e5e7eb !important;
+}
+
+/* Dark Mode - All Modals with Gradient Header */
+.dark-mode .modal-content {
+    background-color: #2d3748 !important;
+}
+
+.dark-mode .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-bottom: none !important;
+}
+
+.dark-mode .modal-header.bg-info,
+.dark-mode .modal-header.bg-primary,
+.dark-mode .modal-header.bg-success,
+.dark-mode .modal-header.bg-warning,
+.dark-mode .modal-header.bg-danger {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.dark-mode .modal-title {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-header .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+}
+
+.dark-mode .modal-header .close:hover {
+    opacity: 1 !important;
+}
+
+.dark-mode .modal-body {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-footer {
+    background-color: #374151 !important;
+    border-top: 1px solid #4b5563 !important;
+}
+
+.dark-mode .modal label {
+    color: #f7fafc !important;
+}
+
+/* Modal dialog sizes */
+.modal-dialog.modal-lg {
+    max-width: 800px !important;
+}
+
+.modal-dialog.modal-xl {
+    max-width: 1140px !important;
+}
+
+.modal-dialog.modal-sm {
+    max-width: 400px !important;
+}
+
+/* Cards inside modals - Light Mode */
+body:not(.dark-mode) .modal-body .card {
+    background-color: #f8fafc !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+body:not(.dark-mode) .modal-body .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+}
+
+body:not(.dark-mode) .modal-body .card-header.bg-primary,
+body:not(.dark-mode) .modal-body .card-header.bg-info,
+body:not(.dark-mode) .modal-body .card-header.bg-success {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+body:not(.dark-mode) .modal-body .card-header h6 {
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .modal-body .card-body {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .modal-body label {
+    color: #374151 !important;
+}
+
+body:not(.dark-mode) .modal-body .form-text {
+    color: #6b7280 !important;
+}
+
+/* Cards inside modals - Dark Mode */
+.dark-mode .modal-body .card {
+    background-color: #374151 !important;
+    border: 1px solid #4b5563 !important;
+}
+
+.dark-mode .modal-body .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+}
+
+.dark-mode .modal-body .card-header.bg-primary,
+.dark-mode .modal-body .card-header.bg-info,
+.dark-mode .modal-body .card-header.bg-success,
+.dark-mode .modal-body .card-header.text-white {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.dark-mode .modal-body .card-header h6 {
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-body .card-body {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body .table {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body .table td,
+.dark-mode .modal-body .table th {
+    color: #e2e8f0 !important;
+    border-color: #4b5563 !important;
+}
+
+/* Modal Buttons Styling */
+body:not(.dark-mode) .modal-footer .btn-secondary {
+    background-color: #e5e7eb !important;
+    border-color: #e5e7eb !important;
+    color: #374151 !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-secondary:hover {
+    background-color: #d1d5db !important;
+    border-color: #d1d5db !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+.dark-mode .modal-footer .btn-secondary {
+    background-color: #4a5568 !important;
+    border-color: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-footer .btn-secondary:hover {
+    background-color: #374151 !important;
+    border-color: #374151 !important;
+}
+
+.dark-mode .modal-footer .btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-footer .btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.dark-mode .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+/* Alert messages inside modals */
+body:not(.dark-mode) .modal-body .alert {
+    border-radius: 8px !important;
+}
+
+body:not(.dark-mode) .modal-body .alert-info {
+    background-color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+    color: #1e40af !important;
+}
+
+body:not(.dark-mode) .modal-body .alert-success {
+    background-color: #d1fae5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+}
+
+body:not(.dark-mode) .modal-body .alert-warning {
+    background-color: #fef3c7 !important;
+    border-color: #f59e0b !important;
+    color: #92400e !important;
+}
+
+body:not(.dark-mode) .modal-body .alert-danger {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #991b1b !important;
+}
+
+.dark-mode .modal-body .alert {
+    border-radius: 8px !important;
+}
+
+.dark-mode .modal-body .alert-info {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    border-color: #3b82f6 !important;
+    color: #93c5fd !important;
+}
+
+.dark-mode .modal-body .alert-success {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    border-color: #10b981 !important;
+    color: #6ee7b7 !important;
+}
+
+.dark-mode .modal-body .alert-warning {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: #f59e0b !important;
+    color: #fcd34d !important;
+}
+
+.dark-mode .modal-body .alert-danger {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    border-color: #ef4444 !important;
+    color: #fca5a5 !important;
+}
+
 .dark-mode .table-responsive {
     border: 1px solid #4a5568 !important;
 }
@@ -360,8 +1011,81 @@
 }
 
 .dark-mode .badge-primary {
-    background-color: #63b3ed !important;
-    color: #1a1f2e !important;
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #60a5fa !important;
+}
+
+/* Dark mode badge variants - High contrast for visibility */
+.dark-mode .badge-success {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #34d399 !important;
+}
+
+.dark-mode .badge-warning {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #fbbf24 !important;
+}
+
+.dark-mode .badge-danger {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #f87171 !important;
+}
+
+.dark-mode .badge-info {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #60a5fa !important;
+}
+
+.dark-mode .badge-secondary {
+    background-color: #6b7280 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #9ca3af !important;
+}
+
+.dark-mode .badge-dark {
+    background-color: #1f2937 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #374151 !important;
+}
+
+.dark-mode .badge-orange {
+    background-color: #f97316 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #fb923c !important;
+}
+
+.dark-mode .badge-purple {
+    background-color: #a855f7 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #c084fc !important;
+}
+
+.dark-mode .badge-teal {
+    background-color: #14b8a6 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #2dd4bf !important;
+}
+
+.dark-mode .badge-indigo {
+    background-color: #6366f1 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #818cf8 !important;
 }
 
 .dark-mode .tab-content {
@@ -385,6 +1109,98 @@
 
 .dark-mode .input-group .form-control:not(:last-child) {
     border-right: 0;
+}
+
+/* Dark mode - Conversation Summary & Timeline */
+.dark-mode .conversation-summary-content .bg-light {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .conversation-summary-content .text-muted,
+.dark-mode .conversation-summary-content small.text-muted {
+    color: #cbd5e0 !important;
+    font-weight: 500 !important;
+}
+
+.dark-mode .conversation-summary-content .font-weight-bold {
+    color: #f7fafc !important;
+    font-weight: 700 !important;
+}
+
+.dark-mode .conversation-summary-content .text-primary {
+    color: #60a5fa !important;
+}
+
+.dark-mode .conversation-summary-content .text-info {
+    color: #38bdf8 !important;
+}
+
+.dark-mode .conversation-summary-content .text-success {
+    color: #34d399 !important;
+}
+
+.dark-mode .conversation-summary-content .text-warning {
+    color: #fbbf24 !important;
+}
+
+.dark-mode .conversation-summary-content .border-success {
+    border-color: #10b981 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-content {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-content strong {
+    color: #f7fafc !important;
+    font-weight: 700 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-content p {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-item:not(:last-child)::before {
+    background-color: #475569 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-marker {
+    background-color: #64748b !important;
+    border: 2px solid #334155 !important;
+}
+
+.dark-mode .conversation-summary-content .timeline-item.latest .timeline-marker {
+    background-color: #10b981 !important;
+    border-color: #34d399 !important;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5) !important;
+}
+
+.dark-mode .card-header.bg-primary {
+    background-color: #1e40af !important;
+}
+
+.dark-mode .table-borderless td,
+.dark-mode .table-borderless th {
+    color: #e2e8f0 !important;
+    border: none !important;
+}
+
+.dark-mode .table-borderless td strong {
+    color: #cbd5e0 !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode #contact-messages,
+.dark-mode #conversation-summary {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #contact-messages .text-center,
+.dark-mode #conversation-summary .text-center {
+    color: #cbd5e0 !important;
 }
 
 .dark-mode .input-group .form-control:not(:first-child) {
@@ -489,9 +1305,9 @@
             <div class="page-title-box">
                 <div class="float-right">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{__('home')}}</a></li>
-                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{__('category')}}</a></li>
-                        <li class="breadcrumb-item active">{{__('guests')}}</li>
+                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('customers.breadcrumb_home') }}</a></li>
+                        <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('customers.breadcrumb_category') }}</a></li>
+                        <li class="breadcrumb-item active">{{ __('customers.breadcrumb_customers') }}</li>
                     </ol>
                 </div>
             </div><!--end page-title-box-->
@@ -503,25 +1319,25 @@
             <div class="card">
                 <div class="card-body">
 
-                    <h4 class="mt-0 header-title">{{__('list_of_guests')}} <span class="badge badge-primary" id="total-contacts">{{ $total_guests ?? 0 }}</span></h4>
-                    <p class="text-muted mb-3">{{__('manage_list_of_guests')}}</p>
+                    <h4 class="mt-0 header-title">{{ __('customers.list.title') }} <span class="badge badge-primary" id="total-contacts">{{ $total_guests ?? 0 }}</span></h4>
+                    <p class="text-muted mb-3">{{ __('customers.list.subtitle') }}</p>
                     
                     <!-- Bulk Actions Bar -->
                     <div id="bulk-actions-bar" class="alert alert-primary" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="mdi mdi-check-circle mr-2"></i>
-                                <span id="selected-count">0</span> {{__('contacts_selected')}}
+                                <span id="selected-count">0</span> {{ __('customers.bulk.selected', ['count' => '<span id="selected-count">0</span>']) }}
                             </div>
                             <div>
                                 <button type="button" class="btn btn-success btn-sm mr-2" id="bulk-send-message">
-                                    <i class="mdi mdi-message-text mr-1"></i>{{__('send_message')}}
+                                    <i class="mdi mdi-message-text mr-1"></i>{{ __('customers.actions.send_message') }}
                                 </button>
                                 <button type="button" class="btn btn-danger btn-sm mr-2" id="bulk-delete">
-                                    <i class="mdi mdi-delete mr-1"></i>{{__('delete_selected')}}
+                                    <i class="mdi mdi-delete mr-1"></i>{{ __('customers.actions.delete_selected') }}
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selection">
-                                    <i class="mdi mdi-close mr-1"></i>{{__('clear_selection')}}
+                                    <i class="mdi mdi-close mr-1"></i>{{ __('customers.actions.clear_selection') }}
                                 </button>
                             </div>
                         </div>
@@ -532,43 +1348,43 @@
                         <div class="col-12">
                             <div class="card border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
                                 <div class="card-body py-3">
-                                    <h5 class="text-white mb-3"><i class="mdi mdi-account-supervisor-circle mr-2"></i>{{__('handoff_management')}}</h5>
+                                    <h5 class="text-white mb-3"><i class="mdi mdi-account-supervisor-circle mr-2"></i>{{ __('customers.handoff.title') }}</h5>
                                     
                                     <!-- Status Filter Tabs -->
                                     <ul class="nav nav-pills nav-fill" id="handoff-tabs" style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 5px;">
                                         <li class="nav-item">
                                             <a class="nav-link active text-white" data-status="all" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-view-dashboard mr-1"></i>{{__('all')}}
+                                                <i class="mdi mdi-view-dashboard mr-1"></i>{{ __('customers.handoff.all') }}
                                                 <span class="badge badge-light ml-2">{{ $total_guests ?? 0 }}</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link text-white" data-status="ai" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-robot mr-1"></i>{{__('ai_handling')}}
+                                                <i class="mdi mdi-robot mr-1"></i>{{ __('customers.handoff.ai_handling') }}
                                                 <span class="badge badge-light ml-2">{{ $handoff_stats['ai_handled'] ?? 0 }}</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link text-white" data-status="pending_handoff" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-clock-outline mr-1"></i>{{__('pending_handoff')}}
+                                                <i class="mdi mdi-clock-outline mr-1"></i>{{ __('customers.handoff.pending_handoff') }}
                                                 <span class="badge badge-warning ml-2">{{ $handoff_stats['pending_handoff'] ?? 0 }}</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link text-white" data-status="handed_off" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-account-check mr-1"></i>{{__('handed_off')}}
+                                                <i class="mdi mdi-account-check mr-1"></i>{{ __('customers.handoff.handed_off') }}
                                                 <span class="badge badge-info ml-2">{{ $handoff_stats['handed_off'] ?? 0 }}</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link text-white" data-status="completed" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-check-circle mr-1"></i>{{__('completed')}}
+                                                <i class="mdi mdi-check-circle mr-1"></i>{{ __('customers.handoff.completed') }}
                                                 <span class="badge badge-success ml-2">{{ $handoff_stats['completed'] ?? 0 }}</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link text-white" data-status="urgent" href="#" style="border-radius: 8px; transition: all 0.3s ease;">
-                                                <i class="mdi mdi-alert mr-1"></i>{{__('urgent')}}
+                                                <i class="mdi mdi-alert mr-1"></i>{{ __('customers.handoff.urgent') }}
                                                 <span class="badge badge-danger ml-2">{{ $handoff_stats['urgent_cases'] ?? 0 }}</span>
                                             </a>
                                         </li>
@@ -579,22 +1395,38 @@
                     </div>
                     
                     <p>  
-                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal" onclick=" $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');">
-                          {{__('add_new_guest')}}  
+                        <button type="button" class="btn btn-outline-success" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myModal" onclick=" $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');">
+                          <i class="mdi mdi-account-plus" style="font-size: 1.2em; margin-right: 6px;"></i>
+                          {{ __('customers.actions.add_new') }}  
                         </button>
-                        <a href="#" class="btn btn-outline-success ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myUploadModal" title="{{__('upload_excel')}}">
+                        <script>
+                        // Set modal title when adding new contact
+                        $('button[data-target="#myModal"]').on('click', function() {
+                            // Check if this is the add button (action contains 'store/null')
+                            var action = $(this).attr('onclick');
+                            if (action && action.includes('store/null')) {
+                                $('#contactModalTitle').text('{{ __('customers.modals.add_title') }}');
+                                // Clear form fields
+                                $('#edit_guest_name').val('');
+                                $('#edit_guest_phone').val('');
+                                $('#edit_lead_status').val('');
+                                $('#edit_guest').val('');
+                            }
+                        });
+                        </script>
+                        <a href="#" class="btn btn-outline-success ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myUploadModal" title="{{ __('customers.actions.upload_excel') }}">
                             <i class="mdi mdi-file-excel-box" style="font-size: 1.2em; margin-right: 6px;"></i>
-                            {{__('upload_excel')}}
+                            {{ __('customers.actions.upload_excel') }}
                         </a>
 
                         <button type="button" class="btn btn-outline-primary ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#whatsappSyncModal">
                             <i class="mdi mdi-whatsapp" style="font-size: 1.2em; margin-right: 6px;"></i>
-                            {{__('sync_from_whatsapp')}}
+                            {{ __('customers.actions.sync_whatsapp') }}
                         </button>
 
                         <button type="button" class="btn btn-outline-info ml-2" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#googleSyncModal">
                             <i class="mdi mdi-google" style="font-size: 1.2em; margin-right: 6px; color: #4285f4;"></i>
-                            {{__('sync_from_google')}}
+                            {{ __('customers.actions.sync_google') }}
                         </button>
 
                         <!-- WhatsApp Sync Modal -->
@@ -604,17 +1436,17 @@
                             </button>
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content start-here">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title mt-0" id="whatsappSyncModalLabel">{{__('sync_whatsapp_contacts')}}</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                                        <h5 class="modal-title mt-0" id="whatsappSyncModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">{{ __('customers.whatsapp_sync.title') }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                                             <span aria-hidden="true">×</span>
                                         </button>
                                     </div>
                                     <div class="modal-body">
-                                        <p>{{__('connect_whatsapp_to_import_contacts')}}</p>
+                                        <p>{{ __('customers.whatsapp_sync.description') }}</p>
                                         <div id="whatsapp-sync-status" class="mb-2"></div>
                                         <button type="button" class="btn btn-success" id="startWhatsappSync">
-                                            <i class="mdi mdi-whatsapp"></i> {{__('start_sync')}}
+                                            <i class="mdi mdi-whatsapp"></i> {{ __('customers.whatsapp_sync.start_sync') }}
                                         </button>
                                     </div>
                                 </div>
@@ -628,11 +1460,11 @@
                             </button>
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content start-here">
-                                    <div class="modal-header" style="background: linear-gradient(135deg, #4285f4 0%, #34a853 100%); color: white;">
-                                        <h5 class="modal-title mt-0" id="googleSyncModalLabel">
-                                            <i class="mdi mdi-google mr-2"></i>{{__('sync_google_contacts')}}
+                                    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                                        <h5 class="modal-title mt-0" id="googleSyncModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">
+                                            <i class="mdi mdi-google mr-2"></i>{{ __('customers.google_sync.title') }}
                                         </h5>
-                                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                                             <span aria-hidden="true">×</span>
                                         </button>
                                     </div>
@@ -640,26 +1472,26 @@
                                         <div class="text-center mb-3">
                                             <i class="mdi mdi-google" style="font-size: 4rem; color: #4285f4;"></i>
                                         </div>
-                                        <p class="text-center">{{__('sync_contacts_from_google_account')}}</p>
-                                        <p class="text-muted small text-center">{{__('secure_google_oauth_process')}}</p>
+                                        <p class="text-center">{{ __('customers.google_sync.description') }}</p>
+                                        <p class="text-muted small text-center">{{ __('customers.google_sync.secure_process') }}</p>
                                         
                                         <div id="google-sync-status" class="mb-3"></div>
                                         
                                         <div class="text-center">
                                             <button type="button" class="btn btn-primary btn-lg" id="startGoogleAuth" style="background: #4285f4; border-color: #4285f4; padding: 12px 30px; border-radius: 25px;">
-                                                <i class="mdi mdi-google mr-2"></i> {{__('sign_in_with_google')}}
+                                                <i class="mdi mdi-google mr-2"></i> {{ __('customers.google_sync.sign_in_button') }}
                                             </button>
                                         </div>
                                         
                                         <div class="mt-3">
                                             <small class="text-muted">
                                                 <i class="mdi mdi-information"></i>
-                                                {{__('google_contacts_sync_info')}}:
+                                                {{ __('customers.google_sync.benefits_title') }}:
                                                 <ul class="mt-2 mb-0">
-                                                    <li>{{__('secure_oauth_authentication')}}</li>
-                                                    <li>{{__('read_only_access_to_contacts')}}</li>
-                                                    <li>{{__('no_passwords_stored')}}</li>
-                                                    <li>{{__('automatic_duplicate_prevention')}}</li>
+                                                    <li>{{ __('customers.google_sync.benefits.secure_oauth') }}</li>
+                                                    <li>{{ __('customers.google_sync.benefits.read_only') }}</li>
+                                                    <li>{{ __('customers.google_sync.benefits.no_passwords') }}</li>
+                                                    <li>{{ __('customers.google_sync.benefits.auto_dedupe') }}</li>
                                                 </ul>
                                             </small>
                                         </div>
@@ -720,7 +1552,7 @@
                             
                             // Handle Google Auth button click
                             $('#startGoogleAuth').on('click', function() {
-                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{__("initializing_google_auth")}}</div>');
+                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{ __("customers.google_sync.initializing") }}</div>');
                                 
                                 if (!gapi_inited || !gsi_inited) {
                                     initializeGoogleAPI();
@@ -728,7 +1560,7 @@
                                         if (gapi_inited && gsi_inited) {
                                             requestGoogleAuth();
                                         } else {
-                                            $('#google-sync-status').html('<div class="alert alert-danger">{{__("failed_to_initialize_google_api")}}</div>');
+                                            $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.init_failed") }}</div>');
                                         }
                                     }, 2000);
                                 } else {
@@ -745,7 +1577,7 @@
                                     }
                                 } catch (error) {
                                     console.error('Error requesting Google auth:', error);
-                                    $('#google-sync-status').html('<div class="alert alert-danger">{{__("failed_to_start_google_auth")}}</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.auth_start_failed") }}</div>');
                                 }
                             }
                             
@@ -753,24 +1585,24 @@
                             async function handleAuthResponse(resp) {
                                 if (resp.error !== undefined) {
                                     console.error('Google Auth Error:', resp.error);
-                                    $('#google-sync-status').html('<div class="alert alert-danger">{{__("google_auth_failed")}}: ' + resp.error + '</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.auth_failed") }}: ' + resp.error + '</div>');
                                     return;
                                 }
                                 
-                                $('#google-sync-status').html('<div class="alert alert-success"><i class="mdi mdi-check mr-2"></i>{{__("google_auth_successful_fetching_contacts")}}</div>');
+                                $('#google-sync-status').html('<div class="alert alert-success"><i class="mdi mdi-check mr-2"></i>{{ __("customers.google_sync.auth_success") }}</div>');
                                 
                                 try {
                                     await fetchGoogleContacts();
                                 } catch (error) {
                                     console.error('Error fetching contacts:', error);
-                                    $('#google-sync-status').html('<div class="alert alert-danger">{{__("failed_to_fetch_google_contacts")}}</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.fetch_failed") }}</div>');
                                 }
                             }
                             
                             // Fetch Google Contacts
                             async function fetchGoogleContacts() {
                                 try {
-                                    $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{__("fetching_contacts_from_google")}}</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{ __("customers.google_sync.fetching") }}</div>');
                                     
                                     const response = await gapi.client.people.people.connections.list({
                                         resourceName: 'people/me',
@@ -784,18 +1616,18 @@
                                     if (contacts.length > 0) {
                                         processGoogleContacts(contacts);
                                     } else {
-                                        $('#google-sync-status').html('<div class="alert alert-warning">{{__("no_contacts_found_in_google_account")}}</div>');
+                                        $('#google-sync-status').html('<div class="alert alert-warning">{{ __("customers.google_sync.no_contacts") }}</div>');
                                     }
                                     
                                 } catch (error) {
                                     console.error('Error fetching Google contacts:', error);
-                                    $('#google-sync-status').html('<div class="alert alert-danger">{{__("error_fetching_google_contacts")}}: ' + error.message + '</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.fetch_failed") }}: ' + error.message + '</div>');
                                 }
                             }
                             
                             // Process and import Google contacts
                             function processGoogleContacts(contacts) {
-                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{__("processing_contacts_for_import")}}</div>');
+                                $('#google-sync-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{ __("customers.google_sync.processing") }}</div>');
                                 
                                 const processedContacts = contacts.map(contact => {
                                     const name = contact.names && contact.names.length > 0 
@@ -819,7 +1651,7 @@
                                 if (processedContacts.length > 0) {
                                     importGoogleContacts(processedContacts);
                                 } else {
-                                    $('#google-sync-status').html('<div class="alert alert-warning">{{__("no_contacts_with_phone_numbers_found")}}</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-warning">{{ __("customers.google_sync.no_phone_contacts") }}</div>');
                                 }
                             }
                             
@@ -842,8 +1674,8 @@
                                             $('#google-sync-status').html(
                                                 '<div class="alert alert-success">' +
                                                 '<i class="mdi mdi-check-circle mr-2"></i>' +
-                                                '{{__("google_contacts_imported_successfully")}}: ' + 
-                                                (response.imported_count || 0) + ' {{__("contacts_imported")}}' +
+                                                '{{ __("customers.google_sync.import_success") }}: ' + 
+                                                (response.imported_count || 0) + ' {{ __("customers.whatsapp_sync.contacts_imported") }}' +
                                                 '</div>'
                                             );
                                             
@@ -852,12 +1684,12 @@
                                                 location.reload();
                                             }, 3000);
                                         } else {
-                                            $('#google-sync-status').html('<div class="alert alert-danger">{{__("failed_to_import_google_contacts")}}: ' + (response.message || 'Unknown error') + '</div>');
+                                            $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.import_failed") }}: ' + (response.message || 'Unknown error') + '</div>');
                                         }
                                     },
                                     error: function(xhr, status, error) {
                                         console.error('Google contacts import failed:', error);
-                                        $('#google-sync-status').html('<div class="alert alert-danger">{{__("failed_to_import_google_contacts")}}: Import request failed</div>');
+                                        $('#google-sync-status').html('<div class="alert alert-danger">{{ __("customers.google_sync.import_failed") }}: Import request failed</div>');
                                     }
                                 });
                             }
@@ -865,7 +1697,7 @@
                             // Initialize when modal is shown
                             $('#googleSyncModal').on('shown.bs.modal', function() {
                                 if (typeof gapi === 'undefined' || typeof google === 'undefined') {
-                                    $('#google-sync-status').html('<div class="alert alert-warning">{{__("loading_google_apis")}}</div>');
+                                    $('#google-sync-status').html('<div class="alert alert-warning">{{ __("customers.google_sync.loading_apis") }}</div>');
                                     loadGoogleAPIs();
                                 }
                             });
@@ -896,7 +1728,7 @@
                         
                         <script type="text/javascript">
                             $('#startWhatsappSync').on('click', function () {
-                                $('#whatsapp-sync-status').html('<span class="text-info">{{__("syncing_contacts_please_wait")}}</span>');
+                                $('#whatsapp-sync-status').html('<span class="text-info">{{ __("customers.whatsapp_sync.syncing") }}</span>');
                                 
                                 // Get user's WhatsApp instance directly from backend
                                 @php
@@ -912,11 +1744,11 @@
                                     if (connectStatus === 'ready') {
                                         syncContactsFromWAAPI(instanceId);
                                     } else {
-                                        $('#whatsapp-sync-status').html('<span class="text-warning">{{__("whatsapp_instance_not_connected_please_connect_first")}}</span>');
+                                        $('#whatsapp-sync-status').html('<span class="text-warning">{{ __("customers.whatsapp_sync.instance_not_connected") }}</span>');
                                     }
                                 @else
                                     // No WhatsApp instance found
-                                    $('#whatsapp-sync-status').html('<span class="text-danger">{{__("no_whatsapp_instance_found_please_setup_first")}}</span>');
+                                    $('#whatsapp-sync-status').html('<span class="text-danger">{{ __("customers.whatsapp_sync.no_instance_found") }}</span>');
                                 @endif
                             });
                             
@@ -951,23 +1783,23 @@
                                                     console.log('Import response:', response);
                                                     
                                                     if (response.success) {
-                                                        $('#whatsapp-sync-status').html('<span class="text-success">{{__("contacts_synced_successfully")}}: ' + (response.imported_count || 0) + ' contacts imported</span>');
+                                                        $('#whatsapp-sync-status').html('<span class="text-success">{{ __("customers.whatsapp_sync.contacts_synced_successfully") }}: ' + (response.imported_count || 0) + ' {{ __("customers.whatsapp_sync.contacts_imported") }}</span>');
                                                         
                                                         // Reload page after 2 seconds to show new contacts
                                                         setTimeout(function() {
                                                             location.reload();
                                                         }, 2000);
                                                     } else {
-                                                        $('#whatsapp-sync-status').html('<span class="text-danger">{{__("failed_to_import_contacts")}}: ' + (response.message || 'Unknown error') + '</span>');
+                                                        $('#whatsapp-sync-status').html('<span class="text-danger">{{ __("customers.whatsapp_sync.failed_to_import") }}: ' + (response.message || 'Unknown error') + '</span>');
                                                     }
                                                 },
                                                 error: function(xhr, status, error) {
                                                     console.error('Import failed:', error);
-                                                    $('#whatsapp-sync-status').html('<span class="text-danger">{{__("failed_to_import_contacts")}}: Import request failed</span>');
+                                                    $('#whatsapp-sync-status').html('<span class="text-danger">{{ __("customers.whatsapp_sync.failed_to_import") }}: Import request failed</span>');
                                                 }
                                             });
                                         } else {
-                                            $('#whatsapp-sync-status').html('<span class="text-warning">{{__("no_contacts_found_in_whatsapp")}}</span>');
+                                            $('#whatsapp-sync-status').html('<span class="text-warning">{{ __("customers.whatsapp_sync.no_contacts_found") }}</span>');
                                         }
                                     },
                                     error: function (xhr, status, error) {
@@ -978,13 +1810,13 @@
                                             error: error
                                         });
                                         
-                                        let errorMessage = '{{__("failed_to_sync_contacts")}}';
+                                        let errorMessage = '{{ __("customers.whatsapp_sync.error") }}';
                                         if (xhr.status === 401) {
-                                            errorMessage = '{{__("authentication_failed_check_waapi_token")}}';
+                                            errorMessage = '{{ __("customers.whatsapp_sync.auth_failed") }}';
                                         } else if (xhr.status === 404) {
-                                            errorMessage = '{{__("instance_not_found_or_not_connected")}}';
+                                            errorMessage = '{{ __("customers.whatsapp_sync.instance_not_found") }}';
                                         } else if (xhr.status === 405) {
-                                            errorMessage = '{{__("method_not_allowed_api_endpoint_issue")}}';
+                                            errorMessage = '{{ __("customers.whatsapp_sync.method_not_allowed") }}';
                                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
                                             errorMessage = xhr.responseJSON.message;
                                         }
@@ -1018,7 +1850,7 @@
                         ];
                     @endphp
                     <div class="table-responsive">
-                        <table class="table table-bordered dataTable" id="datatable-buttons">
+                        <table class="table-standard dataTable" id="datatable-buttons">
                             <thead>
                                 <tr>
                                     <th>
@@ -1028,15 +1860,15 @@
                                         </div>
                                     </th>
                                     <th>#</th>
-                                    <th>{{__('name')}}</th>
-                                    <th>{{__('phone')}}</th>
-                                    <!--<th>{{__('email')}} </th>-->
-                                    <th>{{__('date')}}</th>
-                                    <th>{{__('lead_status')}}</th>
-                                    <th>{{__('handoff_status')}}</th>
-                                    <th>{{__('priority')}}</th>
-                                    <th>{{__('assigned_agent')}}</th>
-                                    <th name="buttons">{{__('action')}}</th>
+                                    <th>{{ __('customers.table.name') }}</th>
+                                    <th>{{ __('customers.table.phone') }}</th>
+                                    <!--<th>{{ __('customers.table.email') }} </th>-->
+                                    <th>{{ __('customers.table.created_at') }}</th>
+                                    <th>{{ __('customers.table.lead_status') }}</th>
+                                    <th>{{ __('customers.table.handoff_status') }}</th>
+                                    <th>{{ __('customers.table.priority') }}</th>
+                                    <th>{{ __('customers.table.assigned_agent') }}</th>
+                                    <th name="buttons">{{ __('customers.table.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1151,26 +1983,26 @@
                                             @else
                                                 <span class="text-muted">
                                                     <i class="mdi mdi-account-off mr-1"></i>
-                                                    {{__('unassigned')}}
+                                                    {{ __('customers.actions.unassigned') }}
                                                 </span>
                                             @endif
                                         </td>
                                         
                                         <td name="buttons">
-                                            <a onclick="viewContact('{{ $guest->id }}')" class="btn btn-info btn-sm" title="{{__('view_contact')}}">
+                                            <a onclick="viewContact('{{ $guest->id }}')" class="btn btn-info btn-sm" title="{{ __('customers.actions.view_contact') }}">
                                                 <i class="las la-eye"></i>
                                             </a>
-                                            <a onclick="sendMessageToContact('{{ $guest->id }}')" class="btn btn-success btn-sm" title="{{__('send_message')}}">
+                                            <a onclick="sendMessageToContact('{{ $guest->id }}')" class="btn btn-success btn-sm" title="{{ __('customers.actions.send_message') }}">
                                                 <i class="las la-comment"></i>
                                             </a>
                                             <!-- Handoff Management Button -->
-                                            <button onclick="openHandoffModal('{{ $guest->id }}')" class="btn btn-primary btn-sm" title="{{__('manage_handoff')}}">
+                                            <button onclick="openHandoffModal('{{ $guest->id }}')" class="btn btn-primary btn-sm" title="{{ __('customers.actions.manage_handoff') }}">
                                                 <i class="mdi mdi-account-supervisor"></i>
                                             </button>
-                                            <a onclick="editGuest('{{ $guest->id }}')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{__('edit')}}">
+                                            <a onclick="editGuest('{{ $guest->id }}')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{ __('customers.actions.edit') }}">
                                                 <i class="las la-pen"></i>
                                             </a>
-                                            <a onclick="confirmDelete('{{ $guest->id }}')" class="btn btn-danger btn-sm" title="{{__('delete')}}">
+                                            <a onclick="confirmDelete('{{ $guest->id }}')" class="btn btn-danger btn-sm" title="{{ __('customers.actions.delete') }}">
                                                 <i class="las la-trash-alt"></i>
                                             </a>
                                         </td>
@@ -1220,7 +2052,7 @@
             <div class="card">
                 <div class="card-body">
                     <h4 class="mt-0 header-title mb-4">
-                        <i class="mdi mdi-chart-bar"></i> {{__('Lead Status Summary')}}
+                        <i class="mdi mdi-chart-bar"></i> {{ __('customers.summary.title') }}
                     </h4>
                     
                     <div class="row">
@@ -1230,7 +2062,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('New Lead')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.new') }}</p>
                                             <h3 class="mb-0" style="color: #17a2b8;">{{ $lead_status_stats['NEW'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1247,7 +2079,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Outreached')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.outreached') }}</p>
                                             <h3 class="mb-0" style="color: #6f42c1;">{{ $lead_status_stats['OUTREACHED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1264,7 +2096,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Replied')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.replied') }}</p>
                                             <h3 class="mb-0" style="color: #20c997;">{{ $lead_status_stats['REPLIED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1281,7 +2113,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Engaged')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.engaged') }}</p>
                                             <h3 class="mb-0" style="color: #28a745;">{{ $lead_status_stats['ENGAGED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1298,7 +2130,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Qualified')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.qualified') }}</p>
                                             <h3 class="mb-0" style="color: #007bff;">{{ $lead_status_stats['QUALIFIED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1315,7 +2147,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Pitched')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.pitched') }}</p>
                                             <h3 class="mb-0" style="color: #fd7e14;">{{ $lead_status_stats['PITCHED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1332,7 +2164,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Demo Scheduled')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.demo_scheduled') }}</p>
                                             <h3 class="mb-0" style="color: #6610f2;">{{ $lead_status_stats['DEMO_SCHEDULED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1349,7 +2181,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Proposal Sent')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.proposal') }}</p>
                                             <h3 class="mb-0" style="color: #e83e8c;">{{ $lead_status_stats['PROPOSAL_SENT'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1366,7 +2198,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Negotiating')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.negotiating') }}</p>
                                             <h3 class="mb-0" style="color: #ffc107;">{{ $lead_status_stats['NEGOTIATING'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1383,7 +2215,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Closed (Won)')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.won') }}</p>
                                             <h3 class="mb-0" style="color: #28a745;">{{ $lead_status_stats['CLOSED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1400,7 +2232,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Lost')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.lost') }}</p>
                                             <h3 class="mb-0" style="color: #dc3545;">{{ $lead_status_stats['LOST'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1417,7 +2249,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Handed Off')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.handed_off') }}</p>
                                             <h3 class="mb-0" style="color: #17a2b8;">{{ $lead_status_stats['HANDED_OFF'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1434,7 +2266,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Do Not Contact')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.do_not_contact') }}</p>
                                             <h3 class="mb-0" style="color: #6c757d;">{{ $lead_status_stats['DO_NOT_CONTACT'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1451,7 +2283,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{__('Churned')}}</p>
+                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ __('customers.lead_status.churned') }}</p>
                                             <h3 class="mb-0" style="color: #dc3545;">{{ $lead_status_stats['CHURNED'] ?? 0 }}</h3>
                                         </div>
                                         <div>
@@ -1469,7 +2301,7 @@
                             <div class="alert alert-info" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h5 class="mb-0" style="color: white;"><i class="mdi mdi-information"></i> {{__('Total Contacts')}}</h5>
+                                        <h5 class="mb-0" style="color: white;"><i class="mdi mdi-information"></i> {{ __('customers.summary.total_contacts') }}</h5>
                                     </div>
                                     <div>
                                         <h3 class="mb-0" style="color: white;">{{ $total_guests ?? 0 }}</h3>
@@ -1493,23 +2325,23 @@
     <div class="modal-dialog" role="document">
         <form class="modal-content start-here" id="ProfileStep5" action="<?= url('guest/store') ?>" method="POST">
 
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title mt-0" id="exampleModalLabel">{{__('edit_guest_details')}}</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-content" style="background-color: #ffffff !important; border-radius: 12px !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important; border: none !important;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                    <h5 class="modal-title mt-0" id="contactModalTitle" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">{{ __('customers.modals.edit_title') }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body" style="background-color: #ffffff !important; padding: 24px !important;">
 
                     <div class="form-group">
-                        <label for="quantity" class=" col-form-label text-right">{{__('guest_name')}}</label>
+                        <label for="quantity" class=" col-form-label text-right">{{ __('customers.fields.name') }}</label>
                         <input type="text" 
                                name="guest_name" 
                                id="edit_guest_name" 
                                class="form-control" 
-                               placeholder="Name" 
+                               placeholder="{{ __('customers.placeholders.name') }}" 
                                pattern="^[a-zA-Z\s\-']+$"
                                title="Only letters, spaces, hyphens and apostrophes allowed"
                                oninput="this.value = this.value.replace(/[^a-zA-Z\s\-']/g, '')"
@@ -1517,51 +2349,51 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_guest_phone" class="col-form-label text-right">{{__('phone')}}</label>
+                        <label for="edit_guest_phone" class="col-form-label text-right">{{ __('customers.fields.phone') }}</label>
                         <input type="tel" 
                                name="guest_phone"
                                id="edit_guest_phone"
                                class="form-control"
-                               placeholder="Enter phone number"
+                               placeholder="{{ __('customers.placeholders.phone') }}"
                                required="">
                         <small class="form-text text-muted">
-                            {{__('enter_phone_with_country_code')}} (e.g. +255 712345678)
+                            {{ __('customers.messages.phone_format') }}
                         </small>
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_lead_status" class="col-form-label text-right">{{__('lead_status')}}</label>
+                        <label for="edit_lead_status" class="col-form-label text-right">{{ __('customers.fields.lead_status') }}</label>
                         <select class="form-control" name="lead_status" id="edit_lead_status">
-                            <option value="">{{__('select_lead_status')}}</option>
-                            <option value="NEW">{{__('New')}}</option>
-                            <option value="OUTREACHED">{{__('Outreached')}}</option>
-                            <option value="REPLIED">{{__('Replied')}}</option>
-                            <option value="ENGAGED">{{__('Engaged')}}</option>
-                            <option value="QUALIFIED">{{__('Qualified')}}</option>
-                            <option value="PITCHED">{{__('Pitched')}}</option>
-                            <option value="DEMO_SCHEDULED">{{__('Demo Scheduled')}}</option>
-                            <option value="PROPOSAL_SENT">{{__('Proposal Sent')}}</option>
-                            <option value="NEGOTIATING">{{__('Negotiating')}}</option>
-                            <option value="CLOSED">{{__('Closed')}}</option>
-                            <option value="LOST">{{__('Lost')}}</option>
-                            <option value="HANDED_OFF">{{__('Handed Off')}}</option>
-                            <option value="DO_NOT_CONTACT">{{__('Do Not Contact')}}</option>
-                            <option value="NEEDS_ATTENTION">{{__('Needs Attention')}}</option>
-                            <option value="CONVERTED">{{__('Converted')}}</option>
-                            <option value="CHURNED">{{__('Churned')}}</option>
+                            <option value="">{{ __('customers.placeholders.lead_status') }}</option>
+                            <option value="NEW">{{ __('customers.lead_status.new') }}</option>
+                            <option value="OUTREACHED">{{ __('customers.lead_status.contacted') }}</option>
+                            <option value="REPLIED">{{ __('customers.lead_status.qualified') }}</option>
+                            <option value="ENGAGED">{{ __('customers.lead_status.proposal') }}</option>
+                            <option value="QUALIFIED">{{ __('customers.lead_status.qualified') }}</option>
+                            <option value="PITCHED">{{ __('customers.lead_status.proposal') }}</option>
+                            <option value="DEMO_SCHEDULED">{{ __('customers.lead_status.negotiation') }}</option>
+                            <option value="PROPOSAL_SENT">{{ __('customers.lead_status.proposal') }}</option>
+                            <option value="NEGOTIATING">{{ __('customers.lead_status.negotiation') }}</option>
+                            <option value="CLOSED">{{ __('customers.lead_status.won') }}</option>
+                            <option value="LOST">{{ __('customers.lead_status.lost') }}</option>
+                            <option value="HANDED_OFF">{{ __('customers.handoff.handed_off') }}</option>
+                            <option value="DO_NOT_CONTACT">{{ __('customers.lead_status.cold') }}</option>
+                            <option value="NEEDS_ATTENTION">{{ __('customers.lead_status.hot') }}</option>
+                            <option value="CONVERTED">{{ __('customers.lead_status.won') }}</option>
+                            <option value="CHURNED">{{ __('customers.lead_status.lost') }}</option>
                         </select>
                         <small class="form-text text-muted">
-                            {{__('select_appropriate_lead_status_based_on_current_conversation_stage')}}
+                            {{ __('customers.messages.lead_status_help') }}
                         </small>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="background-color: #f8fafc !important; border-top: 1px solid #e5e7eb !important; border-radius: 0 0 12px 12px !important; padding: 16px 24px !important;">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_guest" value="" name="id"/>
                 <div id="edit-form-status" class="w-100 mb-2"></div>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{__('close')}}</button>
-                <button type="button" id="edit-submit-btn" class="btn btn-success" onclick="handleEditFormSubmission()" data-toggle="tooltip" data-placement="top">{{__('update_contact')}}</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('customers.modals.cancel') }}</button>
+                <button type="button" id="edit-submit-btn" class="btn btn-success" onclick="handleEditFormSubmission()" data-toggle="tooltip" data-placement="top">{{ __('customers.modals.save') }}</button>
             </div>
         </form>
 
@@ -1577,44 +2409,44 @@
         <form class="modal-content start-here" id="ProfileStep5" enctype="multipart/form-data" action="<?= url('guest/uploadGuest') ?>" method="POST">
 
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title mt-0" id="exampleModalLabel">{{__('upload_guest_details')}}</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                    <h5 class="modal-title mt-0" id="exampleModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">{{ __('customers.upload.title') }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
 
                 <div class="modal-body">
                     <div class="alert alert-info d-flex align-items-center">
-                        <span class="mr-2">{{__('download_sample_file')}}</span>
+                        <span class="mr-2">{{ __('customers.upload.sample_file_info') }}</span>
                         <a href="<?= url('storage/uploads/sample.xlsx') ?>" class="btn btn-primary btn-sm font-weight-bold" style="margin-left:10px;">
-                            <i class="mdi mdi-download" style="margin-right:5px;"></i>{{__('sample_excel_file')}}
+                            <i class="mdi mdi-download" style="margin-right:5px;"></i>{{ __('customers.upload.download_sample') }}
                         </a>
                     </div>
                     <div class="form-group">
-                        <label for="quantity" class="col-form-label text-right">{{__('click_to_upload_excel_or_vcf')}}</label>
+                        <label for="quantity" class="col-form-label text-right">{{ __('customers.upload.select_file') }}</label>
                         <input type="file" name="file" id="edit_guest_name" class="form-control" accept=".xls,.csv,.xlsx,.vcf" placeholder="File Upload" required="">
                         <small class="form-text text-muted">
-                            {{__('supported_formats')}}: .xls, .xlsx, .csv, .vcf
+                            {{ __('customers.upload.supported_formats') }}: .xls, .xlsx, .csv, .vcf
                         </small>
                     </div>
                     <div class="form-group">
                         <a href="#" class="badge badge-info" data-toggle="collapse" data-target="#vcfInstructions" aria-expanded="false" aria-controls="vcfInstructions">
-                            <i class="mdi mdi-information-outline"></i> {{__('how_to_export_vcf_from_phone')}}
+                            <i class="mdi mdi-information-outline"></i> {{ __('customers.upload.vcf_help') }}
                         </a>
                         <div class="collapse mt-2" id="vcfInstructions">
                             <div class="card card-body">
-                                <strong>{{__('step_by_step_vcf_export_instructions')}}</strong>
+                                <strong>{{ __('customers.upload.vcf_instructions') }}</strong>
                                 <ol class="mb-2">
-                                    <li>{{__('open_contacts_app_on_your_phone')}}</li>
-                                    <li>{{__('go_to_settings_or_manage_contacts')}}</li>
-                                    <li>{{__('find_export_option_and_choose_export_to_vcf_file')}}</li>
-                                    <li>{{__('save_vcf_file_to_your_phone_storage')}}</li>
-                                    <li>{{__('transfer_vcf_file_to_your_computer_if_needed')}}</li>
-                                    <li>{{__('click_browse_and_select_vcf_file_to_upload')}}</li>
+                                    <li>{{ __('customers.upload.vcf_step_1') }}</li>
+                                    <li>{{ __('customers.upload.vcf_step_2') }}</li>
+                                    <li>{{ __('customers.upload.vcf_step_3') }}</li>
+                                    <li>{{ __('customers.upload.vcf_step_4') }}</li>
+                                    <li>{{ __('customers.upload.vcf_step_5') }}</li>
+                                    <li>{{ __('customers.upload.vcf_step_6') }}</li>
                                 </ol>
                                 <small class="text-muted">
-                                    {{__('note_vcf_export_steps_may_vary_by_phone_brand')}}
+                                    {{ __('customers.upload.vcf_note') }}
                                 </small>
                             </div>
                         </div>
@@ -1624,8 +2456,8 @@
             <div class="modal-footer text-center">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_guest" value="" name="id"/>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{__('close')}}</button>
-                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">{{__('save')}}</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('customers.modals.close') }}</button>
+                <button type="submit" class="btn btn-success" data-toggle="tooltip" data-placement="top">{{ __('customers.modals.save') }}</button>
             </div>
         </form>
 
@@ -1637,11 +2469,11 @@
 <div class="modal fade" id="contactViewModal" tabindex="-1" role="dialog" aria-labelledby="contactViewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="contactViewModalLabel">
-                    <i class="mdi mdi-account-circle mr-2"></i>{{__('contact_details')}}
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                <h5 class="modal-title" id="contactViewModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">
+                    <i class="mdi mdi-account-circle mr-2"></i>{{ __('customers.summary.contact_details') }}
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                     <span aria-hidden="true">×</span>
                 </button>
             </div>
@@ -1651,7 +2483,7 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="mdi mdi-chat-processing mr-2"></i>{{__('conversation_summary')}}</h6>
+                                <h6 class="mb-0"><i class="mdi mdi-chat-processing mr-2"></i>{{ __('customers.summary.conversation_summary') }}</h6>
                             </div>
                             <div class="card-body">
                                 <div id="conversation-summary">
@@ -1729,11 +2561,11 @@
 <div class="modal fade" id="sendMessageModal" tabindex="-1" role="dialog" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="sendMessageModalLabel">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                <h5 class="modal-title" id="sendMessageModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">
                     <i class="mdi mdi-message-text mr-2"></i>{{__('send_message')}}
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                     <span aria-hidden="true">×</span>
                 </button>
             </div>
@@ -1800,11 +2632,11 @@
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteConfirmModalLabel">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                <h5 class="modal-title" id="deleteConfirmModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">
                     <i class="mdi mdi-delete mr-2"></i>{{__('confirm_delete')}}
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                     <span aria-hidden="true">×</span>
                 </button>
             </div>
@@ -2223,14 +3055,30 @@
                     height: 10px;
                     border-radius: 50%;
                     background: #6c757d;
+                    border: 2px solid #fff;
                 }
                 .timeline-item.latest .timeline-marker {
                     background: #28a745;
+                    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
                 }
                 .timeline-content {
                     background: #f8f9fa;
-                    padding: 10px;
-                    border-radius: 5px;
+                    padding: 12px 15px;
+                    border-radius: 8px;
+                    border-left: 3px solid #dee2e6;
+                    transition: all 0.3s ease;
+                }
+                .timeline-content:hover {
+                    transform: translateX(3px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+                .timeline-content strong {
+                    font-weight: 600;
+                    font-size: 0.95rem;
+                }
+                .timeline-content p {
+                    font-size: 0.9rem;
+                    line-height: 1.5;
                 }
             </style>
         `;
@@ -2714,6 +3562,9 @@
 
     // Original functions (updated)
     function editGuest(a) {
+        // Set modal title for editing
+        $('#contactModalTitle').text('{{__('edit_guest_details')}}');
+        
         $('#edit_guest_name').val($('#guest_name' + a).text());
         
         // Store phone number for later setting after intl input is initialized
@@ -2877,7 +3728,7 @@
                 $('#edit-form-status').html('<div class="alert alert-danger"><i class="mdi mdi-alert mr-2"></i>' + errorMessage + '</div>');
             },
             complete: function() {
-                $('#edit-submit-btn').prop('disabled', false).html('{{__('update_contact')}}');
+                $('#edit-submit-btn').prop('disabled', false).html('{{__('save')}}');
             }
         });
         
@@ -2916,11 +3767,11 @@
 <div class="modal fade" id="handoffModal" tabindex="-1" role="dialog" aria-labelledby="handoffModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                <h5 class="modal-title text-white" id="handoffModalLabel">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
+                <h5 class="modal-title" id="handoffModalLabel" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">
                     <i class="mdi mdi-account-supervisor-circle mr-2"></i>{{__('handoff_management')}}
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>

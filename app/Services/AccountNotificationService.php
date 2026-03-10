@@ -30,7 +30,7 @@ class AccountNotificationService
                 . "📊 Current: {$limitCheck['current']}/{$limitCheck['max']} contacts\n"
                 . "📦 Plan: " . strtoupper($limitCheck['plan']) . "\n\n"
                 . "⚠️ New contacts cannot be added. Upgrade your plan to continue receiving messages from new customers.\n\n"
-                . "🔗 Upgrade: https://safarichat.co.tz/settings";
+                . "🔗 Upgrade: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'contact_limit');
         } catch (\Exception $e) {
@@ -55,7 +55,7 @@ class AccountNotificationService
                 . "💰 Remaining: " . number_format($remainingCredits) . " credits ({$percentage}%)\n"
                 . "📊 Total: " . number_format($totalCredits) . " credits\n\n"
                 . "Your AI assistant will stop responding when credits run out.\n\n"
-                . "🔗 Top up: https://safarichat.co.tz/settings";
+                . "🔗 Top up: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'low_credits');
         } catch (\Exception $e) {
@@ -78,7 +78,7 @@ class AccountNotificationService
                 . "💰 Balance: 0 credits\n"
                 . "⚠️ Operation blocked: {$blockedOperation}\n\n"
                 . "Your AI assistant cannot respond to customers. Top up immediately to avoid losing sales.\n\n"
-                . "🔗 Top up now: https://safarichat.co.tz/settings";
+                . "🔗 Top up now: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'credits_depleted');
         } catch (\Exception $e) {
@@ -101,7 +101,7 @@ class AccountNotificationService
                 . "📦 Current Plan: Trial\n"
                 . "⏳ Time left: {$daysRemaining} day(s)\n\n"
                 . "Upgrade now to keep your AI assistant active and avoid service interruption.\n\n"
-                . "🔗 Upgrade: https://safarichat.co.tz/settings";
+                . "🔗 Upgrade: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'trial_expiring');
         } catch (\Exception $e) {
@@ -124,7 +124,7 @@ class AccountNotificationService
                 . "📦 Status: Inactive\n"
                 . "⚠️ Your AI assistant is paused\n\n"
                 . "Upgrade to a paid plan to resume service immediately.\n\n"
-                . "🔗 Upgrade now: https://safarichat.co.tz/settings";
+                . "🔗 Upgrade now: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'trial_expired');
         } catch (\Exception $e) {
@@ -149,7 +149,7 @@ class AccountNotificationService
                 . "⚠️ All services are paused\n"
                 . "⚠️ AI assistant is not responding\n\n"
                 . "Reactivate your subscription to resume service.\n\n"
-                . "🔗 Reactivate: https://safarichat.co.tz/settings";
+                . "🔗 Reactivate: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'subscription_inactive');
         } catch (\Exception $e) {
@@ -172,7 +172,7 @@ class AccountNotificationService
                 . "📅 Bookings: {$limitCheck['current']}/{$limitCheck['max']} this month\n"
                 . "📦 Plan: " . strtoupper($limitCheck['plan']) . "\n\n"
                 . "⚠️ Cannot accept new bookings this month. Upgrade to increase your limit.\n\n"
-                . "🔗 Upgrade: https://safarichat.co.tz/settings";
+                . "🔗 Upgrade: https://safarichat.ai/settings";
 
             return $this->sendOwnerNotification($user, $message, 'booking_limit');
         } catch (\Exception $e) {

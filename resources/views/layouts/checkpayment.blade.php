@@ -63,7 +63,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
 <div class="modal fade" id="pricingControlsModal" tabindex="-1" aria-labelledby="pricingControlsModalLabel" aria-hidden="true" data-bs-backdrop="{{ $isHardBlock ? 'static' : 'true' }}" data-bs-keyboard="{{ $isHardBlock ? 'false' : 'true' }}">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="modal-header" style="background: var(--primary-brand); color: white;">
                 <h5 class="modal-title" id="pricingControlsModalLabel">
                     <i class="fas {{ $modalIcon }}"></i> {{ $modalTitle }}
                 </h5>
@@ -670,6 +670,396 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 @endif
 @endauth
 
+<style>
+/* Dark Mode - Upgrade Modal Styling */
+
+/* Modal Container */
+.dark-mode .modal-content {
+    background: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+    color: #e2e8f0 !important;
+}
+
+/* Modal Header */
+.dark-mode .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-bottom: 1px solid #4a5568 !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-title {
+    color: #ffffff !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-title i {
+    color: #ffffff !important;
+}
+
+.dark-mode .btn-close-white {
+    filter: brightness(1) !important;
+    opacity: 1 !important;
+}
+
+/* Modal Body */
+.dark-mode .modal-body {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body h5 {
+    color: #f7fafc !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-body h6 {
+    color: #f7fafc !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-body p {
+    color: #e2e8f0 !important;
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+}
+
+.dark-mode .modal-body p.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .modal-body small {
+    color: #cbd5e0 !important;
+    font-size: 0.875rem !important;
+}
+
+.dark-mode .modal-body small.text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Icons in Modal */
+.dark-mode .modal-body i.fa-3x,
+.dark-mode .modal-body i.fa-2x {
+    opacity: 0.9;
+}
+
+/* Current Plan Card */
+.dark-mode .modal-body .card {
+    background: #1a202c !important;
+    border: 2px solid #4a5568 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body .card[style*="border-left: 4px solid #17a2b8"] {
+    border-left: 4px solid #0bc5ea !important;
+}
+
+.dark-mode .modal-body .card[style*="border-left: 4px solid #28a745"] {
+    border-left: 4px solid #48bb78 !important;
+}
+
+.dark-mode .modal-body .card-body {
+    background: #1a202c !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body .card-title {
+    color: #f7fafc !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-body .card-title i {
+    color: #90cdf4 !important;
+}
+
+.dark-mode .modal-body .card-body p {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .modal-body .card-body p.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .modal-body .card-body small {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .modal-body .card-body strong {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* Plan Badges */
+.dark-mode .badge {
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 0.75rem !important;
+}
+
+.dark-mode .badge.bg-secondary {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .badge.bg-info {
+    background: linear-gradient(135deg, #0bc5ea 0%, #00a3c4 100%) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .badge.bg-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .badge.bg-warning {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+    color: #ffffff !important;
+}
+
+/* Text Colors */
+.dark-mode .text-success {
+    color: #68d391 !important;
+}
+
+.dark-mode .text-danger {
+    color: #fc8181 !important;
+}
+
+.dark-mode .text-info {
+    color: #76e4f7 !important;
+}
+
+.dark-mode .text-warning {
+    color: #f6ad55 !important;
+}
+
+/* Pricing Cards */
+.dark-mode .modal-body .card.border-primary {
+    border: 2px solid #4299e1 !important;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3) !important;
+}
+
+.dark-mode .modal-body .card-header {
+    border-bottom: 1px solid #4a5568 !important;
+}
+
+.dark-mode .modal-body .card-header.bg-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-body .card-header.bg-primary small {
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-body .card-header.bg-primary i {
+    color: #ffd700 !important;
+}
+
+.dark-mode .modal-body .card-footer {
+    background: #1a202c !important;
+    border-top: 1px solid #4a5568 !important;
+}
+
+/* Pricing Display */
+.dark-mode .modal-body .h4 {
+    color: #f7fafc !important;
+    font-weight: 700 !important;
+    font-size: 1.75rem !important;
+}
+
+/* Feature Lists */
+.dark-mode .modal-body ul {
+    padding-left: 0 !important;
+}
+
+.dark-mode .modal-body ul li {
+    color: #e2e8f0 !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.95rem !important;
+}
+
+.dark-mode .modal-body ul li i.fa-check {
+    color: #68d391 !important;
+}
+
+/* Buttons in Modal */
+.dark-mode .btn {
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.dark-mode .btn-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3) !important;
+}
+
+.dark-mode .btn-primary:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.5) !important;
+}
+
+.dark-mode .btn-outline-primary {
+    color: #63b3ed !important;
+    border: 2px solid #4299e1 !important;
+    background: transparent !important;
+}
+
+.dark-mode .btn-outline-primary:hover {
+    background: #4299e1 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+}
+
+.dark-mode .btn-success {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(72, 187, 120, 0.3) !important;
+}
+
+.dark-mode .btn-success:hover {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5) !important;
+}
+
+.dark-mode .btn-lg {
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1.125rem !important;
+}
+
+.dark-mode .btn-outline-secondary {
+    color: #cbd5e0 !important;
+    border: 2px solid #718096 !important;
+    background: transparent !important;
+}
+
+.dark-mode .btn-outline-secondary:hover {
+    background: #718096 !important;
+    color: #ffffff !important;
+}
+
+/* Button Icons */
+.dark-mode .btn i {
+    color: inherit !important;
+}
+
+/* Alert in Modal */
+.dark-mode .modal-body .alert {
+    border-width: 1px !important;
+    font-size: 0.95rem !important;
+}
+
+.dark-mode .modal-body .alert-warning {
+    background: rgba(237, 137, 54, 0.2) !important;
+    border-color: #ed8936 !important;
+    color: #fbd38d !important;
+}
+
+.dark-mode .modal-body .alert-warning strong {
+    color: #fbd38d !important;
+}
+
+.dark-mode .modal-body .alert-warning i {
+    color: #f6ad55 !important;
+}
+
+/* Spinner */
+.dark-mode .spinner-border {
+    color: #4299e1 !important;
+}
+
+.dark-mode .visually-hidden {
+    color: #e2e8f0 !important;
+}
+
+/* Loading Text */
+.dark-mode .modal-body .col-12.text-center p {
+    color: #cbd5e0 !important;
+}
+
+/* Enhanced Readability - Increase Font Sizes */
+.dark-mode #pricingControlsModal .modal-body {
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+}
+
+.dark-mode #pricingControlsModal .card-body {
+    padding: 1.5rem !important;
+}
+
+.dark-mode #pricingControlsModal h5 {
+    margin-bottom: 1rem !important;
+}
+
+.dark-mode #pricingControlsModal h6 {
+    margin-bottom: 0.75rem !important;
+}
+
+/* Specific to Pricing Cards */
+.dark-mode #pricingControlsModal .col-md-4 .card {
+    transition: all 0.3s ease !important;
+}
+
+.dark-mode #pricingControlsModal .col-md-4 .card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Modal Dialog */
+.dark-mode .modal-dialog {
+    max-width: 900px !important;
+}
+
+/* Ensure All Text is Visible */
+.dark-mode #pricingControlsModalLabel {
+    color: #ffffff !important;
+}
+
+.dark-mode #modalContextTitle {
+    color: #f7fafc !important;
+}
+
+.dark-mode #featureMessage {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #currentPlanName {
+    display: inline-block !important;
+}
+
+.dark-mode #currentPlanDetails {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #currentPlanExpiry {
+    color: #f7fafc !important;
+    font-weight: 600 !important;
+}
+
+/* Dividers */
+.dark-mode .modal-body hr {
+    border-color: #4a5568 !important;
+    opacity: 1 !important;
+}
+
+/* Focus States */
+.dark-mode .btn:focus {
+    box-shadow: 0 0 0 0.25rem rgba(66, 153, 225, 0.5) !important;
+}
+
+.dark-mode .btn-success:focus {
+    box-shadow: 0 0 0 0.25rem rgba(72, 187, 120, 0.5) !important;
+}
+</style>
+
 @if($subscriptionStatus === 'trial' && $expiresAt && now()->lessThan($expiresAt))
 <!-- Trial Status Info -->
 <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
@@ -677,4 +1067,31 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     <strong>Trial Active:</strong> Your trial expires on {{ $expiresAt->format('M d, Y') }}. Subscribe to continue using all features after trial ends.
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
+
+<style>
+/* Dark Mode - Trial Alert */
+.dark-mode .alert-info {
+    background: rgba(66, 153, 225, 0.15) !important;
+    border: 1px solid #4299e1 !important;
+    color: #90cdf4 !important;
+}
+
+.dark-mode .alert-info strong {
+    color: #90cdf4 !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .alert-info i {
+    color: #63b3ed !important;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1) brightness(2) !important;
+    opacity: 0.8 !important;
+}
+
+.dark-mode .btn-close:hover {
+    opacity: 1 !important;
+}
+</style>
 @endif

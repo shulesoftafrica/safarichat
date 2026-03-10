@@ -43,7 +43,7 @@ Create a personal, compelling landing page where I (the AI Sales Agent) introduc
 ### **Language Implementation**
 * **Language files structure**: `/resources/lang/{locale}/landing.php`
 * **Dynamic language switcher** in header with flag icons
-* **URL structure**: `domain.com/{locale}/` (e.g., `safarichat.com/es/`, `safarichat.com/pt-br/`)
+* **URL structure**: `domain.com/{locale}/` (e.g., `safarichat.ai/es/`, `safarichat.ai/pt-br/`)
 * **Auto-detection** based on browser language with manual override
 * **Persistent selection** via localStorage/cookies
 

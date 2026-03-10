@@ -29,6 +29,10 @@
         <!--<script src="{{ asset(ROOT.'js/app.js') }}" defer></script>-->
 
         <!-- Fonts -->
+        <!-- Inter Font Family (Modern Design System) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <!--        <link rel="dns-prefetch" href="//fonts.gstatic.com">
                 <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">-->
 
@@ -41,6 +45,10 @@
         <link href="{{ asset(ROOT.'assets/css/icons.min.css')}}" rel="stylesheet" type="text/css" />
         <link href="{{ asset(ROOT.'assets/css/metisMenu.min.css')}}" rel="stylesheet" type="text/css" />
         <link href="{{ asset(ROOT.'assets/css/app.min.css')}}" rel="stylesheet" type="text/css" />
+        
+        <!-- SafariChat Design System (Professional UI/UX) -->
+        <link href="{{ asset('resources/css/design-system.css')}}" rel="stylesheet" type="text/css" />
+        <link href="{{ asset('resources/css/components.css')}}" rel="stylesheet" type="text/css" />
        
       @if(isset($darkmode))
 

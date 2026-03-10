@@ -31,7 +31,7 @@
     }
     
     body {
-        background: linear-gradient(135deg, #f8fafb 0%, #f1f5f9 100%);
+        background: var(--gray-50);
         line-height: 1.6;
         color: var(--gray-800);
     }
@@ -376,7 +376,7 @@
             <div class="contact-details">
                 <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
                 <br>
-                <p><strong>Email:</strong> privacy@safarichat.com</p>
+                <p><strong>Email:</strong> privacy@safarichat.ai</p>
                 <p><strong>Phone:</strong> +255 123 456 789</p>
                 <p><strong>Address:</strong> Safari Innovation Ltd, Dar es Salaam, Tanzania</p>
                 <br>

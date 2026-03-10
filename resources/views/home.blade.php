@@ -9,8 +9,8 @@
             <i class="fas fa-check-circle fa-3x"></i>
         </div>
         <div class="flex-grow-1">
-            <h4 class="mb-1" style="color: white;"><strong>🎉 Onboarding Complete!</strong></h4>
-            <p class="mb-0" style="font-size: 1.1rem;">Your WhatsApp AI Sales System is ready! You've successfully connected WhatsApp, added products, and configured your AI agent. You're all set to start converting leads into sales.</p>
+            <h4 class="mb-1" style="color: white;"><strong>{{ __('dashboard.onboarding.complete_title') }}</strong></h4>
+            <p class="mb-0" style="font-size: 1.1rem;">{{ __('dashboard.onboarding.complete_message') }}</p>
         </div>
     </div>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
@@ -22,8 +22,8 @@
             <i class="fas fa-upload fa-2x"></i>
         </div>
         <div class="flex-grow-1">
-            <h5 class="mb-1"><strong>Ready for Proactive Outreach!</strong></h5>
-            <p class="mb-0">You can start importing contacts and sending targeted messages. Your AI will handle all conversations automatically.</p>
+            <h5 class="mb-1"><strong>{{ __('dashboard.onboarding.proactive_title') }}</strong></h5>
+            <p class="mb-0">{{ __('dashboard.onboarding.proactive_message') }}</p>
         </div>
     </div>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -46,46 +46,24 @@
         background: #1e2a40 !important;
     }
     
-    .welcome-section {
-        background: linear-gradient(135deg, #25d366 0%, #20c759 100%);
-        border-radius: 20px;
-        padding: 30px;
-        color: white;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(37, 211, 102, 0.2);
-    }
-    
-    .welcome-title {
+    /* Welcome section now uses dashboard-header component from design system */
+    .welcome-section .welcome-title {
         font-size: 1.8rem;
         font-weight: 700;
         margin-bottom: 8px;
+        color: var(--gray-900);
     }
     
-    .welcome-subtitle {
+    .welcome-section .welcome-subtitle {
         font-size: 1rem;
-        opacity: 0.9;
-        margin-bottom: 20px;
+        color: var(--gray-600);
+        margin-bottom: 0;
     }
     
-    .quick-action-btn {
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 12px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        margin-right: 15px;
-        margin-bottom: 10px;
-    }
-    
-    .quick-action-btn:hover {
-        background: white;
-        color: #25d366;
-        transform: translateY(-2px);
-        text-decoration: none;
+    .welcome-section .welcome-icon {
+        font-size: 4rem;
+        color: var(--primary-brand);
+        opacity: 0.2;
     }
     
     .metric-card {
@@ -277,13 +255,31 @@
         transition: all 0.3s ease;
         text-decoration: none;
         display: inline-block;
+        box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
     }
     
     .action-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+        box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
         color: white;
         text-decoration: none;
+    }
+    
+    /* Dark mode action button - High contrast */
+    .dark-mode .action-btn {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: 2px solid #34d399 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(52, 211, 153, 0.2) !important;
+    }
+    
+    .dark-mode .action-btn:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        border-color: #6ee7b7 !important;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.6), 0 0 0 2px rgba(110, 231, 183, 0.3) !important;
+        transform: translateY(-3px) !important;
+        color: #ffffff !important;
     }
     
     .engagement-stats {
@@ -402,46 +398,7 @@
         color: #9ca3af;
     }
     
-    .alert-banner {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        color: white;
-        padding: 16px 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .alert-content {
-        display: flex;
-        align-items: center;
-    }
-    
-    .alert-icon {
-        margin-right: 12px;
-        font-size: 1.2rem;
-    }
-    
-    .alert-text {
-        font-weight: 500;
-    }
-    
-    .alert-btn {
-        background: rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .alert-btn:hover {
-        background: white;
-        color: #f59e0b;
-    }
+    /* Alert banner removed - using alert-inline component from design system */
     
     .instance-selector-card {
         background: white;
@@ -610,6 +567,85 @@
         color: #e2e8f0 !important;
     }
     
+    /* Metric Icons Dark Mode - Override all pastel backgrounds with dark, saturated versions */
+    .dark-mode .metric-icon {
+        opacity: 1 !important;
+    }
+    
+    /* Subscription Status Icons - Conditional colors */
+    .dark-mode .metric-icon[style*="background: #d1fae5"] {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .metric-icon[style*="background: #fed7aa"] {
+        background: #78350f !important;
+        color: #fbbf24 !important;
+    }
+    
+    .dark-mode .metric-icon[style*="background: #fee2e2"] {
+        background: #7f1d1d !important;
+        color: #f87171 !important;
+    }
+    
+    /* Credits (Indigo) */
+    .dark-mode .metric-icon[style*="background: #e0e7ff"] {
+        background: #312e81 !important;
+        color: #a5b4fc !important;
+    }
+    
+    /* WhatsApp Contacts (Green) */
+    .dark-mode .metric-icon[style*="background: #dcfce7"] {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    /* Active Conversations (Blue) */
+    .dark-mode .metric-icon[style*="background: #dbeafe"] {
+        background: #1e3a8a !important;
+        color: #60a5fa !important;
+    }
+    
+    /* Messages Sent (Purple) */
+    .dark-mode .metric-icon[style*="background: #ede9fe"] {
+        background: #581c87 !important;
+        color: #c084fc !important;
+    }
+    
+    /* Response Rate (Cyan) */
+    .dark-mode .metric-icon[style*="background: #cffafe"] {
+        background: #164e63 !important;
+        color: #22d3ee !important;
+    }
+    
+    /* Current Package (Purple) */
+    .dark-mode .metric-icon[style*="background: #f3e8ff"] {
+        background: #581c87 !important;
+        color: #c084fc !important;
+    }
+    
+    /* Manage Subscription (Amber) */
+    .dark-mode .metric-icon[style*="background: #fef3c7"] {
+        background: #78350f !important;
+        color: #fbbf24 !important;
+    }
+    
+    /* Action Header Icons Dark Mode */
+    .dark-mode .action-icon[style*="background: #ecfdf5"] {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .action-icon[style*="background: #dcfce7"] {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .action-icon[style*="background: #ede9fe"] {
+        background: #581c87 !important;
+        color: #c084fc !important;
+    }
+    
     .dark-mode .form-control, 
     .dark-mode .form-select {
         background-color: #2d3951 !important;
@@ -643,7 +679,7 @@
     .dark-mode div, 
     .dark-mode .card-body, 
     .dark-mode .card-text {
-        color: #e2e8f0 !important;
+        color: #f7fafc !important;
     }
     
     /* Improve text color for better readability */
@@ -653,7 +689,7 @@
     
     .dark-mode small, 
     .dark-mode .small {
-        color: #a0aec0 !important;
+        color: #cbd5e0 !important;
     }
     
     /* Badge styling in dark mode */
@@ -670,43 +706,205 @@
     .dark-mode a:hover {
         color: #90cdf4 !important;
     }
+    
+    /* Alert Inline Dark Mode Support */
+    .dark-mode .alert-inline {
+        background: #2d3748 !important;
+        border-color: #4a5568 !important;
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .alert-inline.alert-info {
+        background: rgba(59, 130, 246, 0.2) !important;
+        border-left: 4px solid #60a5fa !important;
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .alert-inline strong {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    
+    .dark-mode .alert-inline p {
+        color: #f7fafc !important;
+        font-weight: 500 !important;
+    }
+    
+    .dark-mode .alert-content {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .alert-content strong {
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .alert-icon {
+        color: #60a5fa !important;
+    }
+    
+    /* Welcome Section Dark Mode */
+    .dark-mode .welcome-section {
+        background: transparent !important;
+    }
+    
+    .dark-mode .welcome-title {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    
+    .dark-mode .welcome-subtitle {
+        color: #f7fafc !important;
+        font-weight: 500 !important;
+    }
+    
+    .dark-mode .welcome-subtitle strong {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    
+    .dark-mode .dashboard-header {
+        background: transparent !important;
+    }
+    
+    .dark-mode .greeting {
+        color: #f7fafc !important;
+    }
+    
+    /* Instance Selector Dark Mode */
+    .dark-mode .instance-selector-card {
+        background: #2d3748 !important;
+        border-color: #4a5568 !important;
+    }
+    
+    .dark-mode .instance-selector-card h5 {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .instance-selector-card p,
+    .dark-mode .instance-selector-card .text-muted {
+        color: #cbd5e0 !important;
+    }
+    
+    .dark-mode .instance-info strong {
+        color: #f7fafc !important;
+    }
+    
+    /* Quick Actions Styling */
+    .quick-action-btn {
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action-btn:hover {
+        background: #e2e8f0;
+    }
+    
+    .quick-action-label {
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .quick-action-icon {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+    }
+    
+    /* Quick Actions Dark Mode */
+    .dark-mode .quick-action-btn {
+        background: #374151 !important;
+    }
+    
+    .dark-mode .quick-action-btn:hover {
+        background: #4b5563 !important;
+    }
+    
+    .dark-mode .quick-action-label {
+        color: #f7fafc !important;
+    }
+    
+    .dark-mode .quick-action-btn i.fa-address-book {
+        color: #60a5fa !important;
+    }
+    
+    .dark-mode .quick-action-btn i.fa-chart-bar {
+        color: #a78bfa !important;
+    }
+    
+    .dark-mode .quick-action-btn i.fa-cog {
+        color: #9ca3af !important;
+    }
+    
+    .dark-mode .quick-action-btn i.fa-question-circle {
+        color: #fbbf24 !important;
+    }
+    
+    /* Engagement Stats Text Dark Mode */
+    .dark-mode .engagement-stats p[style*="color: #64748b"] {
+        color: #cbd5e0 !important;
+    }
+    
+    /* Progress Ring Dark Mode */
+    .dark-mode .progress-ring svg circle[stroke="#f1f5f9"] {
+        stroke: #4a5568 !important;
+    }
+    
+    /* Activity Avatar Dark Mode */
+    .dark-mode .activity-avatar[style*="background: #dcfce7"] {
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    
+    .dark-mode .activity-avatar[style*="background: #dbeafe"] {
+        background: #1e3a8a !important;
+        color: #60a5fa !important;
+    }
+    
+    .dark-mode .activity-avatar[style*="background: #fef3c7"] {
+        background: #78350f !important;
+        color: #fbbf24 !important;
+    }
 </style>
 
 <div class="dashboard-container">
-    <!-- Welcome Section -->
-    <div class="welcome-section">
-        <div class="row align-items-center">
-            <div class="col-md-8">
+    <!-- Dashboard Header (Clean Professional Design) -->
+    <div class="dashboard-header welcome-section">
+        <div class="dashboard-header-content">
+            <div class="greeting">
                 <h1 class="welcome-title">
-                    <i class="fab fa-whatsapp"></i>Hello! Ready to connect with your customers?
+                    <i class="fab fa-whatsapp"></i> {{ __('dashboard.welcome.title') }}
                 </h1>
-                <p class="welcome-subtitle">You have <strong>{{$guests}}</strong> contacts and <strong>{{$active_conversations}}</strong> active conversations</p>
-                <a href="{{url('message')}}" class="quick-action-btn">
-                    <i class="fas fa-paper-plane"></i> Send Message
-                </a>
-                <a href="{{url('guest')}}" class="quick-action-btn">
-                    <i class="fas fa-upload"></i> Manage Contacts
-                </a>
-                <a href="{{url('whatsapp/incoming-messages')}}" class="quick-action-btn">
-                    <i class="fas fa-comments"></i> View Messages
-                </a>
+                <p class="welcome-subtitle">{!! __('dashboard.welcome.subtitle', ['contacts' => $guests, 'conversations' => $active_conversations]) !!}</p>
             </div>
-            <div class="col-md-4 text-center">
-                <div style="font-size: 4rem; opacity: 0.3;">
-                    <i class="fab fa-whatsapp"></i>
-                </div>
+            <div class="quick-actions">
+                <a href="{{url('campaigns')}}" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i> {{ __('dashboard.header_actions.send_message') }}
+                </a>
+                <a href="{{url('guest')}}" class="btn-secondary">
+                    <i class="fas fa-upload"></i> {{ __('dashboard.header_actions.manage_contacts') }}
+                </a>
+                <a href="{{url('whatsapp/incoming-messages')}}" class="btn-ghost">
+                    <i class="fas fa-comments"></i> {{ __('dashboard.header_actions.view_messages') }}
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Alert Banner -->
+    <!-- Engagement Alert (Inline) -->
     @if($guests > 0 && $messages_sent_today < 10)
-    <div class="alert-banner">
-        <div class="alert-content">
-            <i class="fas fa-lightbulb alert-icon"></i>
-            <span class="alert-text">You haven't sent many messages today. Engage more customers to grow your business!</span>
+    <div class="alert-inline alert-info">
+        <div class="alert-icon">
+            <i class="fas fa-lightbulb"></i>
         </div>
-        <a href="{{url('message')}}" class="alert-btn">Send Messages</a>
+        <div class="alert-content">
+            <strong>{{ __('dashboard.engagement_tip.title') }}</strong>
+            <p>{{ __('dashboard.engagement_tip.message') }}</p>
+        </div>
+        <div style="margin-left: auto; padding-left: var(--space-4);">
+            <a href="{{url('campaigns')}}" class="btn-primary btn-sm">
+                <i class="fas fa-paper-plane"></i> {{ __('dashboard.engagement_tip.action') }}
+            </a>
+        </div>
     </div>
     @endif
 
@@ -715,17 +913,17 @@
     <div class="instance-selector-card">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h5 class="mb-1"><i class="fas fa-mobile-alt"></i> WhatsApp Line</h5>
-                <p class="mb-0 text-muted">Choose which WhatsApp line to manage</p>
+                <h5 class="mb-1"><i class="fas fa-mobile-alt"></i> {{ __('dashboard.instance_selector.title') }}</h5>
+                <p class="mb-0 text-muted">{{ __('dashboard.instance_selector.label') }}</p>
             </div>
             <div>
                 <select id="instanceSelector" class="form-select instance-select">
-                    <option value="">All Lines</option>
+                    <option value="">{{ __('dashboard.instance_selector.all_lines') }}</option>
                     @foreach($whatsapp_instances as $instance)
                         <option value="{{ $instance->id }}" 
                                 {{ $active_instance_id == $instance->id ? 'selected' : '' }}>
                             {{ $instance->display_name ?: $instance->schema_name }}
-                            @if($instance->is_primary) (Primary) @endif
+                            @if($instance->is_primary) ({{ __('dashboard.instance_selector.primary') }}) @endif
                         </option>
                     @endforeach
                 </select>
@@ -777,24 +975,24 @@
                 </div>
                 <div class="metric-value" style="font-size: 1.2rem;">
                     @if($subscription_status === 'active') 
-                        Active
+                        {{ __('dashboard.metrics.subscription_active') }}
                     @elseif($subscription_status === 'trial') 
-                        Trial
+                        {{ __('dashboard.metrics.subscription_trial') }}
                     @else 
-                        Inactive
+                        {{ __('dashboard.metrics.subscription_inactive') }}
                     @endif
                 </div>
-                <div class="metric-label">Subscription Status</div>
+                <div class="metric-label">{{ __('dashboard.metrics.subscription_status') }}</div>
                 <span class="metric-trend" style="color: 
                     @if($subscription_status === 'active') #059669
                     @elseif($subscription_status === 'trial') #ea580c  
                     @else #dc2626 @endif;">
                     @if($subscription_status === 'active')
-                        <i class="fas fa-check-circle"></i> All features active
+                        <i class="fas fa-check-circle"></i> {{ __('dashboard.metrics.all_features_active') }}
                     @elseif($subscription_status === 'trial')
-                        <i class="fas fa-clock"></i> {{ $subscription_expires_at ? \Carbon\Carbon::parse($subscription_expires_at)->diffInDays(now()) : 0 }} days left
+                        <i class="fas fa-clock"></i> {{ __('dashboard.metrics.days_left', ['days' => $subscription_expires_at ? \Carbon\Carbon::parse($subscription_expires_at)->diffInDays(now()) : 0]) }}
                     @else
-                        <i class="fas fa-exclamation"></i> <a href="{{ url('home/settings') }}" style="color: #dc2626;">Reactivate now</a>
+                        <i class="fas fa-exclamation"></i> <a href="{{ url('home/settings') }}" style="color: #dc2626;">{{ __('dashboard.metrics.reactivate_now') }}</a>
                     @endif
                 </span>
             </div>
@@ -807,9 +1005,9 @@
                     <i class="fas fa-coins"></i>
                 </div>
                 <div class="metric-value">{{number_format($available_credits)}}</div>
-                <div class="metric-label">Available Credits</div>
+                <div class="metric-label">{{ __('dashboard.metrics.available_credits') }}</div>
                 <span class="metric-trend" style="color: #6b7280;">
-                    <i class="fas fa-info-circle"></i> 1 credit = 4 AI tokens
+                    <i class="fas fa-info-circle"></i>
                 </span>
             </div>
         </div>
@@ -821,9 +1019,9 @@
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <div class="metric-value">{{number_format($guests)}}</div>
-                <div class="metric-label">WhatsApp Contacts</div>
+                <div class="metric-label">{{ __('dashboard.metrics.whatsapp_contacts') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> +12% this month
+                    <i class="fas fa-arrow-up"></i> {{ __('dashboard.metrics.trend_this_month') }}
                 </span>
             </div>
         </div>
@@ -835,9 +1033,9 @@
                     <i class="fas fa-comments"></i>
                 </div>
                 <div class="metric-value">{{number_format($active_conversations)}}</div>
-                <div class="metric-label">Active Conversations</div>
+                <div class="metric-label">{{ __('dashboard.metrics.active_conversations') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> Last 30 days
+                    <i class="fas fa-arrow-up"></i> {{ __('dashboard.metrics.trend_last_30_days') }}
                 </span>
             </div>
         </div>
@@ -852,9 +1050,9 @@
                     <i class="fas fa-paper-plane"></i>
                 </div>
                 <div class="metric-value">{{number_format($messages_sent_today)}}</div>
-                <div class="metric-label">Messages Sent Today</div>
+                <div class="metric-label">{{ __('dashboard.metrics.messages_sent_today') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> Today's activity
+                    <i class="fas fa-arrow-up"></i> {{ __('dashboard.metrics.trend_today_activity') }}
                 </span>
             </div>
         </div>
@@ -866,9 +1064,9 @@
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div class="metric-value">{{$response_rate}}%</div>
-                <div class="metric-label">Response Rate</div>
+                <div class="metric-label">{{ __('dashboard.metrics.response_rate') }}</div>
                 <span class="metric-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> Last 7 days
+                    <i class="fas fa-arrow-up"></i> {{ __('dashboard.metrics.trend_last_7_days') }}
                 </span>
             </div>
         </div>
@@ -882,9 +1080,9 @@
                 <div class="metric-value" style="font-size: 1.2rem;">
                     {{ ucfirst($subscription_plan) }}
                 </div>
-                <div class="metric-label">Current Package</div>
+                <div class="metric-label">{{ __('dashboard.metrics.current_package') }}</div>
                 <span class="metric-trend" style="color: #7c3aed;">
-                    <i class="fas fa-arrow-up"></i> <a href="{{ url('home/settings') }}" style="color: #7c3aed;">Upgrade</a>
+                    <i class="fas fa-arrow-up"></i> <a href="{{ url('home/settings') }}" style="color: #7c3aed;">{{ __('dashboard.metrics.upgrade') }}</a>
                 </span>
             </div>
         </div>
@@ -895,10 +1093,10 @@
                 <div class="metric-icon" style="background: #fef3c7; color: #d97706;">
                     <i class="fas fa-cog"></i>
                 </div>
-                <div class="metric-value" style="font-size: 1rem; line-height: 1.2;">Manage Subscription</div>
-                <div class="metric-label">Settings & Billing</div>
+                <div class="metric-value" style="font-size: 1rem; line-height: 1.2;">{{ __('dashboard.metrics.manage_subscription') }}</div>
+                <div class="metric-label">{{ __('dashboard.metrics.settings_billing') }}</div>
                 <span class="metric-trend" style="color: #d97706;">
-                    <i class="fas fa-arrow-right"></i> Go to settings
+                    <i class="fas fa-arrow-right"></i> {{ __('dashboard.metrics.go_to_settings') }}
                 </span>
             </div>
         </div>
@@ -911,13 +1109,13 @@
                     <div class="action-icon" style="background: #dcfce7; color: #16a34a;">
                         <i class="fas fa-bolt"></i>
                     </div>
-                    <h3 class="action-title">Quick Broadcast</h3>
+                    <h3 class="action-title">{{ __('dashboard.action_cards.quick_broadcast.title') }}</h3>
                 </div>
                 <p class="action-description">
-                    Send instant messages to all your customers about promotions, updates, or reminders.
+                    {{ __('dashboard.action_cards.quick_broadcast.description') }}
                 </p>
-                <a href="{{url('message')}}" class="action-btn">
-                    <i class="fas fa-paper-plane"></i> Send Now
+                <a href="{{url('campaigns')}}" class="action-btn">
+                    <i class="fas fa-paper-plane"></i> {{ __('dashboard.action_cards.quick_broadcast.action') }}
                 </a>
             </div>
         </div>
@@ -929,13 +1127,13 @@
                     <div class="action-icon" style="background: #ede9fe; color: #7c3aed;">
                         <i class="fas fa-address-book"></i>
                     </div>
-                    <h3 class="action-title">Contact Management</h3>
+                    <h3 class="action-title">{{ __('dashboard.action_cards.contact_management.title') }}</h3>
                 </div>
                 <p class="action-description">
-                    Manage your customer contacts, import new ones, and organize your customer database.
+                    {{ __('dashboard.action_cards.contact_management.description') }}
                 </p>
                 <a href="{{url('guest')}}" class="action-btn">
-                    <i class="fas fa-cog"></i> Manage Contacts
+                    <i class="fas fa-cog"></i> {{ __('dashboard.action_cards.contact_management.action') }}
                 </a>
             </div>
         </div>
@@ -949,12 +1147,12 @@
                 <div class="stats-header">
                     <h3 class="stats-title">
                         <i class="fas fa-chart-area" style="color: #25d366; margin-right: 8px;"></i>
-                        Message Engagement Trends
+                        {{ __('dashboard.engagement.title') }}
                     </h3>
                     <div class="time-filter">
-                        <button class="time-filter-btn active">7 Days</button>
-                        <button class="time-filter-btn">30 Days</button>
-                        <button class="time-filter-btn">3 Months</button>
+                        <button class="time-filter-btn active">{{ __('dashboard.engagement.time_filters.7_days') }}</button>
+                        <button class="time-filter-btn">{{ __('dashboard.engagement.time_filters.30_days') }}</button>
+                        <button class="time-filter-btn">{{ __('dashboard.engagement.time_filters.3_months') }}</button>
                     </div>
                 </div>
                 
@@ -980,7 +1178,7 @@
                                         },
                                         yAxis: {
                                             title: {
-                                                text: 'Messages'
+                                                text: '{{ __('dashboard.engagement.chart_label_messages') }}'
                                             },
                                             gridLineWidth: 1,
                                             gridLineColor: '#f1f5f9'
@@ -1068,7 +1266,7 @@
             <div class="recent-activity">
                 <h3 class="stats-title" style="margin-bottom: 20px;">
                     <i class="fas fa-clock" style="color: #3b82f6; margin-right: 8px;"></i>
-                    Recent Activity
+                    {{ __('dashboard.recent_activity.title') }}
                 </h3>
                 
                 @if($recent_messages && $recent_messages->count() > 0)
@@ -1104,8 +1302,8 @@
                             <i class="fas fa-paper-plane"></i>
                         </div>
                         <div class="activity-content">
-                            <div class="activity-text">{{ $messages_sent_today }} messages sent today</div>
-                            <div class="activity-time">Today's activity</div>
+                            <div class="activity-text">{{ __('dashboard.recent_activity.messages_sent_today', ['count' => $messages_sent_today]) }}</div>
+                            <div class="activity-time">{{ __('dashboard.recent_activity.today_activity') }}</div>
                         </div>
                     </div>
                     
@@ -1114,15 +1312,15 @@
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="activity-content">
-                            <div class="activity-text">{{ $active_conversations }} active conversations</div>
-                            <div class="activity-time">Last 30 days</div>
+                            <div class="activity-text">{{ __('dashboard.recent_activity.active_conversations_30_days', ['count' => $active_conversations]) }}</div>
+                            <div class="activity-time">{{ __('dashboard.recent_activity.last_30_days') }}</div>
                         </div>
                     </div>
                 @endif
                 
                 <div class="text-center" style="margin-top: 20px;">
                     <a href="{{url('whatsapp/incoming-messages')}}" style="color: #25d366; text-decoration: none; font-weight: 500; font-size: 0.9rem;">
-                        View All Messages <i class="fas fa-arrow-right"></i>
+                        {{ __('dashboard.recent_activity.view_all_messages') }} <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
             </div>
@@ -1136,40 +1334,32 @@
                     <div class="action-icon" style="background: #ecfdf5; color: #059669;">
                         <i class="fas fa-target"></i>
                     </div>
-                    <h3 class="action-title">Quick Actions</h3>
+                    <h3 class="action-title">{{ __('dashboard.quick_actions.title') }}</h3>
                 </div>
                 
                 <div class="row">
                     <div class="col-6 mb-3">
-                        <a href="{{url('guest')}}" class="w-100 p-3 border-0 rounded-3 d-block text-decoration-none" style="background: #f8fafc; transition: all 0.3s ease;" 
-                                onmouseover="this.style.background='#e2e8f0'" 
-                                onmouseout="this.style.background='#f8fafc'">
-                            <i class="fas fa-address-book" style="color: #3b82f6; font-size: 1.2rem; margin-bottom: 8px;"></i>
-                            <div style="color: #1e293b; font-weight: 600; font-size: 0.9rem;">View Contacts</div>
+                        <a href="{{url('guest')}}" class="quick-action-btn w-100 p-3 border-0 rounded-3 d-block text-decoration-none">
+                            <i class="fas fa-address-book quick-action-icon" style="color: #3b82f6;"></i>
+                            <div class="quick-action-label">{{ __('dashboard.quick_actions.view_contacts') }}</div>
                         </a>
                     </div>
                     <div class="col-6 mb-3">
-                        <a href="{{url('whatsapp/incoming-messages')}}" class="w-100 p-3 border-0 rounded-3 d-block text-decoration-none" style="background: #f8fafc; transition: all 0.3s ease;" 
-                                onmouseover="this.style.background='#e2e8f0'" 
-                                onmouseout="this.style.background='#f8fafc'">
-                            <i class="fas fa-chart-bar" style="color: #8b5cf6; font-size: 1.2rem; margin-bottom: 8px;"></i>
-                            <div style="color: #1e293b; font-weight: 600; font-size: 0.9rem;">View Messages</div>
+                        <a href="{{url('whatsapp/incoming-messages')}}" class="quick-action-btn w-100 p-3 border-0 rounded-3 d-block text-decoration-none">
+                            <i class="fas fa-chart-bar quick-action-icon" style="color: #8b5cf6;"></i>
+                            <div class="quick-action-label">{{ __('dashboard.quick_actions.view_messages') }}</div>
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{url('home/settings')}}" class="w-100 p-3 border-0 rounded-3 d-block text-decoration-none" style="background: #f8fafc; transition: all 0.3s ease;" 
-                                onmouseover="this.style.background='#e2e8f0'" 
-                                onmouseout="this.style.background='#f8fafc'">
-                            <i class="fas fa-cog" style="color: #6b7280; font-size: 1.2rem; margin-bottom: 8px;"></i>
-                            <div style="color: #1e293b; font-weight: 600; font-size: 0.9rem;">Settings</div>
+                        <a href="{{url('home/settings')}}" class="quick-action-btn w-100 p-3 border-0 rounded-3 d-block text-decoration-none">
+                            <i class="fas fa-cog quick-action-icon" style="color: #6b7280;"></i>
+                            <div class="quick-action-label">{{ __('dashboard.quick_actions.settings') }}</div>
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{url('support')}}" class="w-100 p-3 border-0 rounded-3 d-block text-decoration-none" style="background: #f8fafc; transition: all 0.3s ease;" 
-                                onmouseover="this.style.background='#e2e8f0'" 
-                                onmouseout="this.style.background='#f8fafc'">
-                            <i class="fas fa-question-circle" style="color: #f59e0b; font-size: 1.2rem; margin-bottom: 8px;"></i>
-                            <div style="color: #1e293b; font-weight: 600; font-size: 0.9rem;">Get Help</div>
+                        <a href="{{url('support')}}" class="quick-action-btn w-100 p-3 border-0 rounded-3 d-block text-decoration-none">
+                            <i class="fas fa-question-circle quick-action-icon" style="color: #f59e0b;"></i>
+                            <div class="quick-action-label">{{ __('dashboard.quick_actions.get_help') }}</div>
                         </a>
                     </div>
                 </div>

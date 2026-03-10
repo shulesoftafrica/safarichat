@@ -6,25 +6,25 @@
         <div class="col-lg-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="fas fa-credit-card"></i> Complete Your Upgrade</h4>
+                    <h4 class="mb-0"><i class="fas fa-credit-card"></i> {{ __("billing.page_titles.payment") }}</h4>
                 </div>
                 <div class="card-body">
                     <!-- Plan Summary -->
                     <div class="alert alert-info">
                         <div class="row align-items-center">
                             <div class="col-md-8">
-                                <h5 class="mb-1">{{ ucfirst($plan_code) }} Plan</h5>
-                                <p class="mb-0">{{ $feature ? "Requested feature: " . ucfirst($feature) : "Full plan upgrade" }}</p>
+                                <h5 class="mb-1">{{ ucfirst($plan_code) }} {{ __("billing.plan.label") }}</h5>
+                                <p class="mb-0">{{ $feature ? __("billing.plan.requested_feature") . " " . ucfirst($feature) : __("billing.plan.full_upgrade") }}</p>
                             </div>
                             <div class="col-md-4 text-end">
-                                <h3 class="text-primary mb-0">TZS {{ number_format($amount) }}</h3>
-                                <small class="text-muted">/month</small>
+                                <h3 class="text-primary mb-0">{{ __("billing.amount.currency") }} {{ number_format($amount) }}</h3>
+                                <small class="text-muted">{{ __("billing.amount.per_month") }}</small>
                             </div>
                         </div>
                     </div>
 
                     <!-- Payment Methods -->
-                    <h5 class="mb-3"><i class="fas fa-wallet"></i> Choose Payment Method</h5>
+                    <h5 class="mb-3"><i class="fas fa-wallet"></i> {{ __("billing.payment_methods.choose") }}</h5>
                     
                     <div class="row">
                         <!-- UCN Payment -->
@@ -34,10 +34,10 @@
                                     <div class="payment-icon mb-3">
                                         <i class="fas fa-university fa-3x text-success"></i>
                                     </div>
-                                    <h6 class="card-title">UCN (Lipa Namba)</h6>
-                                    <p class="card-text text-muted small">Pay via UCN (Lipa Namba) From Any Bank or Mobile Money</p>
+                                    <h6 class="card-title">{{ __("billing.payment_methods.ucn.name") }}</h6>
+                                    <p class="card-text text-muted small">{{ __("billing.payment_methods.ucn.description") }}</p>
                                     <button class="btn btn-outline-success w-100 payment-btn" data-method="ucn">
-                                        <i class="fas fa-arrow-right"></i> Pay with UCN
+                                        <i class="fas fa-arrow-right"></i> {{ __("billing.payment_methods.ucn.button") }}
                                     </button>
                                 </div>
                             </div>
@@ -50,10 +50,10 @@
                                     <div class="payment-icon mb-3">
                                         <i class="fab fa-stripe-s fa-3x text-primary"></i>
                                     </div>
-                                    <h6 class="card-title">Stripe</h6>
-                                    <p class="card-text text-muted small">Pay securely with Credit/Debit Card</p>
+                                    <h6 class="card-title">{{ __("billing.payment_methods.stripe.name") }}</h6>
+                                    <p class="card-text text-muted small">{{ __("billing.payment_methods.stripe.description") }}</p>
                                     <button class="btn btn-outline-primary w-100 payment-btn" data-method="stripe">
-                                        <i class="fas fa-credit-card"></i> Pay with Card
+                                        <i class="fas fa-credit-card"></i> {{ __("billing.payment_methods.stripe.button") }}
                                     </button>
                                 </div>
                             </div>
@@ -66,10 +66,10 @@
                                     <div class="payment-icon mb-3">
                                         <i class="fas fa-mobile-alt fa-3x text-warning"></i>
                                     </div>
-                                    <h6 class="card-title">Flutterwave</h6>
-                                    <p class="card-text text-muted small">Pay with Mobile Money, Bank Transfer & Cards</p>
+                                    <h6 class="card-title">{{ __("billing.payment_methods.flutterwave.name") }}</h6>
+                                    <p class="card-text text-muted small">{{ __("billing.payment_methods.flutterwave.description") }}</p>
                                     <button class="btn btn-outline-warning w-100 payment-btn" data-method="flutterwave">
-                                        <i class="fas fa-mobile-alt"></i> Pay with Flutterwave
+                                        <i class="fas fa-mobile-alt"></i> {{ __("billing.payment_methods.flutterwave.button") }}
                                     </button>
                                 </div>
                             </div>
@@ -78,7 +78,7 @@
 
                     <!-- Plan Features Preview -->
                     <div class="mt-4">
-                        <h6><i class="fas fa-check-circle text-success"></i> What you'll get:</h6>
+                        <h6><i class="fas fa-check-circle text-success"></i> {{ __("billing.features.title") }}</h6>
                         <div id="planFeatures" class="row">
                             <!-- Features will be populated by JavaScript -->
                         </div>
@@ -87,7 +87,7 @@
                     <!-- Back Button -->
                     <div class="mt-4 text-center">
                         <a href="{{ route('ai-agents.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to AI Agents
+                            <i class="fas fa-arrow-left"></i> {{ __("billing.actions.back_to_agents") }}
                         </a>
                     </div>
                 </div>

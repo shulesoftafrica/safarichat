@@ -222,7 +222,7 @@
                            value="{{ $break['end'] }}" placeholder="End Time">
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeBreak(this)">
+                    <button type="button" class="btn-sm btn-danger" onclick="removeBreak(this)">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -295,7 +295,7 @@ function addBreak() {
                 <input type="time" name="breaks[${breakCounter}][end]" class="form-control" placeholder="End Time">
             </div>
             <div class="col-md-2">
-                <button type="button" class="btn btn-danger btn-sm" onclick="removeBreak(this)">
+                <button type="button" class="btn-sm btn-danger" onclick="removeBreak(this)">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>

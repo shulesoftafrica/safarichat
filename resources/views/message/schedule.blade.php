@@ -9,7 +9,7 @@
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('home') }}</a></li>
                             <li class="breadcrumb-item"><a href="javascript:void(0);">{{ __('message') }}</a></li>
-                            <li class="breadcrumb-item active">{{ __('schedule') }}</li>
+                            <li class="breadcrumb-item active">{{ __("messaging.schedule_title") }}</li>
                         </ol>
                     </div>
                 </div><!--end page-title-box-->
@@ -21,8 +21,8 @@
                 <div class="card">
                     <div class="card-body">
 
-                        <h4 class="mt-0 header-title">{{ __('sms_schedules') }}</h4>
-                        <p class="text-muted mb-3">{{ __('create_a_message_that_you_want_to_be_sent_later_to_your_users') }}
+                        <h4 class="mt-0 header-title">{{ __("messaging.schedule_title") }}</h4>
+                        <p class="text-muted mb-3">{{ __("messaging.schedule_subtitle") }}
                         </p>
                         <p>
                             @php
@@ -30,13 +30,13 @@
 
                             @endphp
                             @if (count($channels)>0)
-                                <button type="button" class="btn btn-success" data-toggle="modal"
+                                <button type="button" class="btn-primary" data-toggle="modal"
                                     data-target="#exampleModal">
-                                    {{ __('schedule_a_message') }}
+                                    {{ __("messaging.actions.create_schedule") }}
                                 </button>
                                 @else
-                                <a href="{{ url('home/upgrade') }}" class="btn btn-success">
-                                    {{ __('schedule_a_message') }}
+                                <a href="{{ url('home/upgrade') }}" class="btn-primary">
+                                    {{ __("messaging.actions.create_schedule") }}
                                 </a>
                             @endif
                         </p>
@@ -45,19 +45,19 @@
 
                             </table><!--end /table-->
 
-                            <table id="example1" class="table mb-0 dataTable">
+                            <table id="example1" class="table-standard mb-0 dataTable">
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>{{ __('title') }}</th>
-                                        <th>{{ __('message') }}</th>
-                                        <th>{{ __('day_date') }}</th>
-                                        <th>{{ __('time') }}</th>
-                                        <th>{{ __('end_date') }}</th>
-                                        <th>{{ __('send_to') }}</th>
-                                        <th>{{ __('type') }}</th>
-                                        <th>{{ __('channels') }}</th>
-                                        <th>{{ __('action') }}</th>
+                                        <th>{{ __("messaging.schedule.title") }}</th>
+                                        <th>{{ __("messaging.schedule.message") }}</th>
+                                        <th>{{ __("messaging.schedule.day_date") }}</th>
+                                        <th>{{ __("messaging.schedule.time") }}</th>
+                                        <th>{{ __("messaging.schedule.end_date") }}</th>
+                                        <th>{{ __("messaging.schedule.send_to") }}</th>
+                                        <th>{{ __("messaging.schedule.type") }}</th>
+                                        <th>{{ __("messaging.schedule.channels") }}</th>
+                                        <th>{{ __("messaging.schedule.action") }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -68,13 +68,13 @@
                                     foreach ($schedules as $reminder) {
                                         ?>
                                     <tr>
-                                        <td data-title="{{ __('title') }}">
+                                        <td data-title="{{ __("messaging.schedule.title") }}">
                                             <?php echo $i; ?>
                                         </td>
-                                        <td data-title="{{ __('title') }}">
+                                        <td data-title="{{ __("messaging.schedule.title") }}">
                                             <?php echo ucfirst($reminder->title); ?>
                                         </td>
-                                        <td data-title="{{ __('message') }}">
+                                        <td data-title="{{ __("messaging.schedule.message") }}">
                                             <?php echo ucfirst($reminder->message); ?>
                                         </td>
 
@@ -133,13 +133,13 @@
                                         </td>
                                         <td data-title="{{ __('is_repeated') }}">
                                             <?php
-                                            echo (int) $reminder->is_repeated == 1 ? __('repeated') : __('one_time');
+                                            echo (int) $reminder->is_repeated == 1 ? __("messaging.schedule.recurring") : __("messaging.schedule.one_time");
                                             ?>
                                         </td>
-                                        <td data-title="{{ __('message') }}">
+                                        <td data-title="{{ __("messaging.schedule.message") }}">
                                             <?php echo ucfirst($reminder->channels); ?>
                                         </td>
-                                        <td data-title="{{ __('action') }}">
+                                        <td data-title="{{ __("messaging.schedule.action") }}">
                                             <!-- <a href="<?php echo url('message/editReminder/' . $reminder->id, __('edit')); ?>"><i class="las la-pen text-info font-18"></i> {{ __('edit') }}</a> -->
                                             <a href="<?php echo url('message/deleteReminder/' . $reminder->id, __('delete')); ?>"
                                                 onclick="return confirm('{{ __('are_you_sure_you_want_to_delete_this_schedule') }}');"><i
@@ -186,7 +186,7 @@
 
                             <div class="form-group row">
                                 <label class="col-sm-2 col-form-label text-right">
-                                    {{ __('title') }}
+                                    {{ __("messaging.schedule.title") }}
                                 </label>
                                 <div class="col-sm-10">
                                     <input type="text" required="" class="form-control" name="title"
@@ -198,7 +198,7 @@
 
                             <div class='form-group row'>
                                 <label for="sms_message" class="col-sm-2 col-form-label text-right">
-                                    {{ __('message') }}
+                                    {{ __("messaging.schedule.message") }}
                                 </label>
                                 <div class="col-sm-10">
                                     <textarea class="form-control" required="" style="resize:vertical" id="smsbox" name="message"><?= old('sms_message') ?></textarea>
@@ -213,7 +213,7 @@
                                         <div class="card mb-0 card-body">
                                             <p class="mb-0 text-muted">{{ __('supported_harshtag_lists') }}</p>
                                             <div class="table-responsive">
-                                                <table class="table mb-0">
+                                                <table class="table-standard mb-0">
                                                     <thead class="thead-light">
                                                         <tr>
                                                             <th>{{ __('hashtag') }}</th>
@@ -320,13 +320,13 @@
 
                             <div class="form-group row">
                                 <label class="col-sm-2 col-form-label text-right">
-                                    {{ __('type') }}
+                                    {{ __("messaging.schedule.type") }}
                                 </label>
                                 <div class="col-sm-10">
                                     <input type="radio" class=" radio-inline repeat" name="is_repeated" value="1"
-                                        id="repeated_yes"> {{ __('repeated') }},
+                                        id="repeated_yes"> {{ __("messaging.schedule.recurring") }},
                                     <input type="radio" class=" radio-inline repeat" name="is_repeated" value="0"
-                                        id="repeated_no"> {{ __('one_time') }}
+                                        id="repeated_no"> {{ __("messaging.schedule.one_time") }}
 
                                 </div>
 

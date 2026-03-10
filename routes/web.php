@@ -15,14 +15,23 @@ use Illuminate\Support\Facades\Hash;
 
 Route::get('lang/{lang}', function ($lang) {
   
-    if (in_array($lang, ['en', 'sw'])) {
+    if (in_array($lang, ['en', 'es', 'pt', 'hi', 'ar', 'fr', 'sw'])) {
         
-        session(['locale' => $lang]);
-        app()->setLocale($lang);
+        // Map 'pt' to 'pt-br' for Portuguese since folder is named 'pt-br'
+        $actualLocale = ($lang === 'pt') ? 'pt-br' : $lang;
+        
+        session(['locale' => $actualLocale]);
+        app()->setLocale($actualLocale);
        
     }
     return redirect()->back()->with('succss', __('Language changed successfully!'));
 })->name('lang.switch');
+
+// Design System Test Page (Phase 1 UI/UX Implementation)
+Route::get('/design-system-test', function() {
+    return view('design-system-test');
+})->name('design.system.test');
+
 Route::get('/terms-and-conditions', function() {
     return view('auth.termsandconditions');
 });
