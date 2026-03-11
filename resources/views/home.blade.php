@@ -1160,76 +1160,6 @@
                     <div class="col-md-8">
                         <div id="engagementChart" style="height: 300px;">
                             <!-- Chart will be rendered here -->
-                            <script type="text/javascript">
-                                $(function () {
-                                    $('#engagementChart').highcharts({
-                                        chart: {
-                                            type: 'areaspline',
-                                            backgroundColor: 'transparent'
-                                        },
-                                        title: {
-                                            text: null
-                                        },
-                                        xAxis: {
-                                            type: 'category',
-                                            gridLineWidth: 0,
-                                            lineWidth: 0,
-                                            tickWidth: 0
-                                        },
-                                        yAxis: {
-                                            title: {
-                                                text: '{{ __('dashboard.engagement.chart_label_messages') }}'
-                                            },
-                                            gridLineWidth: 1,
-                                            gridLineColor: '#f1f5f9'
-                                        },
-                                        legend: {
-                                            enabled: true,
-                                            align: 'center',
-                                            verticalAlign: 'bottom'
-                                        },
-                                        plotOptions: {
-                                            areaspline: {
-                                                fillOpacity: 0.1,
-                                                lineWidth: 3,
-                                                marker: {
-                                                    enabled: false,
-                                                    states: {
-                                                        hover: {
-                                                            enabled: true,
-                                                            radius: 5
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        colors: ['#25d366', '#3b82f6', '#8b5cf6'],
-                                        series: [{
-                                            name: 'Messages Sent',
-                                            data: [
-                                                @if(!empty($reports))
-                                                    @foreach ($reports as $value)
-                                                        ['{{ strtoupper($value->month_date) }}', {{ $value->sum }}],
-                                                    @endforeach
-                                                @else
-                                                    ['No Data', 0]
-                                                @endif
-                                            ]
-                                        }, {
-                                            name: 'Active Conversations',
-                                            data: [
-                                                @if(!empty($reports))
-                                                    @foreach ($reports as $value)
-                                                        ['{{ strtoupper($value->month_date) }}', {{ intval($value->sum * 0.3) }}],
-                                                    @endforeach
-                                                @else
-                                                    ['No Data', 0]
-                                                @endif
-                                            ]
-                                        }]
-                                    });
-                                });
-                            </script>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -1368,9 +1298,7 @@
     </div>
 </div>
 
-<!-- Include Chart Library -->
-<script src="<?=asset('assets/js/highchart.js')?>"></script>
-<script src="<?=asset('assets/js/exporting.js')?>"></script>
+<!-- Highcharts loaded in app.blade.php layout -->
 
 <script>
 // Dashboard functionality
@@ -1602,6 +1530,90 @@ function saveInstanceConfig(instanceId) {
         saveBtn.disabled = false;
     });
 }
+
+// Initialize Highcharts engagement chart when Highcharts library is loaded
+$(function() {
+    // Wait for Highcharts to be available
+    if (typeof Highcharts !== 'undefined' && $('#engagementChart').length) {
+        try {
+            new Highcharts.Chart({
+                chart: {
+                    renderTo: 'engagementChart',
+                    type: 'areaspline',
+                    backgroundColor: 'transparent',
+                    height: 300
+                },
+                title: {
+                    text: null
+                },
+                xAxis: {
+                    type: 'category',
+                    gridLineWidth: 0,
+                    lineWidth: 0,
+                    tickWidth: 0
+                },
+                yAxis: {
+                    title: {
+                        text: '{{ __('dashboard.engagement.chart_label_messages') }}'
+                    },
+                    gridLineWidth: 1,
+                    gridLineColor: '#f1f5f9'
+                },
+                legend: {
+                    enabled: true,
+                    align: 'center',
+                    verticalAlign: 'bottom'
+                },
+                plotOptions: {
+                    areaspline: {
+                        fillOpacity: 0.1,
+                        lineWidth: 3,
+                        marker: {
+                            enabled: false,
+                            states: {
+                                hover: {
+                                    enabled: true,
+                                    radius: 5
+                                }
+                            }
+                        }
+                    }
+                },
+                credits: {
+                    enabled: false
+                },
+                colors: ['#25d366', '#3b82f6', '#8b5cf6'],
+                series: [{
+                    name: 'Messages Sent',
+                    data: [
+                        @if(!empty($reports))
+                            @foreach ($reports as $value)
+                                ['{{ strtoupper($value->month_date) }}', {{ $value->sum }}],
+                            @endforeach
+                        @else
+                            ['No Data', 0]
+                        @endif
+                    ]
+                }, {
+                    name: 'Active Conversations',
+                    data: [
+                        @if(!empty($reports))
+                            @foreach ($reports as $value)
+                                ['{{ strtoupper($value->month_date) }}', {{ intval($value->sum * 0.3) }}],
+                            @endforeach
+                        @else
+                            ['No Data', 0]
+                        @endif
+                    ]
+                }]
+            });
+        } catch (error) {
+            console.error('Error initializing Highcharts:', error);
+        }
+    } else if ($('#engagementChart').length) {
+        console.warn('Highcharts library not loaded');
+    }
+});
 </script>
 
 @endsection

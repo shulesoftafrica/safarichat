@@ -551,64 +551,91 @@ class BillingApiController extends Controller
                 ], 400);
             }
             
-            // Call billing API to create plan upgrade invoice
-            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
+            // Step 1: Get price plan details from billing platform
+            $pricePlan = $this->fetchPricePlan($planCode);
+            $pricePlanId = $pricePlan['id'] ?? null;
+            
+            if (!$pricePlanId) {
+                Log::warning('Price plan ID not found, using fallback', ['plan' => $planCode]);
+            }
+            
+            // Step 2: Create invoice using new Shulesoft API
+            $billingApiUrl = config('services.billing.api_url');
             $accessToken = config('services.billing.access_token');
+            $organizationId = config('services.billing.organization_id');
             
             $invoiceData = [
-                'product_code' => 'safarichat',
-                'invoice_type' => 'plan_upgrade',
+                'organization_id' => $organizationId,
                 'customer' => [
                     'name' => $user->business->name ?? $user->name,
-                    'phone' => $user->business->phone ?? $user->phone ?? '',
-                    'email' => $user->email 
-                        ?? $user->business->email 
-                        ?? ('safarichat.' . $user->id . '@safarichat.africa')
+                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                    'phone' => $user->business->phone ?? $user->phone ?? ''
                 ],
-                'amount' => $amount,
+                'products' => [
+                    [
+                        'price_plan_id' => $pricePlanId,
+                        'amount' => $amount
+                    ]
+                ],
+                'description' => "SafariChat Plan Upgrade: {$currentPlan} to {$planCode}",
                 'currency' => 'TZS',
-                'old_plan_code' => $currentPlan,
-                'new_plan_code' => $planCode,
-                'feature_code' => $feature ?? 'core',
-                'proration_credit' => 0, // Calculate if needed
-                'success_url' => route('billing.success', ['plan' => $planCode]),
-                'cancel_url' => route('billing.cancel'),
-                'metadata' => [
-                    'user_id' => $user->id,
-                    'business_id' => $user->business_id ?? null,
-                    'upgrade_timestamp' => now()->toISOString()
-                ]
+                'status' => 'issued'
             ];
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
-            ])->post($billingApiUrl . '/create-invoice', $invoiceData);
+            ])->post($billingApiUrl . '/invoices', $invoiceData);
 
             if ($response->successful()) {
-                $responseData = $response->json();
+                $invoiceResponse = $response->json();
+                $invoiceId = $invoiceResponse['data']['id'] ?? null;
                 
-                Log::info('Plan upgrade invoice created successfully', [
-                    'user_id' => $user->id,
-                    'old_plan' => $currentPlan,
-                    'new_plan' => $planCode,
-                    'invoice_id' => $responseData['data']['invoice_id'] ?? 'unknown',
-                    'amount' => $amount
-                ]);
+                if ($invoiceId) {
+                    // Step 3: Get payment gateway links
+                    $gatewayResponse = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'Accept' => 'application/json'
+                    ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
+                    
+                    if ($gatewayResponse->successful()) {
+                        $gatewayData = $gatewayResponse->json();
+                        $paymentLinks = $gatewayData['data']['price_plans'][0]['payment_links'] ?? [];
+                        
+                        // Get subscription UCN for local payment page
+                        $ucn = $paymentLinks['ucn'] ?? null;
+                        
+                        // Save subscription UCN to billing account
+                        $billingAccount = $user->billingAccount;
+                        if ($billingAccount && $ucn) {
+                            $billingAccount->update(['subscription_ucn' => $ucn]);
+                        }
+                        
+                        Log::info('Plan upgrade invoice created successfully', [
+                            'user_id' => $user->id,
+                            'old_plan' => $currentPlan,
+                            'new_plan' => $planCode,
+                            'invoice_id' => $invoiceId,
+                            'amount' => $amount
+                        ]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => "Invoice created for {$planCode} plan upgrade",
-                    'payment_url' => $responseData['data']['payment_url'] ?? route('billing.payment', [
-                        'plan_code' => $planCode,
-                        'amount' => $amount,
-                        'feature' => $feature
-                    ]),
-                    'invoice_id' => $responseData['data']['invoice_id'] ?? null,
-                    'plan' => $planCode,
-                    'amount' => $amount
-                ]);
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Invoice created for {$planCode} plan upgrade",
+                            'payment_url' => route('billing.payment', [
+                                'plan_code' => $planCode,
+                                'amount' => $amount,
+                                'feature' => $feature,
+                                'invoice_id' => $invoiceId
+                            ]),
+                            'payment_links' => $paymentLinks,
+                            'invoice_id' => $invoiceId,
+                            'plan' => $planCode,
+                            'amount' => $amount
+                        ]);
+                    }
+                }
             } else {
                 // Billing API failed, fall back to local payment page
                 Log::warning('Billing API failed, using local payment flow', [
@@ -648,6 +675,167 @@ class BillingApiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Redirecting to payment for {$planCode} plan upgrade",
+                'payment_url' => $paymentUrl,
+                'plan' => $planCode,
+                'amount' => $amount
+            ]);
+        }
+    }
+    
+    /**
+     * Renew user's current plan (for expired subscriptions)
+     */
+    public function renewPlan(Request $request)
+    {
+        $user = Auth::user();
+        $planCode = $request->input('plan_code');
+        $amount = $request->input('amount');
+        
+        try {
+            // Validate plan code
+            $validPlans = ['starter', 'pro', 'premium'];
+            if (!in_array($planCode, $validPlans)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid plan selected'
+                ], 400);
+            }
+            
+            // Get current billing account
+            $billingAccount = $user->billingAccount;
+            $currentPlan = $billingAccount ? $billingAccount->subscription_plan : 'trial';
+            
+            // Verify user is renewing their actual current plan
+            if ($planCode !== $currentPlan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only renew your current plan. To change plans, please use the upgrade option.'
+                ], 400);
+            }
+            
+            // Step 1: Get price plan details from billing platform
+            $pricePlan = $this->fetchPricePlan($planCode);
+            $pricePlanId = $pricePlan['id'] ?? null;
+            
+            if (!$pricePlanId) {
+                Log::warning('Price plan ID not found for renewal, using fallback', ['plan' => $planCode]);
+            }
+            
+            // Step 2: Create renewal invoice using new Shulesoft API
+            $billingApiUrl = config('services.billing.api_url');
+            $accessToken = config('services.billing.access_token');
+            $organizationId = config('services.billing.organization_id');
+            
+            $invoiceData = [
+                'organization_id' => $organizationId,
+                'customer' => [
+                    'name' => $user->business->name ?? $user->name,
+                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                    'phone' => $user->business->phone ?? $user->phone ?? ''
+                ],
+                'products' => [
+                    [
+                        'price_plan_id' => $pricePlanId,
+                        'amount' => $amount
+                    ]
+                ],
+                'description' => "SafariChat Plan Renewal: {$planCode}",
+                'currency' => 'TZS',
+                'status' => 'issued'
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($billingApiUrl . '/invoices', $invoiceData);
+
+            if ($response->successful()) {
+                $invoiceResponse = $response->json();
+                $invoiceId = $invoiceResponse['data']['id'] ?? null;
+                
+                if ($invoiceId) {
+                    // Step 3: Get payment gateway links
+                    $gatewayResponse = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'Accept' => 'application/json'
+                    ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
+                    
+                    if ($gatewayResponse->successful()) {
+                        $gatewayData = $gatewayResponse->json();
+                        $paymentLinks = $gatewayData['data']['price_plans'][0]['payment_links'] ?? [];
+                        
+                        // Get subscription UCN for local payment page
+                        $ucn = $paymentLinks['ucn'] ?? null;
+                        
+                        // Save/update subscription UCN
+                        $billingAccount = $user->billingAccount;
+                        if ($billingAccount && $ucn) {
+                            $billingAccount->update(['subscription_ucn' => $ucn]);
+                        }
+                        
+                        Log::info('Plan renewal invoice created successfully', [
+                            'user_id' => $user->id,
+                            'plan' => $planCode,
+                            'invoice_id' => $invoiceId,
+                            'amount' => $amount
+                        ]);
+
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Invoice created for {$planCode} plan renewal",
+                            'payment_url' => route('billing.payment', [
+                                'plan_code' => $planCode,
+                                'amount' => $amount,
+                                'renewal' => true,
+                                'invoice_id' => $invoiceId
+                            ]),
+                            'payment_links' => $paymentLinks,
+                            'invoice_id' => $invoiceId,
+                            'plan' => $planCode,
+                            'amount' => $amount
+                        ]);
+                    }
+                }
+            } else {
+                // Billing API failed, fall back to local payment page
+                Log::warning('Billing API failed for renewal, using local payment flow', [
+                    'user_id' => $user->id,
+                    'api_response' => $response->body(),
+                    'status_code' => $response->status()
+                ]);
+
+                $paymentUrl = route('billing.payment', [
+                    'plan_code' => $planCode,
+                    'amount' => $amount,
+                    'renewal' => true
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Redirecting to payment for {$planCode} plan renewal",
+                    'payment_url' => $paymentUrl,
+                    'plan' => $planCode,
+                    'amount' => $amount
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Plan renewal initiation failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fall back to local payment page on error
+            $paymentUrl = route('billing.payment', [
+                'plan_code' => $planCode,
+                'amount' => $amount,
+                'renewal' => true
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Redirecting to payment for {$planCode} plan renewal",
                 'payment_url' => $paymentUrl,
                 'plan' => $planCode,
                 'amount' => $amount
@@ -858,88 +1046,17 @@ class BillingApiController extends Controller
 
             $billingAccount = $user->billingAccount;
             $balance = $billingAccount ? $billingAccount->ai_credits : 0;
+            $ucnReference = $billingAccount ? $billingAccount->credit_ucn : null;
 
-            // Get or create UCN reference from billing platform
-            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
-            $accessToken = config('services.billing.access_token');
-
-            try {
-                // Try to fetch existing wallet from billing platform
-                $customerId = $user->id;
-                $productCode = 'safarichat';
-
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $accessToken,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])->get("{$billingApiUrl}/wallet/{$customerId}", [
-                    'product_code' => $productCode
-                ]);
-
-                $ucnReference = null;
-
-                if ($response->successful() && isset($response->json()['data'])) {
-                    $walletData = $response->json()['data'];
-                    
-                    // Look for ai_credits wallet
-                    if (isset($walletData['wallets'])) {
-                        foreach ($walletData['wallets'] as $wallet) {
-                            if ($wallet['wallet_type'] === 'ai_credits' && $wallet['product_code'] === 'safarichat') {
-                                $ucnReference = $wallet['ucn_reference'] ?? null;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // If no UCN reference found, create wallet
-                if (!$ucnReference) {
-                    $createResponse = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $accessToken,
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json'
-                    ])->post("{$billingApiUrl}/wallet/create", [
-                        'student_id' => $customerId,
-                        'product_code' => $productCode,
-                        'wallet_type' => 'ai_credits',
-                        'customer' => [
-                            'name' => $user->name,
-                            'phone' => $user->phone ?? '',
-                            'email' => $user->email
-                        ]
-                    ]);
-
-                    if ($createResponse->successful() && isset($createResponse->json()['data']['ucn_reference'])) {
-                        $ucnReference = $createResponse->json()['data']['ucn_reference'];
-                    }
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'balance' => $balance,
-                        'ucn_reference' => $ucnReference,
-                        'wallet_type' => 'ai_credits',
-                        'currency' => 'TZS'
-                    ]
-                ]);
-
-            } catch (\Exception $apiError) {
-                Log::warning('Failed to fetch UCN from billing platform, using local balance only', [
-                    'error' => $apiError->getMessage()
-                ]);
-
-                // Return local balance without UCN reference
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'balance' => $balance,
-                        'ucn_reference' => null,
-                        'wallet_type' => 'ai_credits',
-                        'currency' => 'TZS'
-                    ]
-                ]);
-            }
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'balance' => $balance,
+                    'ucn_reference' => $ucnReference,
+                    'wallet_type' => 'ai_credits',
+                    'currency' => 'TZS'
+                ]
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to get wallet info', [
@@ -969,8 +1086,6 @@ class BillingApiController extends Controller
             }
 
             $amount = $request->input('amount');
-            $paymentMethod = $request->input('payment_method', 'stripe');
-            $walletType = $request->input('wallet_type', 'ai_credits');
 
             // Validate amount
             if (!$amount || $amount < 1000) {
@@ -980,65 +1095,89 @@ class BillingApiController extends Controller
                 ], 400);
             }
 
-            // Calculate units (credits) - 1 TZS = 1 credit
-            $units = $amount;
-            $unitPrice = 1;
-
-            // Create invoice via billing platform
-            $billingApiUrl = config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
-            $accessToken = config('services.billing.access_token');
-
-            $invoiceData = [
-                'product_code' => 'safarichat',
-                'invoice_type' => 'wallet_topup',
-                'customer' => [
-                    'name' => $user->name,
-                    'phone' => $user->phone ?? '',
-                    'email' => $user->email
-                ],
-                'amount' => $amount,
-                'currency' => 'TZS',
-                'units' => $units,
-                'unit_price' => $unitPrice,
-                'wallet_type' => $walletType,
-                'success_url' => route('billing.success', ['type' => 'wallet_topup']),
-                'cancel_url' => route('billing.cancel'),
-                'metadata' => [
-                    'user_id' => $user->id,
-                    'payment_method' => $paymentMethod,
-                    'timestamp' => now()->toISOString()
-                ]
-            ];
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->post($billingApiUrl . '/create-invoice', $invoiceData);
-
-            if ($response->successful()) {
-                $responseData = $response->json();
+            // Step 1: Get or create credit UCN
+            $billingAccount = $user->billingAccount;
+            $ucn = $billingAccount ? $billingAccount->credit_ucn : null;
+            
+            if (!$ucn) {
+                // Create invoice to get UCN
+                $billingApiUrl = config('services.billing.api_url');
+                $accessToken = config('services.billing.access_token');
+                $organizationId = config('services.billing.organization_id');
+                $creditsPricePlanId = config('services.billing.credits_price_plan_id');
                 
-                Log::info('Wallet top-up invoice created', [
-                    'user_id' => $user->id,
-                    'amount' => $amount,
-                    'units' => $units,
-                    'invoice_id' => $responseData['data']['invoice']['invoice_id'] ?? 'unknown'
-                ]);
+                $invoiceData = [
+                    'organization_id' => $organizationId,
+                    'customer' => [
+                        'name' => $user->business->name ?? $user->name,
+                        'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                        'phone' => $user->business->phone ?? $user->phone ?? ''
+                    ],
+                    'products' => [
+                        [
+                            'price_plan_id' => $creditsPricePlanId,
+                            'amount' => $amount
+                        ]
+                    ],
+                    'description' => 'SafariChat AI Credits Top-up',
+                    'currency' => 'TZS',
+                    'status' => 'issued'
+                ];
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Top-up initiated successfully',
-                    'data' => [
-                        'invoice_id' => $responseData['data']['invoice']['invoice_id'] ?? null,
-                        'payment_url' => $responseData['data']['payment_session']['payment_url'] ?? null,
-                        'amount' => $amount,
-                        'credits' => $units
-                    ]
-                ]);
-            } else {
-                throw new \Exception('Billing API returned error: ' . $response->body());
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])->post($billingApiUrl . '/invoices', $invoiceData);
+
+                if ($response->successful()) {
+                    $invoiceResponse = $response->json();
+                    $invoiceId = $invoiceResponse['data']['id'] ?? null;
+                    
+                    if ($invoiceId) {
+                        // Step 2: Get payment gateways
+                        $gatewayResponse = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . $accessToken,
+                            'Accept' => 'application/json'
+                        ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
+                        
+                        if ($gatewayResponse->successful()) {
+                            $gatewayData = $gatewayResponse->json();
+                            $paymentLinks = $gatewayData['data']['price_plans'][0]['payment_links'] ?? [];
+                            $ucn = $paymentLinks['ucn'] ?? null;
+                            
+                            if ($ucn) {
+                                // Save UCN to database
+                                if (!$billingAccount) {
+                                    $billingAccount = \App\Models\BillingAccount::create([
+                                        'user_id' => $user->id,
+                                        'business_id' => $user->business_id
+                                    ]);
+                                }
+                                $billingAccount->update(['credit_ucn' => $ucn]);
+                                
+                                Log::info('Wallet top-up invoice created with UCN', [
+                                    'user_id' => $user->id,
+                                    'invoice_id' => $invoiceId,
+                                    'ucn' => $ucn,
+                                    'amount' => $amount
+                                ]);
+                            }
+                        }
+                    }
+                }
             }
+            
+            // Return success with UCN for local payment
+            return response()->json([
+                'success' => true,
+                'message' => 'Top-up initiated successfully',
+                'data' => [
+                    'ucn' => $ucn,
+                    'amount' => $amount,
+                    'wallet_url' => route('billing.wallet')
+                ]
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to initiate wallet top-up', [
@@ -1051,5 +1190,174 @@ class BillingApiController extends Controller
                 'message' => 'Failed to initiate top-up. Please try again.'
             ], 500);
         }
+    }
+
+    /**
+     * Get or create credit UCN for wallet top-ups
+     */
+    public function getWalletUCN(Request $request)
+    {
+        $user = Auth::user();
+        $billingAccount = $user->billingAccount;
+        
+        // Check if credit UCN already exists
+        if ($billingAccount && $billingAccount->credit_ucn) {
+            return response()->json([
+                'success' => true,
+                'ucn' => $billingAccount->credit_ucn,
+                'message' => 'UCN retrieved from database'
+            ]);
+        }
+        
+        // Create credit invoice to get UCN
+        try {
+            $billingApiUrl = config('services.billing.api_url');
+            $accessToken = config('services.billing.access_token');
+            $organizationId = config('services.billing.organization_id');
+            $creditsPricePlanId = config('services.billing.credits_price_plan_id');
+            
+            // Create invoice with minimal amount to get UCN
+            $invoiceData = [
+                'organization_id' => $organizationId,
+                'customer' => [
+                    'name' => $user->business->name ?? $user->name,
+                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                    'phone' => $user->business->phone ?? $user->phone ?? ''
+                ],
+                'products' => [
+                    [
+                        'price_plan_id' => $creditsPricePlanId,
+                        'amount' => 1000 // Minimum amount to generate UCN
+                    ]
+                ],
+                'description' => 'SafariChat AI Credits - UCN Generation',
+                'currency' => 'TZS',
+                'status' => 'issued'
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($billingApiUrl . '/invoices', $invoiceData);
+
+            if ($response->successful()) {
+                $invoiceResponse = $response->json();
+                $invoiceId = $invoiceResponse['data']['id'] ?? null;
+                
+                if ($invoiceId) {
+                    // Get payment gateways to extract UCN
+                    $gatewayResponse = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'Accept' => 'application/json'
+                    ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
+                    
+                    if ($gatewayResponse->successful()) {
+                        $gatewayData = $gatewayResponse->json();
+                        $ucn = $gatewayData['data']['price_plans'][0]['payment_links']['ucn'] ?? null;
+                        
+                        if ($ucn) {
+                            // Save UCN to billing_accounts
+                            if (!$billingAccount) {
+                                $billingAccount = \App\Models\BillingAccount::create([
+                                    'user_id' => $user->id,
+                                    'business_id' => $user->business_id
+                                ]);
+                            }
+                            
+                            $billingAccount->update(['credit_ucn' => $ucn]);
+                            
+                            Log::info('Credit UCN created and saved', [
+                                'user_id' => $user->id,
+                                'invoice_id' => $invoiceId,
+                                'ucn' => $ucn
+                            ]);
+                            
+                            return response()->json([
+                                'success' => true,
+                                'ucn' => $ucn,
+                                'message' => 'UCN generated successfully'
+                            ]);
+                        }
+                    } else {
+                        Log::error('Failed to get payment gateways from billing platform', [
+                            'user_id' => $user->id,
+                            'invoice_id' => $invoiceId,
+                            'status_code' => $gatewayResponse->status(),
+                            'response_body' => $gatewayResponse->body()
+                        ]);
+                    }
+                } else {
+                    Log::error('Invoice creation returned no ID from billing platform', [
+                        'user_id' => $user->id,
+                        'status_code' => $response->status(),
+                        'response_body' => $response->body()
+                    ]);
+                }
+            } else {
+                Log::error('Failed to create invoice from billing platform', [
+                    'user_id' => $user->id,
+                    'status_code' => $response->status(),
+                    'response_body' => $response->body()
+                ]);
+            }
+            
+            throw new \Exception('Failed to get UCN from billing platform');
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get credit UCN', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate UCN. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch price plan from billing platform
+     */
+    private function fetchPricePlan($planCode)
+    {
+        $billingApiUrl = config('services.billing.api_url');
+        $accessToken = config('services.billing.access_token');
+        $productId = config('services.billing.product_id');
+        
+        // Get all price plans for the product
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $accessToken,
+            'Accept' => 'application/json'
+        ])->get($billingApiUrl . '/products/' . $productId . '/price-plans');
+        
+        if ($response->successful()) {
+            $pricePlans = $response->json()['data'];
+            
+            // Find the matching plan by name
+            foreach ($pricePlans as $plan) {
+                if (stripos($plan['name'], $planCode) !== false) {
+                    return $plan;
+                }
+            }
+        }
+        
+        // Fallback to local config if API fails
+        return $this->getFallbackPricing($planCode);
+    }
+
+    /**
+     * Get fallback pricing when API is unavailable
+     */
+    private function getFallbackPricing($planCode)
+    {
+        $fallbackPlans = [
+            'starter' => ['id' => null, 'amount' => 49000, 'currency' => 'TZS', 'name' => 'Starter Plan'],
+            'pro' => ['id' => null, 'amount' => 149000, 'currency' => 'TZS', 'name' => 'Pro Plan'],
+            'premium' => ['id' => null, 'amount' => 249000, 'currency' => 'TZS', 'name' => 'Premium Plan']
+        ];
+        
+        return $fallbackPlans[strtolower($planCode)] ?? ['id' => null, 'amount' => 0, 'currency' => 'TZS'];
     }
 }

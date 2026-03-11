@@ -241,6 +241,11 @@ $(document).ready(ajax_setup);
 
                 <!-- App js -->
                 <script src="{{ asset(ROOT.'assets/js/app.js')}}?v=2"></script>
+                
+                <!-- Highcharts for dashboard charts -->
+                <script src="{{ asset(ROOT.'assets/js/highcharts.js') }}"></script>
+                <script src="{{ asset(ROOT.'assets/js/exporting.js') }}"></script>
+                
                 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
                 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 

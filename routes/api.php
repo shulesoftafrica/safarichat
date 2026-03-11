@@ -300,10 +300,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/status', [BillingApiController::class, 'getBillingStatus'])->middleware('auth:sanctum');
         Route::get('/plans', [BillingApiController::class, 'getProductInfo'])->middleware('auth:sanctum');
         Route::post('/upgrade', [BillingApiController::class, 'upgradePlan'])->middleware('auth:sanctum');
+        Route::post('/renew', [BillingApiController::class, 'renewPlan'])->middleware('auth:sanctum');
         Route::post('/credits', [BillingApiController::class, 'purchaseCredits'])->middleware('auth:sanctum');
         
         // Wallet management routes
         Route::get('/wallet/info', [BillingApiController::class, 'getWalletInfo'])->middleware('auth:sanctum');
+        Route::get('/wallet/get-ucn', [BillingApiController::class, 'getWalletUCN'])->middleware('auth:sanctum');
         Route::post('/wallet/topup', [BillingApiController::class, 'topUpWallet'])->middleware('auth:sanctum');
     });
 });

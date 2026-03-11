@@ -172,16 +172,9 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             }
 
         async init() {
-            const modalElement = document.getElementById('pricingControlsModal');
-            const isHardBlock = modalElement.getAttribute('data-bs-backdrop') === 'static';
+            // Don't initialize the modal yet - wait until showModal is called
+            // This prevents errors when modal is initialized before DOM is fully ready
             
-            // Initialize modal with configuration based on server-side hard block setting
-            this.modal = new bootstrap.Modal(modalElement, {
-                backdrop: isHardBlock ? 'static' : true,
-                keyboard: isHardBlock ? false : true
-            });
-            
-            // Current plan already loaded from server-side PHP
             // Just load available plans
             await this.loadAvailablePlans();
         }
@@ -307,23 +300,32 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         renderAvailablePlans() {
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
+            const subscriptionStatus = this.currentSubscription?.status || 'inactive';
+            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus);
             
             const planOrder = ['starter', 'pro', 'premium'];
-            const filteredPlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
+            const upgradePlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
             
-            if (filteredPlans.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12 text-center">
-                        <p class="text-muted">You're already on the highest plan!</p>
-                        <button type="button" class="btn btn-outline-primary" id="proceedButton" onclick="proceedWithCurrentPlan()">
-                            <i class="fas fa-arrow-right"></i> Continue with Current Plan
-                        </button>
-                    </div>
-                `;
-                return;
+            let html = '';
+            
+            // If subscription is expired and user has a paid plan, show renewal option first (horizontally)
+            if (isExpired && currentPlan !== 'trial') {
+                html += this.renderPlanCard(currentPlan, null, true); // true = isRenewal
             }
             
-            container.innerHTML = filteredPlans.map(planCode => this.renderPlanCard(planCode)).join('');
+            // Show upgrade options if available (cards flow horizontally)
+            if (upgradePlans.length > 0) {
+                html += upgradePlans.map(planCode => this.renderPlanCard(planCode, null, false)).join('');
+            } else if (!isExpired || currentPlan === 'trial') {
+                // Only show "highest plan" message if subscription is active
+                html = `
+                    <div class="col-12 text-center">
+                        <p class="text-muted">You're already on the highest plan!</p>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
         }
 
         renderFallbackPlans() {
@@ -342,26 +344,64 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
+            const subscriptionStatus = this.currentSubscription?.status || 'inactive';
+            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus);
             
             const planOrder = ['starter', 'pro', 'premium'];
-            const filteredPlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
+            const upgradePlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
             
-            container.innerHTML = filteredPlans.map(planCode => {
-                const plan = fallbackPlans[planCode];
-                return this.renderPlanCard(planCode, plan);
-            }).join('');
+            let html = '';
+            
+            // If subscription is expired and user has a paid plan, show renewal option first (horizontally)
+            if (isExpired && currentPlan !== 'trial' && fallbackPlans[currentPlan]) {
+                html += this.renderPlanCard(currentPlan, fallbackPlans[currentPlan], true);
+            }
+            
+            // Show upgrade options if available (cards flow horizontally)
+            if (upgradePlans.length > 0) {
+                html += upgradePlans.map(planCode => {
+                    const plan = fallbackPlans[planCode];
+                    return this.renderPlanCard(planCode, plan, false);
+                }).join('');
+            }
+            
+            container.innerHTML = html;
         }
 
-        renderPlanCard(planCode, planData = null) {
+        renderPlanCard(planCode, planData = null, isRenewal = false) {
             const plan = planData || (this.availablePlans && this.availablePlans.find(p => p.code === planCode)) || {};
             const price = plan?.price || 0;
             const features = plan?.features || [];
-            const isRecommended = planCode === 'pro';
+            const isRecommended = !isRenewal && planCode === 'pro';
+            const currentPlan = this.currentSubscription?.plan || 'trial';
+            const isCurrent = planCode === currentPlan;
+            
+            // Determine card styling
+            let cardClass = '';
+            let cardStyle = '';
+            let headerHtml = '';
+            let buttonClass = 'btn-outline-primary';
+            let buttonText = '<i class="fas fa-arrow-up"></i> Upgrade Now';
+            let buttonAction = `upgradeToPlan('${planCode}', ${price})`;
+            
+            if (isRenewal) {
+                cardClass = 'border-success';
+                cardStyle = 'box-shadow: 0 4px 8px rgba(40,167,69,0.3); border-width: 2px;';
+                headerHtml = '<div class="card-header text-center" style="background-color: #28a745 !important; color: #ffffff !important; font-weight: 600;"><small><i class="fas fa-sync-alt"></i> CURRENT PLAN - RENEW TO CONTINUE</small></div>';
+                buttonClass = 'btn-success';
+                buttonText = '<i class="fas fa-sync-alt"></i> Renew Plan - Pay Now';
+                buttonAction = `renewCurrentPlan('${planCode}', ${price})`;
+            } else if (isRecommended) {
+                cardClass = 'border-primary';
+                cardStyle = 'box-shadow: 0 4px 8px rgba(0,123,255,0.25);';
+                headerHtml = '<div class="card-header text-center" style="background-color: #007bff !important; color: #ffffff !important; font-weight: 600;"><small><i class="fas fa-star"></i> RECOMMENDED</small></div>';
+                buttonClass = 'btn-primary';
+            }
             
             return `
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100 ${isRecommended ? 'border-primary' : ''}" style="${isRecommended ? 'box-shadow: 0 4px 8px rgba(0,123,255,0.25);' : ''}">
-                        ${isRecommended ? '<div class="card-header bg-primary text-white text-center"><small><i class="fas fa-star"></i> RECOMMENDED</small></div>' : ''}
+                    <div class="card h-100 ${cardClass}" style="${cardStyle}">
+                        ${headerHtml}
                         <div class="card-body text-center">
                             <h6 class="card-title">${this.capitalize(planCode)} Plan</h6>
                             <div class="mb-3">
@@ -374,8 +414,8 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                             </ul>
                         </div>
                         <div class="card-footer">
-                            <button type="button" class="btn ${isRecommended ? 'btn-primary' : 'btn-outline-primary'} w-100" onclick="upgradeToPlan('${planCode}', ${price})">
-                                <i class="fas fa-arrow-up"></i> Upgrade Now
+                            <button type="button" class="btn ${buttonClass} w-100" onclick="${buttonAction}">
+                                ${buttonText}
                             </button>
                         </div>
                     </div>
@@ -404,8 +444,21 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         showModal(feature = null, message = null, isHardBlock = false) {
             this.currentFeature = feature;
             
+            // Safety check - ensure Bootstrap is loaded
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap not loaded');
+                return;
+            }
+            
             // Determine if this is a hard block (expired subscription) or soft block (feature/credits)
             const modalElement = document.getElementById('pricingControlsModal');
+            
+            // Safety check - ensure modal element exists and is in the DOM
+            if (!modalElement || !document.body.contains(modalElement)) {
+                console.error('Modal element not found or not attached to DOM');
+                return;
+            }
+            
             const closeBtn = document.getElementById('modalCloseBtn');
             const cancelBtn = document.getElementById('modalCancelBtn');
             
@@ -442,12 +495,30 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 messageElement.textContent = `The "${feature}" feature is not available in your current plan. Upgrade to unlock this feature.`;
             }
             
-            // Reinitialize modal with explicit configuration
-            if (this.modal) {
-                this.modal.dispose();
+            try {
+                // Dispose of any existing modal instance
+                if (this.modal) {
+                    try {
+                        this.modal.dispose();
+                    } catch (e) {
+                        // Ignore disposal errors
+                    }
+                    this.modal = null;
+                }
+                
+                // Wait a tick for DOM to settle
+                setTimeout(() => {
+                    try {
+                        // Create and show modal
+                        this.modal = new bootstrap.Modal(modalElement, modalOptions);
+                        this.modal.show();
+                    } catch (error) {
+                        console.error('Error showing modal:', error);
+                    }
+                }, 50);
+            } catch (error) {
+                console.error('Error in showModal:', error);
             }
-            this.modal = new bootstrap.Modal(modalElement, modalOptions);
-            this.modal.show();
         }
 
         async refetchSubscriptionStatus() {
@@ -461,20 +532,38 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         window.pricingControls = null;
     }
 
+    // Initialize when document is ready AND Bootstrap is loaded
+    function initializePricingControls() {
+        // Check if Bootstrap is available
+        if (typeof bootstrap === 'undefined') {
+            console.warn('Bootstrap not loaded yet, retrying...');
+            setTimeout(initializePricingControls, 100);
+            return;
+        }
+        
+        // Check if modal element exists
+        if (!document.getElementById('pricingControlsModal')) {
+            console.warn('Modal element not found yet, retrying...');
+            setTimeout(initializePricingControls, 100);
+            return;
+        }
+        
+        if (!window.pricingControls) {
+            window.pricingControls = new PricingControls();
+            window.pricingControls.init().catch(function(error) {
+                console.error('Error initializing pricing controls:', error);
+            });
+        }
+    }
+
     // Initialize when document is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!window.pricingControls) {
-                window.pricingControls = new PricingControls();
-                await window.pricingControls.init();
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializePricingControls, 100);
         });
     } else {
         // DOM already loaded
-        if (!window.pricingControls) {
-            window.pricingControls = new PricingControls();
-            window.pricingControls.init();
-        }
+        setTimeout(initializePricingControls, 100);
     }
 
     // Global functions for modal interactions
@@ -538,6 +627,73 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 toastr.error(error.message || 'Failed to process upgrade');
             } else {
                 alert(error.message || 'Failed to process upgrade');
+            }
+        } finally {
+            // Restore button
+            if (event && event.target) {
+                event.target.innerHTML = originalContent;
+                event.target.disabled = false;
+            }
+        }
+    };
+}
+
+if (typeof window.renewCurrentPlan === 'undefined') {
+    window.renewCurrentPlan = async function(planCode, price) {
+        try {
+            // Show loading state
+            const button = event.target;
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Renewal...';
+            button.disabled = true;
+
+            // Call billing API to renew subscription
+            const response = await fetch('{{ url("/api/billing/renew") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    plan_code: planCode,
+                    amount: price
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Redirect to payment or show success
+                if (data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    // Refetch subscription status
+                    await window.pricingControls.refetchSubscriptionStatus();
+                    window.pricingControls.modal.hide();
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(data.message || 'Plan renewed successfully!');
+                    } else {
+                        alert(data.message || 'Plan renewed successfully!');
+                    }
+                    
+                    // Reload page to reflect new subscription status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
+            } else {
+                throw new Error(data.message || 'Renewal failed');
+            }
+        } catch (error) {
+            console.error('Renewal error:', error);
+            if (typeof toastr !== 'undefined') {
+                toastr.error(error.message || 'Failed to process renewal. Please try again or contact support.');
+            } else {
+                alert(error.message || 'Failed to process renewal. Please try again or contact support.');
             }
         } finally {
             // Restore button
@@ -641,8 +797,34 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 <!-- Auto-show pricing modal when subscription is required (authenticated users only) -->
 <script>
 (function() {
+    // Don't show modal if user is already on the payment page or wallet/top-up pages
+    var currentPath = window.location.pathname;
+    var isPaymentPage = currentPath.includes('/billing/payment') || 
+                        currentPath.includes('/payment') ||
+                        window.location.search.includes('plan_code=');
+    var isWalletPage = currentPath.includes('/billing/wallet') ||
+                       currentPath.includes('/wallet') ||
+                       currentPath.includes('/topup') ||
+                       currentPath.includes('/top-up') ||
+                       currentPath.includes('/credits');
+    
+    if (isPaymentPage) {
+        console.log('On payment page - skipping modal auto-show');
+        return;
+    }
+    
+    if (isWalletPage) {
+        console.log('On wallet/top-up page - skipping modal auto-show');
+        return;
+    }
+    
+    var maxRetries = 50; // Maximum 5 seconds (50 * 100ms)
+    var retryCount = 0;
+    
     function tryShowModal() {
-        if (window.pricingControls && window.pricingControls.modal) {
+        retryCount++;
+        
+        if (window.pricingControls && typeof window.pricingControls.showModal === 'function') {
             @if($isTrialExpired)
                 window.pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.', true);
             @endif
@@ -652,9 +834,11 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
             @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
                 window.pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.', true);
             @endif
-        } else {
+        } else if (retryCount < maxRetries) {
             // Retry after a short delay if pricingControls not ready yet
             setTimeout(tryShowModal, 100);
+        } else {
+            console.warn('Failed to show pricing modal - pricingControls not initialized after', retryCount, 'attempts');
         }
     }
 
@@ -671,6 +855,16 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 @endauth
 
 <style>
+/* Pricing Modal Card Headers - Ensure readability */
+#pricingControlsModal .card-header[style*="background-color"] {
+    border: none !important;
+}
+
+#pricingControlsModal .card-header[style*="background-color"] small {
+    font-weight: 600 !important;
+    letter-spacing: 0.025em;
+}
+
 /* Dark Mode - Upgrade Modal Styling */
 
 /* Modal Container */
@@ -857,6 +1051,23 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 
 .dark-mode .modal-body .card-header.bg-primary i {
     color: #ffd700 !important;
+}
+
+/* Success/Renewal Card Headers */
+.dark-mode .modal-body .card-header.bg-success,
+.dark-mode .modal-body .card-header[style*="background-color: #28a745"] {
+    background-color: #38a169 !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-body .card-header.bg-success small,
+.dark-mode .modal-body .card-header[style*="background-color: #28a745"] small {
+    color: #ffffff !important;
+}
+
+.dark-mode .modal-body .card-header.bg-success i,
+.dark-mode .modal-body .card-header[style*="background-color: #28a745"] i {
+    color: #ffffff !important;
 }
 
 .dark-mode .modal-body .card-footer {

@@ -236,13 +236,13 @@ async function fetchWalletInfo() {
             walletBalance = data.data.balance || 0;
             document.getElementById('walletBalance').innerHTML = new Intl.NumberFormat().format(walletBalance);
 
-            // Update UCN reference
+            // Check if UCN exists
             if (data.data.ucn_reference) {
                 ucnReference = data.data.ucn_reference;
-                document.getElementById('ucnNumber').textContent = ucnReference;
-                document.getElementById('copyUcnBtn').style.display = 'inline-block';
+                displayUCN(ucnReference);
             } else {
-                document.getElementById('ucnNumber').innerHTML = '<small>Loading...</small>';
+                // UCN not available, generate it
+                await generateWalletUCN();
             }
         } else {
             document.getElementById('walletBalance').textContent = '0';
@@ -253,6 +253,44 @@ async function fetchWalletInfo() {
         document.getElementById('walletBalance').textContent = '0';
         toastr.error('Failed to connect to billing service');
     }
+}
+
+// Generate wallet UCN by calling the dedicated endpoint
+async function generateWalletUCN() {
+    try {
+        document.getElementById('ucnNumber').innerHTML = '<span class="spinner-border spinner-border-sm"></span> <small>Generating...</small>';
+        
+        const response = await fetch('{{ url("/api/billing/wallet/get-ucn") }}', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.ucn) {
+            ucnReference = data.ucn;
+            displayUCN(ucnReference);
+            toastr.success(data.message || 'Payment number generated successfully');
+        } else {
+            document.getElementById('ucnNumber').innerHTML = '<small class="text-danger">Failed to generate</small>';
+            toastr.error(data.message || 'Failed to generate payment number');
+        }
+    } catch (error) {
+        console.error('UCN generation error:', error);
+        document.getElementById('ucnNumber').innerHTML = '<small class="text-danger">Error</small>';
+        toastr.error('Failed to generate payment number');
+    }
+}
+
+// Display UCN and show copy button
+function displayUCN(ucn) {
+    ucnReference = ucn;
+    document.getElementById('ucnNumber').textContent = ucn;
+    document.getElementById('copyUcnBtn').style.display = 'inline-block';
 }
 
 // Toggle payment button based on amount input
