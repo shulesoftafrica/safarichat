@@ -15,6 +15,8 @@ class BillingAccount extends Model
         'subscription_plan',
         'subscription_started_at',
         'subscription_expires_at',
+        'subscription_ucn',
+        'external_subscription_id',
         'last_billing_date',
         'next_billing_date',
         'ai_credits',

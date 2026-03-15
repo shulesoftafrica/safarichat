@@ -36,8 +36,17 @@
                                     </div>
                                     <h6 class="card-title">{{ __("billing.payment_methods.ucn.name") }}</h6>
                                     <p class="card-text text-muted small">{{ __("billing.payment_methods.ucn.description") }}</p>
-                                    <button class="btn btn-outline-success w-100 payment-btn" data-method="ucn">
-                                        <i class="fas fa-arrow-right"></i> {{ __("billing.payment_methods.ucn.button") }}
+                                    
+                                    @if($ucn)
+                                        <!-- Display UCN Number -->
+                                        <div class="ucn-display my-3 p-3 bg-light rounded">
+                                            <small class="text-muted d-block mb-1">Control Number (UCN)</small>
+                                            <h4 class="text-success mb-0 fw-bold">{{ $ucn }}</h4>
+                                        </div>
+                                    @endif
+                                    
+                                    <button class="btn btn-outline-success w-100 payment-btn" data-method="ucn" data-bs-toggle="modal" data-bs-target="#ucnInstructionsModal">
+                                        <i class="fas fa-info-circle"></i> {{ __("Show how to pay") }}
                                     </button>
                                 </div>
                             </div>
@@ -52,9 +61,15 @@
                                     </div>
                                     <h6 class="card-title">{{ __("billing.payment_methods.stripe.name") }}</h6>
                                     <p class="card-text text-muted small">{{ __("billing.payment_methods.stripe.description") }}</p>
-                                    <button class="btn btn-outline-primary w-100 payment-btn" data-method="stripe">
-                                        <i class="fas fa-credit-card"></i> {{ __("billing.payment_methods.stripe.button") }}
-                                    </button>
+                                    @if($stripe_link)
+                                        <a href="{{ $stripe_link }}" class="btn btn-outline-primary w-100" target="_blank">
+                                            <i class="fas fa-credit-card"></i> {{ __("billing.payment_methods.stripe.button") }}
+                                        </a>
+                                    @else
+                                        <button class="btn btn-outline-secondary w-100" disabled>
+                                            <i class="fas fa-credit-card"></i> {{ __("Not Available") }}
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -68,9 +83,15 @@
                                     </div>
                                     <h6 class="card-title">{{ __("billing.payment_methods.flutterwave.name") }}</h6>
                                     <p class="card-text text-muted small">{{ __("billing.payment_methods.flutterwave.description") }}</p>
-                                    <button class="btn btn-outline-warning w-100 payment-btn" data-method="flutterwave">
-                                        <i class="fas fa-mobile-alt"></i> {{ __("billing.payment_methods.flutterwave.button") }}
-                                    </button>
+                                    @if($flutterwave_link)
+                                        <a href="{{ $flutterwave_link }}" class="btn btn-outline-warning w-100" target="_blank">
+                                            <i class="fas fa-mobile-alt"></i> {{ __("billing.payment_methods.flutterwave.button") }}
+                                        </a>
+                                    @else
+                                        <button class="btn btn-outline-secondary w-100" disabled>
+                                            <i class="fas fa-mobile-alt"></i> {{ __("Not Available") }}
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -91,6 +112,83 @@
                         </a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UCN Payment Instructions Modal -->
+<div class="modal fade" id="ucnInstructionsModal" tabindex="-1" aria-labelledby="ucnInstructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="ucnInstructionsModalLabel">
+                    <i class="fas fa-university"></i> How to Pay Using Control Number (UCN)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Tanzania Notice -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle"></i> <strong>Note:</strong> This payment method is available <strong>strictly for Tanzania</strong> only.
+                </div>
+                
+                @if($ucn)
+                    <!-- UCN Display -->
+                    <div class="text-center mb-4 p-4 bg-light rounded">
+                        <p class="text-muted mb-2">Your Control Number</p>
+                        <h2 class="text-success fw-bold mb-2">{{ $ucn }}</h2>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyUCN('{{ $ucn }}')">
+                            <i class="fas fa-copy"></i> Copy Number
+                        </button>
+                    </div>
+                @endif
+                
+                <div class="payment-instructions">
+                    <h6 class="mb-3"><i class="fas fa-mobile-alt text-primary"></i> Mobile Banking</h6>
+                    <div class="instruction-card p-3 mb-4 bg-light rounded">
+                        <ol class="mb-0">
+                            <li>Dial <strong>*150*01*{{ $ucn ?? 'YOUR_CONTROL_NUMBER' }}#</strong> from your registered mobile number</li>
+                            <li>Follow the prompts on your phone</li>
+                            <li>Enter your PIN to confirm payment</li>
+                            <li>You will receive a confirmation SMS</li>
+                        </ol>
+                    </div>
+                    
+                    <h6 class="mb-3"><i class="fas fa-laptop text-primary"></i> Internet Banking</h6>
+                    <div class="instruction-card p-3 mb-4 bg-light rounded">
+                        <ol class="mb-0">
+                            <li>Login to your bank's internet banking portal</li>
+                            <li>Select "Pay Bills" or "Bill Payment"</li>
+                            <li>Enter the control number: <strong>{{ $ucn ?? 'YOUR_CONTROL_NUMBER' }}</strong></li>
+                            <li>Enter amount: <strong>TZS {{ number_format($amount ?? 0) }}</strong></li>
+                            <li>Confirm and complete the payment</li>
+                        </ol>
+                    </div>
+                    
+                    <h6 class="mb-3"><i class="fas fa-building text-primary"></i> Agent Banking / Bank Branch</h6>
+                    <div class="instruction-card p-3 mb-4 bg-light rounded">
+                        <ol class="mb-0">
+                            <li>Visit any bank agent or bank branch</li>
+                            <li>Provide the control number: <strong>{{ $ucn ?? 'YOUR_CONTROL_NUMBER' }}</strong></li>
+                            <li>Pay the amount: <strong>TZS {{ number_format($amount ?? 0) }}</strong></li>
+                            <li>Keep your receipt for reference</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-clock"></i> <strong>Important:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Payment confirmation may take up to 15 minutes</li>
+                            <li>Your subscription will be activated automatically once payment is confirmed</li>
+                            <li>Keep your payment receipt/SMS for reference</li>
+                            <li>Contact support if payment is not reflected within 24 hours</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -120,13 +218,20 @@
     align-items: center;
     justify-content: center;
 }
+
+.ucn-display {
+    border: 2px dashed #28a745;
+}
+
+.instruction-card {
+    border-left: 4px solid #007bff;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Payment method selection
     const paymentMethods = document.querySelectorAll('.payment-method');
-    const paymentButtons = document.querySelectorAll('.payment-btn');
     
     paymentMethods.forEach(method => {
         method.addEventListener('click', function() {
@@ -137,65 +242,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Payment button handlers
-    paymentButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const method = this.dataset.method;
-            processPayment(method);
-        });
-    });
-
     // Load plan features
     loadPlanFeatures('{{ $plan_code }}');
 });
 
-async function processPayment(method) {
-    const button = event.target;
-    const originalContent = button.innerHTML;
-    
-    try {
-        // Show loading state
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        button.disabled = true;
-
-        // Process payment based on method
-        const response = await fetch('{{ route("billing.process-payment") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                plan_code: '{{ $plan_code }}',
-                amount: {{ $amount }},
-                payment_method: method,
-                feature: '{{ $feature }}'
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            if (data.payment_url) {
-                // Redirect to external payment processor
-                window.location.href = data.payment_url;
-            } else if (data.redirect_url) {
-                // Redirect to internal page
-                window.location.href = data.redirect_url;
-            } else {
-                // Payment completed immediately
-                window.location.href = '{{ route("ai-agents.index") }}?upgraded=1';
-            }
-        } else {
-            throw new Error(data.message || 'Payment processing failed');
-        }
-    } catch (error) {
-        console.error('Payment error:', error);
-        alert('Payment failed: ' + error.message);
-        button.innerHTML = originalContent;
-        button.disabled = false;
-    }
+function copyUCN(ucn) {
+    navigator.clipboard.writeText(ucn).then(function() {
+        alert('Control number copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
 }
 
 async function loadPlanFeatures(planCode) {

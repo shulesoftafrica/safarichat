@@ -80,11 +80,47 @@ return [
     'billing' => [
         'api_url' => env('BILLING_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
         'access_token' => env('BILLING_ACCESS_TOKEN', ''),
-        'organization_id' => env('BILLING_ORGANIZATION_ID', ''),
+        'organization_id' => env('BILLING_ORGANIZATION_ID', '1'),
         'product_id' => env('BILLING_PRODUCT_ID', ''),
         'credits_price_plan_id' => env('BILLING_CREDITS_PRICE_PLAN_ID', '3'),
         'webhook_secret' => env('BILLING_WEBHOOK_SECRET'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
+        'price_plans' => [
+            'starter' => env('BILLING_PRICE_PLAN_STARTER', 4),
+            'pro' => env('BILLING_PRICE_PLAN_PRO', 5),
+            'premium' => env('BILLING_PRICE_PLAN_PREMIUM', 6),
+        ],
+    ],
+
+    /**
+     * Shulesoft Billing API with OAuth Authentication
+     * Handles automatic token management and refresh
+     */
+    'shulesoft_billing' => [
+        'api_url' => env('SHULESOFT_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
+        
+        // OAuth Authentication Credentials
+        'auth_email' => env('SHULESOFT_AUTH_EMAIL', 'admin@techsoft-solutions.com'),
+        'auth_password' => env('SHULESOFT_AUTH_PASSWORD', 'password123'),
+        'organization_email' => env('SHULESOFT_ORGANIZATION_EMAIL', 'shulesoftcompany@gmail.com'),
+        
+        // Organization & Product Configuration
+        'organization_id' => env('BILLING_ORGANIZATION_ID', '1'),
+        'product_id' => env('BILLING_PRODUCT_ID', ''),
+        'credits_price_plan_id' => env('BILLING_CREDITS_PRICE_PLAN_ID', '3'),
+        
+        // Webhook Configuration
+        'webhook_secret' => env('BILLING_WEBHOOK_SECRET'),
+        
+        // API Configuration
+        'timeout' => env('BILLING_API_TIMEOUT', 30),
+        
+        // Price Plans
+        'price_plans' => [
+            'starter' => env('BILLING_PRICE_PLAN_STARTER', 4),
+            'pro' => env('BILLING_PRICE_PLAN_PRO', 5),
+            'premium' => env('BILLING_PRICE_PLAN_PREMIUM', 6),
+        ],
     ],
 
 ];

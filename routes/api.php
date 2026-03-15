@@ -42,6 +42,78 @@ Route::prefix('billing')->name('api.billing.')->group(function () {
     Route::post('/verify-credits', [BillingApiController::class, 'verifyCredits'])->name('verify_credits');
     Route::post('/refresh-status', [BillingApiController::class, 'refreshStatus'])->name('refresh_status');
     Route::post('/emergency-refresh', [BillingApiController::class, 'emergencyRefresh'])->name('emergency_refresh');
+    
+    // Debug endpoints for token testing (development only)
+    Route::prefix('debug')->group(function () {
+        Route::get('/current-token', function () {
+            return response()->json([
+                'token' => config('services.billing.access_token'),
+                'api_url' => config('services.billing.api_url'),
+                'organization_id' => config('services.billing.organization_id'),
+            ]);
+        });
+        
+        Route::post('/test-token', function (Request $request) {
+            $token = $request->input('token');
+            $apiUrl = $request->input('api_url');
+            $orgId = $request->input('organization_id', 1);
+            
+            $tests = [];
+            
+            // Test 1: Products endpoint
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])->get($apiUrl . '/products');
+                
+                $tests[] = [
+                    'test' => 'Products Endpoint',
+                    'status' => $response->status(),
+                    'response' => $response->json() ?? json_decode($response->body(), true)
+                ];
+            } catch (\Exception $e) {
+                $tests[] = [
+                    'test' => 'Products Endpoint',
+                    'status' => 0,
+                    'response' => ['error' => $e->getMessage()]
+                ];
+            }
+            
+            // Test 2: Organizations endpoint
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])->get($apiUrl . '/organizations/' . $orgId);
+                
+                $tests[] = [
+                    'test' => 'Organizations Endpoint',
+                    'status' => $response->status(),
+                    'response' => $response->json() ?? json_decode($response->body(), true)
+                ];
+            } catch (\Exception $e) {
+                $tests[] = [
+                    'test' => 'Organizations Endpoint',
+                    'status' => 0,
+                    'response' => ['error' => $e->getMessage()]
+                ];
+            }
+            
+            // Test 3: Token validation
+            $tokenValid = count(array_filter($tests, fn($t) => $t['status'] === 200)) > 0;
+            
+            return response()->json([
+                'success' => $tokenValid,
+                'tests' => $tests,
+                'summary' => $tokenValid 
+                    ? 'Token is valid and working!' 
+                    : 'Token authentication failed. Please check the token or generate a new one.'
+            ]);
+        });
+    });
 });
 
 // CRM API Authentication Routes (Public and Protected)
