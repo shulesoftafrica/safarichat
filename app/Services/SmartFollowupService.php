@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\BusinessContact;
 use App\Services\AiWhatsAppService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class SmartFollowupService
@@ -35,6 +36,7 @@ class SmartFollowupService
             }
             // Get leads that are NOT closed and need followup
             // Include contacts with NO interaction (NULL) OR last interaction > 3 days ago
+            // OR last followup sent > 7 days ago (allow periodic re-engagement)
             $leadsNeedingFollowUp = Lead::whereNotIn('status', [
                                         Lead::STATUS_CLOSED, 
                                         Lead::STATUS_LOST, 
@@ -45,7 +47,11 @@ class SmartFollowupService
                                         $query->whereNull('last_interaction_at')
                                               ->orWhere('last_interaction_at', '<', now()->subDays(3));
                                     })
-                                    ->whereNull('follow_up_sent_at')
+                                    ->where(function($query) {
+                                        // Either never sent followup OR last followup > 7 days ago
+                                        $query->whereNull('follow_up_sent_at')
+                                              ->orWhere('follow_up_sent_at', '<', now()->subDays(7));
+                                    })
                                     ->with(['contact', 'conversations', 'aiSalesAgent'])
                                     ->limit(20)
                                     ->get();
@@ -58,6 +64,14 @@ class SmartFollowupService
 
             foreach ($leadsNeedingFollowUp as $lead) {
                 try {
+                    // Check if followup already sent today (prevents duplicate sends)
+                    $cacheKey = "smart_followup_sent_today_{$lead->id}";
+                    if (Cache::has($cacheKey)) {
+                        Log::info("Smart followup already sent today to lead {$lead->id}, skipping");
+                        $skipCount++;
+                        continue;
+                    }
+                    
                     if (!$lead->aiSalesAgent || !$lead->aiSalesAgent->auto_followup) {
                         $skipCount++;
                         continue;
@@ -77,6 +91,10 @@ class SmartFollowupService
                     
                     if ($sent) {
                         $lead->update(['follow_up_sent_at' => now()]);
+                        
+                        // Cache the send to prevent duplicate sends today
+                        Cache::put($cacheKey, true, now()->endOfDay());
+                        
                         $successCount++;
                         Log::info("Smart followup sent to lead {$lead->id}");
                     } else {

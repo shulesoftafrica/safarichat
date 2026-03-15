@@ -23,8 +23,86 @@ class BillingService
     
     private static function getBillingApiBase()
     {
-        // Use the configured billing API URL from services config
-        return config('services.billing.api_url', 'http://localhost/shulesoft_newversion/api/billing');
+        // Use the configured billing API URL from Shulesoft config (updated API URL)
+        return rtrim(config('services.shulesoft_billing.api_url', 'https://shulesoftapi.shulesoft.africa/api'), '/') . '/v1';
+    }
+    
+    /**
+     * Get active access token from OAuth service
+     * Uses dynamic token management with automatic refresh
+     * Falls back to static token if OAuth is unavailable
+     * 
+     * @return string Access token
+     */
+    private static function getAccessToken()
+    {
+        try {
+            $token = ShulesoftAuthService::getAccessToken();
+            
+            // If OAuth returns null (disabled due to server issues), use static token
+            if ($token === null) {
+                Log::warning('OAuth unavailable, using static token fallback');
+                return config('services.billing.access_token', '');
+            }
+            
+            return $token;
+        } catch (\Exception $e) {
+            Log::error('Failed to get access token: ' . $e->getMessage());
+            // Fallback to static token if OAuth fails
+            return config('services.billing.access_token', '');
+        }
+    }
+    
+    /**
+     * Make API request with automatic token refresh on 401 errors
+     * Handles OAuth authentication transparently
+     * 
+     * @param string $method HTTP method (GET, POST, PUT, DELETE)
+     * @param string $endpoint API endpoint
+     * @param array $data Request data/params
+     * @param int $attempt Current attempt number (for retry logic)
+     * @return \Illuminate\Http\Client\Response
+     * @throws \Exception If request fails after retry
+     */
+    private static function makeAuthenticatedRequest($method, $endpoint, $data = [], $attempt = 1)
+    {
+        $token = self::getAccessToken();
+        
+        $http = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ]);
+        
+        // Make request based on method
+        $response = match(strtoupper($method)) {
+            'GET' => $http->get($endpoint, $data),
+            'POST' => $http->post($endpoint, $data),
+            'PUT' => $http->put($endpoint, $data),
+            'DELETE' => $http->delete($endpoint, $data),
+            default => throw new \Exception("Unsupported HTTP method: {$method}")
+        };
+        
+        // Check for 401 Unauthorized - token expired
+        if ($response->status() === 401 && $attempt === 1) {
+            Log::info('Received 401 Unauthorized, attempting token refresh...');
+            
+            try {
+                // Force token refresh
+                ShulesoftAuthService::refreshAccessToken();
+                
+                // Retry the request once with new token
+                return self::makeAuthenticatedRequest($method, $endpoint, $data, 2);
+                
+            } catch (\Exception $e) {
+                Log::error('Token refresh failed: ' . $e->getMessage());
+                // Return the 401 response - caller will handle fallback
+                return $response;
+            }
+        }
+        
+        return $response;
     }
     
     /**
@@ -60,11 +138,10 @@ class BillingService
     public static function loadCompleteStatus($customerId)
     {
         try {
-            $response = Http::timeout(10)->withHeaders([
-                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->get(self::getBillingApiBase() . "/customers/{$customerId}/complete-status");
+            $response = self::makeAuthenticatedRequest(
+                'GET',
+                self::getBillingApiBase() . "/customers/{$customerId}/complete-status"
+            );
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -338,11 +415,7 @@ class BillingService
                 'query_params' => $queryParams
             ]);
             
-            $response = Http::timeout(10)->withHeaders([
-                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->get($apiUrl, $queryParams);
+            $response = self::makeAuthenticatedRequest('GET', $apiUrl, $queryParams);
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -419,14 +492,14 @@ class BillingService
         try {
             $productCode = $productCode ?? self::PRODUCT_CODE;
             
-            $response = Http::timeout(10)->withHeaders([
-                'Authorization' => 'Bearer ' . config('services.billing.access_token'),
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->get(self::getBillingApiBase() . "/products", [
-                'product_code' => $productCode,
-                'currency' => $currency
-            ]);
+            $response = self::makeAuthenticatedRequest(
+                'GET',
+                self::getBillingApiBase() . "/products",
+                [
+                    'product_code' => $productCode,
+                    'currency' => $currency
+                ]
+            );
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -762,6 +835,210 @@ class BillingService
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+    
+    /**
+     * Create/Get subscription invoice for renewal
+     * 
+     * @param User $user
+     * @param int $pricePlanId
+     * @param float $amount
+     * @param string $paymentGateway
+     * @param string $successUrl
+     * @param string $cancelUrl
+     * @return array Invoice details with payment links and UCN
+     */
+    public static function createSubscriptionInvoice($user, $pricePlanId, $amount, $paymentGateway = 'flutterwave', $successUrl = null, $cancelUrl = null)
+    {
+        try {
+            $business = $user->business;
+            $billingAccount = $business->billingAccount ?? $business->getOrCreateBillingAccount();
+            
+            // Prepare invoice data
+            $data = [
+                'organization_id' => config('services.billing.organization_id', 1),
+                'customer' => [
+                    'name' => $user->name ?? $business->name,
+                    'email' => $user->email ?? $business->email,
+                    'phone' => $user->phone ?? $business->phone,
+                ],
+                'products' => [
+                    [
+                        'price_plan_id' => $pricePlanId,
+                        'amount' => $amount
+                    ]
+                ],
+                'description' => 'SafariChat subscription renewal',
+                'currency' => 'TZS',
+                'status' => 'issued',
+                'payment_gateway' => $paymentGateway,
+                'success_url' => $successUrl ?? route('billing.success'),
+                'cancel_url' => $cancelUrl ?? route('billing.cancel')
+            ];
+
+            Log::info('Creating subscription invoice with data', [
+                'user_id' => $user->id,
+                'data' => $data
+            ]);
+            
+            $response = self::makeAuthenticatedRequest(
+                'POST',
+                self::getBillingApiBase() . '/invoices',
+                $data
+            );
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                Log::info('Billing API response for invoice creation', [
+                    'user_id' => $user->id,
+                    'status' => $response->status(),
+                    'response_structure' => array_keys($result),
+                    'has_success_key' => isset($result['success']),
+                    'has_data_key' => isset($result['data']),
+                    'data_keys' => isset($result['data']) ? array_keys($result['data']) : []
+                ]);
+                
+                if (isset($result['success']) && $result['success']) {
+                    Log::info('Subscription invoice created successfully', [
+                        'user_id' => $user->id,
+                        'invoice_id' => $result['data']['invoice']['id'] ?? $result['data']['id'] ?? null
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            Log::error('Billing API returned unsuccessful response', [
+                'user_id' => $user->id,
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('yFailed to create subscription invoice', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Upgrade subscription to a higher plan
+     * 
+     * @param int $subscriptionId
+     * @param int $newPricePlanId
+     * @param string $paymentGateway
+     * @return array Upgrade details with payment links and UCN
+     */
+    public static function upgradeSubscription($subscriptionId, $newPricePlanId, $paymentGateway = 'flutterwave')
+    {
+        try {
+            $data = [
+                'subscription_id' => $subscriptionId,
+                'new_price_plan_id' => $newPricePlanId,
+                'payment_gateway' => $paymentGateway
+            ];
+            
+            $response = self::makeAuthenticatedRequest(
+                'POST',
+                self::getBillingApiBase() . '/invoices/plan-upgrade',
+                $data
+            );
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                if ($result['success']) {
+                    Log::info('Subscription upgraded successfully', [
+                        'subscription_id' => $subscriptionId,
+                        'new_plan_id' => $newPricePlanId
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to upgrade subscription', [
+                'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Downgrade subscription to a lower plan
+     * 
+     * @param int $subscriptionId
+     * @param int $newPricePlanId
+     * @param bool $applyCredit
+     * @return array Downgrade details
+     */
+    public static function downgradeSubscription($subscriptionId, $newPricePlanId, $applyCredit = true)
+    {
+        try {
+            $data = [
+                'subscription_id' => $subscriptionId,
+                'new_price_plan_id' => $newPricePlanId,
+                'apply_credit' => $applyCredit
+            ];
+            
+            $response = self::makeAuthenticatedRequest(
+                'POST',
+                self::getBillingApiBase() . '/invoices/plan-downgrade',
+                $data
+            );
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                if ($result['success']) {
+                    Log::info('Subscription downgraded successfully', [
+                        'subscription_id' => $subscriptionId,
+                        'new_plan_id' => $newPricePlanId
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to downgrade subscription', [
+                'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
 }

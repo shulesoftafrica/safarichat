@@ -20,6 +20,7 @@ class BillingController extends Controller
         $planCode = $request->input('plan_code');
         $amount = $request->input('amount');
         $feature = $request->input('feature');
+        $renewal = $request->input('renewal', 0); // 0 = upgrade, 1 = renewal
 
         // Validate required parameters
         if (!$planCode || !$amount) {
@@ -31,12 +32,287 @@ class BillingController extends Controller
         if (!in_array($planCode, $validPlans)) {
             return redirect()->route('ai-agents.index')->with('error', 'Invalid plan selected');
         }
-
-        return view('billing.payment', [
+        
+        $user = Auth::user();
+        $business = $user->business;
+        $billingAccount = $business->billingAccount ?? $business->getOrCreateBillingAccount();
+        
+        $paymentData = [
             'plan_code' => $planCode,
             'amount' => $amount,
-            'feature' => $feature
-        ]);
+            'feature' => $feature,
+            'ucn' => null,
+            'flutterwave_link' => null,
+            'stripe_link' => null,
+            'subscription_ucn' => $billingAccount->subscription_ucn
+        ];
+        
+        try {
+            if ($renewal == 1) {
+                // RENEWAL FLOW
+                // a) Check if subscription_ucn already exists in billing_accounts
+                if ($billingAccount->subscription_ucn) {
+                    $paymentData['ucn'] = $billingAccount->subscription_ucn;
+                    Log::info('Using existing subscription UCN for renewal', [
+                        'user_id' => $user->id,
+                        'ucn' => $billingAccount->subscription_ucn
+                    ]);
+                }
+                
+                // b) Fetch subscription status from billing API
+                $pricePlanId = $this->getPricePlanIdForPlan($planCode);
+                $invoiceResult = \App\Services\BillingService::createSubscriptionInvoice(
+                    $user,
+                    $pricePlanId,
+                    $amount,
+                    'flutterwave',
+                    route('billing.success', ['plan' => $planCode]),
+                    route('billing.cancel', ['plan' => $planCode])
+                );
+                
+                if ($invoiceResult['success'] && isset($invoiceResult['data'])) {
+                    // Handle both possible response structures
+                    $invoiceData = $invoiceResult['data']['invoice'] ?? $invoiceResult['data'];
+                    
+                    Log::info('Processing renewal invoice data - RAW STRUCTURE', [
+                        'user_id' => $user->id,
+                        'has_invoice_key_in_result' => isset($invoiceResult['data']['invoice']),
+                        'invoice_data_keys' => array_keys($invoiceData),
+                        'full_invoice_data' => $invoiceData
+                    ]);
+                    
+                    // Check if invoice is nested
+                    if (isset($invoiceData['invoice'])) {
+                        $actualInvoice = $invoiceData['invoice'];
+                        $paymentDetails = $actualInvoice['payment_details'] ?? [];
+                    } else {
+                        $actualInvoice = $invoiceData;
+                        $paymentDetails = $invoiceData['payment_details'] ?? [];
+                    }
+                    
+                    // Check payment_gateways if payment_details not found
+                    if (empty($paymentDetails) && isset($invoiceData['payment_gateways'])) {
+                        $paymentDetails = $invoiceData['payment_gateways'];
+                    }
+                    
+                    Log::info('Extracted payment details', [
+                        'user_id' => $user->id,
+                        'payment_details_keys' => $paymentDetails ? array_keys($paymentDetails) : [],
+                        'payment_details' => $paymentDetails
+                    ]);
+                    
+                    // Extract payment links and UCN
+                    // Check both payment_details and payment_gateways structure
+                    if (isset($paymentDetails['flutterwave']['payment_link'])) {
+                        $paymentData['flutterwave_link'] = $paymentDetails['flutterwave']['payment_link'];
+                    } elseif (isset($paymentDetails['flutterwave']['hosted_link'])) {
+                        $paymentData['flutterwave_link'] = $paymentDetails['flutterwave']['hosted_link'];
+                    }
+                    
+                    if (isset($paymentDetails['stripe']['payment_link'])) {
+                        $paymentData['stripe_link'] = $paymentDetails['stripe']['payment_link'];
+                    } elseif (isset($paymentDetails['stripe']['hosted_link'])) {
+                        $paymentData['stripe_link'] = $paymentDetails['stripe']['hosted_link'];
+                    }
+                    
+                    if (isset($paymentDetails['control_number']['reference'])) {
+                        $paymentData['ucn'] = $paymentDetails['control_number']['reference'];
+                    } elseif (isset($paymentDetails['control_number']['control_number'])) {
+                        $paymentData['ucn'] = $paymentDetails['control_number']['control_number'];
+                    }
+                    
+                    // Also check if UCN is in the invoice directly
+                    if (empty($paymentData['ucn']) && isset($actualInvoice['control_number'])) {
+                        $paymentData['ucn'] = $actualInvoice['control_number'];
+                    }
+                    
+                    Log::info('Extracted payment data', [
+                        'user_id' => $user->id,
+                        'has_flutterwave' => !empty($paymentData['flutterwave_link']),
+                        'has_stripe' => !empty($paymentData['stripe_link']),
+                        'has_ucn' => !empty($paymentData['ucn']),
+                        'ucn' => $paymentData['ucn'] ?? null
+                    ]);
+                    
+                    // c) Update subscription_ucn if it's null
+                    if (!$billingAccount->subscription_ucn && !empty($paymentData['ucn'])) {
+                        $billingAccount->update(['subscription_ucn' => $paymentData['ucn']]);
+                        Log::info('Updated subscription UCN in billing_accounts', [
+                            'user_id' => $user->id,
+                            'ucn' => $paymentData['ucn']
+                        ]);
+                    }
+                    
+                    // Store subscription_id if available
+                    $subscriptionId = $actualInvoice['subscription_id'] ?? $actualInvoice['subscription']['id'] ?? null;
+                    if ($subscriptionId && !$billingAccount->external_subscription_id) {
+                        $billingAccount->update(['external_subscription_id' => $subscriptionId]);
+                    }
+                } else {
+                    Log::warning('xFailed to create subscription invoice', [
+                        'user_id' => $user->id,
+                        'error' => $invoiceResult['error'] ?? 'Unknown error'
+                    ]);
+                }
+                
+            } else {
+                // UPGRADE FLOW
+                // Check if we have external subscription ID
+                if (!$billingAccount->external_subscription_id) {
+                    Log::warning('No external subscription ID found for upgrade', ['user_id' => $user->id]);
+                    // Fallback to creating a new subscription invoice
+                    $pricePlanId = $this->getPricePlanIdForPlan($planCode);
+                    $invoiceResult = \App\Services\BillingService::createSubscriptionInvoice(
+                        $user,
+                        $pricePlanId,
+                        $amount,
+                        'flutterwave',
+                        route('billing.success', ['plan' => $planCode]),
+                        route('billing.cancel', ['plan' => $planCode])
+                    );
+                } else {
+                    // a) Call upgrade method from billing API
+                    $pricePlanId = $this->getPricePlanIdForPlan($planCode);
+                    $invoiceResult = \App\Services\BillingService::upgradeSubscription(
+                        $billingAccount->external_subscription_id,
+                        $pricePlanId,
+                        'flutterwave'
+                    );
+                }
+                
+                if ($invoiceResult['success'] && isset($invoiceResult['data'])) {
+                    // Handle both possible response structures
+                    $invoiceData = $invoiceResult['data']['invoice'] ?? $invoiceResult['data'];
+                    
+                    Log::info('Processing upgrade invoice data - RAW STRUCTURE', [
+                        'user_id' => $user->id,
+                        'has_invoice_key_in_result' => isset($invoiceResult['data']['invoice']),
+                        'invoice_data_keys' => array_keys($invoiceData),
+                        'full_invoice_data' => $invoiceData
+                    ]);
+                    
+                    // Check if invoice is nested
+                    if (isset($invoiceData['invoice'])) {
+                        $actualInvoice = $invoiceData['invoice'];
+                        $paymentDetails = $actualInvoice['payment_details'] ?? [];
+                        $pricePlans = $actualInvoice['price_plans'] ?? [];
+                    } else {
+                        $actualInvoice = $invoiceData;
+                        $paymentDetails = $invoiceData['payment_details'] ?? [];
+                        $pricePlans = $invoiceData['price_plans'] ?? [];
+                    }
+                    
+                    // Check payment_gateways if payment_details not found
+                    if (empty($paymentDetails) && isset($invoiceData['payment_gateways'])) {
+                        $paymentDetails = $invoiceData['payment_gateways'];
+                    }
+                    
+                    Log::info('Extracted payment details for upgrade', [
+                        'user_id' => $user->id,
+                        'payment_details_keys' => $paymentDetails ? array_keys($paymentDetails) : [],
+                        'price_plans_count' => count($pricePlans),
+                        'payment_details' => $paymentDetails
+                    ]);
+                    
+                    // Extract payment links and UCN from payment_details first
+                    if (isset($paymentDetails['flutterwave']['payment_link'])) {
+                        $paymentData['flutterwave_link'] = $paymentDetails['flutterwave']['payment_link'];
+                    } elseif (isset($paymentDetails['flutterwave']['hosted_link'])) {
+                        $paymentData['flutterwave_link'] = $paymentDetails['flutterwave']['hosted_link'];
+                    }
+                    
+                    if (isset($paymentDetails['stripe']['payment_link'])) {
+                        $paymentData['stripe_link'] = $paymentDetails['stripe']['payment_link'];
+                    } elseif (isset($paymentDetails['stripe']['hosted_link'])) {
+                        $paymentData['stripe_link'] = $paymentDetails['stripe']['hosted_link'];
+                    }
+                    
+                    if (isset($paymentDetails['control_number']['reference'])) {
+                        $paymentData['ucn'] = $paymentDetails['control_number']['reference'];
+                    } elseif (isset($paymentDetails['control_number']['control_number'])) {
+                        $paymentData['ucn'] = $paymentDetails['control_number']['control_number'];
+                    }
+                    
+                    // Extract payment gateways from price plans if not found above
+                    if (empty($paymentData['flutterwave_link']) || empty($paymentData['ucn'])) {
+                        foreach ($pricePlans as $plan) {
+                            $gateways = $plan['payment_gateways'] ?? [];
+                            foreach ($gateways as $gateway) {
+                                if (empty($paymentData['flutterwave_link']) && $gateway['gateway_name'] === 'Flutterwave' && isset($gateway['references'])) {
+                                    $paymentData['flutterwave_link'] = $gateway['references'];
+                                }
+                                if (empty($paymentData['ucn']) && $gateway['gateway_name'] === 'Universal Control Number' && isset($gateway['references'])) {
+                                    $paymentData['ucn'] = $gateway['references'];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Also check if UCN is in the invoice directly
+                    if (empty($paymentData['ucn']) && isset($actualInvoice['control_number'])) {
+                        $paymentData['ucn'] = $actualInvoice['control_number'];
+                    }
+                    
+                    Log::info('Extracted payment data for upgrade', [
+                        'user_id' => $user->id,
+                        'has_flutterwave' => !empty($paymentData['flutterwave_link']),
+                        'has_stripe' => !empty($paymentData['stripe_link']),
+                        'has_ucn' => !empty($paymentData['ucn']),
+                        'ucn' => $paymentData['ucn'] ?? null
+                    ]);
+                    
+                    // b) Update subscription_ucn if it's null
+                    if (!$billingAccount->subscription_ucn && !empty($paymentData['ucn'])) {
+                        $billingAccount->update(['subscription_ucn' => $paymentData['ucn']]);
+                        Log::info('Updated subscription UCN in billing_accounts for upgrade', [
+                            'user_id' => $user->id,
+                            'ucn' => $paymentData['ucn']
+                        ]);
+                    }
+                    
+                    // Store subscription_id if available
+                    $subscriptionId = $actualInvoice['subscription_id'] ?? null;
+                    $subscriptions = $invoiceData['subscriptions'] ?? [];
+                    if (!$subscriptionId && !empty($subscriptions)) {
+                        $subscriptionId = $subscriptions[0]['id'] ?? null;
+                    }
+                    if ($subscriptionId && !$billingAccount->external_subscription_id) {
+                        $billingAccount->update(['external_subscription_id' => $subscriptionId]);
+                    }
+                } else {
+                    Log::warning('Failed to upgrade subscription', [
+                        'user_id' => $user->id,
+                        'error' => $invoiceResult['error'] ?? 'Unknown error'
+                    ]);
+                }
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error in showPayment', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
+        return view('billing.payment', $paymentData);
+    }
+    
+    /**
+     * Get price plan ID for a given plan code
+     * This should match the external billing system's price plan IDs
+     */
+    private function getPricePlanIdForPlan($planCode)
+    {
+        // Map plan codes to external price plan IDs
+        // These should be configured based on your billing system
+        $planMapping = [
+            'starter' => config('services.billing.price_plans.starter', 4),
+            'pro' => config('services.billing.price_plans.pro', 5),
+            'premium' => config('services.billing.price_plans.premium', 6),
+        ];
+        
+        return $planMapping[$planCode] ?? 8;
     }
 
     /**

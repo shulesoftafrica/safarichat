@@ -306,17 +306,30 @@ class Kernel extends ConsoleKernel {
                 $this->logCronActivity(null, 'Contact conversion failed', 'error');
             });
         
-        // Daily outreach campaign - twice daily (9 AM and 2 PM)
-        $schedule->command('ai-agent:daily-outreach --limit=50')
-            ->twiceDaily(9, 14)
+        // DISABLED: Old generic outreach - replaced with smart intelligent followup
+        // $schedule->command('ai-agent:daily-outreach --limit=50')
+        //     ->twiceDaily(9, 14)
+        //     ->withoutOverlapping()
+        //     ->runInBackground()
+        //     ->appendOutputTo(storage_path('logs/daily-outreach.log'))
+        //     ->onSuccess(function () {
+        //         $this->logCronActivity(null, 'Daily outreach campaign completed');
+        //     })
+        //     ->onFailure(function () {
+        //         $this->logCronActivity(null, 'Daily outreach campaign failed', 'error');
+        //     });
+
+        // Smart AI Followup - Intelligent, context-aware lead outreach (replaces DailyOutreachCommand)
+        $schedule->command('followup:smart')
+            ->dailyAt('10:00') // Once daily at 10 AM
             ->withoutOverlapping()
             ->runInBackground()
-            ->appendOutputTo(storage_path('logs/daily-outreach.log'))
+            ->appendOutputTo(storage_path('logs/smart-followup.log'))
             ->onSuccess(function () {
-                $this->logCronActivity(null, 'Daily outreach campaign completed');
+                $this->logCronActivity(null, 'Smart AI followup completed successfully');
             })
             ->onFailure(function () {
-                $this->logCronActivity(null, 'Daily outreach campaign failed', 'error');
+                $this->logCronActivity(null, 'Smart AI followup failed', 'error');
             });
 
         // Process conversation queue every 5 minutes

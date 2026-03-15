@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use App\Services\BillingService;
+use App\Services\ShulesoftAuthService;
 use App\Services\LocalBillingValidator;
 use App\Services\LocalCreditManager;
 use App\Models\User;
@@ -22,6 +23,72 @@ use App\Models\Business;
  */
 class BillingApiController extends Controller
 {
+    /**
+     * Get active access token with automatic refresh
+     * Falls back to static token if OAuth fails or is unavailable
+     * 
+     * @return string Access token
+     */
+    private function getAccessToken()
+    {
+        try {
+            $token = ShulesoftAuthService::getAccessToken();
+            
+            // If OAuth returns null (disabled due to server issues), use static token
+            if ($token === null) {
+                Log::warning('OAuth unavailable, using static token fallback');
+                return config('services.billing.access_token', '');
+            }
+            
+            return $token;
+        } catch (\Exception $e) {
+            Log::warning('Failed to get OAuth token, using fallback: ' . $e->getMessage());
+            return config('services.billing.access_token', '');
+        }
+    }
+    
+    /**
+     * Make authenticated API request with token refresh on 401
+     * 
+     * @param string $method HTTP method
+     * @param string $url Full URL
+     * @param array $data Request data
+     * @param int $attempt Current attempt number
+     * @return \Illuminate\Http\Client\Response
+     */
+    private function makeAuthenticatedRequest($method, $url, $data = [], $attempt = 1)
+    {
+        $token = $this->getAccessToken();
+        
+        $http = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ]);
+        
+        $response = match(strtoupper($method)) {
+            'GET' => $http->get($url, $data),
+            'POST' => $http->post($url, $data),
+            'PUT' => $http->put($url, $data),
+            'DELETE' => $http->delete($url, $data),
+            default => throw new \Exception("Unsupported HTTP method: {$method}")
+        };
+        
+        // Check for 401 and retry once with refreshed token
+        if ($response->status() === 401 && $attempt === 1) {
+            Log::info('Received 401, attempting token refresh...');
+            try {
+                ShulesoftAuthService::refreshAccessToken();
+                return $this->makeAuthenticatedRequest($method, $url, $data, 2);
+            } catch (\Exception $e) {
+                Log::error('Token refresh failed: ' . $e->getMessage());
+                return $response;
+            }
+        }
+        
+        return $response;
+    }
+    
     /**
      * ONE-TIME: Configure product and plans (setup only)
      */
@@ -561,7 +628,6 @@ class BillingApiController extends Controller
             
             // Step 2: Create invoice using new Shulesoft API
             $billingApiUrl = config('services.billing.api_url');
-            $accessToken = config('services.billing.access_token');
             $organizationId = config('services.billing.organization_id');
             
             $invoiceData = [
@@ -582,11 +648,7 @@ class BillingApiController extends Controller
                 'status' => 'issued'
             ];
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->post($billingApiUrl . '/invoices', $invoiceData);
+            $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/invoices', $invoiceData);
 
             if ($response->successful()) {
                 $invoiceResponse = $response->json();
@@ -723,7 +785,6 @@ class BillingApiController extends Controller
             
             // Step 2: Create renewal invoice using new Shulesoft API
             $billingApiUrl = config('services.billing.api_url');
-            $accessToken = config('services.billing.access_token');
             $organizationId = config('services.billing.organization_id');
             
             $invoiceData = [
@@ -744,11 +805,7 @@ class BillingApiController extends Controller
                 'status' => 'issued'
             ];
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->post($billingApiUrl . '/invoices', $invoiceData);
+            $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/invoices', $invoiceData);
 
             if ($response->successful()) {
                 $invoiceResponse = $response->json();
@@ -1102,7 +1159,6 @@ class BillingApiController extends Controller
             if (!$ucn) {
                 // Create invoice to get UCN
                 $billingApiUrl = config('services.billing.api_url');
-                $accessToken = config('services.billing.access_token');
                 $organizationId = config('services.billing.organization_id');
                 $creditsPricePlanId = config('services.billing.credits_price_plan_id');
                 
@@ -1124,11 +1180,7 @@ class BillingApiController extends Controller
                     'status' => 'issued'
                 ];
 
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $accessToken,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])->post($billingApiUrl . '/invoices', $invoiceData);
+                $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/invoices', $invoiceData);
 
                 if ($response->successful()) {
                     $invoiceResponse = $response->json();
@@ -1212,9 +1264,24 @@ class BillingApiController extends Controller
         // Create credit invoice to get UCN
         try {
             $billingApiUrl = config('services.billing.api_url');
-            $accessToken = config('services.billing.access_token');
             $organizationId = config('services.billing.organization_id');
-            $creditsPricePlanId = config('services.billing.credits_price_plan_id');
+            
+            // Get access token
+            $accessToken = $this->getAccessToken();
+            
+            // Create or get the AI Credits product and price plan ID
+            $creditsProduct = $this->createOrGetCreditsProduct();
+            $creditsPricePlanId = $creditsProduct['price_plan_id'];
+            
+            if (!$creditsPricePlanId) {
+                throw new \Exception('Failed to get credits price plan ID');
+            }
+            
+            Log::info('Using credits product for UCN generation', [
+                'user_id' => $user->id,
+                'product_id' => $creditsProduct['product_id'],
+                'price_plan_id' => $creditsPricePlanId
+            ]);
             
             // Create invoice with minimal amount to get UCN
             $invoiceData = [
@@ -1235,11 +1302,7 @@ class BillingApiController extends Controller
                 'status' => 'issued'
             ];
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])->post($billingApiUrl . '/invoices', $invoiceData);
+            $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/invoices', $invoiceData);
 
             if ($response->successful()) {
                 $invoiceResponse = $response->json();
@@ -1318,19 +1381,96 @@ class BillingApiController extends Controller
     }
 
     /**
+     * Create or get SafariChat AI Credits usage-based product
+     */
+    private function createOrGetCreditsProduct()
+    {
+        $billingApiUrl = config('services.billing.api_url');
+        $organizationId = config('services.billing.organization_id');
+        
+        // Check if we have cached product ID
+        $cachedProductId = Cache::get('safarichat_credits_product_id');
+        $cachedPricePlanId = Cache::get('safarichat_credits_price_plan_id');
+        
+        if ($cachedProductId && $cachedPricePlanId) {
+            Log::info('Using cached credits product', [
+                'product_id' => $cachedProductId,
+                'price_plan_id' => $cachedPricePlanId
+            ]);
+            return [
+                'product_id' => $cachedProductId,
+                'price_plan_id' => $cachedPricePlanId
+            ];
+        }
+        
+        // Create usage-based product for AI Credits
+        $productData = [
+            'organization_id' => $organizationId,
+            'product_type_id' => 3, // Usage Product type
+            'name' => 'SafariChat AI Credits',
+            'product_code' => 'SAFARICHAT-AI-CREDITS',
+            'description' => 'Prepaid AI credits for SafariChat messaging and automation',
+            'unit' => 'Credit',
+            'active' => true,
+            'price_plans' => [
+                [
+                    'name' => 'AI Credit Package',
+                    'currency_id' => 1, // TZS
+                    'rate' => 1 // 1 TZS per credit
+                ]
+            ]
+        ];
+        
+        $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/products', $productData);
+        
+        if ($response->successful()) {
+            $responseData = $response->json();
+            $productId = $responseData['data']['id'] ?? null;
+            $pricePlanId = $responseData['data']['price_plans'][0]['id'] ?? null;
+            
+            if ($productId && $pricePlanId) {
+                // Cache for 30 days
+                Cache::put('safarichat_credits_product_id', $productId, now()->addDays(30));
+                Cache::put('safarichat_credits_price_plan_id', $pricePlanId, now()->addDays(30));
+                
+                Log::info('Created new credits product', [
+                    'product_id' => $productId,
+                    'price_plan_id' => $pricePlanId,
+                    'response' => $responseData
+                ]);
+                
+                return [
+                    'product_id' => $productId,
+                    'price_plan_id' => $pricePlanId
+                ];
+            }
+        } else {
+            Log::error('Failed to create credits product', [
+                'status_code' => $response->status(),
+                'response_body' => $response->body()
+            ]);
+        }
+        
+        // Fallback to config if creation fails
+        return [
+            'product_id' => null,
+            'price_plan_id' => config('services.billing.credits_price_plan_id')
+        ];
+    }
+
+    /**
      * Fetch price plan from billing platform
      */
     private function fetchPricePlan($planCode)
     {
         $billingApiUrl = config('services.billing.api_url');
-        $accessToken = config('services.billing.access_token');
         $productId = config('services.billing.product_id');
         
         // Get all price plans for the product
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $accessToken,
-            'Accept' => 'application/json'
-        ])->get($billingApiUrl . '/products/' . $productId . '/price-plans');
+        $response = $this->makeAuthenticatedRequest(
+            'GET',
+            $billingApiUrl . '/products/' . $productId . '/price-plans'
+        );
         
         if ($response->successful()) {
             $pricePlans = $response->json()['data'];
