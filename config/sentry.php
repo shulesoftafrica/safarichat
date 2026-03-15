@@ -139,45 +139,10 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Before Send Callback
-    |--------------------------------------------------------------------------
-    |
-    | This callback is called before an event is sent to Sentry. You can use
-    | it to filter out events that you don't want to send, or to modify the
-    | event data before it's sent.
-    |
+    | NOTE: before_send and before_send_transaction callbacks have been removed
+    | because closures are not compatible with Laravel's config:cache command.
+    | Implement event filtering in app/Exceptions/Handler.php if needed.
     */
-
-    'before_send' => function (\Sentry\Event $event, ?\Sentry\EventHint $hint): ?\Sentry\Event {
-        // Filter out queue connection errors in development
-        if (app()->environment('local')) {
-            $exceptions = $event->getExceptions();
-            foreach ($exceptions as $exception) {
-                if (str_contains($exception->getValue(), 'Connection refused') && 
-                    str_contains($exception->getValue(), 'redis')) {
-                    return null; // Don't send Redis connection errors in local development
-                }
-            }
-        }
-
-        return $event;
-    },
-
-    /*
-    |--------------------------------------------------------------------------
-    | Before Send Transaction Callback
-    |--------------------------------------------------------------------------
-    |
-    | This callback is called before a transaction is sent to Sentry. You can
-    | use it to filter out transactions that you don't want to send, or to
-    | modify the transaction data before it's sent.
-    |
-    */
-
-    'before_send_transaction' => function (\Sentry\Event $transaction, ?\Sentry\EventHint $hint): ?\Sentry\Event {
-        return $transaction;
-    },
 
     /*
     |--------------------------------------------------------------------------

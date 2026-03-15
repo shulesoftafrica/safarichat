@@ -260,18 +260,7 @@ Route::middleware('auth:sanctum')->prefix('crm')->name('api.crm.')->group(functi
     Route::post('/webhooks/updates', [CrmSyncApiController::class, 'handleWebhookUpdates'])->name('webhooks.updates');
 });
 
-// Conversation Management API Routes - Phase 2 CRM Integration
-Route::middleware('auth:sanctum')->prefix('conversations')->name('api.conversations.')->group(function () {
-    // Conversation CRUD
-    Route::post('/', [ConversationApiController::class, 'store'])->name('store');
-    Route::get('/{leadId}', [ConversationApiController::class, 'index'])->name('index');
-    Route::get('/detail/{id}', [ConversationApiController::class, 'show'])->name('show');
-    Route::put('/{id}', [ConversationApiController::class, 'update'])->name('update');
-    
-    // Analytics and search
-    Route::get('/analytics', [ConversationApiController::class, 'analytics'])->name('analytics');
-    Route::get('/search', [ConversationApiController::class, 'search'])->name('search');
-});
+// REMOVED DUPLICATE: Conversation routes already defined at line 237
 
 // External CRM Sync API Routes - Phase 2 CRM Integration
 Route::middleware('auth:sanctum')->prefix('crm')->name('api.crm.')->group(function () {
