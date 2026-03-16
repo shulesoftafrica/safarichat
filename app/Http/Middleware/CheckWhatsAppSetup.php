@@ -31,7 +31,8 @@ class CheckWhatsAppSetup
             'wasender/verify-connection',
             'wasender/cleanup-session',
             'logout',
-            'lang'
+            'lang',
+            'home/settings'  // Allow settings access for configuration
         ];
 
         foreach ($allowedPaths as $path) {
