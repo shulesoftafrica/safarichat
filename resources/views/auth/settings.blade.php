@@ -716,7 +716,7 @@ body:not(.dark-mode) .billing-card-header {
                                                     <i class="las la-plus"></i> Add New User
                                                 </button>
                                             @else
-                                                <button type="button" class="btn btn-warning" onclick="showUpgradeModal('team_members', 'You have reached the maximum number of team members ({{ $max_users }}) for your {{ ucfirst($subscription_plan) }} plan. Upgrade to add more users.', true)">
+                                                <button type="button" class="btn btn-warning" onclick="showUpgradeModal('team_members', 'You have reached the maximum number of team members ({{ $max_users }}) for your {{ ucfirst($subscription_plan) }} plan. Upgrade to add more users.', false)">
                                                     <i class="las la-arrow-up"></i> Upgrade to Add More
                                                 </button>
                                             @endif
