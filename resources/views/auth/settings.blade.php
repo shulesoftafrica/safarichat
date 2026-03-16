@@ -705,13 +705,21 @@ body:not(.dark-mode) .billing-card-header {
                             <div class="tab-content mo-mt-2" id="v-pills-tabContent">
                                 <div class="tab-pane fade active show" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab">
                                     <div class="table-responsive">
-                                        <h4 class="mt-0 header-title">{{ __("settings.user_accounts.title") }}</h4>
-                                        <p class="text-muted mb-3">{{ __("settings.user_accounts.description") }}</p>
-                                        <div>
-                                            <p> 
-                    
-
-                                            </p>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <div>
+                                                <h4 class="mt-0 header-title mb-1">{{ __("settings.user_accounts.title") }}</h4>
+                                                <p class="text-muted mb-0">{{ __("settings.user_accounts.description") }}</p>
+                                                <small class="text-muted">Users: {{ $current_user_count }} / {{ $max_users }}</small>
+                                            </div>
+                                            @if($current_user_count < $max_users)
+                                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addUserModal">
+                                                    <i class="las la-plus"></i> Add New User
+                                                </button>
+                                            @else
+                                                <button type="button" class="btn btn-warning" onclick="alert('User limit reached! Upgrade your plan to add more users.'); window.location.href='#availablePlansSection'">
+                                                    <i class="las la-arrow-up"></i> Upgrade to Add More
+                                                </button>
+                                            @endif
                                         </div>
                                         <table class="table-standard mb-0">
                                             <thead class="thead-light">
@@ -720,6 +728,7 @@ body:not(.dark-mode) .billing-card-header {
                                                     <th>{{ __("settings.user_accounts.table.name") }}</th>
                                                     <th>{{ __("settings.user_accounts.table.email") }}</th>
                                                     <th>{{ __("settings.user_accounts.table.phone") }}</th>
+                                                    <th>Role</th>
                                                     <th>{{ __("settings.user_accounts.table.date_registered") }}</th>
                                                     <th>{{ __("settings.user_accounts.table.action") }}</th>
                                                 </tr>
@@ -728,20 +737,31 @@ body:not(.dark-mode) .billing-card-header {
                                                 <?php
                                                 $i = 1;
                                                 foreach ($user_accounts as $account) {
+                                                    $isOwner = $account->user->id == $business->user_id;
+                                                    $isCurrentUser = $account->user->id == Auth::user()->id;
                                                     ?>
                                                     <tr>
                                                         <th><?= $i ?></th>
-                                                        <th><?= $account->user->name ?></th>
+                                                        <th>
+                                                            <?= $account->user->name ?>
+                                                            @if($isOwner)
+                                                                <span class="badge badge-success ml-1">Owner</span>
+                                                            @endif
+                                                        </th>
                                                         <th><?= $account->user->email ?></th>
                                                         <th><?= $account->user->phone ?></th>
+                                                        <th><?= ucfirst($account->user->role ?? 'owner') ?></th>
                                                         <th><?= date('d M Y', strtotime($account->user->created_at)) ?></th>
                                                         <th>
-                                                            <?php
-                                                            if ($account->user->id == Auth::user()->id) {
-                                                                ?>
-                                                                <a onclick="editGuest('<?= $account->user->id ?>')" data-toggle="modal" href="#user_accounts"><i class="las la-pen text-info font-18"></i> {{ __("settings.user_accounts.action.edit") }}</a>
-                                                            <?php } ?>
-                                                            <!-- <a href="#"> <i class="las la-trash-alt text-danger font-18"></i> Delete</a> -->
+                                                            @if($isCurrentUser)
+                                                                <a onclick="editGuest('<?= $account->user->id ?>')" data-toggle="modal" href="#user_accounts">
+                                                                    <i class="las la-pen text-info font-18"></i> {{ __("settings.user_accounts.action.edit") }}
+                                                                </a>
+                                                            @elseif(!$isOwner)
+                                                                <a href="javascript:void(0)" onclick="deleteUser(<?= $account->user->id ?>, '<?= $account->user->name ?>')">
+                                                                    <i class="las la-trash-alt text-danger font-18"></i> Delete
+                                                                </a>
+                                                            @endif
                                                         </th>
                                                     </tr>
                                                     <?php
@@ -1305,6 +1325,56 @@ body:not(.dark-mode) .billing-card-header {
 
     </div>
 </div>
+
+<!-- Add New User Modal -->
+<div class="modal fade planner-modal-bx" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">×</span>
+    </button>
+    <div class="modal-dialog" role="document">
+        <form class="modal-content start-here" action="<?= url('home/settings') ?>" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mt-0">Add New Team Member</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new_user_name" class="col-form-label">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" id="new_user_name" name="name" class="form-control" placeholder="Enter full name" required="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_user_email" class="col-form-label">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" id="new_user_email" name="email" class="form-control" placeholder="email@example.com" required="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_user_phone" class="col-form-label">Phone Number <span class="text-danger">*</span></label>
+                        <input type="tel" id="new_user_phone" name="phone" class="form-control" placeholder="+255XXXXXXXXX" required="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_user_password" class="col-form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" id="new_user_password" name="password" class="form-control" placeholder="Minimum 6 characters" required="" minlength="6">
+                        <small class="text-muted">User will use this password to login</small>
+                    </div>
+                </div>
+
+                <div class="modal-footer text-center">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="table" value="add_user"/>
+                    <button type="button" class="btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-primary">Add User</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Sweet-Alert  -->
 <!--<script src="../plugins/sweet-alert2/sweetalert2.min.js"></script>
 <script src="../assets/pages/jquery.sweet-alert.init.js"></script>-->
@@ -1313,6 +1383,36 @@ body:not(.dark-mode) .billing-card-header {
     function editGuest(a) {
         $('#edit_guest_name').val($('#category' + a).text());
         $('#edit_id').val(a);
+    }
+    
+    function deleteUser(userId, userName) {
+        if (confirm('Are you sure you want to delete ' + userName + '? This action cannot be undone.')) {
+            // Create form and submit
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= url('home/settings') ?>';
+            
+            var csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = '<?= csrf_token() ?>';
+            form.appendChild(csrfInput);
+            
+            var tableInput = document.createElement('input');
+            tableInput.type = 'hidden';
+            tableInput.name = 'table';
+            tableInput.value = 'delete_user';
+            form.appendChild(tableInput);
+            
+            var userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            form.appendChild(userIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
     
     function setCriteria(value) {

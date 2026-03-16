@@ -49,6 +49,15 @@ class Business extends Model
     }
 
     /**
+     * Get team members for this business
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function teamMembers()
+    {
+        return $this->hasMany('App\Models\User', 'parent_business_id');
+    }
+
+    /**
      * Get the billing account (single source of truth for billing)
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */

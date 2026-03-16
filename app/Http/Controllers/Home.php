@@ -394,17 +394,32 @@ class Home extends Controller
             ]);
         }
         $this->data['business'] = $userBusiness;
-        // Create proper structure for user_accounts with user relationship
-        $this->data['user_accounts'] = collect([Auth::user()])->map(function($user) {
+        
+        // Load all users for this business (owner + team members)
+        $businessUsers = \App\Models\User::where(function($query) use ($userBusiness) {
+            $query->where('id', $userBusiness->user_id) // Owner
+                  ->orWhere('parent_business_id', $userBusiness->id); // Team members
+        })->get();
+        
+        $this->data['user_accounts'] = $businessUsers->map(function($user) {
             return (object)['user' => $user];
         })->all();
+        
+        // Get current plan limits
+        $currentPlan = $this->data['subscription_plan'] ?? 'trial';
+        $planConfig = config("safarichat_billing.plans.{$currentPlan}");
+        $this->data['max_users'] = $planConfig['limits']['whatsapp_channels'] ?? 1;
+        $this->data['current_user_count'] = $businessUsers->count();
         if ($_POST) {
             $table = request('table');
             switch ($table) {
                 case 'user':
                     \App\Models\User::findOrFail(Auth::user()->id)->update(request()->all());
-
                     break;
+                case 'add_user':
+                    return $this->storeTeamMember();
+                case 'delete_user':
+                    return $this->deleteTeamMember();
                 case 'event_guest_category':
                     if ((int) request('edit') > 0) {
                         \App\Models\EventGuestCategory::whereId(request('edit'))
@@ -464,10 +479,77 @@ class Home extends Controller
 
     // Support system removed - use external support tools instead
 
+    public function storeTeamMember()
+    {
+        $userBusiness = Auth::user()->business;
+        
+        // Get current plan limits
+        $billingAccount = $userBusiness->billingAccount;
+        $currentPlan = $billingAccount->subscription_plan ?? 'trial';
+        $planConfig = config("safarichat_billing.plans.{$currentPlan}");
+        $maxUsers = $planConfig['limits']['whatsapp_channels'] ?? 1;
+        
+        // Count existing users (owner + team members)
+        $currentUserCount = \App\Models\User::where(function($query) use ($userBusiness) {
+            $query->where('id', $userBusiness->user_id)
+                  ->orWhere('parent_business_id', $userBusiness->id);
+        })->count();
+        
+        // Check if limit reached
+        if ($currentUserCount >= $maxUsers) {
+            return redirect()->back()->with('error', 'User limit reached for your current plan. Please upgrade to add more users.');
+        }
+        
+        // Validate request
+        $validated = request()->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20',
+            'password' => 'required|min:6'
+        ]);
+        
+        // Create new team member
+        $user = \App\Models\User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => \Hash::make($validated['password']),
+            'parent_business_id' => $userBusiness->id,
+            'role' => 'member',
+            'uuid' => (string) \Str::uuid(),
+        ]);
+        
+        return redirect()->back()->with('success', 'Team member added successfully!');
+    }
+    
+    public function deleteTeamMember()
+    {
+        $userId = request('user_id');
+        $userBusiness = Auth::user()->business;
+        
+        // Prevent deleting the logged-in user
+        if ($userId == Auth::user()->id) {
+            return redirect()->back()->with('error', 'You cannot delete your own account.');
+        }
+        
+        // Find the user and ensure they belong to this business
+        $user = \App\Models\User::where('id', $userId)
+            ->where('parent_business_id', $userBusiness->id)
+            ->first();
+            
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found or you do not have permission to delete this user.');
+        }
+        
+        $user->delete();
+        
+        return redirect()->back()->with('success', 'Team member deleted successfully.');
+    }
+
     public function addUser()
     {
-        \App\Models\User::findOrCreate(request()->all());
-        return redirect()->back()->with('success', 'success');
+        // Legacy method - redirect to storeTeamMember
+        return $this->storeTeamMember();
     }
 
    

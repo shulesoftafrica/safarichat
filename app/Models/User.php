@@ -54,7 +54,9 @@ class User extends Authenticatable implements MustVerifyEmail{
         'last_activity_at',
         'uuid',
         'is_active',
-        'verified'
+        'verified',
+        'parent_business_id',
+        'role'
     ];
 
     /**
@@ -87,6 +89,14 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
     public function business() {
         return $this->hasOne('App\Models\Business', 'user_id');
+    }
+
+    /**
+     * Get the business this user is a member of (for team members)
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function parentBusiness() {
+        return $this->belongsTo('App\Models\Business', 'parent_business_id');
     }
 
     /**
