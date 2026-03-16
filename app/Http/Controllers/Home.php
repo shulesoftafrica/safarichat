@@ -395,6 +395,30 @@ class Home extends Controller
         }
         $this->data['business'] = $userBusiness;
         
+        // Load billing data FIRST to get correct plan
+        $billingAccount = $userBusiness->billingAccount;
+        
+        if ($billingAccount) {
+            $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
+            $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
+            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
+            $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
+            $this->data['subscription_started_at'] = $billingAccount->subscription_started_at;
+            $this->data['billing_account'] = $billingAccount;
+        } else {
+            $this->data['subscription_status'] = 'inactive';
+            $this->data['subscription_plan'] = 'trial';
+            $this->data['available_credits'] = 0;
+            $this->data['subscription_expires_at'] = null;
+            $this->data['subscription_started_at'] = null;
+            $this->data['billing_account'] = null;
+        }
+        
+        // Get current plan limits
+        $currentPlan = $this->data['subscription_plan'];
+        $planConfig = config("safarichat_billing.plans.{$currentPlan}");
+        $this->data['max_users'] = $planConfig['limits']['whatsapp_channels'] ?? 1;
+        
         // Load all users for this business (owner + team members)
         $businessUsers = \App\Models\User::where(function($query) use ($userBusiness) {
             $query->where('id', $userBusiness->user_id) // Owner
@@ -405,10 +429,6 @@ class Home extends Controller
             return (object)['user' => $user];
         })->all();
         
-        // Get current plan limits
-        $currentPlan = $this->data['subscription_plan'] ?? 'trial';
-        $planConfig = config("safarichat_billing.plans.{$currentPlan}");
-        $this->data['max_users'] = $planConfig['limits']['whatsapp_channels'] ?? 1;
         $this->data['current_user_count'] = $businessUsers->count();
         if ($_POST) {
             $table = request('table');
@@ -448,24 +468,7 @@ class Home extends Controller
                       ->orWhereNull('business_id');
             })->get();
             
-        // Load billing data from billing_accounts table
-        $billingAccount = $userBusiness->billingAccount;
-        
-        if ($billingAccount) {
-            $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
-            $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
-            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
-            $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
-            $this->data['subscription_started_at'] = $billingAccount->subscription_started_at;
-            $this->data['billing_account'] = $billingAccount;
-        } else {
-            $this->data['subscription_status'] = 'inactive';
-            $this->data['subscription_plan'] = 'trial';
-            $this->data['available_credits'] = 0;
-            $this->data['subscription_expires_at'] = null;
-            $this->data['subscription_started_at'] = null;
-            $this->data['billing_account'] = null;
-        }
+        // Billing data already loaded above (before user count logic)
         
         // Load available plans from config
         $billingConfig = config('safarichat_billing');

@@ -716,7 +716,7 @@ body:not(.dark-mode) .billing-card-header {
                                                     <i class="las la-plus"></i> Add New User
                                                 </button>
                                             @else
-                                                <button type="button" class="btn btn-warning" onclick="alert('User limit reached! Upgrade your plan to add more users.'); window.location.href='#availablePlansSection'">
+                                                <button type="button" class="btn btn-warning" onclick="showUpgradeModal('team_members', 'You have reached the maximum number of team members ({{ $max_users }}) for your {{ ucfirst($subscription_plan) }} plan. Upgrade to add more users.', true)">
                                                     <i class="las la-arrow-up"></i> Upgrade to Add More
                                                 </button>
                                             @endif
@@ -739,6 +739,7 @@ body:not(.dark-mode) .billing-card-header {
                                                 foreach ($user_accounts as $account) {
                                                     $isOwner = $account->user->id == $business->user_id;
                                                     $isCurrentUser = $account->user->id == Auth::user()->id;
+                                                    $userRole = $isOwner ? 'Owner' : ucfirst($account->user->role ?? 'Member');
                                                     ?>
                                                     <tr>
                                                         <th><?= $i ?></th>
@@ -750,7 +751,7 @@ body:not(.dark-mode) .billing-card-header {
                                                         </th>
                                                         <th><?= $account->user->email ?></th>
                                                         <th><?= $account->user->phone ?></th>
-                                                        <th><?= ucfirst($account->user->role ?? 'owner') ?></th>
+                                                        <th><?= $userRole ?></th>
                                                         <th><?= date('d M Y', strtotime($account->user->created_at)) ?></th>
                                                         <th>
                                                             @if($isCurrentUser)
