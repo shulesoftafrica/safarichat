@@ -60,7 +60,7 @@ return [
 
     'unified_notification' => [
         'base_url' => env('NOTIFICATION_BASE_URL', 'https://notifications.shulesoft.africa/api'),
-        'token' => env('NOTIFICATION_API_TOKEN'),
+        'token' => env('UNIFIED_NOTIFICATION_TOKEN'),
         'timeout' => env('NOTIFICATION_TIMEOUT', 30),
     ],
 
