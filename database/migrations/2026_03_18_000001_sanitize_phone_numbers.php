@@ -30,17 +30,23 @@ return new class extends Migration
         foreach ($phoneColumns as $table => $column) {
             // Skip if table doesn't exist
             if (!Schema::hasTable($table)) {
-                $this->command->warn("Table {$table} does not exist, skipping...");
+                if (method_exists($this, 'command') && $this->command) {
+                    $this->command->warn("Table {$table} does not exist, skipping...");
+                }
                 continue;
             }
 
             // Skip if column doesn't exist
             if (!Schema::hasColumn($table, $column)) {
-                $this->command->warn("Column {$column} does not exist in table {$table}, skipping...");
+                if (method_exists($this, 'command') && $this->command) {
+                    $this->command->warn("Column {$column} does not exist in table {$table}, skipping...");
+                }
                 continue;
             }
 
-            $this->command->info("Sanitizing phone numbers in {$table}.{$column}...");
+            if (method_exists($this, 'command') && $this->command) {
+                $this->command->info("Sanitizing phone numbers in {$table}.{$column}...");
+            }
 
             // Get all records with non-null phone numbers
             $records = DB::table($table)
@@ -65,7 +71,9 @@ return new class extends Migration
                         $updated++;
                     } else {
                         // Log invalid phone numbers for manual review
-                        $this->command->warn("Invalid phone in {$table}#{$record->id}: {$original} -> {$sanitized}");
+                        if (method_exists($this, 'command') && $this->command) {
+                            $this->command->warn("Invalid phone in {$table}#{$record->id}: {$original} -> {$sanitized}");
+                        }
                         $invalid++;
                         
                         // Set to null if completely invalid (optional - comment out to keep original)
@@ -74,10 +82,14 @@ return new class extends Migration
                 }
             }
 
-            $this->command->info("✓ {$table}.{$column}: {$updated} updated, {$invalid} invalid");
+            if (method_exists($this, 'command') && $this->command) {
+                $this->command->info("✓ {$table}.{$column}: {$updated} updated, {$invalid} invalid");
+            }
         }
 
-        $this->command->info('Phone number sanitization complete!');
+        if (method_exists($this, 'command') && $this->command) {
+            $this->command->info('Phone number sanitization complete!');
+        }
     }
 
     /**
@@ -87,7 +99,9 @@ return new class extends Migration
     {
         // This migration is irreversible as we're cleaning data
         // Original unsanitized data cannot be restored
-        $this->command->warn('This migration cannot be reversed. Phone numbers have been permanently sanitized.');
+        if (method_exists($this, 'command') && $this->command) {
+            $this->command->warn('This migration cannot be reversed. Phone numbers have been permanently sanitized.');
+        }
     }
 
     /**
