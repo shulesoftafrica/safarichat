@@ -43,6 +43,172 @@ class Lead extends Model
         'metadata' => 'array'
     ];
 
+    // Mutators & Accessors
+    
+    /**
+     * Set the phone number attribute.
+     * Automatically sanitizes phone number before storage.
+     *
+     * @param  string  $value
+     * @return void
+     */
+    public function setPhoneNumberAttribute($value)
+    {
+        $this->attributes['phone_number'] = sanitize_phone_number($value);
+    }
+
+    /**
+     * Get the phone number attribute.
+     * Ensures consistent format on retrieval.
+     *
+     * @param  string  $value
+     * @return string|null
+     */
+    public function getPhoneNumberAttribute($value)
+    {
+        return $value;
+    }
+
+    /**
+     * Validate if the lead's phone number is in a valid format.
+     *
+     * @return bool
+     */
+    public function hasValidPhoneNumber()
+    {
+        return !empty($this->phone_number) && is_valid_phone_number($this->phone_number);
+    }
+
+    /**
+     * Validate that all required relationships exist before creating a lead.
+     *
+     * @param array $data
+     * @return array ['valid' => bool, 'errors' => array, 'warnings' => array]
+     */
+    public static function validateRelationships(array $data)
+    {
+        $errors = [];
+        $warnings = [];
+
+        // Check business_id (required)
+        if (empty($data['business_id'])) {
+            $errors[] = 'Business ID is required';
+        } elseif (!\App\Models\Business::where('id', $data['business_id'])->exists()) {
+            $errors[] = 'Invalid business ID - business does not exist';
+        }
+
+        // Check user_id (required)
+        if (empty($data['user_id'])) {
+            $errors[] = 'User ID is required';
+        } elseif (!\App\Models\User::where('id', $data['user_id'])->exists()) {
+            $errors[] = 'Invalid user ID - user does not exist';
+        }
+
+        // Check ai_sales_agent_id (recommended but not required)
+        if (empty($data['ai_sales_agent_id'])) {
+            $warnings[] = 'AI Sales Agent ID not provided - lead will not be auto-managed';
+        } elseif (!\App\Models\AiSalesAgent::where('id', $data['ai_sales_agent_id'])->exists()) {
+            $errors[] = 'Invalid AI Sales Agent ID - agent does not exist';
+        }
+
+        // Check business_contact_id if provided
+        if (!empty($data['business_contact_id'])) {
+            if (!\App\Models\BusinessContact::where('id', $data['business_contact_id'])->exists()) {
+                $errors[] = 'Invalid business contact ID - contact does not exist';
+            }
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'warnings' => $warnings
+        ];
+    }
+
+    /**
+     * Safely create a lead with validation and error handling.
+     *
+     * @param array $data
+     * @return array ['success' => bool, 'lead' => Lead|null, 'errors' => array, 'warnings' => array]
+     */
+    public static function safeCreate(array $data)
+    {
+        // Validate relationships first
+        $validation = self::validateRelationships($data);
+        
+        if (!$validation['valid']) {
+            return [
+                'success' => false,
+                'lead' => null,
+                'errors' => $validation['errors'],
+                'warnings' => $validation['warnings']
+            ];
+        }
+
+        try {
+            // Sanitize phone number if present
+            if (!empty($data['phone_number'])) {
+                $data['phone_number'] = sanitize_phone_number($data['phone_number']);
+            }
+
+            // Set defaults
+            $data['status'] = $data['status'] ?? self::STATUS_NEW;
+            $data['source'] = $data['source'] ?? 'manual';
+            $data['lead_score'] = $data['lead_score'] ?? 50;
+
+            // Create the lead
+            $lead = self::create($data);
+
+            return [
+                'success' => true,
+                'lead' => $lead,
+                'errors' => [],
+                'warnings' => $validation['warnings']
+            ];
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Database constraint violation
+            \Log::error('Lead creation database error', [
+                'data' => $data,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+
+            $errors = ['Database error: ' . $e->getMessage()];
+            
+            // Check for specific constraint violations
+            if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
+                $errors[] = 'One or more related records (business, user, agent) do not exist';
+            }
+            
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                $errors[] = 'A lead with these details already exists';
+            }
+
+            return [
+                'success' => false,
+                'lead' => null,
+                'errors' => $errors,
+                'warnings' => $validation['warnings']
+            ];
+
+        } catch (\Exception $e) {
+            // General error
+            \Log::error('Lead creation failed', [
+                'data' => $data,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'lead' => null,
+                'errors' => ['Failed to create lead: ' . $e->getMessage()],
+                'warnings' => $validation['warnings']
+            ];
+        }
+    }
+
     // Status constants
     const STATUS_NEW = 'NEW';
     const STATUS_OUTREACHED = 'OUTREACHED';

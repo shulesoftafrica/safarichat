@@ -1136,7 +1136,11 @@ body:not(.dark-mode) .billing-card-header {
                                         
                                         <div class="form-group">
                                             <label>{{ __("settings.business.form.phone_label") }}</label>
-                                            <input type="text" class="form-control" name="phone" value="{{ $business->phone ?? '' }}" placeholder="{{ __("settings.business.form.phone_placeholder") }}">
+                                            <input type="tel" class="form-control phone-validation" name="phone" 
+                                                   value="{{ $business->phone ?? '' }}" 
+                                                   pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                                                   title="Phone format: +1234567890 or (123) 456-7890"
+                                                   placeholder="{{ __("settings.business.form.phone_placeholder") }}">
                                         </div>
                                         
                                         <div class="form-group">
@@ -1293,7 +1297,11 @@ body:not(.dark-mode) .billing-card-header {
                     <div class="form-group">
                         <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.phone_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" class="form-control" placeholder="{{ __("settings.modal.user.phone_placeholder") }}">
+                            <input type="tel" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" 
+                                   class="form-control phone-validation" 
+                                   pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                                   title="Phone format: +1234567890 or (123) 456-7890"
+                                   placeholder="{{ __("settings.modal.user.phone_placeholder") }}">
 
                         </div>                                                    
                     </div>
@@ -1355,7 +1363,11 @@ body:not(.dark-mode) .billing-card-header {
 
                     <div class="form-group">
                         <label for="new_user_phone" class="col-form-label">Phone Number <span class="text-danger">*</span></label>
-                        <input type="tel" id="new_user_phone" name="phone" class="form-control" placeholder="+255XXXXXXXXX" required="">
+                        <input type="tel" id="new_user_phone" name="phone" 
+                               class="form-control phone-validation" 
+                               pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                               title="Phone format: +1234567890 or (123) 456-7890"
+                               placeholder="+255XXXXXXXXX" required="">
                     </div>
 
                     <div class="form-group">

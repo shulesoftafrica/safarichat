@@ -125,21 +125,60 @@ class AppointmentController extends Controller
                 
                 if (!$aiAgent) {
                     // Create a default AI agent for manual bookings if none exists
-                    $aiAgent = \App\Models\AiSalesAgent::create([
-                        'business_id' => $business_id,
-                        'name' => 'Manual Booking Agent',
-                        'is_active' => true,
-                    ]);
+                    try {
+                        $aiAgent = \App\Models\AiSalesAgent::create([
+                            'business_id' => $business_id,
+                            'user_id' => Auth::id(),
+                            'name' => 'Manual Booking Agent',
+                            'is_active' => true,
+                        ]);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        \Log::error('Failed to create default AI agent for appointment', [
+                            'business_id' => $business_id,
+                            'error' => $e->getMessage()
+                        ]);
+                        return redirect()->back()
+                            ->with('error', 'Failed to create booking agent. Please contact support.')
+                            ->withInput();
+                    }
                 }
                 
-                $lead = Lead::create([
+                // Use safeCreate method with proper validation
+                $leadData = [
                     'business_id' => $business_id,
+                    'user_id' => Auth::id(),
                     'business_contact_id' => $contact->id,
                     'ai_sales_agent_id' => $aiAgent->id,
+                    'name' => $request->customer_name,
                     'phone_number' => $phone,
-                    'status' => 'NEW',
+                    'email' => $request->customer_email ?? null,
+                    'status' => Lead::STATUS_NEW,
                     'source' => 'manual_booking',
-                ]);
+                ];
+                
+                $result = Lead::safeCreate($leadData);
+                
+                if (!$result['success']) {
+                    DB::rollBack();
+                    \Log::error('Failed to create lead for appointment', [
+                        'data' => $leadData,
+                        'errors' => $result['errors']
+                    ]);
+                    return redirect()->back()
+                        ->with('error', 'Failed to create customer record: ' . implode(', ', $result['errors']))
+                        ->withInput();
+                }
+                
+                $lead = $result['lead'];
+                
+                // Log warnings if any
+                if (!empty($result['warnings'])) {
+                    \Log::warning('Lead created with warnings', [
+                        'lead_id' => $lead->id,
+                        'warnings' => $result['warnings']
+                    ]);
+                }
             }
             
             // Check for available booking calendar

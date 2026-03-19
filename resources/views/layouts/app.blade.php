@@ -242,6 +242,12 @@ $(document).ready(ajax_setup);
                 <!-- App js -->
                 <script src="{{ asset(ROOT.'assets/js/app.js')}}?v=2"></script>
                 
+                <!-- Phone Validation Module -->
+                <script src="{{ asset(ROOT.'js/phone-validator.js')}}?v=1"></script>
+                
+                <!-- Lead Error Handler Module -->
+                <script src="{{ asset(ROOT.'js/lead-error-handler.js')}}?v=1"></script>
+                
                 <!-- Highcharts for dashboard charts -->
                 <script src="{{ asset(ROOT.'assets/js/highcharts.js') }}"></script>
                 <script src="{{ asset(ROOT.'assets/js/exporting.js') }}"></script>

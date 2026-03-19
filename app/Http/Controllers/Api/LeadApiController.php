@@ -80,8 +80,8 @@ class LeadApiController extends Controller
 
             DB::beginTransaction();
 
-            // Create the lead
-            $lead = Lead::create([
+            // Prepare lead data
+            $leadData = [
                 'business_contact_id' => $request->business_contact_id,
                 'ai_sales_agent_id' => $request->ai_sales_agent_id ?? $this->getDefaultAiAgent(),
                 'user_id' => Auth::id(),
@@ -96,7 +96,34 @@ class LeadApiController extends Controller
                 'notes' => $request->notes,
                 'lead_score' => 50, // Default score
                 'metadata' => $request->metadata ?? []
-            ]);
+            ];
+            
+            // Use safeCreate method with proper validation
+            $result = Lead::safeCreate($leadData);
+            
+            if (!$result['success']) {
+                DB::rollBack();
+                \Log::error('Failed to create lead via API', [
+                    'data' => $leadData,
+                    'errors' => $result['errors']
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create lead',
+                    'errors' => $result['errors']
+                ], 422);
+            }
+            
+            $lead = $result['lead'];
+            
+            // Log warnings if any
+            if (!empty($result['warnings'])) {
+                \Log::warning('Lead created with warnings via API', [
+                    'lead_id' => $lead->id,
+                    'warnings' => $result['warnings']
+                ]);
+            }
 
             // Add products to the lead
             $primaryProductId = $request->primary_product_id ?? $request->product_ids[0];
@@ -483,8 +510,8 @@ class LeadApiController extends Controller
                         continue;
                     }
 
-                    // Create lead
-                    $lead = Lead::create([
+                    // Prepare lead data
+                    $newLeadData = [
                         'business_contact_id' => $leadData['business_contact_id'],
                         'ai_sales_agent_id' => $this->getDefaultAiAgent(),
                         'user_id' => $userId,
@@ -499,7 +526,29 @@ class LeadApiController extends Controller
                         'notes' => $leadData['notes'] ?? null,
                         'lead_score' => 50,
                         'metadata' => []
-                    ]);
+                    ];
+                    
+                    // Use safeCreate method with proper validation
+                    $result = Lead::safeCreate($newLeadData);
+                    
+                    if (!$result['success']) {
+                        \Log::error('Failed to create lead in bulk create', [
+                            'index' => $index,
+                            'errors' => $result['errors']
+                        ]);
+                        $errors[] = "Lead at index {$index}: " . implode(', ', $result['errors']);
+                        continue; // Skip this lead and continue with next
+                    }
+                    
+                    $lead = $result['lead'];
+                    
+                    // Log warnings if any
+                    if (!empty($result['warnings'])) {
+                        \Log::warning('Lead created with warnings in bulk create', [
+                            'lead_id' => $lead->id,
+                            'warnings' => $result['warnings']
+                        ]);
+                    }
 
                     // Add products
                     $primaryProductId = $leadData['product_ids'][0];

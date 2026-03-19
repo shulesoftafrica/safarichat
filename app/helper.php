@@ -313,12 +313,84 @@ if (!function_exists('form_dropdown')) {
  */
 function validate_phone_number($number, $code = null)
 {
+    // Return null for empty input
+    if (empty($number)) {
+        return null;
+    }
+    
     $country_code = $code == null ? request('country_code') : $code;
-    $phone_number = preg_replace("/[^0-9]/", '', $number);
-    $phone = preg_replace('/' . $country_code . '/', '', $phone_number, 1);
+    
+    // Remove all characters except digits, +, -, (), and spaces for sanitization
+    // Then extract only digits for storage
+    $phone_number = preg_replace("/[^0-9+\-\(\)\s]/", '', $number);
+    $phone_digits = preg_replace("/[^0-9]/", '', $phone_number);
+    
+    // Validate phone number length (international standard: 7-15 digits)
+    if (strlen($phone_digits) < 7 || strlen($phone_digits) > 15) {
+        throw new \InvalidArgumentException('Phone number must be between 7 and 15 digits');
+    }
+    
+    // Handle country code extraction
+    if ($country_code) {
+        $phone = preg_replace('/^' . preg_quote($country_code, '/') . '/', '', $phone_digits, 1);
+    } else {
+        $phone = $phone_digits;
+    }
+    
     $valid_number = $country_code . $phone;
     $valid = array(request('country_name'), $valid_number);
     return $valid;
+}
+
+/**
+ * Sanitize phone number for database storage
+ * Removes all non-numeric characters except leading +
+ * 
+ * @param string $number
+ * @return string|null
+ */
+function sanitize_phone_number($number)
+{
+    if (empty($number)) {
+        return null;
+    }
+    
+    // Remove all characters except digits and plus
+    $sanitized = preg_replace("/[^0-9+]/", '', $number);
+    
+    // Ensure only one plus at the beginning
+    if (strpos($sanitized, '+') !== false) {
+        $sanitized = '+' . preg_replace("/[^0-9]/", '', $sanitized);
+    }
+    
+    return $sanitized ?: null;
+}
+
+/**
+ * Validate phone number format
+ * Returns true if valid, false otherwise
+ * 
+ * @param string $number
+ * @return bool
+ */
+function is_valid_phone_number($number)
+{
+    if (empty($number)) {
+        return false;
+    }
+    
+    // Extract digits only
+    $digits = preg_replace("/[^0-9]/", '', $number);
+    
+    // International standard: 7-15 digits
+    if (strlen($digits) < 7 || strlen($digits) > 15) {
+        return false;
+    }
+    
+    // Validate format: optional +, then digits with optional formatting
+    $pattern = '/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/';
+    
+    return preg_match($pattern, $number) === 1;
 }
 $countries=  array(
             93 => " Afghanistan",

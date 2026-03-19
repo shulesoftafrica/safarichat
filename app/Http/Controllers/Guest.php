@@ -96,9 +96,10 @@ class Guest extends Controller {
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id (optional - for route compatibility, not used)
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request) {
+    public function store(Request $request, $id = null) {
         //
         $this->validate(request(), [
             'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'], // name validation, only letters, spaces, hyphens, apostrophes, parentheses allowed
@@ -384,27 +385,67 @@ class Guest extends Controller {
                         
                     if (!$defaultAgent) {
                         // Create a default AI sales agent if none exists
-                        $defaultAgent = \App\Models\AiSalesAgent::create([
-                            'business_id' => $guest->business_id,
-                            'user_id' => Auth::id(),
-                            'name' => 'Default Sales Agent',
-                            'is_active' => true,
-                            'allow_outreach' => true,
-                            'personality_type' => 'professional'
-                        ]);
+                        try {
+                            $defaultAgent = \App\Models\AiSalesAgent::create([
+                                'business_id' => $guest->business_id,
+                                'user_id' => Auth::id(),
+                                'name' => 'Default Sales Agent',
+                                'is_active' => true,
+                                'allow_outreach' => true,
+                                'personality_type' => 'professional'
+                            ]);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to create default AI agent', [
+                                'business_id' => $guest->business_id,
+                                'error' => $e->getMessage()
+                            ]);
+                            // Continue without agent - will be created later
+                            $defaultAgent = null;
+                        }
                     }
                     
-                    $lead = Lead::create([
+                    // Use safeCreate method with proper validation
+                    $leadData = [
                         'business_contact_id' => $guest->id,
                         'business_id' => $guest->business_id,
                         'user_id' => Auth::id(),
-                        'ai_sales_agent_id' => $defaultAgent->id,
+                        'ai_sales_agent_id' => $defaultAgent ? $defaultAgent->id : null,
                         'name' => $guest->guest_name,
                         'phone_number' => $guest->guest_phone,
                         'email' => $guest->guest_email,
                         'status' => $leadStatus,
                         'source' => 'manual_edit'
-                    ]);
+                    ];
+                    
+                    $result = Lead::safeCreate($leadData);
+                    
+                    if (!$result['success']) {
+                        \Log::error('Failed to create lead in Guest edit', [
+                            'guest_id' => $guest->id,
+                            'errors' => $result['errors']
+                        ]);
+                        
+                        if (request()->expectsJson()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Failed to create lead: ' . implode(', ', $result['errors'])
+                            ], 500);
+                        }
+                        
+                        return redirect()->back()
+                            ->with('error', 'Contact updated but failed to create lead: ' . implode(', ', $result['errors']))
+                            ->withInput();
+                    }
+                    
+                    $lead = $result['lead'];
+                    
+                    // Log warnings if any
+                    if (!empty($result['warnings'])) {
+                        \Log::warning('Lead created with warnings in Guest edit', [
+                            'lead_id' => $lead->id,
+                            'warnings' => $result['warnings']
+                        ]);
+                    }
                 } else {
                     $lead->status = $leadStatus;
                     $lead->save();
@@ -445,11 +486,24 @@ class Guest extends Controller {
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  int  $id (optional - can come from route or request body)
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id) {
+    public function update(Request $request, $id = null) {
         try {
+            // Get ID from route parameter or request body
+            $id = $id ?? $request->input('id');
+            
+            if (!$id) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Contact ID is required'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Contact ID is required');
+            }
+            
             $business_id = Auth::user()->business->id;
             
             // Find the guest and ensure it belongs to the current business
@@ -532,30 +586,70 @@ class Guest extends Controller {
                 
                 if (!$aiSalesAgent) {
                     // Create a default AI sales agent if none exists
-                    $aiSalesAgent = AiSalesAgent::create([
-                        'business_id' => $guest->business_id,
-                        'name' => 'Default Sales Agent',
-                        'personality_type' => 'professional',
-                        'is_active' => true,
-                        'allow_outreach' => true,
-                        'business_hours_start' => '09:00',
-                        'business_hours_end' => '17:00',
-                        'timezone' => 'UTC',
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                    try {
+                        $aiSalesAgent = AiSalesAgent::create([
+                            'business_id' => $guest->business_id,
+                            'user_id' => Auth::id(),
+                            'name' => 'Default Sales Agent',
+                            'personality_type' => 'professional',
+                            'is_active' => true,
+                            'allow_outreach' => true,
+                            'business_hours_start' => '09:00',
+                            'business_hours_end' => '17:00',
+                            'timezone' => 'UTC',
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to create default AI agent for lead status update', [
+                            'business_id' => $guest->business_id,
+                            'error' => $e->getMessage()
+                        ]);
+                        $aiSalesAgent = null;
+                    }
                 }
                 
-                // Create a new lead if one doesn't exist
-                $lead = Lead::create([
+                // Use safeCreate method with proper validation
+                $leadData = [
                     'business_contact_id' => $guest->id,
                     'business_id' => $guest->business_id,
                     'user_id' => Auth::id(),
-                    'ai_sales_agent_id' => $aiSalesAgent->id,
+                    'ai_sales_agent_id' => $aiSalesAgent ? $aiSalesAgent->id : null,
+                    'name' => $guest->guest_name,
+                    'phone_number' => $guest->guest_phone,
+                    'email' => $guest->guest_email,
                     'status' => $leadStatus,
                     'source' => 'manual_edit',
                     'last_interaction_at' => now()
+                ];
+                
+                $result = Lead::safeCreate($leadData);
+                
+                if (!$result['success']) {
+                    \Log::error('Failed to create lead in updateLeadStatus', [
+                        'guest_id' => $guest->id,
+                        'lead_status' => $leadStatus,
+                        'errors' => $result['errors']
+                    ]);
+                    // Don't throw exception, just log - this is a background operation
+                    return;
+                }
+                
+                $lead = $result['lead'];
+                
+                // Log success and warnings
+                \Log::info('Lead created successfully in updateLeadStatus', [
+                    'guest_id' => $guest->id,
+                    'lead_id' => $lead->id,
+                    'status' => $leadStatus
                 ]);
+                
+                if (!empty($result['warnings'])) {
+                    \Log::warning('Lead created with warnings in updateLeadStatus', [
+                        'lead_id' => $lead->id,
+                        'warnings' => $result['warnings']
+                    ]);
+                }
             } else {
                 // Update existing lead status
                 $lead->update([

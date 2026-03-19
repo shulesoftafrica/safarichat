@@ -903,6 +903,7 @@ class BillingService
                 if (isset($result['success']) && $result['success']) {
                     Log::info('Subscription invoice created successfully', [
                         'user_id' => $user->id,
+                        'response_data' => $result,
                         'invoice_id' => $result['data']['invoice']['id'] ?? $result['data']['id'] ?? null
                     ]);
                     

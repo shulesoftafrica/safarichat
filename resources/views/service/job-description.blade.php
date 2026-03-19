@@ -302,8 +302,10 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">Fallback Phone Number *</label>
-                                        <input type="tel" class="form-control" name="fallback_number" 
+                                        <input type="tel" class="form-control phone-validation" name="fallback_number" 
                                                placeholder="+254700000000" 
+                                               pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                                               title="Phone format: +1234567890 or (123) 456-7890"
                                                value="{{ old('fallback_number', $existingAgent->fallback_number ?? '') }}" required>
                                         <small class="form-hint">Number to transfer when AI can't help</small>
                                     </div>

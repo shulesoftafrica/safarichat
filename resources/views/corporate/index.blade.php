@@ -1324,7 +1324,10 @@
                 
                 <div class="form-group">
                     <label for="strategyPhone">Phone Number *</label>
-                    <input type="tel" id="strategyPhone" name="phone" required placeholder="+255XXXXXXXXX">
+                    <input type="tel" id="strategyPhone" name="phone" class="phone-validation" 
+                           pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                           title="Phone format: +1234567890 or (123) 456-7890"
+                           required placeholder="+255XXXXXXXXX">
                     <div class="helper-text">Include country code (e.g., +255XXXXXXXXX)</div>
                 </div>
                 

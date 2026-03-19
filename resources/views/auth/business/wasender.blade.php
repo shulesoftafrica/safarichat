@@ -572,8 +572,10 @@
                                 id="phone_number"
                                 name="phone_number"
                                 type="tel"
-                                class="form-control"
+                                class="form-control phone-validation"
                                 placeholder="Enter WhatsApp number"
+                                pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                                title="Phone format: +1234567890 or (123) 456-7890"
                                 value="{{ Auth::user()->phone ?? '' }}"
                                 autocomplete="off"
                                 required

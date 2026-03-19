@@ -14,7 +14,8 @@ class Handler extends ExceptionHandler {
      * @var array
      */
     protected $dontReport = [
-            //
+        \Illuminate\Auth\AuthenticationException::class,
+        \Illuminate\Validation\ValidationException::class,
     ];
 
     /**
@@ -115,7 +116,10 @@ class Handler extends ExceptionHandler {
 
     public function render($request, Throwable $exception) {
 
-        $this->createErrorLog($exception);
+        // Only log exceptions that should be reported
+        if (!$this->shouldntReport($exception)) {
+            $this->createErrorLog($exception);
+        }
 //
 //        if (preg_match('/does not exist on/', $exception->getMessage())) {
 //            return redirect(url('dashboard'))->with('warning', 'Page Supplied with name does not exists and you have redirected to this home page. Please try to type correctly url or contact your administrator if problem persist');

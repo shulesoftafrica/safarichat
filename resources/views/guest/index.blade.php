@@ -2353,8 +2353,10 @@ body:not(.dark-mode) .modal-body .alert-danger {
                         <input type="tel" 
                                name="guest_phone"
                                id="edit_guest_phone"
-                               class="form-control"
+                               class="form-control phone-validation"
                                placeholder="{{ __('customers.placeholders.phone') }}"
+                               pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
+                               title="Phone format: +1234567890 or (123) 456-7890"
                                required="">
                         <small class="form-text text-muted">
                             {{ __('customers.messages.phone_format') }}

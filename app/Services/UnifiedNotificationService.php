@@ -18,8 +18,8 @@ class UnifiedNotificationService
     {
         $this->baseUrl = config('services.unified_notification.base_url', 'https://notifications.shulesoft.africa/api');
         
-        // Try multiple configuration sources for the token
-        $this->bearerToken =  env('UNIFIED_API_BEARER_TOKEN');
+        // Read bearer token from config (NOT env() - fails when config is cached in production)
+        $this->bearerToken = config('notifications.unified_api.bearer_token');
             
         // Log token status for debugging (without exposing the actual token)
         Log::debug('UnifiedNotificationService initialized', [

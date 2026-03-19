@@ -85,9 +85,11 @@ class BillingController extends Controller
                     if (isset($invoiceData['invoice'])) {
                         $actualInvoice = $invoiceData['invoice'];
                         $paymentDetails = $actualInvoice['payment_details'] ?? [];
+                        $pricePlans = $actualInvoice['price_plans'] ?? [];
                     } else {
                         $actualInvoice = $invoiceData;
                         $paymentDetails = $invoiceData['payment_details'] ?? [];
+                        $pricePlans = $invoiceData['price_plans'] ?? [];
                     }
                     
                     // Check payment_gateways if payment_details not found
@@ -119,6 +121,38 @@ class BillingController extends Controller
                         $paymentData['ucn'] = $paymentDetails['control_number']['reference'];
                     } elseif (isset($paymentDetails['control_number']['control_number'])) {
                         $paymentData['ucn'] = $paymentDetails['control_number']['control_number'];
+                    }
+                    
+                    // Extract payment gateways from price plans if not found above
+                    if (empty($paymentData['flutterwave_link']) || empty($paymentData['stripe_link']) || empty($paymentData['ucn'])) {
+                        foreach ($pricePlans as $plan) {
+                            $gateways = $plan['payment_gateways'] ?? [];
+                            foreach ($gateways as $gateway) {
+                                if (empty($paymentData['flutterwave_link']) && $gateway['gateway_name'] === 'Flutterwave') {
+                                    // Try payment_link first, then hosted_link, then fall back to references
+                                    if (isset($gateway['payment_link'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['payment_link'];
+                                    } elseif (isset($gateway['hosted_link'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['hosted_link'];
+                                    } elseif (isset($gateway['references'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['references'];
+                                    }
+                                }
+                                if (empty($paymentData['stripe_link']) && $gateway['gateway_name'] === 'Stripe') {
+                                    // Try payment_link first, then hosted_link
+                                    if (isset($gateway['payment_link'])) {
+                                        $paymentData['stripe_link'] = $gateway['payment_link'];
+                                    } elseif (isset($gateway['hosted_link'])) {
+                                        $paymentData['stripe_link'] = $gateway['hosted_link'];
+                                    } elseif (isset($gateway['client_secret'])) {
+                                        $paymentData['stripe_link'] = $gateway['payment_link'] ?? null;
+                                    }
+                                }
+                                if (empty($paymentData['ucn']) && $gateway['gateway_name'] === 'Universal Control Number' && isset($gateway['references'])) {
+                                    $paymentData['ucn'] = $gateway['references'];
+                                }
+                            }
+                        }
                     }
                     
                     // Also check if UCN is in the invoice directly
@@ -234,12 +268,29 @@ class BillingController extends Controller
                     }
                     
                     // Extract payment gateways from price plans if not found above
-                    if (empty($paymentData['flutterwave_link']) || empty($paymentData['ucn'])) {
+                    if (empty($paymentData['flutterwave_link']) || empty($paymentData['stripe_link']) || empty($paymentData['ucn'])) {
                         foreach ($pricePlans as $plan) {
                             $gateways = $plan['payment_gateways'] ?? [];
                             foreach ($gateways as $gateway) {
-                                if (empty($paymentData['flutterwave_link']) && $gateway['gateway_name'] === 'Flutterwave' && isset($gateway['references'])) {
-                                    $paymentData['flutterwave_link'] = $gateway['references'];
+                                if (empty($paymentData['flutterwave_link']) && $gateway['gateway_name'] === 'Flutterwave') {
+                                    // Try payment_link first, then hosted_link, then fall back to references
+                                    if (isset($gateway['payment_link'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['payment_link'];
+                                    } elseif (isset($gateway['hosted_link'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['hosted_link'];
+                                    } elseif (isset($gateway['references'])) {
+                                        $paymentData['flutterwave_link'] = $gateway['references'];
+                                    }
+                                }
+                                if (empty($paymentData['stripe_link']) && $gateway['gateway_name'] === 'Stripe') {
+                                    // Try payment_link first, then hosted_link, then fall back to references
+                                    if (isset($gateway['payment_link'])) {
+                                        $paymentData['stripe_link'] = $gateway['payment_link'];
+                                    } elseif (isset($gateway['hosted_link'])) {
+                                        $paymentData['stripe_link'] = $gateway['hosted_link'];
+                                    } elseif (isset($gateway['client_secret'])) {
+                                        $paymentData['stripe_link'] = $gateway['payment_link'] ?? null;
+                                    }
                                 }
                                 if (empty($paymentData['ucn']) && $gateway['gateway_name'] === 'Universal Control Number' && isset($gateway['references'])) {
                                     $paymentData['ucn'] = $gateway['references'];
