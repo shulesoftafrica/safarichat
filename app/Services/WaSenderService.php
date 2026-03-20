@@ -1104,4 +1104,84 @@ class WaSenderService
             throw $e;
         }
     }
+
+    /**
+     * Get all contacts from WASender API
+     * 
+     * @param int|null $userId User ID
+     * @param string|null $instanceId Optional instance ID
+     * @return array Array of contacts from WASender API
+     * @throws Exception
+     */
+    public function getContacts(?int $userId = null, ?string $instanceId = null): array
+    {
+        try {
+            // Get user's WhatsApp instance and API key
+            $apiKey = $this->getUserApiKey($userId, $instanceId);
+            if (!$apiKey) {
+                throw new Exception('No active WhatsApp instance found for user');
+            }
+
+            // Get the instance to retrieve instance_id (which is actually the WaSender session ID)
+            $instance = null;
+            if ($userId) {
+                $instance = $this->getUserInstance($userId);
+            } elseif ($instanceId) {
+                $instance = WhatsappInstance::where('instance_id', $instanceId)->first();
+            } elseif (Auth::check()) {
+                $instance = $this->getUserInstance(Auth::id());
+            }
+
+            if (!$instance || !$instance->instance_id) {
+                throw new Exception('No WhatsApp instance found');
+            }
+
+            Log::info('Fetching contacts from WASender API', [
+                'user_id' => $userId,
+                'session_id' => $instance->instance_id
+            ]);
+
+            // Call WASender API to get contacts
+            // Endpoint: https://www.wasenderapi.com/api/whatsapp-sessions/{sessionId}/contacts
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Accept' => 'application/json',
+            ])->get("https://www.wasenderapi.com/api/contacts");
+
+            $result = $response->json() ?? [];
+
+            Log::debug('WASender contacts API response', [
+                'http_status' => $response->status(),
+                'response_body' => $result,
+                'successful' => $response->successful()
+            ]);
+
+            if ($response->successful() && isset($result['success']) && $result['success']) {
+                $contacts = $result['data'] ?? [];
+                
+                Log::info('Contacts fetched successfully from WASender', [
+                    'count' => count($contacts),
+                    'session_id' => $instance->instance_id
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $contacts,
+                    'count' => count($contacts)
+                ];
+            }
+
+            $errorMessage = $result['message'] ?? 'Failed to fetch contacts from WASender';
+            throw new Exception($errorMessage);
+
+        } catch (Exception $e) {
+            Log::error('Failed to fetch contacts from WASender', [
+                'user_id' => $userId,
+                'instance_id' => $instanceId,
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
+        }
+    }
 }

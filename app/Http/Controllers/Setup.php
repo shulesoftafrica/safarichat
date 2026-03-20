@@ -1346,26 +1346,32 @@ class Setup extends Controller {
     private function sendAutoReply($whatsappInstance, $chatId, $message)
     {
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(30)->withHeaders([
-                'Authorization' => 'Bearer ' . ($whatsappInstance->access_token ?? config('app.waapi_token')),
-                'Content-Type' => 'application/json'
-            ])->post(
-                "https://waapi.app/api/v1/instances/{$whatsappInstance->instance_id}/client/action/send-message",
-                [
-                    'chatId' => $chatId,
-                    'message' => $message
-                ]
+            // Use WaSenderService instead of direct WAAPI calls
+            $waSenderService = new \App\Services\WaSenderService();
+            
+            // Extract phone number from chatId (remove @c.us or @s.whatsapp.net if present)
+            $phone = str_replace(['@c.us', '@s.whatsapp.net'], '', $chatId);
+            
+            // Send message using WaSenderService
+            $waSenderService->sendMessage(
+                $phone,
+                $message,
+                $whatsappInstance->user_id,
+                null, // business_id (optional)
+                ['instance_id' => $whatsappInstance->instance_id]
             );
             
-            if ($response->successful()) {
-                \Log::info('Auto-reply sent successfully', [
-                    'chat_id' => $chatId,
-                    'instance_id' => $whatsappInstance->instance_id
-                ]);
-            }
+            \Log::info('Auto-reply sent successfully via WaSender', [
+                'chat_id' => $chatId,
+                'phone' => $phone,
+                'instance_id' => $whatsappInstance->instance_id
+            ]);
             
         } catch (\Exception $e) {
-            \Log::error('Failed to send auto-reply: ' . $e->getMessage());
+            \Log::error('Failed to send auto-reply: ' . $e->getMessage(), [
+                'chat_id' => $chatId,
+                'instance_id' => $whatsappInstance->instance_id ?? null
+            ]);
         }
     }
 

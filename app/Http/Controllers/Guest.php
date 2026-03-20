@@ -100,17 +100,89 @@ class Guest extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request, $id = null) {
-        //
-        $this->validate(request(), [
-            'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'], // name validation, only letters, spaces, hyphens, apostrophes, parentheses allowed
-            'guest_phone' => ['required', 'string', 'max:30', 'unique:events_guests', 'regex:/^[0-9]*$/'], // phone number validation, only numbers allowed
-        ]);
-        $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
-        $business_id = Auth::user()->business->id;
-        $data=array_merge($request->all(), ['business_id' => $business_id]);
-      
-        EventsGuest::create($data);
-        return redirect()->back()->with('success', 'success');
+        try {
+            $business_id = Auth::user()->business->id;
+            
+            // Validate input
+            $validated = $this->validate(request(), [
+                'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'], // name validation, only letters, spaces, hyphens, apostrophes, parentheses allowed
+                'guest_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s\(\)]*$/'], // phone number validation
+            ], [
+                'guest_name.required' => 'Name is required',
+                'guest_name.regex' => 'Name can only contain letters, spaces, hyphens, apostrophes and parentheses',
+                'guest_phone.required' => 'Phone number is required',
+                'guest_phone.regex' => 'Phone number format is invalid',
+            ]);
+            
+            // Clean phone number
+            $phone = preg_replace('/[^0-9+]/', '', $request->guest_phone);
+            
+            // Check if contact already exists
+            $existingContact = EventsGuest::where('guest_phone', $phone)
+                ->where('business_id', $business_id)
+                ->first();
+                
+            if ($existingContact) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This contact already exists with the name "' . $existingContact->guest_name . '". Would you like to update it instead?',
+                        'error_type' => 'duplicate_contact',
+                        'existing_contact' => [
+                            'id' => $existingContact->id,
+                            'name' => $existingContact->guest_name,
+                            'phone' => $existingContact->guest_phone,
+                        ]
+                    ], 409);
+                }
+                return redirect()->back()
+                    ->with('error', 'Contact with this phone number already exists: ' . $existingContact->guest_name)
+                    ->withInput();
+            }
+            
+            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
+            $data = array_merge($request->all(), [
+                'business_id' => $business_id,
+                'guest_phone' => $phone
+            ]);
+          
+            $guest = EventsGuest::create($data);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Contact added successfully',
+                    'guest' => $guest
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Contact added successfully');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Error creating contact: ' . $e->getMessage(), [
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create contact: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->with('error', 'Failed to create contact. Please try again.')
+                ->withInput();
+        }
     }
 
     private function checkKeysExists($value, $keys_array = null) {
@@ -754,9 +826,116 @@ class Guest extends Controller {
         }
     }
 
+    /**
+     * Get WhatsApp instance status for current user
+     * Returns instance info if available and connected
+     */
+    public function getWhatsappInstanceStatus() {
+        try {
+            $user = Auth::user();
+            
+            // Get the user's WhatsApp instance - check for any active instance
+            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $user->id)
+                ->orderBy('is_primary', 'desc')
+                ->orderBy('last_active_at', 'desc')
+                ->first();
+            
+            if (!$whatsappInstance) {
+                return response()->json([
+                    'success' => false,
+                    'has_instance' => false,
+                    'is_connected' => false,
+                    'message' => 'No WhatsApp instance found. Please connect an instance first.'
+                ]);
+            }
+            
+            // Log the instance details for debugging
+            \Log::info('WhatsApp instance check', [
+                'instance_id' => $whatsappInstance->instance_id,
+                'status' => $whatsappInstance->status,
+                'connect_status' => $whatsappInstance->connect_status,
+                'instance_name' => $whatsappInstance->instance_name
+            ]);
+            
+            // Check if instance is connected - be flexible with status checks
+            $isConnected = (
+                in_array($whatsappInstance->status, ['connected', 'active', 'ready']) ||
+                in_array($whatsappInstance->connect_status, ['ready', 'open', 'connected'])
+            );
+            
+            if (!$isConnected) {
+                return response()->json([
+                    'success' => false,
+                    'has_instance' => true,
+                    'is_connected' => false,
+                    'status' => $whatsappInstance->status,
+                    'connect_status' => $whatsappInstance->connect_status,
+                    'message' => 'WhatsApp instance found but not connected. Current status: ' . ($whatsappInstance->connect_status ?? $whatsappInstance->status ?? 'unknown')
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'has_instance' => true,
+                'is_connected' => true,
+                'instance_id' => $whatsappInstance->instance_id,
+                'instance_name' => $whatsappInstance->instance_name,
+                'phone_number' => $whatsappInstance->phone_number,
+                'status' => $whatsappInstance->status,
+                'connect_status' => $whatsappInstance->connect_status,
+                'message' => 'WhatsApp instance is ready',
+                'has_api_key' => !empty($whatsappInstance->api_key)
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error checking WhatsApp instance status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'has_instance' => false,
+                'is_connected' => false,
+                'message' => 'Error checking instance status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Sync contacts from WASender API
+     * Gets contacts directly from WASender API and returns them
+     */
+    public function syncWhatsappContacts() {
+        try {
+            $user = Auth::user();
+            
+            // Use WaSenderService to get contacts
+            $waSenderService = new \App\Services\WaSenderService();
+            $result = $waSenderService->getContacts($user->id);
+            
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'contacts' => $result['data'],
+                    'count' => $result['count'],
+                    'message' => 'Contacts fetched successfully from WASender'
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch contacts from WASender'
+            ], 400);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error syncing WhatsApp contacts: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error syncing contacts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function importWhatsappContacts(\Illuminate\Http\Request $request) {
         try {
-            // Get contacts from the request (sent from frontend after WAAPI call)
+            // Get contacts from the request (sent from frontend after WASender API call)
             $contacts = $request->input('contacts', []);
             $instance_id = $request->input('instance_id');
             
@@ -774,40 +953,42 @@ class Guest extends Controller {
 
             foreach ($contacts as $contact) {
                 try {
-                    // WAAPI contact format: {id, name, notify, verifiedName, isGroup, etc.}
+                    // WASender contact format: {id, pushName, name, isGroup, etc.}
                     $phone = $contact['id'] ?? '';
-                    $name = $contact['name'] ?? $contact['verifiedName'] ?? $contact['notify'] ?? '';
+                    $name = $contact['pushName'] ?? $contact['name'] ?? '';
                     
                     // Skip if no phone or if it's a group
                     if (empty($phone) || ($contact['isGroup'] ?? false)) {
                         continue;
                     }
 
-                    // Clean phone number (remove @c.us suffix if present)
-                    $clean_phone = str_replace('@c.us', '', $phone);
+                    // Clean phone number (remove @s.whatsapp.net suffix if present)
+                    $clean_phone = str_replace(['@s.whatsapp.net', '@c.us'], '', $phone);
                     
                     // Skip if phone is not valid (should be numeric with country code)
                     if (!preg_match('/^\d{10,15}$/', $clean_phone)) {
                         continue;
                     }
 
-                // Prepare guest data
-                $guest_data = [
-                    'guest_name' => !empty($name) ? $name : 'Contact ' . substr($clean_phone, -4),
-                    'guest_phone' => '+' . $clean_phone,
-                    'guest_email' => '',
-                    'guest_pledge' => 0,
-                    'business_id' => $business_id,
-                    'event_guest_category_id' => 1, // Default category
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];                    // Check if contact already exists for this business
-                    $existing = \App\Models\EventsGuest::where('business_id', $business_id)
+                    // Prepare guest data
+                    $guest_data = [
+                        'guest_name' => !empty($name) ? $name : 'Contact ' . substr($clean_phone, -4),
+                        'guest_phone' => '+' . $clean_phone,
+                        'guest_email' => '',
+                        'guest_pledge' => 0,
+                        'business_id' => $business_id,
+                        'event_guest_category_id' => 1, // Default category
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                    
+                    // Check if contact already exists for this business (EventsGuest is aliased as BusinessContact)
+                    $existing = EventsGuest::where('business_id', $business_id)
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
                     if (!$existing) {
-                        \App\Models\EventsGuest::create($guest_data);
+                        EventsGuest::create($guest_data);
                         $imported_count++;
                     }
 

@@ -319,7 +319,7 @@
                     <i class="fas fa-plus"></i>
                     Add New Product
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeProductModal()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="addProductForm" enctype="multipart/form-data">
@@ -392,12 +392,12 @@
                             <div class="col-md-4" id="imageUploadSection">
                                 <!-- Product Image Upload -->
                                 <div class="mb-3">
-                                    <label class="form-label">Product Images</label>
-                                    <input type="file" class="form-control" id="productImageInput" name="images[]" accept="image/*" multiple>
-                                    <small class="text-muted">Max 5MB each, JPG/PNG only. Multiple images allowed.</small>
+                                    <label class="form-label">Product Image</label>
+                                    <input type="file" class="form-control" id="productImageInput" name="product_image" accept="image/*">
+                                    <small class="text-muted">Max 5MB. Supports: JPG, PNG, GIF</small>
                                 </div>
                                 <div id="imagePreview" style="display: none;">
-                                    <!-- Image previews will appear here -->
+                                    <!-- Image preview will appear here -->
                                 </div>
                             </div>
                         </div>
@@ -600,6 +600,19 @@
                         </div>
                     </div>
 
+                    <!-- Product Attachments -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-paperclip"></i>
+                            Product Attachments
+                        </h6>
+                        <div class="mb-3">
+                            <label class="form-label">Product Documentation (Optional)</label>
+                            <input type="file" class="form-control" id="productAttachment" name="product_attachment" accept=".pdf,.doc,.docx,.txt">
+                            <small class="text-muted">Max 10MB. Supports: PDF, Word Documents, Text files.</small>
+                        </div>
+                    </div>
+
                     <!-- RAG Document Management -->
                     <div class="form-section">
                         <h6 class="section-title">
@@ -612,7 +625,7 @@
                             <strong>RAG Enhancement:</strong> Upload documents to enhance AI responses with product-specific knowledge. Only PDF, Word (.doc/.docx), and text files are processed for AI search and retrieval.
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Product Documentation</label>
+                            <label class="form-label">AI Training Documents</label>
                             <input type="file" class="form-control" id="ragDocuments" name="rag_documents_upload" multiple accept=".pdf,.doc,.docx,.txt" onchange="handleRagDocuments(this)">
                             <small class="text-muted">Max 10MB per file. Supports: PDF, Word Documents, Text files. Multiple files allowed.</small>
                             <input type="hidden" name="rag_documents_processed" id="ragDocumentsProcessed" value="0">
@@ -744,7 +757,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeProductModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
                 <button type="button" class="btn btn-primary" onclick="saveProduct()">
                     <i class="fas fa-save"></i>
                     Save Product
@@ -763,7 +778,7 @@
                     <i class="fas fa-eye"></i>
                     Product Details
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeViewProductModal()" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="productDetailsContent">
                 <!-- Product details will be loaded here -->
@@ -784,12 +799,14 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn-secondary" id="manageNurtureMessagesBtn" onclick="manageNurtureMessages()" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeViewProductModal()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+                <button type="button" class="btn btn-secondary" id="manageNurtureMessagesBtn" onclick="manageNurtureMessages()" style="display: none;">
                     <i class="fas fa-comments"></i>
                     Manage Nurture Messages
                 </button>
-                <button type="button" class="btn-primary" onclick="editProductFromView()">
+                <button type="button" class="btn btn-primary" onclick="editProductFromView()">
                     <i class="fas fa-edit"></i>
                     Edit Product
                 </button>
@@ -1262,6 +1279,7 @@
         border: 2px solid #e2e8f0;
         border-radius: 6px;
         background: white;
+        color: #374151;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
@@ -1271,11 +1289,11 @@
     }
     
     .product-type-selector .form-check-input:checked + .form-check-label {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
+        background: #3b82f6 !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(59, 89, 152, 0.3);
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
     }
     
     .service-fields {
@@ -1893,9 +1911,9 @@
     }
 
     .dark-mode .product-type-selector .form-check-input:checked + .form-check-label {
-        background: var(--primary-color) !important;
+        background: #3b82f6 !important;
         color: white !important;
-        border-color: var(--primary-color) !important;
+        border-color: #3b82f6 !important;
     }
 
     .dark-mode .service-fields {
@@ -1976,6 +1994,67 @@
         background: #4a5568 !important;
         border-top: 1px solid #4a5568 !important;
     }
+
+    /* Modal Close Button Improvements */
+    .modal-header .btn-close {
+        font-size: 1.2rem;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+    }
+
+    .modal-header .btn-close:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .dark-mode .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 1;
+    }
+
+    /* Modal Footer Button Improvements */
+    .modal-footer .btn-secondary {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        color: #ffffff !important;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .modal-footer .btn-secondary:hover {
+        background-color: #5a6268 !important;
+        border-color: #545b62 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    .modal-footer .btn-primary {
+        background-color: var(--primary-brand, #3b5998) !important;
+        border-color: var(--primary-brand, #3b5998) !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        padding: 0.5rem 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .modal-footer .btn-primary:hover {
+        background-color: #2d4373 !important;
+        border-color: #2d4373 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 12px rgba(59, 89, 152, 0.4);
+    }
+
+    .dark-mode .modal-footer .btn-secondary {
+        background-color: #718096 !important;
+        border-color: #718096 !important;
+    }
+
+    .dark-mode .modal-footer .btn-secondary:hover {
+        background-color: #4a5568 !important;
+        border-color: #4a5568 !important;
+    }
+
 
     .dark-mode .modal-body {
         background: #2d3748 !important;
@@ -3555,6 +3634,87 @@ function saveProduct() {
         showNotification('Error saving product: ' + error.message, 'error');
     });
 }
+
+function closeProductModal() {
+    // Close the product modal
+    const modalElem = document.getElementById('addProductModal');
+    if (!modalElem) return;
+    
+    // Try Bootstrap 5 first
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        try {
+            const modalInstance = bootstrap.Modal.getInstance(modalElem);
+            if (modalInstance) {
+                modalInstance.hide();
+            } else {
+                // Create instance and hide
+                const modal = new bootstrap.Modal(modalElem);
+                modal.hide();
+            }
+        } catch (e) {
+            console.log('Bootstrap modal close failed, using fallback:', e);
+        }
+    }
+    
+    // Always execute manual cleanup to ensure modal is closed
+    setTimeout(() => {
+        // Hide modal
+        modalElem.style.display = 'none';
+        modalElem.classList.remove('show');
+        modalElem.setAttribute('aria-hidden', 'true');
+        modalElem.removeAttribute('aria-modal');
+        
+        // Remove all backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Clean up body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, 100);
+}
+
+function closeViewProductModal() {
+    // Close the view product modal
+    const modalElem = document.getElementById('viewProductModal');
+    if (!modalElem) return;
+    
+    // Try Bootstrap 5 first
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        try {
+            const modalInstance = bootstrap.Modal.getInstance(modalElem);
+            if (modalInstance) {
+                modalInstance.hide();
+            } else {
+                // Create instance and hide
+                const modal = new bootstrap.Modal(modalElem);
+                modal.hide();
+            }
+        } catch (e) {
+            console.log('Bootstrap modal close failed, using fallback:', e);
+        }
+    }
+    
+    // Always execute manual cleanup to ensure modal is closed
+    setTimeout(() => {
+        // Hide modal
+        modalElem.style.display = 'none';
+        modalElem.classList.remove('show');
+        modalElem.setAttribute('aria-hidden', 'true');
+        modalElem.removeAttribute('aria-modal');
+        
+        // Remove all backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Clean up body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, 100);
+}
+
 
 function closeModalAndRefresh() {
     // Close modal with fallback approaches

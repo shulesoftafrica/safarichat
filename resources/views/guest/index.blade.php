@@ -70,6 +70,106 @@
 /* International Telephone Input Styles */
 .iti { width: 100%; }
 
+/* Form Validation Feedback Improvements */
+.valid-feedback,
+.invalid-feedback {
+    display: none;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.valid-feedback.d-block,
+.invalid-feedback.d-block {
+    display: block !important;
+}
+
+.valid-feedback {
+    color: #059669;
+}
+
+.invalid-feedback {
+    color: #dc2626;
+}
+
+.valid-feedback i,
+.invalid-feedback i {
+    margin-right: 0.25rem;
+}
+
+.form-control.is-valid {
+    border-color: #10b981;
+    background-image: none;
+}
+
+.form-control.is-invalid {
+    border-color: #ef4444;
+    background-image: none;
+}
+
+.form-control.is-valid:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25);
+}
+
+/* Hide default Bootstrap validation icons */
+.was-validated .form-control:valid,
+.form-control.is-valid {
+    background-image: none;
+    padding-right: 0.75rem;
+}
+
+.was-validated .form-control:invalid,
+.form-control.is-invalid {
+    background-image: none;
+    padding-right: 0.75rem;
+}
+
+/* International Tel Input Integration */
+.iti__selected-flag {
+    padding: 0 8px 0 12px;
+}
+
+.iti__country-list {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    max-height: 200px;
+}
+
+/* Modal Form Improvements */
+.modal-content .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modal-content .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.modal-content .form-control {
+    border-radius: 6px;
+    border: 2px solid #e5e7eb;
+    padding: 0.625rem 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.modal-content .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-content .form-text {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 0.375rem;
+}
+
 /* Dark Mode Styles */
 .dark-mode .container-fluid {
     background-color: #1a1f2e !important;
@@ -306,6 +406,31 @@
 
 .dark-mode p, .dark-mode span, .dark-mode div {
     color: #e2e8f0 !important;
+}
+
+/* Dark Mode Validation Feedback */
+.dark-mode .valid-feedback {
+    color: #34d399 !important;
+}
+
+.dark-mode .invalid-feedback {
+    color: #f87171 !important;
+}
+
+.dark-mode .form-control.is-valid {
+    border-color: #10b981 !important;
+}
+
+.dark-mode .form-control.is-invalid {
+    border-color: #ef4444 !important;
+}
+
+.dark-mode .modal-content .form-label {
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-content .form-text {
+    color: #a0aec0 !important;
 }
 
 .dark-mode .page-title-box {
@@ -1395,22 +1520,28 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     </div>
                     
                     <p>  
-                        <button type="button" class="btn btn-outline-success" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myModal" onclick=" $('#ProfileStep5').attr('action', '<?= url('guest/store/null') ?>');">
+                        <button type="button" class="btn btn-outline-success" style="display: inline-flex; align-items: center;" data-toggle="modal" data-target="#myModal" onclick="$('#edit_guest').val(''); $('#ProfileStep5').attr('action', '<?= url('guest/store') ?>');">
                           <i class="mdi mdi-account-plus" style="font-size: 1.2em; margin-right: 6px;"></i>
                           {{ __('customers.actions.add_new') }}  
                         </button>
                         <script>
                         // Set modal title when adding new contact
                         $('button[data-target="#myModal"]').on('click', function() {
-                            // Check if this is the add button (action contains 'store/null')
+                            // Check if this is the add button (action contains 'store')
                             var action = $(this).attr('onclick');
-                            if (action && action.includes('store/null')) {
+                            if (action && (action.includes('store') || action.includes("val('')"))) {
                                 $('#contactModalTitle').text('{{ __('customers.modals.add_title') }}');
                                 // Clear form fields
                                 $('#edit_guest_name').val('');
                                 $('#edit_guest_phone').val('');
                                 $('#edit_lead_status').val('');
                                 $('#edit_guest').val('');
+                                $('#edit-form-status').html('');
+                                
+                                // Reset phone input if it exists
+                                if (window.editPhoneInput) {
+                                    editPhoneInput.setNumber('');
+                                }
                             }
                         });
                         </script>
@@ -1444,6 +1575,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                     </div>
                                     <div class="modal-body">
                                         <p>{{ __('customers.whatsapp_sync.description') }}</p>
+                                        <div id="whatsapp-connection-status" class="mb-3"></div>
                                         <div id="whatsapp-sync-status" class="mb-2"></div>
                                         <button type="button" class="btn btn-success" id="startWhatsappSync">
                                             <i class="mdi mdi-whatsapp"></i> {{ __('customers.whatsapp_sync.start_sync') }}
@@ -1452,6 +1584,60 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                 </div>
                             </div>
                         </div>
+                        
+                        <script type="text/javascript">
+                            // Check WhatsApp instance status when modal opens
+                            $('#whatsappSyncModal').on('shown.bs.modal', function() {
+                                $('#whatsapp-connection-status').html('<span class="text-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>Checking WhatsApp connection...</span>');
+                                $('#whatsapp-sync-status').html(''); // Clear previous sync messages
+                                
+                                $.ajax({
+                                    url: '{{ route("guest.whatsappInstanceStatus") }}',
+                                    method: 'GET',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    },
+                                    success: function(response) {
+                                        console.log('WhatsApp instance status:', response);
+                                        
+                                        if (response.success && response.is_connected) {
+                                            $('#whatsapp-connection-status').html(
+                                                '<div class="alert alert-success" style="padding: 10px; margin-bottom: 15px;">' +
+                                                '<i class="mdi mdi-check-circle mr-2"></i>' +
+                                                '<strong>Connected:</strong> ' + (response.instance_name || response.phone_number || 'WhatsApp Instance') +
+                                                '<br><small class="text-muted">Status: ' + (response.connect_status || response.status) + '</small>' +
+                                                '</div>'
+                                            );
+                                        } else if (response.has_instance && !response.is_connected) {
+                                            $('#whatsapp-connection-status').html(
+                                                '<div class="alert alert-warning" style="padding: 10px; margin-bottom: 15px;">' +
+                                                '<i class="mdi mdi-alert-circle mr-2"></i>' +
+                                                '<strong>Not Connected</strong><br>' +
+                                                response.message +
+                                                '</div>'
+                                            );
+                                        } else {
+                                            $('#whatsapp-connection-status').html(
+                                                '<div class="alert alert-danger" style="padding: 10px; margin-bottom: 15px;">' +
+                                                '<i class="mdi mdi-alert mr-2"></i>' +
+                                                '<strong>No Instance Found</strong><br>' +
+                                                response.message +
+                                                '</div>'
+                                            );
+                                        }
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error('Error checking instance status:', xhr.responseJSON);
+                                        $('#whatsapp-connection-status').html(
+                                            '<div class="alert alert-danger" style="padding: 10px; margin-bottom: 15px;">' +
+                                            '<i class="mdi mdi-alert mr-2"></i>' +
+                                            'Failed to check connection status: ' + (xhr.responseJSON ? xhr.responseJSON.message : error) +
+                                            '</div>'
+                                        );
+                                    }
+                                });
+                            });
+                        </script>
                         
                         <!-- Google Contacts Sync Modal -->
                         <div class="modal fade planner-modal-bx" id="googleSyncModal" tabindex="-1" role="dialog" aria-labelledby="googleSyncModalLabel" aria-hidden="true" style="display: none;">
@@ -1728,45 +1914,71 @@ body:not(.dark-mode) .modal-body .alert-danger {
                         
                         <script type="text/javascript">
                             $('#startWhatsappSync').on('click', function () {
-                                $('#whatsapp-sync-status').html('<span class="text-info">{{ __("customers.whatsapp_sync.syncing") }}</span>');
+                                console.log('Start WhatsApp Sync button clicked');
+                                $('#whatsapp-sync-status').html('<span class="text-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{ __("customers.whatsapp_sync.syncing") }}</span>');
                                 
-                                // Get user's WhatsApp instance directly from backend
-                                @php
-                                    $whatsappInstance = Auth::user()->whatsappInstance();
-                                   
-                                @endphp
-                                
-                                @if($whatsappInstance)
-                                    // User has a WhatsApp instance, proceed with sync
-                                    var instanceId = '{{ $whatsappInstance->instance_id }}';
-                                    var connectStatus = '{{ $whatsappInstance->connect_status }}';
-                                    
-                                    if (connectStatus === 'ready') {
-                                        syncContactsFromWAAPI(instanceId);
-                                    } else {
-                                        $('#whatsapp-sync-status').html('<span class="text-warning">{{ __("customers.whatsapp_sync.instance_not_connected") }}</span>');
+                                // Check WhatsApp instance status dynamically via AJAX
+                                $.ajax({
+                                    url: '{{ route("guest.whatsappInstanceStatus") }}',
+                                    method: 'GET',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    },
+                                    success: function(response) {
+                                        console.log('Button click - Instance status response:', response);
+                                        
+                                        if (response.success && response.is_connected) {
+                                            // Instance is ready, proceed with sync
+                                            console.log('Instance is connected, starting sync with instance ID:', response.instance_id);
+                                            syncContactsFromWAAPI(response.instance_id);
+                                        } else if (response.has_instance && !response.is_connected) {
+                                            // Instance exists but not connected
+                                            console.warn('Instance exists but not connected:', response);
+                                            $('#whatsapp-sync-status').html(
+                                                '<div class="alert alert-warning" style="padding: 10px;">' +
+                                                '<i class="mdi mdi-alert-circle mr-2"></i>' +
+                                                response.message +
+                                                '</div>'
+                                            );
+                                        } else {
+                                            // No instance found
+                                            console.error('No instance found:', response);
+                                            $('#whatsapp-sync-status').html(
+                                                '<div class="alert alert-danger" style="padding: 10px;">' +
+                                                '<i class="mdi mdi-alert mr-2"></i>' +
+                                                response.message +
+                                                '</div>'
+                                            );
+                                        }
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error('Error checking instance status:', {xhr: xhr, status: status, error: error, response: xhr.responseJSON});
+                                        $('#whatsapp-sync-status').html(
+                                            '<div class="alert alert-danger" style="padding: 10px;">' +
+                                            '<i class="mdi mdi-alert mr-2"></i>' +
+                                            'Failed to check WhatsApp instance status. Please try again.' +
+                                            (xhr.responseJSON && xhr.responseJSON.message ? '<br>' + xhr.responseJSON.message : '') +
+                                            '</div>'
+                                        );
                                     }
-                                @else
-                                    // No WhatsApp instance found
-                                    $('#whatsapp-sync-status').html('<span class="text-danger">{{ __("customers.whatsapp_sync.no_instance_found") }}</span>');
-                                @endif
+                                });
                             });
                             
                             function syncContactsFromWAAPI(instanceId) {
-                                console.log('Syncing contacts for instance:', instanceId);
+                                console.log('Syncing contacts from WASender for instance:', instanceId);
                                 
+                                // Use the backend route to sync contacts from WASender API
                                 $.ajax({
-                                    url: 'https://waapi.app/api/v1/instances/' + instanceId + '/client/action/get-contacts',
-                                    method: 'POST',
+                                    url: '<?= url("guest/syncWhatsappContacts") ?>',
+                                    method: 'GET',
                                     headers: {
-                                        'Authorization': 'Bearer {{ config("app.waapi_token", "ftXEQe1S8hncxJVzHRrc3JqB9eHqUmG6WIctlMPy8435fd42") }}',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
                                         'Content-Type': 'application/json'
                                     },
-                                    data: JSON.stringify({}),
                                     success: function (data) {
-                                        console.log('Contacts sync response:', data);
+                                        console.log('WASender contacts sync response:', data);
                                         
-                                        if (data.data && data.data.length > 0) {
+                                        if (data.success && data.contacts && data.contacts.length > 0) {
                                             // Process and save contacts to backend
                                             $.ajax({
                                                 url: '<?= url("guest/importWhatsappContacts") ?>',
@@ -1776,7 +1988,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                                     'Content-Type': 'application/json'
                                                 },
                                                 data: JSON.stringify({
-                                                    contacts: data.data,
+                                                    contacts: data.contacts,
                                                     instance_id: instanceId
                                                 }),
                                                 success: function(response) {
@@ -1803,7 +2015,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                         }
                                     },
                                     error: function (xhr, status, error) {
-                                        console.error('WAAPI contacts request failed:', {
+                                        console.error('WASender contacts request failed:', {
                                             status: xhr.status,
                                             statusText: xhr.statusText,
                                             responseText: xhr.responseText,
@@ -1815,8 +2027,6 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                             errorMessage = '{{ __("customers.whatsapp_sync.auth_failed") }}';
                                         } else if (xhr.status === 404) {
                                             errorMessage = '{{ __("customers.whatsapp_sync.instance_not_found") }}';
-                                        } else if (xhr.status === 405) {
-                                            errorMessage = '{{ __("customers.whatsapp_sync.method_not_allowed") }}';
                                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
                                             errorMessage = xhr.responseJSON.message;
                                         }
@@ -2323,7 +2533,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
         <span aria-hidden="true">×</span>
     </button>
     <div class="modal-dialog" role="document">
-        <form class="modal-content start-here" id="ProfileStep5" action="<?= url('guest/store') ?>" method="POST">
+        <form class="modal-content start-here" id="ProfileStep5" onsubmit="return handleEditFormSubmission();">
 
             <div class="modal-content" style="background-color: #ffffff !important; border-radius: 12px !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important; border: none !important;">
                 <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
@@ -2714,6 +2924,9 @@ body:not(.dark-mode) .modal-body .alert-danger {
     
     // Initialize edit form validation
     function initializeEditFormValidation() {
+        // Clear any existing event handlers to prevent duplicates
+        $('#edit_guest_name, #edit_guest_phone, #edit_pledge, #edit_lead_status').off('input blur change');
+        
         // Real-time validation as user types
         $('#edit_guest_name').on('input blur', function() {
             if ($(this).val().trim()) {
@@ -2744,9 +2957,12 @@ body:not(.dark-mode) .modal-body .alert-danger {
         let isValid = true;
         let errorMessage = '';
         
-        // Clear previous validation state
+        // Clear previous validation state completely
         field.removeClass('is-invalid is-valid');
         field.next('.invalid-feedback').remove();
+        field.next('.valid-feedback').remove();
+        field.siblings('.invalid-feedback').remove();
+        field.siblings('.valid-feedback').remove();
         
         switch(fieldId) {
             case 'edit_guest_name':
@@ -2769,15 +2985,26 @@ body:not(.dark-mode) .modal-body .alert-danger {
                 if (!value) {
                     errorMessage = '{{__('phone_number_is_required')}}';
                     isValid = false;
-                } else if (value.length < 4) {
-                    errorMessage = '{{__('phone_number_must_be_at_least_4_digits')}}';
-                    isValid = false;
-                } else if (value.length > 30) {
-                    errorMessage = '{{__('phone_number_must_not_exceed_30_digits')}}';
-                    isValid = false;
-                } else if (!/^[0-9+\-\s\(\)]*$/.test(value)) {
-                    errorMessage = '{{__('phone_number_can_only_contain_numbers_and_basic_formatting')}}';
-                    isValid = false;
+                } else {
+                    // Use intlTelInput validation if available
+                    if (phoneInput && typeof phoneInput.isValidNumber === 'function') {
+                        if (!phoneInput.isValidNumber()) {
+                            errorMessage = 'Please enter a valid phone number with country code';
+                            isValid = false;
+                        }
+                    } else {
+                        // Fallback validation
+                        if (value.length < 4) {
+                            errorMessage = '{{__('phone_number_must_be_at_least_4_digits')}}';
+                            isValid = false;
+                        } else if (value.length > 30) {
+                            errorMessage = '{{__('phone_number_must_not_exceed_30_digits')}}';
+                            isValid = false;
+                        } else if (!/^[0-9+\-\s\(\)]*$/.test(value)) {
+                            errorMessage = '{{__('phone_number_can_only_contain_numbers_and_basic_formatting')}}';
+                            isValid = false;
+                        }
+                    }
                 }
                 break;
                 
@@ -2799,9 +3026,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
         
         if (isValid) {
             field.addClass('is-valid');
+            // Don't show success message for phone fields to avoid clutter
+            if (fieldId !== 'edit_guest_phone') {
+                field.after('<div class="valid-feedback d-block"><i class="fas fa-check-circle"></i> Looks good!</div>');
+            }
         } else {
             field.addClass('is-invalid');
-            field.after('<div class="invalid-feedback">' + errorMessage + '</div>');
+            field.after('<div class="invalid-feedback d-block"><i class="fas fa-exclamation-circle"></i> ' + errorMessage + '</div>');
         }
         
         return isValid;
@@ -3666,6 +3897,8 @@ body:not(.dark-mode) .modal-body .alert-danger {
         }
         
         const guestId = $('#edit_guest').val();
+        const isEditMode = guestId && guestId !== '';
+        
         const formData = {
             guest_name: $('#edit_guest_name').val().trim(),
             guest_phone: getFullPhoneNumber(),
@@ -3679,12 +3912,17 @@ body:not(.dark-mode) .modal-body .alert-danger {
             formData.guest_pledge = pledge;
         }
         
+        // Determine URL and loading message based on mode
+        const url = isEditMode ? '{{ url('guest/edit') }}/' + guestId : '{{ url('guest/store') }}';
+        const loadingMessage = isEditMode ? '{{__('updating_contact')}}' : 'Creating contact...';
+        const loadingButtonText = isEditMode ? '{{__('updating')}}' : 'Creating...';
+        
         // Show loading state
-        $('#edit-form-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>{{__('updating_contact')}}</div>');
-        $('#edit-submit-btn').prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin mr-2"></i>{{__('updating')}}');
+        $('#edit-form-status').html('<div class="alert alert-info"><i class="mdi mdi-loading mdi-spin mr-2"></i>' + loadingMessage + '</div>');
+        $('#edit-submit-btn').prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin mr-2"></i>' + loadingButtonText);
         
         $.ajax({
-            url: '{{ url('guest/edit') }}/' + guestId,
+            url: url,
             method: 'POST',
             data: formData,
             headers: {
@@ -3694,15 +3932,17 @@ body:not(.dark-mode) .modal-body .alert-danger {
                 if (response.success) {
                     $('#edit-form-status').html('<div class="alert alert-success"><i class="mdi mdi-check mr-2"></i>' + response.message + '</div>');
                     
-                    // Update the table row with new data
-                    $('#guest_name' + guestId).text(formData.guest_name);
-                    $('#guest_phone' + guestId).text(formData.guest_phone);
-                    $('#guest_lead_status' + guestId).text(formData.lead_status);
-                    if (formData.guest_pledge) {
-                        $('#guest_pledge' + guestId).text(formData.guest_pledge);
+                    if (isEditMode) {
+                        // Update the table row with new data
+                        $('#guest_name' + guestId).text(formData.guest_name);
+                        $('#guest_phone' + guestId).text(formData.guest_phone);
+                        $('#guest_lead_status' + guestId).text(formData.lead_status);
+                        if (formData.guest_pledge) {
+                            $('#guest_pledge' + guestId).text(formData.guest_pledge);
+                        }
                     }
                     
-                    // Refresh the page to update the lead status badge with proper styling
+                    // Refresh the page to update the table
                     setTimeout(function() {
                         location.reload();
                     }, 2000);
@@ -3710,24 +3950,56 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     // Close modal after delay
                     setTimeout(function() {
                         $('#myModal').modal('hide');
-                        showSuccessMessage(response.message || '{{__('contact_updated_successfully')}}');
+                        showSuccessMessage(response.message || (isEditMode ? '{{__('contact_updated_successfully')}}' : 'Contact created successfully'));
                     }, 1500);
                 } else {
                     $('#edit-form-status').html('<div class="alert alert-danger"><i class="mdi mdi-alert mr-2"></i>' + response.message + '</div>');
                 }
             },
             error: function(xhr) {
-                let errorMessage = '{{__('failed_to_update_contact')}}';
+                let errorMessage = isEditMode ? '{{__('failed_to_update_contact')}}' : 'Failed to create contact';
+                let alertClass = 'alert-danger';
+                let icon = 'mdi-alert';
                 
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    // Handle validation errors from server (fallback)
-                    const errors = xhr.responseJSON.errors;
-                    errorMessage = Object.values(errors).flat().join('<br>');
+                if (xhr.responseJSON) {
+                    // Check for duplicate contact error
+                    if (xhr.responseJSON.error_type === 'duplicate_contact') {
+                        errorMessage = '<strong>Duplicate Contact Found</strong><br>' + xhr.responseJSON.message;
+                        if (xhr.responseJSON.existing_contact) {
+                            const contact = xhr.responseJSON.existing_contact;
+                            errorMessage += '<br><br><strong>Existing Contact:</strong><br>';
+                            errorMessage += 'Name: ' + contact.name + '<br>';
+                            errorMessage += 'Phone: ' + contact.phone;
+                            errorMessage += '<br><br><a href="#" onclick="editGuest(' + contact.id + ')" class="btn btn-sm btn-primary">Edit Existing Contact</a>';
+                        }
+                        alertClass = 'alert-warning';
+                        icon = 'mdi-alert-circle';
+                    } else if (xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON.errors) {
+                        // Handle validation errors from server
+                        const errors = xhr.responseJSON.errors;
+                        errorMessage = '<strong>Validation Errors:</strong><br>' + Object.values(errors).flat().join('<br>');
+                    }
                 }
                 
-                $('#edit-form-status').html('<div class="alert alert-danger"><i class="mdi mdi-alert mr-2"></i>' + errorMessage + '</div>');
+                // Show specific error based on status code
+                if (xhr.status === 404) {
+                    errorMessage = 'Contact not found or you do not have permission to edit it.';
+                    icon = 'mdi-account-remove';
+                } else if (xhr.status === 409) {
+                    // Conflict - duplicate contact
+                    alertClass = 'alert-warning';
+                    icon = 'mdi-account-multiple-check';
+                } else if (xhr.status === 422) {
+                    // Validation error
+                    icon = 'mdi-alert-circle';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Server error occurred. Please try again or contact support.';
+                    icon = 'mdi-server-network-off';
+                }
+                
+                $('#edit-form-status').html('<div class="alert ' + alertClass + '"><i class="mdi ' + icon + ' mr-2"></i>' + errorMessage + '</div>');
             },
             complete: function() {
                 $('#edit-submit-btn').prop('disabled', false).html('{{__('save')}}');
@@ -4224,26 +4496,39 @@ let phoneInput;
 $(document).ready(function() {
     // Initialize phone input after modal is shown
     $('#myModal').on('shown.bs.modal', function() {
+        // Clear any previous validation messages
+        $('.valid-feedback, .invalid-feedback').remove();
+        $('.form-control').removeClass('is-valid is-invalid');
+        
         if (phoneInput) {
             phoneInput.destroy();
         }
         
         const input = document.querySelector("#edit_guest_phone");
-        phoneInput = window.intlTelInput(input, {
-            initialCountry: "tz", // Default to Tanzania
-            preferredCountries: ["tz", "ke", "ug", "rw", "bi"],
-            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
-        });
-        
-        // Set the phone number if available
-        if (window.currentPhoneNumber) {
-            phoneInput.setNumber(window.currentPhoneNumber);
-            window.currentPhoneNumber = null; // Clear after setting
+        if (input) {
+            phoneInput = window.intlTelInput(input, {
+                initialCountry: "tz", // Default to Tanzania
+                preferredCountries: ["tz", "ke", "ug", "rw", "bi"],
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+                separateDialCode: true,
+                autoPlaceholder: "polite",
+                formatOnDisplay: true
+            });
+            
+            // Set the phone number if available
+            if (window.currentPhoneNumber) {
+                phoneInput.setNumber(window.currentPhoneNumber);
+                window.currentPhoneNumber = null; // Clear after setting
+            }
         }
     });
     
     // Clean up when modal is hidden
     $('#myModal').on('hidden.bs.modal', function() {
+        // Clear validation messages on close
+        $('.valid-feedback, .invalid-feedback').remove();
+        $('.form-control').removeClass('is-valid is-invalid');
+        
         if (phoneInput) {
             phoneInput.destroy();
             phoneInput = null;
@@ -4253,7 +4538,7 @@ $(document).ready(function() {
 
 // Update form submission to get full international number
 function getFullPhoneNumber() {
-    if (phoneInput) {
+    if (phoneInput && phoneInput.isValidNumber()) {
         return phoneInput.getNumber();
     }
     return $('#edit_guest_phone').val();

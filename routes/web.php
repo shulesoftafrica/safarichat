@@ -164,6 +164,12 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::post('/guest/sendMessage', [App\Http\Controllers\Guest::class, 'sendMessage'])->name('guest.sendMessage');
     Route::delete('/guest/bulkDelete', [App\Http\Controllers\Guest::class, 'bulkDelete'])->name('guest.bulkDelete');
     
+    // WhatsApp Sync routes
+    Route::get('/guest/whatsappInstanceStatus', [App\Http\Controllers\Guest::class, 'getWhatsappInstanceStatus'])->name('guest.whatsappInstanceStatus');
+    Route::get('/guest/syncWhatsappContacts', [App\Http\Controllers\Guest::class, 'syncWhatsappContacts'])->name('guest.syncWhatsappContacts');
+    Route::post('/guest/importWhatsappContacts', [App\Http\Controllers\Guest::class, 'importWhatsappContacts'])->name('guest.importWhatsappContacts');
+    Route::post('/guest/uploadGuest', [App\Http\Controllers\Guest::class, 'uploadGuest'])->name('guest.uploadGuest');
+    
     // Handoff Management routes
     Route::post('/guest/request-handoff', [App\Http\Controllers\Guest::class, 'requestHandoff'])->name('guest.requestHandoff');
     Route::post('/guest/assign-agent', [App\Http\Controllers\Guest::class, 'assignAgent'])->name('guest.assignAgent');

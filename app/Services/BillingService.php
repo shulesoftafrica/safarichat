@@ -879,6 +879,7 @@ class BillingService
 
             Log::info('Creating subscription invoice with data', [
                 'user_id' => $user->id,
+                'billing_api_url' => self::getBillingApiBase() . '/invoices',
                 'data' => $data
             ]);
             
@@ -909,7 +910,8 @@ class BillingService
                     
                     return [
                         'success' => true,
-                        'data' => $result['data']
+                        'data' => $result['data'],
+                        'message' => $result['message'] ?? null
                     ];
                 }
             }
@@ -1033,6 +1035,144 @@ class BillingService
         } catch (\Exception $e) {
             Log::error('Failed to downgrade subscription', [
                 'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get subscription details including payment  gateways
+     * 
+     * @param int $subscriptionId
+     * @return array Subscription details
+     */
+    public static function getSubscriptionDetails($subscriptionId)
+    {
+        try {
+            $response = self::makeAuthenticatedRequest(
+                'GET',
+                self::getBillingApiBase() . '/subscriptions/' . $subscriptionId
+            );
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                if (isset($result['success']) && $result['success']) {
+                    Log::info('Subscription details fetched successfully', [
+                        'subscription_id' => $subscriptionId
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch subscription details', [
+                'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get customer's subscriptions
+     * 
+     * @param int $customerId
+     * @return array Customer subscriptions
+     */
+    public static function getCustomerSubscriptions($customerId)
+    {
+        try {
+            $response = self::makeAuthenticatedRequest(
+                'GET',
+                self::getBillingApiBase() . '/customers/' . $customerId . '/subscriptions'
+            );
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                if (isset($result['success']) && $result['success']) {
+                    Log::info('Customer subscriptions fetched successfully', [
+                        'customer_id' => $customerId,
+                        'subscriptions_count' => count($result['data'] ?? [])
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch customer subscriptions', [
+                'customer_id' => $customerId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get the most recent invoice for a customer
+     * 
+     * @param int $customerId
+     * @param string $status Filter by status (pending, issued, paid, etc.)
+     * @return array Invoice details
+     */
+    public static function getCustomerLatestInvoice($customerId, $status = null)
+    {
+        try {
+            $url = self::getBillingApiBase() . '/customers/' . $customerId . '/invoices/latest';
+            if ($status) {
+                $url .= '?status=' . $status;
+            }
+            
+            $response = self::makeAuthenticatedRequest('GET', $url);
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                if (isset($result['success']) && $result['success']) {
+                    Log::info('Latest invoice fetched successfully', [
+                        'customer_id' => $customerId,
+                        'invoice_id' => $result['data']['id'] ?? null,
+                        'status' => $result['data']['status'] ?? null
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $result['data']
+                    ];
+                }
+            }
+            
+            throw new \Exception('API returned error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch latest invoice', [
+                'customer_id' => $customerId,
                 'error' => $e->getMessage()
             ]);
             
