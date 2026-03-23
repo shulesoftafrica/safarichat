@@ -1404,39 +1404,43 @@ class BillingApiController extends Controller
             ];
         }
         
-        // Step 2: Check if product already exists in billing API
+        // Step 2: Check if product already exists by product code (GET /products/{product_code})
         try {
-            $response = $this->makeAuthenticatedRequest('GET', $billingApiUrl . '/products?organization_id=' . $organizationId);
+            $response = $this->makeAuthenticatedRequest('GET', $billingApiUrl . '/products/' . $productCode);
             
             if ($response->successful()) {
-                $products = $response->json()['data'] ?? [];
+                $productData = $response->json()['data'] ?? null;
                 
-                // Search for existing product by code
-                foreach ($products as $product) {
-                    if ($product['product_code'] === $productCode) {
-                        $productId = $product['id'];
-                        $pricePlanId = $product['price_plans'][0]['id'] ?? null;
+                if ($productData) {
+                    $productId = $productData['id'];
+                    $pricePlanId = $productData['price_plans'][0]['id'] ?? null;
+                    
+                    if ($productId && $pricePlanId) {
+                        // Cache the existing product
+                        Cache::put('safarichat_credits_product_id', $productId, now()->addDays(30));
+                        Cache::put('safarichat_credits_price_plan_id', $pricePlanId, now()->addDays(30));
                         
-                        if ($productId && $pricePlanId) {
-                            // Cache the existing product
-                            Cache::put('safarichat_credits_product_id', $productId, now()->addDays(30));
-                            Cache::put('safarichat_credits_price_plan_id', $pricePlanId, now()->addDays(30));
-                            
-                            Log::info('Found existing credits product', [
-                                'product_id' => $productId,
-                                'price_plan_id' => $pricePlanId
-                            ]);
-                            
-                            return [
-                                'product_id' => $productId,
-                                'price_plan_id' => $pricePlanId
-                            ];
-                        }
+                        Log::info('Found existing credits product by code', [
+                            'product_code' => $productCode,
+                            'product_id' => $productId,
+                            'price_plan_id' => $pricePlanId
+                        ]);
+                        
+                        return [
+                            'product_id' => $productId,
+                            'price_plan_id' => $pricePlanId
+                        ];
                     }
                 }
+            } else if ($response->status() === 404) {
+                // Product doesn't exist, will create below
+                Log::info('Product not found, will create new one', [
+                    'product_code' => $productCode
+                ]);
             }
         } catch (\Exception $e) {
-            Log::warning('Failed to fetch existing products, will attempt to create', [
+            Log::warning('Failed to check if product exists, will attempt to create', [
+                'product_code' => $productCode,
                 'error' => $e->getMessage()
             ]);
         }
