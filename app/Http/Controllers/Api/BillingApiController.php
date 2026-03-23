@@ -1269,17 +1269,15 @@ class BillingApiController extends Controller
             // Get access token
             $accessToken = $this->getAccessToken();
             
-            // Create or get the AI Credits product and price plan ID
-            $creditsProduct = $this->createOrGetCreditsProduct();
-            $creditsPricePlanId = $creditsProduct['price_plan_id'];
+            // Get AI Credits price plan ID from config
+            $creditsPricePlanId = config('services.billing.wallet_credits_price_plan_id');
             
             if (!$creditsPricePlanId) {
-                throw new \Exception('Failed to get credits price plan ID');
+                throw new \Exception('Wallet credits price plan ID not configured. Please set BILLING_WALLET_CREDITS_PRICE_PLAN_ID in .env file');
             }
             
-            Log::info('Using credits product for UCN generation', [
+            Log::info('Using credits price plan for UCN generation', [
                 'user_id' => $user->id,
-                'product_id' => $creditsProduct['product_id'],
                 'price_plan_id' => $creditsPricePlanId
             ]);
             
