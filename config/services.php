@@ -72,13 +72,13 @@ return [
     ],
 
     'lipa_number' => [
-        'api_url' => env('LIPA_NUMBER_API_URL', 'https://api.shulesoft.africa'),
+        'api_url' => env('LIPA_NUMBER_API_URL', 'https://api.safaribank.africa'),
         'instance_id' => env('LIPA_NUMBER_INSTANCE_ID', 'safarichat'),
         'webhook_secret' => env('LIPA_NUMBER_WEBHOOK_SECRET'),
     ],
 
     'billing' => [
-        'api_url' => env('BILLING_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
+        'api_url' => env('BILLING_API_URL', 'https://api.safaribank.africa/api'),
         'access_token' => env('BILLING_ACCESS_TOKEN', ''),
         'organization_id' => env('BILLING_ORGANIZATION_ID', '1'),
         'product_id' => env('BILLING_PRODUCT_ID', ''),
@@ -97,7 +97,7 @@ return [
      * Handles automatic token management and refresh
      */
     'shulesoft_billing' => [
-        'api_url' => env('SHULESOFT_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
+        'api_url' => env('SHULESOFT_API_URL', 'https://api.safaribank.africa/api'),
         
         // OAuth Authentication Credentials
         'auth_email' => env('SHULESOFT_AUTH_EMAIL', 'admin@techsoft-solutions.com'),
