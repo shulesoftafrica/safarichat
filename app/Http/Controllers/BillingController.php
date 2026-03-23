@@ -934,6 +934,45 @@ class BillingController extends Controller
     }
 
     /**
+     * API: Get wallet information
+     */
+    public function getWalletInfo(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $billingAccount = $user->billingAccount;
+            
+            // Get wallet balance (ai_credits serves as wallet balance)
+            $balance = $billingAccount ? ($billingAccount->ai_credits ?? 0) : 0;
+            
+            // For now, we don't store UCN reference in the database
+            // It will be generated on-demand by the frontend when needed
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'balance' => $balance,
+                    'ucn_reference' => null, // Will be generated on-demand
+                    'subscription_plan' => $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial',
+                    'subscription_status' => $billingAccount ? ($billingAccount->subscription_status ?? 'inactive') : 'inactive'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching wallet info', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching wallet information',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * API: Initiate plan upgrade
      */
     public function upgrade(Request $request)
