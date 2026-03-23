@@ -881,6 +881,10 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     color: #ffffff !important;
 }
 
+.dark-mode .modal-header[style*="background"] {
+    filter: brightness(1.05) !important;
+}
+
 .dark-mode .modal-title {
     color: #ffffff !important;
     font-size: 1.25rem !important;
@@ -892,13 +896,30 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 }
 
 .dark-mode .btn-close-white {
-    filter: brightness(1) !important;
+    filter: brightness(1.2) !important;
     opacity: 1 !important;
+}
+
+.dark-mode .btn-close-white:hover {
+    filter: brightness(1.5) !important;
 }
 
 /* Modal Body */
 .dark-mode .modal-body {
     background: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+/* Main Description Section */
+.dark-mode .modal-body .text-center {
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-body .text-center h5 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-body .text-center p {
     color: #e2e8f0 !important;
 }
 
@@ -930,7 +951,7 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 }
 
 .dark-mode .modal-body small.text-muted {
-    color: #a0aec0 !important;
+    color: #cbd5e0 !important;
 }
 
 /* Icons in Modal */
@@ -963,6 +984,15 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     color: #f7fafc !important;
     font-size: 1.125rem !important;
     font-weight: 600 !important;
+}
+
+.dark-mode .modal-body .card h6.card-title {
+    color: #f7fafc !important;
+    font-weight: 600 !important;
+}
+
+.dark-mode .modal-body .card .card-body h6 {
+    color: #f7fafc !important;
 }
 
 .dark-mode .modal-body .card-title i {
@@ -1082,6 +1112,18 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
     font-size: 1.75rem !important;
 }
 
+.dark-mode .modal-body .card .h4 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-body .card .h6 {
+    color: #f7fafc !important;
+}
+
+.dark-mode .modal-body .card span.h4 {
+    color: #ffffff !important;
+}
+
 /* Feature Lists */
 .dark-mode .modal-body ul {
     padding-left: 0 !important;
@@ -1095,6 +1137,10 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 
 .dark-mode .modal-body ul li i.fa-check {
     color: #68d391 !important;
+}
+
+.dark-mode .modal-body ul li small {
+    color: #cbd5e0 !important;
 }
 
 /* Buttons in Modal */
@@ -1236,10 +1282,12 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 
 .dark-mode #modalContextTitle {
     color: #f7fafc !important;
+    font-weight: 600 !important;
 }
 
 .dark-mode #featureMessage {
-    color: #cbd5e0 !important;
+    color: #e2e8f0 !important;
+    font-size: 1rem !important;
 }
 
 .dark-mode #currentPlanName {
@@ -1247,12 +1295,74 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 }
 
 .dark-mode #currentPlanDetails {
-    color: #cbd5e0 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #currentPlanDetails strong {
+    color: #f7fafc !important;
 }
 
 .dark-mode #currentPlanExpiry {
     color: #f7fafc !important;
     font-weight: 600 !important;
+}
+
+/* Text Muted Overrides for Better Readability */
+.dark-mode #pricingControlsModal .text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #pricingControlsModal .card .text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #pricingControlsModal small.text-muted {
+    color: #cbd5e0 !important;
+}
+
+/* Small Text Visibility */
+.dark-mode #pricingControlsModal small {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #pricingControlsModal .card-body small {
+    color: #cbd5e0 !important;
+}
+
+/* Alert Text Improvements */
+.dark-mode #pricingControlsModal .alert {
+    color: #f7fafc !important;
+}
+
+.dark-mode #pricingControlsModal .alert strong {
+    color: #ffffff !important;
+}
+
+.dark-mode #pricingControlsModal .alert-warning {
+    background: rgba(237, 137, 54, 0.15) !important;
+    border: 1px solid #ed8936 !important;
+    color: #fbd38d !important;
+}
+
+.dark-mode #pricingControlsModal .alert-warning strong {
+    color: #fbd38d !important;
+}
+
+.dark-mode #pricingControlsModal .alert-warning i {
+    color: #f6ad55 !important;
+}
+
+/* Wallet Card Styling */
+.dark-mode #pricingControlsModal .card[style*="border-left: 4px solid #28a745"] .card-body p {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #pricingControlsModal .card[style*="border-left: 4px solid #28a745"] .card-body p.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode #pricingControlsModal .card[style*="border-left: 4px solid #28a745"] .card-body p.small {
+    color: #cbd5e0 !important;
 }
 
 /* Dividers */
