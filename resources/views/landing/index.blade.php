@@ -6,15 +6,38 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     
     <!-- SEO Meta Tags -->
-    <title>{{ $content['meta']['title'] ?? 'AI Sales Agent - SafariChat' }}</title>
-    <meta name="description" content="{{ $content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations, qualifies prospects, and closes deals 24/7.' }}">
-    <meta name="keywords" content="{{ $content['meta']['keywords'] ?? 'AI sales agent, WhatsApp automation, sales automation, lead qualification' }}">
+    <title>{{ __('landing.meta.title') }}</title>
+    <meta name="description" content="{{ __('landing.meta.description') }}">
+    <meta name="keywords" content="{{ __('landing.meta.keywords') }}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ request()->url() }}">
+    
+    <!-- Hreflang Tags for Multi-language Support -->
+    <link rel="alternate" hreflang="en" href="{{ url('/en') }}">
+    <link rel="alternate" hreflang="es" href="{{ url('/es') }}">
+    <link rel="alternate" hreflang="fr" href="{{ url('/fr') }}">
+    <link rel="alternate" hreflang="ar" href="{{ url('/ar') }}">
+    <link rel="alternate" hreflang="hi" href="{{ url('/hi') }}">
+    <link rel="alternate" hreflang="pt" href="{{ url('/pt-br') }}">
+    <link rel="alternate" hreflang="sw" href="{{ url('/sw') }}">
+    <link rel="alternate" hreflang="x-default" href="{{ url('/') }}">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="{{ $content['meta']['title'] ?? 'AI Sales Agent - SafariChat' }}">
-    <meta property="og:description" content="{{ $content['meta']['description'] ?? 'Meet your AI Sales Agent that handles complete sales conversations' }}">
+    <meta property="og:title" content="{{ __('landing.meta.title') }}">
+    <meta property="og:description" content="{{ __('landing.meta.description') }}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:image" content="{{ asset('images/og-image.png') }}">
+    <meta property="og:site_name" content="SafariChat">
+    <meta property="og:locale" content="{{ str_replace('-', '_', $currentLocale) }}">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@SafariChat">
+    <meta name="twitter:title" content="{{ __('landing.meta.title') }}">
+    <meta name="twitter:description" content="{{ __('landing.meta.description') }}">
+    <meta name="twitter:image" content="{{ asset('images/twitter-card.png') }}">
     
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -91,6 +114,42 @@
     
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Structured Data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "SafariChat",
+        "url": "{{ config('app.url') }}",
+        "logo": "{{ asset('images/logo.png') }}",
+        "description": "{{ __('landing.meta.description') }}",
+        "sameAs": [
+            "https://facebook.com/safarichat",
+            "https://twitter.com/safarichat",
+            "https://linkedin.com/company/safarichat"
+        ],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Sales",
+            "availableLanguage": ["English", "Swahili", "Spanish", "French", "Arabic", "Hindi", "Portuguese"]
+        }
+    }
+    </script>
+    
+    <!-- Google Analytics 4 -->
+    @if(config('services.google_analytics.measurement_id'))
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('services.google_analytics.measurement_id') }}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ config('services.google_analytics.measurement_id') }}', {
+            'anonymize_ip': true,
+            'cookie_flags': 'SameSite=None;Secure'
+        });
+    </script>
+    @endif
 </head>
 <body class="font-inter bg-white">
     

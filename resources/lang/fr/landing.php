@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'meta' => [
+        'title' => 'Agent Commercial IA - Conclure des Affaires 24/7 | SafariChat',
+        'description' => 'Rencontrez votre Agent Commercial IA qui gère des conversations de vente complètes, qualifie les prospects et conclut des affaires pendant que vous dormez. Disponible 24/7 en Tanzanie, Nigeria, Indonésie, Brésil et plus.',
+        'keywords' => 'agent commercial IA, automatisation WhatsApp, automatisation des ventes, qualification des leads, conclusion d\'affaires'
+    ],
+
+
     'hero' => [
         'title' => "Salut, je suis votre nouveau Commercial IA. Je conclus des affaires 24h/24 et 7j/7 pendant que vous vous concentrez sur la croissance de votre entreprise.",
         'subtitle' => "Je gère des conversations de vente complètes, qualifie vos prospects, négocie les meilleurs prix et vous livre des affaires prêtes à conclure. Je ne m'arrête jamais, ne manque jamais de suivre, et transforme chaque message WhatsApp en vente potentielle.",

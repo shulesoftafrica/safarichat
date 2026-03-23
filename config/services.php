@@ -123,4 +123,9 @@ return [
         ],
     ],
 
+    'google_analytics' => [
+        'measurement_id' => env('GOOGLE_ANALYTICS_MEASUREMENT_ID'),
+        'tracking_enabled' => env('GOOGLE_ANALYTICS_ENABLED', true),
+    ],
+
 ];

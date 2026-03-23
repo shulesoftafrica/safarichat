@@ -300,7 +300,7 @@ $(document).ready(function () {
 
                 <!-- Include reusable pricing controls modal -->
                 @include('layouts.checkpayment')
-
+ @include('layouts.supportwidget')
                 </body>
 
                 <!-- Start of HubSpot Embed Code -->

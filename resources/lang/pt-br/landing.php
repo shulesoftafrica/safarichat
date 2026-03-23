@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'meta' => [
+        'title' => 'Agente de Vendas IA - Feche Negócios 24/7 | SafariChat',
+        'description' => 'Conheça seu Agente de Vendas IA que gerencia conversas de vendas completas, qualifica prospects e fecha negócios enquanto você dorme. Disponível 24/7 na Tanzânia, Nigéria, Indonésia, Brasil e mais.',
+        'keywords' => 'agente de vendas IA, automação WhatsApp, automação de vendas, qualificação de leads, fechamento de negócios'
+    ],
+
+
     'hero' => [
         'title' => "Oi, eu sou seu novo Agente de Vendas IA. Eu fecho negócios 24/7 enquanto você foca em crescer seu negócio.",
         'subtitle' => "Eu conduzo conversas de vendas completas, qualifico seus prospects, negocio os melhores preços, e entrego negócios prontos para fechar. Nunca faço pausas, nunca perco follow-ups, e transformo cada mensagem do WhatsApp em uma venda potencial.",

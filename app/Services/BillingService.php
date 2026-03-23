@@ -146,7 +146,11 @@ class BillingService
             if ($response->successful()) {
                 $data = $response->json();
                 
-                if ($data['success']) {
+                if ($data === null) {
+                    throw new \Exception('Billing API returned invalid JSON response');
+                }
+                
+                if (isset($data['success']) && $data['success']) {
                     $status = self::enrichStatusData($data['data'], $customerId);
                     self::cacheStatus($customerId, $status);
                     
@@ -892,13 +896,25 @@ class BillingService
             if ($response->successful()) {
                 $result = $response->json();
                 
+                // Check if response is valid JSON
+                if ($result === null) {
+                    Log::error('Billing API returned non-JSON response', [
+                        'user_id' => $user->id,
+                        'status' => $response->status(),
+                        'content_type' => $response->header('Content-Type'),
+                        'body_preview' => substr($response->body(), 0, 500)
+                    ]);
+                    
+                    throw new \Exception('Billing API returned invalid JSON response. The API may be unavailable.');
+                }
+                
                 Log::info('Billing API response for invoice creation', [
                     'user_id' => $user->id,
                     'status' => $response->status(),
-                    'response_structure' => array_keys($result),
+                    'response_structure' => is_array($result) ? array_keys($result) : 'not_an_array',
                     'has_success_key' => isset($result['success']),
                     'has_data_key' => isset($result['data']),
-                    'data_keys' => isset($result['data']) ? array_keys($result['data']) : []
+                    'data_keys' => isset($result['data']) && is_array($result['data']) ? array_keys($result['data']) : []
                 ]);
                 
                 if (isset($result['success']) && $result['success']) {
@@ -963,7 +979,11 @@ class BillingService
             if ($response->successful()) {
                 $result = $response->json();
                 
-                if ($result['success']) {
+                if ($result === null) {
+                    throw new \Exception('Billing API returned invalid JSON response');
+                }
+                
+                if (isset($result['success']) && $result['success']) {
                     Log::info('Subscription upgraded successfully', [
                         'subscription_id' => $subscriptionId,
                         'new_plan_id' => $newPricePlanId
@@ -1017,7 +1037,11 @@ class BillingService
             if ($response->successful()) {
                 $result = $response->json();
                 
-                if ($result['success']) {
+                if ($result === null) {
+                    throw new \Exception('Billing API returned invalid JSON response');
+                }
+                
+                if (isset($result['success']) && $result['success']) {
                     Log::info('Subscription downgraded successfully', [
                         'subscription_id' => $subscriptionId,
                         'new_plan_id' => $newPricePlanId

@@ -1,2 +1,30 @@
+# SafariChat Robots.txt
+# Last updated: March 2026
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /password/
+Disallow: /storage/private/
+Disallow: /*.json$
+Disallow: /*?*utm_
+
+# Allow search engines to crawl public assets
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /storage/public/
+
+# Block bad bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# Sitemap location
+Sitemap: https://yourdomain.com/sitemap.xml
