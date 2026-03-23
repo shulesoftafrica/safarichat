@@ -202,6 +202,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         }
 
         async loadAvailablePlans() {
+            console.log('🔵 [BILLING] Loading plans from API...');
             try {
                 const response = await fetch('{{ url("/api/billing/plans") }}', {
                     headers: {
@@ -211,7 +212,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                     credentials: 'same-origin'
                 });
                 const data = await response.json();
-                console.log('API Response:', data); // Debug log
+                console.log('🔵 [BILLING] API Response:', data);
                 
                 if (data.success && data.data && data.data.plans) {
                     // Convert plans object to array format with proper feature descriptions
@@ -223,14 +224,14 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                         currency: plansObj[code].currency || 'TZS',
                         features: this.convertFeaturesToDescription(plansObj[code].features)
                     }));
-                    console.log('Processed plans:', this.availablePlans); // Debug log
+                    console.log('✅ [BILLING] Using API plans:', this.availablePlans);
                     this.renderAvailablePlans();
                 } else {
-                    console.warn('Invalid API response, using fallback plans', data);
+                    console.warn('⚠️ [BILLING] Invalid API response, using fallback plans', data);
                     this.renderFallbackPlans();
                 }
             } catch (error) {
-                console.error('Error loading plans:', error);
+                console.error('❌ [BILLING] Error loading plans:', error);
                 this.renderFallbackPlans();
             }
         }
@@ -300,10 +301,15 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         }
 
         renderAvailablePlans() {
+            console.log('🟢 [BILLING] renderAvailablePlans() called');
+            console.log('🟢 [BILLING] this.availablePlans:', this.availablePlans);
+            
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
             const subscriptionStatus = this.currentSubscription?.status || 'inactive';
             const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus);
+            
+            console.log('🟢 [BILLING] Current plan:', currentPlan, 'Status:', subscriptionStatus, 'Expired:', isExpired);
             
             const planOrder = ['starter', 'pro', 'premium'];
             const upgradePlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
@@ -313,13 +319,16 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             // If subscription is expired and user has a paid plan, show renewal option first (horizontally)
             if (isExpired && currentPlan !== 'trial') {
                 const currentPlanData = this.availablePlans && this.availablePlans.find(p => p.code === currentPlan);
+                console.log('🟢 [BILLING] Renewal card - Plan data for', currentPlan, ':', currentPlanData);
                 html += this.renderPlanCard(currentPlan, currentPlanData, true); // true = isRenewal
             }
             
             // Show upgrade options if available (cards flow horizontally)
             if (upgradePlans.length > 0) {
+                console.log('🟢 [BILLING] Rendering upgrade plans:', upgradePlans);
                 html += upgradePlans.map(planCode => {
                     const planData = this.availablePlans && this.availablePlans.find(p => p.code === planCode);
+                    console.log('🟢 [BILLING] Upgrade card - Plan data for', planCode, ':', planData);
                     return this.renderPlanCard(planCode, planData, false);
                 }).join('');
             } else if (!isExpired || currentPlan === 'trial') {
@@ -335,6 +344,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         }
 
         renderFallbackPlans() {
+            console.log('🟡 [BILLING] Using FALLBACK plans (API failed or invalid)');
             const fallbackPlans = {
                 starter: { price: 69000, features: ['50 contacts', '5 products', '1 WhatsApp channel', '69,000 AI credits'] },
                 pro: { price: 149000, features: ['150 contacts', '50 products', '3 WhatsApp channels', '149,000 AI credits', 'Customer followups', 'Sales reports'] },
@@ -347,6 +357,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 price: fallbackPlans[code].price,
                 features: fallbackPlans[code].features
             }));
+            console.log('🟡 [BILLING] Fallback plans set:', this.availablePlans);
             
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
@@ -385,6 +396,9 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             const plan = planData || (this.availablePlans && this.availablePlans.find(p => p.code === planCode)) || fallbackPlanData[planCode] || {};
             const price = plan?.price || 0;
             const features = plan?.features || [];
+            
+            const dataSource = planData ? 'parameter' : (this.availablePlans && this.availablePlans.find(p => p.code === planCode)) ? 'availablePlans' : fallbackPlanData[planCode] ? 'inline-fallback' : 'empty';
+            console.log(`🔷 [BILLING] renderPlanCard(${planCode}, isRenewal=${isRenewal}) - Data source: ${dataSource}`, { price, features });
             const isRecommended = !isRenewal && planCode === 'pro';
             const currentPlan = this.currentSubscription?.plan || 'trial';
             const isCurrent = planCode === currentPlan;
