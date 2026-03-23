@@ -728,20 +728,20 @@ async function loadPlanFeatures(planCode) {
         if (data.success && data.data && data.data.plans && data.data.plans[planCode]) {
             const features = data.data.plans[planCode].features;
             const featuresHtml = [
-                `<div class="col-md-6 mb-2"><i class="fas fa-users text-primary"></i> ${features.max_contacts} contacts</div>`,
-                `<div class="col-md-6 mb-2"><i class="fas fa-box text-primary"></i> ${features.max_products} products</div>`,
-                `<div class="col-md-6 mb-2"><i class="fab fa-whatsapp text-success"></i> ${features.whatsapp_channels} WhatsApp channels</div>`,
-                `<div class="col-md-6 mb-2"><i class="fas fa-robot text-info"></i> ${features.ai_credits.toLocaleString()} AI credits</div>`
+                `<div class="col-md-6 mb-2"><i class="fas fa-users text-primary"></i> <strong class="text-dark">${features.max_contacts} contacts</strong></div>`,
+                `<div class="col-md-6 mb-2"><i class="fas fa-box text-primary"></i> <strong class="text-dark">${features.max_products} products</strong></div>`,
+                `<div class="col-md-6 mb-2"><i class="fab fa-whatsapp text-success"></i> <strong class="text-dark">${features.whatsapp_channels} WhatsApp channels</strong></div>`,
+                `<div class="col-md-6 mb-2"><i class="fas fa-robot text-info"></i> <strong class="text-dark">${features.ai_credits.toLocaleString()} AI credits</strong></div>`
             ];
             
             if (features.customer_followups) {
-                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-user-clock text-warning"></i> Customer followups</div>');
+                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-user-clock text-warning"></i> <strong class="text-dark">Customer followups</strong></div>');
             }
             if (features.sales_reports) {
-                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-chart-line text-success"></i> Sales reports</div>');
+                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-chart-line text-success"></i> <strong class="text-dark">Sales reports</strong></div>');
             }
             if (features.booking_calendars) {
-                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-calendar text-purple"></i> Booking calendars</div>');
+                featuresHtml.push('<div class="col-md-6 mb-2"><i class="fas fa-calendar text-purple"></i> <strong class="text-dark">Booking calendars</strong></div>');
             }
             
             document.getElementById('planFeatures').innerHTML = featuresHtml.join('');
