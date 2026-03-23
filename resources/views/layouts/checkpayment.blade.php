@@ -67,7 +67,9 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                 <h5 class="modal-title" id="pricingControlsModalLabel">
                     <i class="fas {{ $modalIcon }}"></i> {{ $modalTitle }}
                 </h5>
-                <button type="button" class="btn-close btn-close-white {{ $isHardBlock ? 'd-none' : '' }}" data-bs-dismiss="modal" aria-label="Close" id="modalCloseBtn"></button>
+                <button type="button" class="close text-white {{ $isHardBlock ? 'd-none' : '' }}" data-dismiss="modal" aria-label="Close" id="modalCloseBtn">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body" id="pricingControlsModalBody">
                 <div class="text-center mb-4">
@@ -135,7 +137,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
 
                 <!-- Action Buttons -->
                 <div class="d-flex justify-content-between mt-4">
-                    <button type="button" class="btn btn-outline-secondary {{ $isHardBlock ? 'd-none' : '' }}" data-bs-dismiss="modal" id="modalCancelBtn">
+                    <button type="button" class="btn btn-outline-secondary {{ $isHardBlock ? 'd-none' : '' }}" data-dismiss="modal" id="modalCancelBtn">
                         <i class="fas fa-times"></i> Cancel
                     </button>
                     <button type="button" class="btn btn-primary" onclick="proceedWithCurrentPlan()" style="display: none;" id="proceedButton">
@@ -409,7 +411,7 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
                                 <small class="text-muted">/month</small>
                             </div>
                             <ul class="list-unstyled text-start">
-                                ${features.slice(0, 4).map(feature => `<li><i class="fas fa-check text-success me-2"></i>${feature}</li>`).join('')}
+                                ${features.slice(0, 4).map(feature => `<li><i class="fas fa-check text-success mr-2"></i><span style="color: #2d3748;">${feature}</span></li>`).join('')}
                                 ${features.length > 4 ? `<li><small class="text-muted">+ ${features.length - 4} more features</small></li>` : ''}
                             </ul>
                         </div>
@@ -1386,7 +1388,9 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
     <i class="fas fa-clock"></i> 
     <strong>Trial Active:</strong> Your trial expires on {{ $expiresAt->format('M d, Y') }}. Subscribe to continue using all features after trial ends.
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
 </div>
 
 <style>
@@ -1428,6 +1432,77 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 
 .dark-mode .alert .btn-close:hover {
     opacity: 1 !important;
+}
+
+/* Light Mode - Ensure text is readable when OS is in dark mode */
+/* Override OS dark mode preferences when app is in light mode */
+#pricingControlsModal:not(.dark-mode) .modal-content,
+#pricingControlsModal .modal-content {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .modal-body,
+#pricingControlsModal .modal-body {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .card,
+#pricingControlsModal .card {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .card-body,
+#pricingControlsModal .card-body {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .card-title,
+#pricingControlsModal .card-title {
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) h6,
+#pricingControlsModal h6 {
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .h4,
+#pricingControlsModal .h4 {
+    color: #212529 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) ul li,
+#pricingControlsModal ul li {
+    color: #2d3748 !important;
+}
+
+#pricingControlsModal:not(.dark-mode) .text-muted,
+#pricingControlsModal .text-muted {
+    color: #6c757d !important;
+}
+
+/* Dark mode overrides for when app is actually in dark mode */
+.dark-mode #pricingControlsModal .modal-content {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #pricingControlsModal .modal-body {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #pricingControlsModal .card {
+    background-color: #1a202c !important;
+    color: #e2e8f0 !important;
+}
+
+.dark-mode #pricingControlsModal ul li span {
+    color: #e2e8f0 !important;
 }
 </style>
 @endif
