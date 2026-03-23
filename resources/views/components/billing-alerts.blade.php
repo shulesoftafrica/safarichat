@@ -19,7 +19,7 @@
         @endphp
         
         <div class="alert {{ $alertClass }} alert-dismissible fade show d-flex align-items-center" role="alert">
-            <span class="me-2" style="font-size: 1.5rem;">{{ $alert['icon'] ?? '⚠️' }}</span>
+            <span class="mr-2" style="font-size: 1.5rem;">{{ $alert['icon'] ?? '⚠️' }}</span>
             
             <div class="flex-grow-1">
                 <strong>{{ $alert['title'] }}</strong>
@@ -53,12 +53,14 @@
             </div>
             
             @if(isset($alert['action']))
-                <a href="{{ $alert['action']['url'] }}" class="btn btn-sm btn-{{ $alert['severity'] === 'critical' ? 'danger' : 'primary' }} ms-3">
+                <a href="{{ $alert['action']['url'] }}" class="btn btn-sm btn-{{ $alert['severity'] === 'critical' ? 'danger' : 'primary' }} ml-3">
                     {{ $alert['action']['text'] }}
                 </a>
             @endif
             
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
     @endforeach
 </div>
@@ -69,7 +71,7 @@
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h6 class="mb-0">
-            <i class="fas fa-credit-card me-2"></i>
+            <i class="fas fa-credit-card mr-2"></i>
             {{ __('common.subscription') }}: {{ $billingSummary['plan_type'] }}
         </h6>
     </div>
@@ -97,7 +99,7 @@
         @else
         <div class="mb-3">
             <small class="text-muted">{{ __('common.ai_credits') }}:</small>
-            <span class="badge bg-success ms-2">{{ __('common.unlimited') }}</span>
+            <span class="badge bg-success ml-2">{{ __('common.unlimited') }}</span>
         </div>
         @endif
 
@@ -124,7 +126,7 @@
         @else
         <div class="mb-3">
             <small class="text-muted">{{ __('common.contacts') }}:</small>
-            <span class="badge bg-success ms-2">{{ __('common.unlimited') }}</span>
+            <span class="badge bg-success ml-2">{{ __('common.unlimited') }}</span>
         </div>
         @endif
 
@@ -145,7 +147,7 @@
         <hr>
         <div class="alert alert-warning p-2 mb-0">
             <small>
-                <i class="fas fa-clock me-1"></i>
+                <i class="fas fa-clock mr-1"></i>
                 {{ __('common.trial_ends') }}: {{ \Carbon\Carbon::parse($billingSummary['trial_ends_at'])->diffForHumans() }}
             </small>
         </div>
