@@ -375,7 +375,14 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
         }
 
         renderPlanCard(planCode, planData = null, isRenewal = false) {
-            const plan = planData || (this.availablePlans && this.availablePlans.find(p => p.code === planCode)) || {};
+            // Hardcoded fallback plans if data is not available
+            const fallbackPlanData = {
+                starter: { price: 69000, features: ['50 contacts', '5 products', '1 WhatsApp channel', '69,000 AI credits'] },
+                pro: { price: 149000, features: ['150 contacts', '50 products', '3 WhatsApp channels', '149,000 AI credits', 'Customer followups', 'Sales reports'] },
+                premium: { price: 299000, features: ['400 contacts', '200 products', '7 WhatsApp channels', '299,000 AI credits', 'All features', 'Booking calendars'] }
+            };
+            
+            const plan = planData || (this.availablePlans && this.availablePlans.find(p => p.code === planCode)) || fallbackPlanData[planCode] || {};
             const price = plan?.price || 0;
             const features = plan?.features || [];
             const isRecommended = !isRenewal && planCode === 'pro';
