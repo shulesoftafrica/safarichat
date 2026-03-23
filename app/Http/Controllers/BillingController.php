@@ -818,4 +818,201 @@ class BillingController extends Controller
             'ai_credits' => $billingAccount ? $billingAccount->ai_credits : 0
         ]);
     }
+
+    /**
+     * API: Get available billing plans
+     */
+    public function getPlans(Request $request)
+    {
+        try {
+            $productsResult = \App\Services\BillingService::getProducts();
+            
+            if ($productsResult['success']) {
+                // Transform API response to match frontend expectations
+                $plans = [];
+                
+                if (isset($productsResult['data']['price_plans'])) {
+                    // API response format
+                    foreach ($productsResult['data']['price_plans'] as $plan) {
+                        if ($plan['plan_code'] !== 'trial') {
+                            $plans[$plan['plan_code']] = [
+                                'name' => $plan['name'],
+                                'price' => floatval($plan['amount']),
+                                'currency' => $plan['currency'] ?? 'TZS',
+                                'features' => $plan['metadata']['features'] ?? []
+                            ];
+                        }
+                    }
+                } elseif (isset($productsResult['data']) && is_array($productsResult['data'])) {
+                    // Config fallback format
+                    foreach ($productsResult['data'] as $plan) {
+                        if (isset($plan['plan_name']) && $plan['plan_name'] !== 'Trial') {
+                            $planCode = $plan['id'] ?? strtolower($plan['plan_name']);
+                            $plans[$planCode] = [
+                                'name' => $plan['plan_name'],
+                                'price' => floatval($plan['price'] ?? 0),
+                                'currency' => $plan['currency'] ?? 'TZS',
+                                'features' => $plan['limits'] ?? []
+                            ];
+                        }
+                    }
+                }
+                
+                Log::info('BillingController::getPlans() response', [
+                    'plans_count' => count($plans),
+                    'plans' => $plans
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'plans' => $plans
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load plans'
+            ], 500);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching plans', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching plans',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Get current billing status
+     */
+    public function getStatus(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $billingAccount = $user->billingAccount;
+            
+            if (!$billingAccount) {
+                return response()->json([
+                    'success' => true,
+                    'subscription' => [
+                        'plan' => 'trial',
+                        'status' => 'inactive',
+                        'expires_at' => null,
+                        'ai_credits' => 0
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'subscription' => [
+                    'plan' => $billingAccount->subscription_plan ?? 'trial',
+                    'status' => $billingAccount->subscription_status ?? 'inactive',
+                    'expires_at' => $billingAccount->subscription_expires_at ? $billingAccount->subscription_expires_at->toISOString() : null,
+                    'ai_credits' => $billingAccount->ai_credits ?? 0
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching status', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Initiate plan upgrade
+     */
+    public function upgrade(Request $request)
+    {
+        try {
+            $request->validate([
+                'plan_code' => 'required|in:starter,pro,premium',
+                'amount' => 'required|numeric|min:0',
+                'feature' => 'nullable|string'
+            ]);
+            
+            $planCode = $request->input('plan_code');
+            $amount = $request->input('amount');
+            $feature = $request->input('feature');
+            
+            // Redirect to payment page
+            $paymentUrl = route('billing.payment', [
+                'plan_code' => $planCode,
+                'amount' => $amount,
+                'feature' => $feature,
+                'renewal' => 0
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'payment_url' => $paymentUrl,
+                'message' => 'Redirecting to payment page...'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error initiating upgrade', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing upgrade',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Initiate plan renewal
+     */
+    public function renew(Request $request)
+    {
+        try {
+            $request->validate([
+                'plan_code' => 'required|in:starter,pro,premium',
+                'amount' => 'required|numeric|min:0'
+            ]);
+            
+            $planCode = $request->input('plan_code');
+            $amount = $request->input('amount');
+            
+            // Redirect to payment page
+            $paymentUrl = route('billing.payment', [
+                'plan_code' => $planCode,
+                'amount' => $amount,
+                'renewal' => 1
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'payment_url' => $paymentUrl,
+                'message' => 'Redirecting to payment page...'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error initiating renewal', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing renewal',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

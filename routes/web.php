@@ -331,6 +331,12 @@ Route::middleware('auth')->group(function () {
     
     // Wallet Management Page
     Route::get('/billing/wallet', [App\Http\Controllers\BillingController::class, 'showWallet'])->name('billing.wallet');
+    
+    // Billing API Routes (session-based auth for AJAX calls from web pages)
+    Route::get('/api/billing/plans', [App\Http\Controllers\BillingController::class, 'getPlans'])->name('api.billing.plans');
+    Route::get('/api/billing/status', [App\Http\Controllers\BillingController::class, 'getStatus'])->name('api.billing.status');
+    Route::post('/api/billing/upgrade', [App\Http\Controllers\BillingController::class, 'upgrade'])->name('api.billing.upgrade');
+    Route::post('/api/billing/renew', [App\Http\Controllers\BillingController::class, 'renew'])->name('api.billing.renew');
 });
 
 // Booking Calendar Routes
