@@ -1387,8 +1387,9 @@ class BillingApiController extends Controller
     {
         $billingApiUrl = config('services.billing.api_url');
         $organizationId = config('services.billing.organization_id');
+        $productCode = 'SAFARICHAT-AI-CREDITS';
         
-        // Check if we have cached product ID
+        // Step 1: Check if we have cached product ID
         $cachedProductId = Cache::get('safarichat_credits_product_id');
         $cachedPricePlanId = Cache::get('safarichat_credits_price_plan_id');
         
@@ -1403,12 +1404,49 @@ class BillingApiController extends Controller
             ];
         }
         
-        // Create usage-based product for AI Credits
+        // Step 2: Check if product already exists in billing API
+        try {
+            $response = $this->makeAuthenticatedRequest('GET', $billingApiUrl . '/products?organization_id=' . $organizationId);
+            
+            if ($response->successful()) {
+                $products = $response->json()['data'] ?? [];
+                
+                // Search for existing product by code
+                foreach ($products as $product) {
+                    if ($product['product_code'] === $productCode) {
+                        $productId = $product['id'];
+                        $pricePlanId = $product['price_plans'][0]['id'] ?? null;
+                        
+                        if ($productId && $pricePlanId) {
+                            // Cache the existing product
+                            Cache::put('safarichat_credits_product_id', $productId, now()->addDays(30));
+                            Cache::put('safarichat_credits_price_plan_id', $pricePlanId, now()->addDays(30));
+                            
+                            Log::info('Found existing credits product', [
+                                'product_id' => $productId,
+                                'price_plan_id' => $pricePlanId
+                            ]);
+                            
+                            return [
+                                'product_id' => $productId,
+                                'price_plan_id' => $pricePlanId
+                            ];
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to fetch existing products, will attempt to create', [
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // Step 3: Product doesn't exist, create new usage-based product for AI Credits
         $productData = [
             'organization_id' => $organizationId,
             'product_type_id' => 3, // Usage Product type
             'name' => 'SafariChat AI Credits',
-            'product_code' => 'SAFARICHAT-AI-CREDITS',
+            'product_code' => $productCode,
             'description' => 'Prepaid AI credits for SafariChat messaging and automation',
             'unit' => 'Credit',
             'active' => true,
