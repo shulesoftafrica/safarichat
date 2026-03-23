@@ -312,12 +312,16 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             
             // If subscription is expired and user has a paid plan, show renewal option first (horizontally)
             if (isExpired && currentPlan !== 'trial') {
-                html += this.renderPlanCard(currentPlan, null, true); // true = isRenewal
+                const currentPlanData = this.availablePlans && this.availablePlans.find(p => p.code === currentPlan);
+                html += this.renderPlanCard(currentPlan, currentPlanData, true); // true = isRenewal
             }
             
             // Show upgrade options if available (cards flow horizontally)
             if (upgradePlans.length > 0) {
-                html += upgradePlans.map(planCode => this.renderPlanCard(planCode, null, false)).join('');
+                html += upgradePlans.map(planCode => {
+                    const planData = this.availablePlans && this.availablePlans.find(p => p.code === planCode);
+                    return this.renderPlanCard(planCode, planData, false);
+                }).join('');
             } else if (!isExpired || currentPlan === 'trial') {
                 // Only show "highest plan" message if subscription is active
                 html = `
