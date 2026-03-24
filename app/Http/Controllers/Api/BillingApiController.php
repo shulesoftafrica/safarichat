@@ -1245,32 +1245,30 @@ class BillingApiController extends Controller
     }
 
     /**
-     * Get or create credit UCN for wallet top-ups
+     * Get or create credit UCN for wallet top-ups with specific amount
      */
     public function getWalletUCN(Request $request)
     {
         $user = Auth::user();
         $billingAccount = $user->billingAccount;
+        $amount = $request->input('amount', 5000); // Get amount from request
+        
+        // Validate amount
+        if ($amount < 1000) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimum amount is TZS 1,000'
+            ], 400);
+        }
         
         Log::info('=== START: getWalletUCN called ===', [
             'user_id' => $user->id,
             'has_billing_account' => $billingAccount ? 'yes' : 'no',
-            'existing_ucn' => $billingAccount ? $billingAccount->credit_ucn : null
+            'requested_amount' => $amount
         ]);
         
-        // Check if credit UCN already exists
-        if ($billingAccount && $billingAccount->credit_ucn) {
-            Log::info('UCN already exists in database, returning cached value', [
-                'user_id' => $user->id,
-                'ucn' => $billingAccount->credit_ucn
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'ucn' => $billingAccount->credit_ucn,
-                'message' => 'UCN retrieved from database'
-            ]);
-        }
+        // NOTE: Always create new invoice with specified amount
+        // Don't use cached UCN as amount changes each time
         
         // Create credit invoice to get UCN
         try {
@@ -1306,7 +1304,7 @@ class BillingApiController extends Controller
                 'price_plan_id' => $creditsPricePlanId
             ]);
             
-            // Create invoice with minimal amount to get UCN
+            // Create invoice with specified amount to get UCN and payment links
             $invoiceData = [
                 'organization_id' => $organizationId,
                 'customer' => [
@@ -1317,10 +1315,10 @@ class BillingApiController extends Controller
                 'products' => [
                     [
                         'price_plan_id' => $creditsPricePlanId,
-                        'amount' => 5000 // Minimum amount to generate UCN
+                        'amount' => $amount // Use requested amount
                     ]
                 ],
-                'description' => 'SafariChat AI Credits - UCN Generation',
+                'description' => 'SafariChat AI Credits - Wallet Top-up (TZS ' . number_format($amount) . ')',
                 'currency' => 'TZS',
                 'status' => 'issued'
             ];
@@ -1351,18 +1349,35 @@ class BillingApiController extends Controller
                     'response_structure' => array_keys($invoiceResponse)
                 ]);
                 
-                // Try to get UCN directly from invoice response (most efficient)
+                // Try to get UCN and payment links directly from invoice response
                 $ucn = $invoiceResponse['data']['ucn'] ?? $invoiceResponse['data']['control_number'] ?? null;
                 
+                // Extract payment links from control_numbers array
+                $stripeLink = null;
+                $flutterwaveLink = null;
+                
+                if (isset($invoiceResponse['data']['control_numbers'])) {
+                    foreach ($invoiceResponse['data']['control_numbers'] as $gateway) {
+                        if ($gateway['gateway_name'] === 'Stripe' && isset($gateway['payment_link'])) {
+                            $stripeLink = $gateway['payment_link'];
+                        }
+                        if ($gateway['gateway_name'] === 'Flutterwave' && isset($gateway['payment_link'])) {
+                            $flutterwaveLink = $gateway['payment_link'];
+                        }
+                    }
+                }
+                
                 if ($ucn) {
-                    Log::info('STEP 7: UCN found directly in invoice response', [
+                    Log::info('STEP 7: UCN and payment links found in invoice response', [
                         'user_id' => $user->id,
                         'invoice_id' => $invoiceId,
                         'ucn' => $ucn,
+                        'stripe_link' => $stripeLink,
+                        'flutterwave_link' => $flutterwaveLink,
                         'source' => 'invoice_response'
                     ]);
                     
-                    // Save UCN to billing_accounts
+                    // Save invoice ID and UCN for reference (don't cache permanently)
                     if (!$billingAccount) {
                         Log::info('Creating new billing account', [
                             'user_id' => $user->id,
@@ -1375,18 +1390,21 @@ class BillingApiController extends Controller
                         ]);
                     }
                     
-                    $billingAccount->update(['credit_ucn' => $ucn]);
-                    
-                    Log::info('=== SUCCESS: Credit UCN created and saved ===', [
+                    Log::info('=== SUCCESS: Payment options generated ===', [
                         'user_id' => $user->id,
                         'invoice_id' => $invoiceId,
+                        'amount' => $amount,
                         'ucn' => $ucn
                     ]);
                     
                     return response()->json([
                         'success' => true,
                         'ucn' => $ucn,
-                        'message' => 'UCN generated successfully'
+                        'stripe_link' => $stripeLink,
+                        'flutterwave_link' => $flutterwaveLink,
+                        'amount' => $amount,
+                        'invoice_id' => $invoiceId,
+                        'message' => 'Payment options generated successfully'
                     ]);
                 }
                 

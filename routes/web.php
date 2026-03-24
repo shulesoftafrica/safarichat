@@ -336,7 +336,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/billing/plans', [App\Http\Controllers\BillingController::class, 'getPlans'])->name('api.billing.plans');
     Route::get('/api/billing/status', [App\Http\Controllers\BillingController::class, 'getStatus'])->name('api.billing.status');
     Route::get('/api/billing/wallet/info', [App\Http\Controllers\BillingController::class, 'getWalletInfo'])->name('api.billing.wallet.info');
-    Route::get('/api/billing/wallet/get-ucn', [App\Http\Controllers\Api\BillingApiController::class, 'getWalletUCN'])->name('api.billing.wallet.get-ucn');
+    Route::post('/api/billing/wallet/get-ucn', [App\Http\Controllers\Api\BillingApiController::class, 'getWalletUCN'])->name('api.billing.wallet.get-ucn');
     Route::post('/api/billing/upgrade', [App\Http\Controllers\BillingController::class, 'upgrade'])->name('api.billing.upgrade');
     Route::post('/api/billing/renew', [App\Http\Controllers\BillingController::class, 'renew'])->name('api.billing.renew');
 });
