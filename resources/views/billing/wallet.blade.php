@@ -113,12 +113,10 @@
 
                     <!-- Step 2: Payment Options (hidden until generated) -->
                     <div id="paymentOptionsSection" style="display: none;">
-                    <!-- Payment Options in One Row -->
-                    <!-- Step 2: Payment Options (hidden until generated) -->
-                    <div id="paymentOptionsSection" style="display: none;">
                         <div class="alert alert-success mb-3">
                             <i class="fas fa-check-circle"></i> Payment options generated for <strong id="selectedAmount">TZS 0</strong>. Choose your preferred payment method below.
                         </div>
+                        
                     <!-- Payment Options in One Row -->
                     <div class="row g-4">
                         <!-- UCN/ Lipa Namba -->
