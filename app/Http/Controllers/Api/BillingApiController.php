@@ -1292,7 +1292,7 @@ class BillingApiController extends Controller
                 'products' => [
                     [
                         'price_plan_id' => $creditsPricePlanId,
-                        'amount' => 1000 // Minimum amount to generate UCN
+                        'amount' => 5000 // Minimum amount to generate UCN
                     ]
                 ],
                 'description' => 'SafariChat AI Credits - UCN Generation',
