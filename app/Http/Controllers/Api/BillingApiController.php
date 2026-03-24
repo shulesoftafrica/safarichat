@@ -1252,8 +1252,19 @@ class BillingApiController extends Controller
         $user = Auth::user();
         $billingAccount = $user->billingAccount;
         
+        Log::info('=== START: getWalletUCN called ===', [
+            'user_id' => $user->id,
+            'has_billing_account' => $billingAccount ? 'yes' : 'no',
+            'existing_ucn' => $billingAccount ? $billingAccount->credit_ucn : null
+        ]);
+        
         // Check if credit UCN already exists
         if ($billingAccount && $billingAccount->credit_ucn) {
+            Log::info('UCN already exists in database, returning cached value', [
+                'user_id' => $user->id,
+                'ucn' => $billingAccount->credit_ucn
+            ]);
+            
             return response()->json([
                 'success' => true,
                 'ucn' => $billingAccount->credit_ucn,
@@ -1266,18 +1277,32 @@ class BillingApiController extends Controller
             $billingApiUrl = config('services.billing.api_url');
             $organizationId = config('services.billing.organization_id');
             
+            Log::info('STEP 1: Getting access token', [
+                'user_id' => $user->id,
+                'billing_api_url' => $billingApiUrl
+            ]);
+            
             // Get access token
             $accessToken = $this->getAccessToken();
+            
+            Log::info('STEP 2: Access token retrieved', [
+                'user_id' => $user->id,
+                'token_length' => strlen($accessToken)
+            ]);
             
             // Get AI Credits price plan ID from config
             $creditsPricePlanId = config('services.billing.wallet_credits_price_plan_id');
             
             if (!$creditsPricePlanId) {
+                Log::error('Price plan ID not configured in .env', [
+                    'user_id' => $user->id
+                ]);
                 throw new \Exception('Wallet credits price plan ID not configured. Please set BILLING_WALLET_CREDITS_PRICE_PLAN_ID in .env file');
             }
             
-            Log::info('Using credits price plan for UCN generation', [
+            Log::info('STEP 3: Using credits price plan for UCN generation', [
                 'user_id' => $user->id,
+                'organization_id' => $organizationId,
                 'price_plan_id' => $creditsPricePlanId
             ]);
             
@@ -1300,26 +1325,110 @@ class BillingApiController extends Controller
                 'status' => 'issued'
             ];
 
+            Log::info('STEP 4: Creating invoice', [
+                'user_id' => $user->id,
+                'invoice_data' => $invoiceData,
+                'endpoint' => $billingApiUrl . '/invoices'
+            ]);
+
             $response = $this->makeAuthenticatedRequest('POST', $billingApiUrl . '/invoices', $invoiceData);
+
+            Log::info('STEP 5: Invoice creation response received', [
+                'user_id' => $user->id,
+                'status_code' => $response->status(),
+                'success' => $response->successful(),
+                'response_body' => $response->json()
+            ]);
 
             if ($response->successful()) {
                 $invoiceResponse = $response->json();
                 $invoiceId = $invoiceResponse['data']['id'] ?? null;
                 
+                Log::info('STEP 6: Parsing invoice response', [
+                    'user_id' => $user->id,
+                    'invoice_id' => $invoiceId,
+                    'has_invoice_id' => $invoiceId ? 'yes' : 'no',
+                    'response_structure' => array_keys($invoiceResponse)
+                ]);
+                
                 if ($invoiceId) {
+                    $gatewayUrl = $billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways';
+                    
+                    Log::info('STEP 7: Fetching payment gateways', [
+                        'user_id' => $user->id,
+                        'invoice_id' => $invoiceId,
+                        'gateway_url' => $gatewayUrl
+                    ]);
+                    
                     // Get payment gateways to extract UCN
                     $gatewayResponse = Http::withHeaders([
                         'Authorization' => 'Bearer ' . $accessToken,
                         'Accept' => 'application/json'
-                    ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
+                    ])->get($gatewayUrl);
+                    
+                    Log::info('STEP 8: Payment gateway response received', [
+                        'user_id' => $user->id,
+                        'invoice_id' => $invoiceId,
+                        'status_code' => $gatewayResponse->status(),
+                        'success' => $gatewayResponse->successful(),
+                        'response_body' => $gatewayResponse->json()
+                    ]);
                     
                     if ($gatewayResponse->successful()) {
                         $gatewayData = $gatewayResponse->json();
-                        $ucn = $gatewayData['data']['price_plans'][0]['payment_links']['ucn'] ?? null;
+                        
+                        Log::info('STEP 9: Parsing gateway data for UCN', [
+                            'user_id' => $user->id,
+                            'invoice_id' => $invoiceId,
+                            'gateway_data_structure' => array_keys($gatewayData),
+                            'has_data_key' => isset($gatewayData['data']) ? 'yes' : 'no',
+                            'has_price_plans' => isset($gatewayData['data']['price_plans']) ? 'yes' : 'no'
+                        ]);
+                        
+                        // Try different possible response structures
+                        $ucn = null;
+                        
+                        // Structure 1: data.price_plans[0].payment_links.ucn
+                        if (isset($gatewayData['data']['price_plans'][0]['payment_links']['ucn'])) {
+                            $ucn = $gatewayData['data']['price_plans'][0]['payment_links']['ucn'];
+                            Log::info('UCN found in structure: data.price_plans[0].payment_links.ucn', [
+                                'user_id' => $user->id,
+                                'ucn' => $ucn
+                            ]);
+                        }
+                        
+                        // Structure 2: data.payment_links.ucn
+                        if (!$ucn && isset($gatewayData['data']['payment_links']['ucn'])) {
+                            $ucn = $gatewayData['data']['payment_links']['ucn'];
+                            Log::info('UCN found in structure: data.payment_links.ucn', [
+                                'user_id' => $user->id,
+                                'ucn' => $ucn
+                            ]);
+                        }
+                        
+                        // Structure 3: Check for control_number alternative
+                        if (!$ucn && isset($gatewayData['data']['price_plans'][0]['payment_links']['control_number'])) {
+                            $ucn = $gatewayData['data']['price_plans'][0]['payment_links']['control_number'];
+                            Log::info('UCN found as control_number in structure: data.price_plans[0].payment_links.control_number', [
+                                'user_id' => $user->id,
+                                'ucn' => $ucn
+                            ]);
+                        }
                         
                         if ($ucn) {
+                            Log::info('STEP 10: UCN extracted successfully', [
+                                'user_id' => $user->id,
+                                'invoice_id' => $invoiceId,
+                                'ucn' => $ucn
+                            ]);
+                            
                             // Save UCN to billing_accounts
                             if (!$billingAccount) {
+                                Log::info('Creating new billing account', [
+                                    'user_id' => $user->id,
+                                    'business_id' => $user->business_id
+                                ]);
+                                
                                 $billingAccount = \App\Models\BillingAccount::create([
                                     'user_id' => $user->id,
                                     'business_id' => $user->business_id
@@ -1328,7 +1437,7 @@ class BillingApiController extends Controller
                             
                             $billingAccount->update(['credit_ucn' => $ucn]);
                             
-                            Log::info('Credit UCN created and saved', [
+                            Log::info('=== SUCCESS: Credit UCN created and saved ===', [
                                 'user_id' => $user->id,
                                 'invoice_id' => $invoiceId,
                                 'ucn' => $ucn
@@ -1339,34 +1448,42 @@ class BillingApiController extends Controller
                                 'ucn' => $ucn,
                                 'message' => 'UCN generated successfully'
                             ]);
+                        } else {
+                            Log::error('STEP 10: UCN not found in any expected structure', [
+                                'user_id' => $user->id,
+                                'invoice_id' => $invoiceId,
+                                'full_gateway_response' => $gatewayData
+                            ]);
                         }
                     } else {
-                        Log::error('Failed to get payment gateways from billing platform', [
+                        Log::error('STEP 8: Failed to get payment gateways from billing platform', [
                             'user_id' => $user->id,
                             'invoice_id' => $invoiceId,
                             'status_code' => $gatewayResponse->status(),
-                            'response_body' => $gatewayResponse->body()
+                            'response_body' => $gatewayResponse->body(),
+                            'response_headers' => $gatewayResponse->headers()
                         ]);
                     }
                 } else {
-                    Log::error('Invoice creation returned no ID from billing platform', [
+                    Log::error('STEP 6: Invoice creation returned no ID from billing platform', [
                         'user_id' => $user->id,
                         'status_code' => $response->status(),
-                        'response_body' => $response->body()
+                        'full_response' => $invoiceResponse
                     ]);
                 }
             } else {
-                Log::error('Failed to create invoice from billing platform', [
+                Log::error('STEP 5: Failed to create invoice from billing platform', [
                     'user_id' => $user->id,
                     'status_code' => $response->status(),
-                    'response_body' => $response->body()
+                    'response_body' => $response->body(),
+                    'response_headers' => $response->headers()
                 ]);
             }
             
             throw new \Exception('Failed to get UCN from billing platform');
             
         } catch (\Exception $e) {
-            Log::error('Failed to get credit UCN', [
+            Log::error('=== ERROR: Failed to get credit UCN ===', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
