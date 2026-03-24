@@ -41,7 +41,7 @@ Add the following to `config/services.php`:
 
 ```php
 'billing' => [
-    'api_url' => env('BILLING_API_URL', 'https://shulesoftapi.shulesoft.africa/api'),
+    'api_url' => env('BILLING_API_URL', 'https://shulesoftapi.shulesoft.africa/api/v1'),
     'access_token' => env('BILLING_ACCESS_TOKEN'),
     'organization_id' => env('BILLING_ORGANIZATION_ID'),
     'product_id' => env('BILLING_PRODUCT_ID'), // SafariChat product ID
@@ -51,7 +51,7 @@ Add the following to `config/services.php`:
 
 Add to `.env` file:
 ```env
-BILLING_API_URL=https://shulesoftapi.shulesoft.africa/api
+BILLING_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 BILLING_ACCESS_TOKEN=your_access_token_here
 BILLING_ORGANIZATION_ID=your_org_id
 BILLING_PRODUCT_ID=your_product_id

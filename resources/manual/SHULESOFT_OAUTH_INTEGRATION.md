@@ -53,7 +53,7 @@ Add to your `.env` file:
 
 ```env
 # Shulesoft API Configuration
-SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api
+SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 
 # OAuth Authentication Credentials
 SHULESOFT_AUTH_EMAIL=admin@techsoft-solutions.com

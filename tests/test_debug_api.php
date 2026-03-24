@@ -27,7 +27,7 @@ $ch = curl_init($baseUrl . '/test-token');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    'api_url' => 'https://shulesoftapi.shulesoft.africa/api',
+    'api_url' => 'https://shulesoftapi.shulesoft.africa/api/v1',
     'token' => $currentToken,
     'organization_id' => '1'
 ]));
@@ -52,7 +52,7 @@ if ($argc > 1) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'api_url' => 'https://shulesoftapi.shulesoft.africa/api',
+        'api_url' => 'https://shulesoftapi.shulesoft.africa/api/v1',
         'token' => $testToken,
         'organization_id' => '1'
     ]));

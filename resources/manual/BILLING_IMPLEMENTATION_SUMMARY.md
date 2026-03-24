@@ -118,7 +118,7 @@ Add these to your `.env` file:
 
 ```env
 # Shulesoft Billing API Configuration
-BILLING_API_URL=https://shulesoftapi.shulesoft.africa/api
+BILLING_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 BILLING_ACCESS_TOKEN=your_access_token_here
 BILLING_ORGANIZATION_ID=your_organization_id
 BILLING_PRODUCT_ID=your_safarichat_product_id

@@ -163,7 +163,7 @@ Ensure these are set in your `.env` file:
 
 ### OAuth Credentials (for when server is fixed)
 ```env
-SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api
+SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 SHULESOFT_AUTH_EMAIL=admin@techsoft-solutions.com
 SHULESOFT_AUTH_PASSWORD=password123
 SHULESOFT_ORGANIZATION_EMAIL=shulesoftcompany@gmail.com

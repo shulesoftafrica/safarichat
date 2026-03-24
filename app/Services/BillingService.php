@@ -23,8 +23,9 @@ class BillingService
     
     private static function getBillingApiBase()
     {
-        // Use the configured billing API URL from Shulesoft config (updated API URL)
-        return rtrim(config('services.shulesoft_billing.api_url', 'https://api.safaribank.africa/api'), '/') . '/v1';
+        // Use the configured billing API URL from Shulesoft config (includes /api/v1)
+        // .env should set: SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
+        return rtrim(config('services.shulesoft_billing.api_url', 'https://api.safaribank.africa/api/v1'), '/');
     }
     
     /**

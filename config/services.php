@@ -78,7 +78,7 @@ return [
     ],
 
     'billing' => [
-        'api_url' => env('BILLING_API_URL', 'https://api.safaribank.africa/api'),
+        'api_url' => env('BILLING_API_URL', 'https://api.safaribank.africa/api/v1'),
         'access_token' => env('BILLING_ACCESS_TOKEN', ''),
         'organization_id' => env('BILLING_ORGANIZATION_ID', '1'),
         'product_id' => env('BILLING_PRODUCT_ID', ''),
@@ -99,7 +99,7 @@ return [
      * Handles automatic token management and refresh
      */
     'shulesoft_billing' => [
-        'api_url' => env('SHULESOFT_API_URL', 'https://api.safaribank.africa/api'),
+        'api_url' => env('SHULESOFT_API_URL', 'https://api.safaribank.africa/api/v1'),
         
         // OAuth Authentication Credentials
         'auth_email' => env('SHULESOFT_AUTH_EMAIL', 'admin@techsoft-solutions.com'),

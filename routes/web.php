@@ -95,6 +95,9 @@ Route::get('/register', function() {
     return view('auth.register');
 })->name('register');
 
+// API endpoint for getting cities by country code
+Route::get('/api/cities-by-country', 'Setup@getCitiesByCountry')->name('api.cities.by.country');
+
 // Business registration and setup routes
 Route::post('/registerBusiness', 'Setup@registerBusiness')->name('register.business');
 Route::post('/save-whatsapp-instance', 'Setup@saveWhatsappInstance')->name('whatsapp.save');

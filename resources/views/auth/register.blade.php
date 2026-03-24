@@ -498,18 +498,11 @@
                             <div class="form-group">
                                 <label class="form-label required">Primary Location</label>
                                 <select name="region" class="form-control form-select" required>
-                                    <option value="">Select your region</option>
-                                    <option value="dar-es-salaam">Dar es Salaam</option>
-                                    <option value="arusha">Arusha</option>
-                                    <option value="mwanza">Mwanza</option>
-                                    <option value="dodoma">Dodoma</option>
-                                    <option value="mbeya">Mbeya</option>
-                                    <option value="morogoro">Morogoro</option>
-                                    <option value="tanga">Tanga</option>
-                                    <option value="kilimanjaro">Kilimanjaro</option>
-                                    <option value="tabora">Tabora</option>
-                                    <option value="other">Other Region</option>
+                                    <option value="">Detecting location from phone...</option>
                                 </select>
+                                <small class="text-muted" style="display: block; margin-top: 4px;">
+                                    <i class="fas fa-info-circle"></i> Locations auto-detected from your phone number
+                                </small>
                             </div>
                             
                             <div class="form-group">
@@ -851,7 +844,90 @@ $(document).ready(function() {
     
     // Initialize
     showStep(1);
+    
+    // Initialize phone country detection and load cities
+    initializeLocationByPhone();
 });
+
+// Initialize location dropdown based on phone number
+function initializeLocationByPhone() {
+    const phoneNumber = '{{$phone ?? ''}}';
+    
+    if (!phoneNumber) {
+        // No phone number, load default Tanzania cities
+        loadCitiesByCountry('TZ');
+        return;
+    }
+    
+    // Create a temporary input for intlTelInput to parse country
+    const tempInput = document.createElement('input');
+    tempInput.type = 'tel';
+    tempInput.value = phoneNumber;
+    tempInput.style.display = 'none';
+    document.body.appendChild(tempInput);
+    
+    // Initialize intlTelInput on temporary element
+    const iti = window.intlTelInput(tempInput, {
+        initialCountry: "auto",
+        preferredCountries: ["tz", "ke", "ug", "rw", "bi"],
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+    });
+    
+    // Set the phone number
+    iti.setNumber(phoneNumber);
+    
+    // Get detected country
+    const countryData = iti.getSelectedCountryData();
+    const countryCode = countryData.iso2 ? countryData.iso2.toUpperCase() : 'TZ';
+    
+    console.log('Detected phone country:', countryCode, 'from phone:', phoneNumber);
+    
+    // Load cities for detected country
+    loadCitiesByCountry(countryCode);
+    
+    // Clean up temporary element
+    iti.destroy();
+    tempInput.remove();
+}
+
+// Load cities by country code
+function loadCitiesByCountry(countryCode) {
+    const regionSelect = $('select[name="region"]');
+    
+    // Show loading state
+    regionSelect.html('<option value="">Loading cities...</option>').prop('disabled', true);
+    
+    $.ajax({
+        url: '/api/cities-by-country',
+        method: 'GET',
+        data: { country_code: countryCode },
+        success: function(response) {
+            if (response.success && response.cities && response.cities.length > 0) {
+                let optionsHtml = '<option value="">Select your location</option>';
+                
+                response.cities.forEach(function(city) {
+                    optionsHtml += `<option value="${city.slug}">${city.name}</option>`;
+                });
+                
+                regionSelect.html(optionsHtml).prop('disabled', false);
+                
+                console.log('Loaded', response.cities.length, 'cities for', response.country.name);
+            } else {
+                // Fallback to "Other" option
+                regionSelect.html('<option value="">Select your location</option><option value="other">Other Location</option>').prop('disabled', false);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Failed to load cities:', error);
+            // Fallback to "Other" option
+            regionSelect.html('<option value="">Select your location</option><option value="other">Other Location</option>').prop('disabled', false);
+        }
+    });
+}
 </script>
+
+<!-- International Telephone Input CSS & JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
 
 @endsection

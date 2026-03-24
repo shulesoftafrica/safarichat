@@ -31,7 +31,7 @@ Changes:
 
 New configuration:
 ```env
-SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api
+SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 SHULESOFT_AUTH_EMAIL=admin@techsoft-solutions.com
 SHULESOFT_AUTH_PASSWORD=password123
 ```

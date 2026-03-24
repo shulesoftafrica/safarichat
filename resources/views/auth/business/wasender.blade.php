@@ -765,6 +765,53 @@
     let currentAttempts = 0;
     let qrRefreshInterval = null;
     let lastQRGeneration = 0;
+    let fallbackCheckInterval = null; // Fallback connection check
+
+    /**
+     * Fallback mechanism: Check if WhatsApp is connected by querying user's instances
+     * This runs independently of the status check to catch any missed connections
+     */
+    async function startFallbackConnectionCheck() {
+        if (fallbackCheckInterval) {
+            clearInterval(fallbackCheckInterval);
+        }
+
+        fallbackCheckInterval = setInterval(async () => {
+            try {
+                const response = await fetch('{{ route("wasender.user-instances") }}', {
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Check if any instance is connected
+                    if (data.success && data.instances && data.instances.length > 0) {
+                        const connectedInstance = data.instances.find(inst => 
+                            inst.status === 'connected' || inst.connect_status === 'ready'
+                        );
+
+                        if (connectedInstance) {
+                            console.log('✓ Fallback check: Found connected WhatsApp instance!');
+                            clearAllIntervals();
+                            
+                            // Show success and refresh
+                            showSection('success-section');
+                            setTimeout(() => {
+                                console.log('Refreshing page after fallback detection...');
+                                window.location.href = window.location.href;
+                            }, 1500);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Fallback check error:', error);
+            }
+        }, 10000); // Check every 10 seconds
+    }
 
     function showSection(sectionId) {
         $('.setup-section').removeClass('active');
@@ -798,6 +845,14 @@
             connectionTimeout = null;
         }
         if (qrRefreshInterval) {
+            clearInterval(qrRefreshInterval);
+            qrRefreshInterval = null;
+        }
+        if (fallbackCheckInterval) {
+            clearInterval(fallbackCheckInterval);
+            fallbackCheckInterval = null;
+        }
+    }
             clearInterval(qrRefreshInterval);
             qrRefreshInterval = null;
         }
@@ -998,7 +1053,11 @@ function displayQRCode(qrData, qrType) {
                     // Start QR refresh mechanism (refresh every 30 seconds to avoid expiry)
                     startQRRefresh(data.session_id);
                     
+                    // Start primary status check (every 3 seconds)
                     checkSessionStatus(data.session_id);
+                    
+                    // Start fallback connection check (every 10 seconds)
+                    startFallbackConnectionCheck();
                 } else {
                     showError('QR code generation failed: ' + (data.message || 'Please try again.'));
                 }
@@ -1023,14 +1082,22 @@ function displayQRCode(qrData, qrType) {
 
         currentAttempts = 0;
 
-        statusCheckInterval = setInterval(async () => {
+        // Check immediately once, then start interval
+        checkStatus();
+
+        statusCheckInterval = setInterval(checkStatus, 3000); // Check every 3 seconds for faster detection
+
+        async function checkStatus() {
             currentAttempts++;
             
-            // Timeout after max attempts
-            if (currentAttempts >= maxConnectionAttempts) {
+            // Timeout after max attempts (increased to accommodate 3-second intervals)
+            if (currentAttempts >= maxConnectionAttempts * 6) { // 6x because interval is 6x faster
                 clearInterval(statusCheckInterval);
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
+                }
+                if (qrRefreshInterval) {
+                    clearInterval(qrRefreshInterval);
                 }
                 showError('Connection timeout. The QR code scanning took too long. Please try again.');
                 return;
@@ -1039,7 +1106,8 @@ function displayQRCode(qrData, qrType) {
             try {
                 const response = await fetch(`{{ url("wasender/session-status") }}/${sessionId}`, {
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Cache-Control': 'no-cache'
                     }
                 });
                 
@@ -1048,43 +1116,42 @@ function displayQRCode(qrData, qrType) {
                 }
                 
                 const data = await response.json();
-                console.log('Status check response:', data);
+                console.log(`[Attempt ${currentAttempts}] Status check:`, data.status);
                 
                 if (data.success) {
-                    if (data.status === 'connected' && data.verified === true) {
-                        // Double-check connection is actually working
-                        const verificationResponse = await fetch(`{{ url("wasender/verify-connection") }}/${sessionId}`, {
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            }
-                        });
+                    // Check if connected - simplified logic
+                    if (data.status === 'connected' || data.status === 'ready') {
+                        console.log('✓ WhatsApp connection detected!');
                         
-                        const verificationData = await verificationResponse.json();
-                        
-                        if (verificationData.success && verificationData.connected === true) {
-                            clearInterval(statusCheckInterval);
-                            if (countdownInterval) {
-                                clearInterval(countdownInterval);
-                            }
-                            if (qrRefreshInterval) {
-                                clearInterval(qrRefreshInterval);
-                            }
-                            
-                            showSection('success-section');
-                            console.log('WhatsApp connection verified successfully');
-                            
-                            // Show success message and refresh page after 2 seconds to redirect to product setup
-                            setTimeout(() => {
-                                console.log('Refreshing page to load product setup...');
-                                window.location.reload();
-                            }, 2000);
-                        } else {
-                            console.log('Connection verification failed, continuing to wait...');
-                        }
-                    } else if (data.status === 'failed' || data.status === 'error') {
+                        // Clear all intervals
                         clearInterval(statusCheckInterval);
                         if (countdownInterval) {
                             clearInterval(countdownInterval);
+                        }
+                        if (qrRefreshInterval) {
+                            clearInterval(qrRefreshInterval);
+                        }
+                        
+                        // Show success section
+                        showSection('success-section');
+                        console.log('WhatsApp connection verified successfully');
+                        
+                        // Auto-refresh page after 2 seconds to redirect to product setup
+                        console.log('Page will refresh in 2 seconds...');
+                        setTimeout(() => {
+                            console.log('Refreshing page now...');
+                            window.location.href = window.location.href; // Force full page reload
+                        }, 2000);
+                        
+                        return; // Exit the function
+                    } else if (data.status === 'failed' || data.status === 'error') {
+                        console.log('✗ Connection failed:', data.message);
+                        clearInterval(statusCheckInterval);
+                        if (countdownInterval) {
+                            clearInterval(countdownInterval);
+                        }
+                        if (qrRefreshInterval) {
+                            clearInterval(qrRefreshInterval);
                         }
                         showError(data.message || 'WhatsApp connection failed. Please try again.');
                     }
@@ -1095,12 +1162,11 @@ function displayQRCode(qrData, qrType) {
             } catch (error) {
                 console.error('Status check failed:', error);
                 // Don't show error immediately, continue retrying
-                if (currentAttempts >= 3) {
-                    // Only show error after multiple failures
-                    console.warn('Multiple status check failures, but continuing...');
+                if (currentAttempts % 10 === 0) {
+                    console.warn(`${currentAttempts} status check attempts, continuing...`);
                 }
             }
-        }, 4*5000); // Check every 20 seconds instead of 30
+        }
     }
 
     $(document).ready(function() {

@@ -477,6 +477,60 @@ class Setup extends Controller {
         return response()->json($subCategories);
     }
 
+    /**
+     * Get cities by country code
+     * Used for dynamic location dropdown in registration
+     * 
+     * NOTE: This works with the existing countries table where:
+     * - 'iso_code' column contains 2-letter ISO codes (TZ, KE, etc.)
+     * - 'name' column contains phone codes (255, 254, etc.)
+     * - 'dialling_code' contains country names
+     */
+    public function getCitiesByCountry(Request $request)
+    {
+        $countryCode = strtoupper($request->input('country_code', 'TZ'));
+        
+        // Get country by ISO code (e.g., TZ, KE, UG)
+        $country = DB::table('countries')
+            ->where('iso_code', $countryCode)
+            ->first();
+        
+        if (!$country) {
+            // Fallback: Return empty or create a generic "Other" option
+            return response()->json([
+                'success' => false,
+                'message' => 'Country not found',
+                'country_code' => $countryCode,
+                'cities' => [
+                    [
+                        'id' => 0,
+                        'name' => 'Other City',
+                        'slug' => 'other',
+                        'is_major' => false
+                    ]
+                ]
+            ]);
+        }
+        
+        // Get cities for this country
+        $cities = DB::table('cities')
+            ->where('country_id', $country->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'is_major']);
+        
+        return response()->json([
+            'success' => true,
+            'country' => [
+                'name' => $country->dialling_code ?? 'Unknown', // Country name is in dialling_code column
+                'code' => $country->iso_code ?? $countryCode,
+                'phone_code' => '+' . ($country->name ?? ''), // Phone code is in name column
+            ],
+            'cities' => $cities
+        ]);
+    }
+
     public function registerBusiness(){
         $request = request();
         $data = $request->all();

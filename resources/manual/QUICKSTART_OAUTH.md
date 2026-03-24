@@ -20,7 +20,7 @@ Your SafariChat system now uses **automatic OAuth 2.0 authentication** with the 
 ### 3. Configuration Added
 Your `.env` file now includes:
 ```env
-SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api
+SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
 SHULESOFT_AUTH_EMAIL=admin@techsoft-solutions.com
 SHULESOFT_AUTH_PASSWORD=password123
 ```
