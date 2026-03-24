@@ -860,10 +860,6 @@
             fallbackCheckInterval = null;
         }
     }
-            clearInterval(qrRefreshInterval);
-            qrRefreshInterval = null;
-        }
-    }
 
     async function cleanupSession(sessionId) {
         try {
