@@ -849,7 +849,7 @@ class Setup extends Controller {
     }
 
     /**
-     * Get user's WhatsApp instances
+     * Get user's WhatsApp instances with live API status check
      */
     public function getUserWhatsappInstances(\Illuminate\Http\Request $request)
     {
@@ -868,6 +868,51 @@ class Setup extends Controller {
                 ->orderBy('created_at', 'desc')
                 ->get();
 
+            // Check live status from WaSender API for each instance
+            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            
+            foreach ($instances as $instance) {
+                try {
+                    // Fetch real-time status from WaSender API
+                    $statusResult = $unifiedService->getSessionStatus($instance->instance_id);
+                    
+                    if (isset($statusResult['success']) && $statusResult['success']) {
+                        $realTimeStatus = $statusResult['status'] ?? null;
+                        
+                        if ($realTimeStatus) {
+                            // Map API status to database enum values
+                            $mappedConnectStatus = $this->mapApiStatusToConnectStatus($realTimeStatus);
+                            $mappedStatus = $this->mapApiStatusToStatus($realTimeStatus);
+                            
+                            // Update database with real-time status
+                            \DB::table('whatsapp_instances')
+                                ->where('instance_id', $instance->instance_id)
+                                ->update([
+                                    'connect_status' => $mappedConnectStatus,
+                                    'status' => $mappedStatus,
+                                    'last_seen' => now(),
+                                    'updated_at' => now()
+                                ]);
+                            
+                            // Update the instance object for response
+                            $instance->connect_status = $mappedConnectStatus;
+                            $instance->status = $mappedStatus;
+                            
+                            // Clear warning cache if instance is now connected
+                            if ($mappedConnectStatus === 'ready') {
+                                \Cache::forget('whatsapp_disconnected_' . $userId);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to check live status for instance', [
+                        'instance_id' => $instance->instance_id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Continue with next instance even if one fails
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'WhatsApp instances retrieved successfully',
@@ -882,6 +927,40 @@ class Setup extends Controller {
                 'message' => 'Failed to retrieve WhatsApp instances'
             ], 500);
         }
+    }
+
+    /**
+     * Map WaSender API status to connect_status enum
+     * Enum values: ['disconnected', 'connecting', 'ready', 'error']
+     */
+    private function mapApiStatusToConnectStatus(string $apiStatus): string
+    {
+        $status = strtolower($apiStatus);
+        
+        return match($status) {
+            'connected', 'ready', 'open' => 'ready',
+            'connecting', 'initializing', 'starting' => 'connecting',
+            'disconnected', 'closed', 'logged_out', 'offline' => 'disconnected',
+            'failed', 'error', 'timeout' => 'error',
+            default => 'disconnected'
+        };
+    }
+
+    /**
+     * Map WaSender API status to status enum
+     * Enum values: ['connecting', 'connected', 'disconnected', 'error']
+     */
+    private function mapApiStatusToStatus(string $apiStatus): string
+    {
+        $status = strtolower($apiStatus);
+        
+        return match($status) {
+            'connected', 'ready', 'open' => 'connected',
+            'connecting', 'initializing', 'starting' => 'connecting',
+            'disconnected', 'closed', 'logged_out', 'offline' => 'disconnected',
+            'failed', 'error', 'timeout' => 'error',
+            default => 'disconnected'
+        };
     }
 
     /**
