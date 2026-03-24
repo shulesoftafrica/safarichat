@@ -686,7 +686,7 @@ class WaSenderController extends Controller
     }
 
     /**
-     * Get user's active WhatsApp instances with live API status check
+     * Get user's active WhatsApp instances with live WaSender API status check
      */
     public function getUserInstances(Request $request)
     {
@@ -696,37 +696,42 @@ class WaSenderController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Check live status from WaSender API for each instance
-            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
-            
+            // Check live status directly from WaSender API for each instance
+            $apiKey = config('services.wasender.access_token');
+
             foreach ($instances as $instance) {
                 try {
-                    // Fetch real-time status from WaSender API
-                    $statusResult = $unifiedService->getSessionStatus($instance->instance_id);
-                    
-                    if (isset($statusResult['success']) && $statusResult['success']) {
-                        $realTimeStatus = $statusResult['status'] ?? null;
-                        
-                        if ($realTimeStatus) {
-                            // Map API status to database enum values
-                            $mappedConnectStatus = $this->mapApiStatusToConnectStatus($realTimeStatus);
-                            $mappedStatus = $this->mapApiStatusToStatus($realTimeStatus);
-                            
-                            // Update the instance model
-                            $instance->update([
-                                'connect_status' => $mappedConnectStatus,
-                                'status' => $mappedStatus,
-                                'last_seen' => now()
-                            ]);
-                            
-                            // Clear warning cache if instance is now connected
-                            if ($mappedConnectStatus === 'ready') {
-                                \Cache::forget('whatsapp_disconnected_' . Auth::id());
-                            }
+                    if (!$apiKey) {
+                        break; // No API key configured, skip live check
+                    }
+
+                    // Call WaSender API directly for real-time status
+                    $statusResult = $this->checkConnectionStatus($instance->instance_id);
+                    $realTimeStatus = $statusResult['status'] ?? null;
+
+                    if ($realTimeStatus) {
+                        $mappedConnectStatus = $this->mapApiStatusToConnectStatus($realTimeStatus);
+                        $mappedStatus = $this->mapApiStatusToStatus($realTimeStatus);
+
+                        $instance->update([
+                            'connect_status' => $mappedConnectStatus,
+                            'status' => $mappedStatus,
+                            'last_seen' => now()
+                        ]);
+
+                        // Clear warning banner cache if now connected
+                        if ($mappedConnectStatus === 'ready') {
+                            \Cache::forget('whatsapp_disconnected_' . Auth::id());
                         }
+
+                        Log::info('WaSender live status synced', [
+                            'instance_id' => $instance->instance_id,
+                            'api_status' => $realTimeStatus,
+                            'connect_status' => $mappedConnectStatus,
+                        ]);
                     }
                 } catch (\Exception $e) {
-                    Log::warning('Failed to check live status for instance', [
+                    Log::warning('Failed to check live WaSender status for instance', [
                         'instance_id' => $instance->instance_id,
                         'error' => $e->getMessage()
                     ]);

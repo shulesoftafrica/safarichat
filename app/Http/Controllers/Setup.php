@@ -849,7 +849,7 @@ class Setup extends Controller {
     }
 
     /**
-     * Get user's WhatsApp instances with live API status check
+     * Get user's WhatsApp instances with live WaSender API status check
      */
     public function getUserWhatsappInstances(\Illuminate\Http\Request $request)
     {
@@ -868,16 +868,26 @@ class Setup extends Controller {
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Check live status from WaSender API for each instance
-            $unifiedService = app(\App\Services\UnifiedNotificationService::class);
+            // Check live status directly from WaSender API for each instance
+            $apiKey = config('services.wasender.access_token');
             
             foreach ($instances as $instance) {
                 try {
-                    // Fetch real-time status from WaSender API
-                    $statusResult = $unifiedService->getSessionStatus($instance->instance_id);
+                    if (!$apiKey) {
+                        break; // No API key, skip live check
+                    }
                     
-                    if (isset($statusResult['success']) && $statusResult['success']) {
-                        $realTimeStatus = $statusResult['status'] ?? null;
+                    // Call WaSender API directly for real-time status
+                    $url = "https://www.wasenderapi.com/api/whatsapp-sessions/{$instance->instance_id}";
+                    $response = \Illuminate\Support\Facades\Http::timeout(10)->withHeaders([
+                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Accept' => 'application/json',
+                    ])->get($url);
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $sessionData = $data['data'] ?? [];
+                        $realTimeStatus = $sessionData['status'] ?? null;
                         
                         if ($realTimeStatus) {
                             // Map API status to database enum values
@@ -894,7 +904,7 @@ class Setup extends Controller {
                                     'updated_at' => now()
                                 ]);
                             
-                            // Update the instance object for response
+                            // Update the instance object for the response
                             $instance->connect_status = $mappedConnectStatus;
                             $instance->status = $mappedStatus;
                             
@@ -902,10 +912,16 @@ class Setup extends Controller {
                             if ($mappedConnectStatus === 'ready') {
                                 \Cache::forget('whatsapp_disconnected_' . $userId);
                             }
+
+                            \Log::info('WaSender live status synced', [
+                                'instance_id' => $instance->instance_id,
+                                'api_status' => $realTimeStatus,
+                                'connect_status' => $mappedConnectStatus,
+                            ]);
                         }
                     }
                 } catch (\Exception $e) {
-                    \Log::warning('Failed to check live status for instance', [
+                    \Log::warning('Failed to check live WaSender status for instance', [
                         'instance_id' => $instance->instance_id,
                         'error' => $e->getMessage()
                     ]);

@@ -116,6 +116,15 @@
     margin-bottom: 1.5rem;
 }
 
+/* intl-tel-input full width fix */
+.iti {
+    width: 100%;
+    display: block;
+}
+.iti input, .iti input[type=tel] {
+    width: 100%;
+}
+
 .form-label {
     display: block;
     margin-bottom: 0.5rem;
@@ -567,19 +576,18 @@
                     
                     <div class="form-group">
                         <label class="form-label">Phone Number</label>
-                        <div class="input-group">
+                        <div style="width:100%;">
                             <input
                                 id="phone_number"
                                 name="phone_number"
                                 type="tel"
                                 class="form-control phone-validation"
                                 placeholder="Enter WhatsApp number"
-                                pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
-                                title="Phone format: +1234567890 or (123) 456-7890"
                                 value="{{ Auth::user()->phone ?? '' }}"
                                 autocomplete="off"
                                 required
                                 autofocus
+                                style="width:100%;"
                             >
                             <input type="hidden" id="country_code" name="country_code">
                             <input type="hidden" id="country_name" name="country_name">
@@ -705,10 +713,9 @@
         try {
             var iti = window.intlTelInput(input, {
                 utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
-                preferredCountries: ['tz'],
-                separateDialCode: true,
+                preferredCountries: ['tz', 'ke', 'ug', 'rw'],
+                showSelectedDialCode: true,
                 initialCountry: "tz",
-                autoInsertDialCode: true,
                 formatOnDisplay: true,
                 nationalMode: false,
                 placeholderNumberType: "MOBILE"
