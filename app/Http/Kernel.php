@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'auth.admin' => \App\Http\Middleware\AdminAuth::class,
         'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
         'whatsapp.setup' => \App\Http\Middleware\CheckWhatsAppSetup::class,
+        'billing.webhook.ip' => \App\Http\Middleware\ValidateBillingWebhookIP::class,
     ];
 }

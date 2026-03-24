@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingAccount;
+use App\Models\BillingWebhookEvent;
 use App\Models\User;
 use App\Models\Business;
+use App\Http\Requests\BillingWebhookRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -48,8 +50,11 @@ class BillingWebhookController extends Controller
      *   "timestamp": "2026-01-23T10:30:00Z",
      *   "signature": "webhook_signature_hash"
      * }
+     * 
+     * @param BillingWebhookRequest $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function handle(Request $request)
+    public function handle(BillingWebhookRequest $request)
     {
         try {
             // Log incoming webhook
@@ -71,36 +76,96 @@ class BillingWebhookController extends Controller
                 ], 401);
             }
             
-            // Validate required fields
-            $validation = $this->validateWebhookPayload($request);
-            if (!$validation['valid']) {
-                Log::error('Invalid webhook payload', [
-                    'errors' => $validation['errors'],
-                    'payload' => $request->all()
+            // Payload validation is handled by BillingWebhookRequest form request
+            // No need for manual validation here
+            
+            // Extract transaction ID and event type for idempotency check
+            $transactionId = $request->input('payment.transaction_id') 
+                ?? $request->input('transaction_id');
+            $eventType = $request->input('event');
+            
+            // IDEMPOTENCY CHECK: Prevent duplicate webhook processing
+            if ($transactionId && BillingWebhookEvent::isProcessed($transactionId, $eventType)) {
+                Log::info('Duplicate webhook detected - already processed successfully', [
+                    'transaction_id' => $transactionId,
+                    'event' => $eventType,
+                    'ip' => $request->ip()
                 ]);
                 
                 return response()->json([
-                    'success' => false,
-                    'error' => 'Invalid payload',
-                    'details' => $validation['errors']
-                ], 400);
+                    'success' => true,
+                    'message' => 'Webhook already processed (idempotency)',
+                    'transaction_id' => $transactionId
+                ], 200);
             }
+            
+            // Create webhook event record for audit trail
+            $webhookEvent = BillingWebhookEvent::create([
+                'event_type' => $eventType,
+                'transaction_id' => $transactionId,
+                'payload' => $request->all(),
+                'signature' => $request->header('X-Webhook-Signature'),
+                'source_ip' => $request->ip(),
+                'processing_status' => 'processing'
+            ]);
+            
+            Log::info('Processing webhook event', [
+                'webhook_event_id' => $webhookEvent->id,
+                'event' => $eventType,
+                'transaction_id' => $transactionId
+            ]);
             
             $event = $request->input('event');
             
             // Route to appropriate handler based on event type
-            $result = match($event) {
-                'payment.success' => $this->handlePaymentSuccess($request),
-                'payment.failed' => $this->handlePaymentFailed($request),
-                'subscription.created' => $this->handleSubscriptionCreated($request),
-                'subscription.renewed' => $this->handleSubscriptionRenewed($request),
-                'subscription.cancelled' => $this->handleSubscriptionCancelled($request),
-                'subscription.expired' => $this->handleSubscriptionExpired($request),
-                'credits.purchased' => $this->handleCreditsPurchased($request),
-                default => $this->handleUnknownEvent($request, $event)
-            };
-            
-            return response()->json($result);
+            try {
+                $result = match($event) {
+                    'payment.success' => $this->handlePaymentSuccess($request),
+                    'payment.failed' => $this->handlePaymentFailed($request),
+                    'subscription.created' => $this->handleSubscriptionCreated($request),
+                    'subscription.renewed' => $this->handleSubscriptionRenewed($request),
+                    'subscription.cancelled' => $this->handleSubscriptionCancelled($request),
+                    'subscription.expired' => $this->handleSubscriptionExpired($request),
+                    'credits.purchased' => $this->handleCreditsPurchased($request),
+                    default => $this->handleUnknownEvent($request, $event)
+                };
+                
+                // Mark webhook as successfully processed
+                $webhookEvent->update([
+                    'processing_status' => 'success',
+                    'processed_at' => now()
+                ]);
+                
+                // Update billing_account_id if available in result
+                if (isset($result['billing_account_id'])) {
+                    $webhookEvent->update(['billing_account_id' => $result['billing_account_id']]);
+                }
+                
+                Log::info('Webhook processed successfully', [
+                    'webhook_event_id' => $webhookEvent->id,
+                    'event' => $eventType
+                ]);
+                
+                return response()->json($result);
+                
+            } catch (\Exception $e) {
+                // Mark webhook as failed
+                $webhookEvent->update([
+                    'processing_status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                    'processed_at' => now()
+                ]);
+                
+                Log::error('Webhook event handler failed', [
+                    'webhook_event_id' => $webhookEvent->id,
+                    'event' => $eventType,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                // Re-throw so outer catch block handles response
+                throw $e;
+            }
             
         } catch (\Exception $e) {
             Log::error('Webhook processing error', [
@@ -123,19 +188,41 @@ class BillingWebhookController extends Controller
     private function validateSignature(Request $request): bool
     {
         $signature = $request->header('X-Webhook-Signature');
-        $secret = config('services.billing.webhook_secret');
         
-        if (!$signature || !$secret) {
-            Log::warning('Missing webhook signature or secret');
-            // In development, allow webhooks without signature
-            return config('app.env') === 'local' || config('app.debug');
+        // Use different secrets for different environments
+        $secret = config('app.env') === 'local' || config('app.env') === 'testing'
+            ? config('services.billing.webhook_test_secret')
+            : config('services.billing.webhook_secret');
+        
+        if (!$signature) {
+            Log::warning('Webhook rejected: Missing signature header', [
+                'ip' => $request->ip()
+            ]);
+            return false;
+        }
+        
+        if (!$secret) {
+            Log::error('Webhook configuration error: Missing webhook secret', [
+                'environment' => config('app.env')
+            ]);
+            return false;
         }
         
         // Compute expected signature
         $payload = $request->getContent();
         $expectedSignature = hash_hmac('sha256', $payload, $secret);
         
-        return hash_equals($expectedSignature, $signature);
+        $isValid = hash_equals($expectedSignature, $signature);
+        
+        if (!$isValid) {
+            Log::warning('Webhook rejected: Invalid signature', [
+                'ip' => $request->ip(),
+                'provided_signature' => substr($signature, 0, 10) . '...',
+                'expected_signature' => substr($expectedSignature, 0, 10) . '...'
+            ]);
+        }
+        
+        return $isValid;
     }
     
     /**

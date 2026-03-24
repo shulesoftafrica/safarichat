@@ -85,6 +85,7 @@ return [
         'credits_price_plan_id' => env('BILLING_CREDITS_PRICE_PLAN_ID', '3'),
         'wallet_credits_price_plan_id' => env('BILLING_WALLET_CREDITS_PRICE_PLAN_ID', ''),
         'webhook_secret' => env('BILLING_WEBHOOK_SECRET'),
+        'webhook_test_secret' => env('BILLING_WEBHOOK_TEST_SECRET', 'test_secret_key'),
         'timeout' => env('BILLING_API_TIMEOUT', 30),
         'price_plans' => [
             'starter' => env('BILLING_PRICE_PLAN_STARTER', 4),

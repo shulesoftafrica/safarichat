@@ -32,7 +32,12 @@ class BillingAccount extends Model
         'unlimited_messages',
         'status',
         'credits_rollover',
-        'notes'
+        'notes',
+        // Webhook-related fields
+        'subscription_status',
+        'last_transaction_id',
+        'last_payment_at',
+        'last_payment_amount'
     ];
 
     protected $casts = [
@@ -52,6 +57,9 @@ class BillingAccount extends Model
         'sales_reports' => 'boolean',
         'unlimited_messages' => 'boolean',
         'credits_rollover' => 'boolean',
+        // Webhook-related casts
+        'last_payment_at' => 'datetime',
+        'last_payment_amount' => 'decimal:2'
     ];
 
     /**

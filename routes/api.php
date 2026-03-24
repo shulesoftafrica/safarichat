@@ -27,8 +27,10 @@ use App\Http\Controllers\Api\BillingWebhookController;
 
 // Billing API Routes (Revenue Protected)
 Route::prefix('billing')->name('api.billing.')->group(function () {
-    // Webhook endpoint (no auth required - validated by signature)
-    Route::post('/webhook', [BillingWebhookController::class, 'handle'])->name('webhook');
+    // Webhook endpoint (no auth required - validated by signature + IP + rate limit)
+    Route::post('/webhook', [BillingWebhookController::class, 'handle'])
+        ->middleware(['throttle:60,1', 'billing.webhook.ip'])
+        ->name('webhook');
     
     // Product catalog endpoints
     Route::get('/products', [BillingApiController::class, 'getProducts'])->name('products');
