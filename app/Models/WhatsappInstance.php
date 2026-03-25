@@ -39,7 +39,9 @@ class WhatsappInstance extends Model
         // System default instance fields
         'is_system_default',
         'usage_scope',
-        'allowed_message_types'
+        'allowed_message_types',
+        // Unified Notification API registration
+        'unified_api_registered_at',
     ];
 
     protected $casts = [
@@ -56,6 +58,7 @@ class WhatsappInstance extends Model
         'connected_at' => 'datetime',
         'disconnected_at' => 'datetime',
         'last_active_at' => 'datetime',
+        'unified_api_registered_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

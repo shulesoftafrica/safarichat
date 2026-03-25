@@ -665,9 +665,14 @@ class WaSenderController extends Controller
                 // Create default AI Sales Agent for this user if not exists
                 $this->createDefaultAiAgent($instance->user);
 
+                // Register / sync with Unified Notification API now that connection is confirmed
+                $unifiedResult = $this->registerWithUnifiedNotificationApi($instance, $connectionStatus['data'] ?? []);
+
                 Log::info('WhatsApp session connected', [
-                    'session_id' => $sessionId,
-                    'user_id' => $instance->user_id
+                    'session_id'               => $sessionId,
+                    'user_id'                  => $instance->user_id,
+                    'unified_api_registered'   => $unifiedResult['success'] ?? false,
+                    'unified_api_skip_reason'  => $unifiedResult['reason'] ?? null,
                 ]);
 
                 return response()->json([
@@ -679,7 +684,8 @@ class WaSenderController extends Controller
                         'phone_number' => $instance->phone_number,
                         'connected_at' => $instance->connected_at,
                         'session_data' => $connectionStatus['data'] ?? null
-                    ]
+                    ],
+                    'unified_api_registered' => $unifiedResult['success'] ?? false,
                 ]);
             }
 
@@ -739,6 +745,126 @@ class WaSenderController extends Controller
         ];
 
         return $messages[$status] ?? 'Unknown status';
+    }
+
+    /**
+     * Register (or re-sync) a newly connected WhatsApp instance with the
+     * Unified Notification API so it can route inbound/outbound messages.
+     *
+     * Called once from checkSessionStatus() when WaSender confirms connection.
+     * Uses config('services.unified_notification.*') and the bearer token from
+     * config('notifications.unified_api.bearer_token') (same source as
+     * UnifiedNotificationService).
+     *
+     * Idempotent: skips silently if the instance was already registered.
+     * Non-blocking: connection succeeds even if this call fails.
+     */
+    private function registerWithUnifiedNotificationApi(WhatsappInstance $instance, array $sessionData = []): array
+    {
+        try {
+            $baseUrl    = config('services.unified_notification.base_url', 'https://notifications.shulesoft.africa/api');
+            $token      = config('notifications.unified_api.bearer_token');
+            $timeout    = (int) config('services.unified_notification.timeout', 30);
+
+            if (!$token) {
+                Log::warning('Unified Notification bearer token not configured — skipping registration', [
+                    'instance_id' => $instance->instance_id,
+                ]);
+                return ['success' => false, 'reason' => 'not_configured'];
+            }
+
+            // Idempotent guard — only register once per instance
+            if (!empty($instance->unified_api_registered_at)) {
+                Log::info('WhatsApp instance already registered with Unified Notification API', [
+                    'instance_id'   => $instance->instance_id,
+                    'registered_at' => $instance->unified_api_registered_at,
+                ]);
+                return ['success' => true, 'reason' => 'already_registered'];
+            }
+
+            $user        = $instance->user;
+            $schemaName  = $user->uuid ?? 'user_' . $user->id;
+            $webhookUrl  = url('/api/wasender/webhook/' . $instance->instance_id);
+
+            $payload = [
+                'schema_name'          => $schemaName,
+                'wasender_session_id'  => (string) $instance->instance_id,
+                'api_key'              => $instance->api_key,
+                'phone_number'         => $instance->phone_number,
+                'instance_name'        => $instance->instance_name,
+                'webhook_url'          => $webhookUrl,
+                'webhook_enabled'      => true,
+                'webhook_events'       => [
+                    'messages.received',
+                    'session.status',
+                    'messages.update',
+                ],
+                'status'               => 'connected',
+                'connected_at'         => now()->toISOString(),
+                'account_protection'   => true,
+                'log_messages'         => true,
+            ];
+
+            Log::info('Registering WhatsApp instance with Unified Notification API', [
+                'instance_id'  => $instance->instance_id,
+                'phone_number' => $instance->phone_number,
+                'schema_name'  => $schemaName,
+                'endpoint'     => $baseUrl . '/wasender/sessions/register',
+            ]);
+
+            $response = Http::timeout($timeout)->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->post($baseUrl . '/wasender/sessions/register', $payload);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+
+                // Persist registration timestamp + response into metadata
+                $existing = is_array($instance->metadata)
+                    ? $instance->metadata
+                    : (json_decode($instance->metadata ?? '{}', true) ?? []);
+
+                $instance->update([
+                    'unified_api_registered_at' => now(),
+                    'metadata' => array_merge($existing, [
+                        'unified_api_registration' => [
+                            'registered_at' => now()->toISOString(),
+                            'schema_name'   => $schemaName,
+                            'response'      => $responseData,
+                        ],
+                    ]),
+                ]);
+
+                Log::info('Successfully registered with Unified Notification API', [
+                    'instance_id'  => $instance->instance_id,
+                    'phone_number' => $instance->phone_number,
+                ]);
+
+                return ['success' => true, 'data' => $responseData];
+            }
+
+            Log::warning('Unified Notification API registration failed', [
+                'instance_id'   => $instance->instance_id,
+                'http_status'   => $response->status(),
+                'response_body' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'reason'  => 'api_error',
+                'status'  => $response->status(),
+                'body'    => $response->body(),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Exception while registering with Unified Notification API', [
+                'instance_id' => $instance->instance_id,
+                'error'       => $e->getMessage(),
+            ]);
+            return ['success' => false, 'reason' => 'exception', 'error' => $e->getMessage()];
+        }
     }
 
     /**
