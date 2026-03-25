@@ -120,6 +120,8 @@ class WaSenderController extends Controller
 
             $url = 'https://www.wasenderapi.com/api/whatsapp-sessions';
             
+            // Webhook is configured AFTER creation via updateSessionWebhook() so we can
+            // use the numeric session ID assigned by WaSender, not the human-readable name.
             $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
@@ -130,13 +132,6 @@ class WaSenderController extends Controller
                 'account_protection' => true,
                 'log_messages' => true,
                 'read_incoming_messages' => false,
-                'webhook_url' => 'https://safarichat.africa/api/wasender/webhook/' . $instanceName,
-                'webhook_enabled' => true,
-                'webhook_events' => [
-                    'messages.received',
-                    'session.status',
-                    'messages.update'
-                ],
             ]);
 
             if ($response->successful()) {
@@ -161,6 +156,63 @@ class WaSenderController extends Controller
                 'error' => $e->getMessage()
             ]);
             return ['success' => false, 'message' => 'Error creating session: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * PATCH the webhook URL on WaSender using the numeric session ID.
+     * Must be called AFTER session creation so the real numeric ID is known.
+     * This ensures the webhook URL is always /api/wasender/webhook/{id}
+     * and never /api/wasender/webhook/{instance_name}.
+     */
+    private function updateSessionWebhook(string $sessionId): bool
+    {
+        try {
+            $apiKey = config('services.wasender.access_token');
+            if (!$apiKey) {
+                Log::warning('WaSender API key not configured, skipping webhook update', [
+                    'session_id' => $sessionId,
+                ]);
+                return false;
+            }
+
+            $webhookUrl = url('/api/wasender/webhook/' . $sessionId);
+
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->patch('https://www.wasenderapi.com/api/whatsapp-sessions/' . $sessionId, [
+                'webhook_url'     => $webhookUrl,
+                'webhook_enabled' => true,
+                'webhook_events'  => [
+                    'messages.received',
+                    'session.status',
+                    'messages.update',
+                ],
+            ]);
+
+            if ($response->successful()) {
+                Log::info('Webhook URL updated on WaSender with correct session ID', [
+                    'session_id'  => $sessionId,
+                    'webhook_url' => $webhookUrl,
+                ]);
+                return true;
+            }
+
+            Log::warning('Failed to update webhook URL on WaSender', [
+                'session_id' => $sessionId,
+                'status'     => $response->status(),
+                'body'       => $response->body(),
+            ]);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('Exception while updating webhook URL on WaSender', [
+                'session_id' => $sessionId,
+                'error'      => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 
@@ -392,6 +444,10 @@ class WaSenderController extends Controller
             $apiKey = $sessionData['api_key'] ?? null;
             $webhookSecret = $sessionData['webhook_secret'] ?? null;
             $sessionStatus = $sessionData['status'] ?? 'pending';
+
+            // Step 3b: Register/update the webhook on WaSender using the numeric session ID.
+            // This ensures the webhook is always .../webhook/{numeric_id}, never .../webhook/{name}.
+            $this->updateSessionWebhook((string) $sessionId);
 
             // Step 4: Save/update instance in database
             $existingInstance = WhatsappInstance::where('user_id', $user->id)
