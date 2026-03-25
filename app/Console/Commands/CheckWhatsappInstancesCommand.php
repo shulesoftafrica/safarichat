@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\WhatsappInstance;
-use App\Services\UnifiedNotificationService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Exception;
@@ -16,266 +16,236 @@ class CheckWhatsappInstancesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'whatsapp:check-instances';
+    protected $signature = 'whatsapp:check-instances
+                            {--user= : Only check instances for a specific user ID}
+                            {--dry-run : Show what would change without updating the database}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Check WhatsApp instance connection status every 15 minutes';
+    protected $description = 'Sync WhatsApp instance connection status with WaSender API';
+
+    private string $wasenderBaseUrl = 'https://www.wasenderapi.com/api';
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
-    public function handle()
+    public function handle(): int
     {
-        $this->info('Starting WhatsApp instance connection check...');
-        
-        try {
-            $unifiedService = app(UnifiedNotificationService::class);
-            
-            // Get all active WhatsApp instances (excluding system_default and non-numeric IDs)
-            $instances = WhatsappInstance::whereNotNull('instance_id')
-                ->where('is_system_default', false)
-                ->get()
-                ->filter(function ($instance) {
-                    // Only check instances with numeric instance_id
-                    return is_numeric($instance->instance_id);
-                });
-            
-            if ($instances->isEmpty()) {
-                $this->info('No WhatsApp instances found to check.');
-                return 0;
-            }
-            
-            $this->info("Found {$instances->count()} instances to check.");
-            
-            $checkedCount = 0;
-            $connectedCount = 0;
-            $disconnectedCount = 0;
-            $errorCount = 0;
-            
-            foreach ($instances as $instance) {
-                try {
-                    $this->line("Checking instance {$instance->id} (Session: {$instance->instance_id})...");
-                    
-                    // Get session status from WaSender API
-                    $statusResult = $unifiedService->getSessionStatus($instance->instance_id);
-                    
-                    if (isset($statusResult['success']) && $statusResult['success']) {
-                        $apiStatus = $statusResult['data']['status'] ?? $statusResult['status'] ?? 'unknown';
-                        $previousStatus = $instance->connect_status;
-                        
-                        // Map API status to database-allowed values
-                        // Allowed values: disconnected, connecting, ready, error
-                        $mappedStatus = $this->mapApiStatusToDbStatus($apiStatus);
-                        
-                        // Determine connection status
-                        $isConnected = in_array($mappedStatus, ['ready', 'connecting']);
-                        
-                        // Update instance in database
-                        $updateData = [
-                            'connect_status' => $mappedStatus,
-                            'last_active_at' => now(),
-                        ];
-                        
-                        if ($isConnected) {
-                            $updateData['status'] = 'connected';
-                            $connectedCount++;
-                            $this->info("  ✓ Instance {$instance->id} is CONNECTED");
-                            
-                            // If it was previously disconnected, log the reconnection
-                            if (in_array(strtolower($previousStatus), ['disconnected', 'error'])) {
-                                Log::info('WhatsApp instance reconnected', [
-                                    'instance_id' => $instance->id,
-                                    'user_id' => $instance->user_id,
-                                    'previous_status' => $previousStatus,
-                                    'new_status' => $mappedStatus,
-                                    'api_status' => $apiStatus
-                                ]);
-                            }
-                        } else {
-                            $updateData['status'] = 'disconnected';
-                            $updateData['disconnected_at'] = now();
-                            $disconnectedCount++;
-                            $this->warn("  ✗ Instance {$instance->id} is DISCONNECTED");
-                            
-                            // Log disconnection if status changed
-                            if (!in_array(strtolower($previousStatus), ['disconnected', 'error'])) {
-                                Log::warning('WhatsApp instance disconnected', [
-                                    'instance_id' => $instance->id,
-                                    'user_id' => $instance->user_id,
-                                    'previous_status' => $previousStatus,
-                                    'new_status' => $apiStatus
-                                ]);
-                                
-                                // You can trigger notification to user here if needed
-                                $this->notifyUserAboutDisconnection($instance);
-                            }
-                        }
-                        
-                        $instance->update($updateData);
-                        $checkedCount++;
-                        
-                        // Clear the user's cache so the UI updates immediately
-                        Cache::forget('whatsapp_disconnected_' . $instance->user_id);
-                        
-                    } else {
-                        $errorMessage = $statusResult['error'] ?? $statusResult['message'] ?? 'Unknown error';
-                        $this->error("  ✗ Failed to check instance {$instance->id}: {$errorMessage}");
-                        
-                        // Mark instance as disconnected/error when API fails
-                        $previousStatus = $instance->connect_status;
-                        $errorStatus = (stripos($errorMessage, 'not found') !== false) ? 'disconnected' : 'error';
-                        
-                        $instance->update([
-                            'connect_status' => $errorStatus,
-                            'status' => 'disconnected',
-                            'disconnected_at' => now(),
-                        ]);
-                        
-                        // Clear cache to update UI
-                        Cache::forget('whatsapp_disconnected_' . $instance->user_id);
-                        
-                        Log::error('Failed to check WhatsApp instance status', [
-                            'instance_id' => $instance->id,
-                            'user_id' => $instance->user_id,
-                            'error' => $errorMessage,
-                            'previous_status' => $previousStatus,
-                            'new_status' => $errorStatus
-                        ]);
-                        
-                        // Notify user if status changed to disconnected
-                        if (!in_array(strtolower($previousStatus), ['disconnected', 'error'])) {
-                            $this->notifyUserAboutDisconnection($instance);
-                        }
-                        
-                        $errorCount++;
-                        $disconnectedCount++;
-                    }
-                    
-                } catch (Exception $e) {
-                    $this->error("  ✗ Error checking instance {$instance->id}: " . $e->getMessage());
-                    
-                    // Mark instance as error when exception occurs
-                    $previousStatus = $instance->connect_status;
-                    
-                    $instance->update([
-                        'connect_status' => 'error',
-                        'status' => 'disconnected',
-                        'disconnected_at' => now(),
-                    ]);
-                    
-                    // Clear cache to update UI
-                    Cache::forget('whatsapp_disconnected_' . $instance->user_id);
-                    
-                    Log::error('Exception while checking WhatsApp instance', [
-                        'instance_id' => $instance->id,
-                        'user_id' => $instance->user_id,
-                        'error' => $e->getMessage(),
-                        'previous_status' => $previousStatus,
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                    
-                    // Notify user if status changed
-                    if (!in_array(strtolower($previousStatus), ['disconnected', 'error'])) {
-                        $this->notifyUserAboutDisconnection($instance);
-                    }
-                    
-                    $errorCount++;
-                    $disconnectedCount++;
-                }
-            }
-            
-            // Summary
-            $this->newLine();
-            $this->info("=== Check Summary ===");
-            $this->info("Total instances: {$instances->count()}");
-            $this->info("Successfully checked: {$checkedCount}");
-            $this->info("Connected: {$connectedCount}");
-            $this->warn("Disconnected: {$disconnectedCount}");
-            
-            if ($errorCount > 0) {
-                $this->error("Errors: {$errorCount}");
-            }
-            
-            Log::info('WhatsApp instance check completed', [
-                'total' => $instances->count(),
-                'checked' => $checkedCount,
-                'connected' => $connectedCount,
-                'disconnected' => $disconnectedCount,
-                'errors' => $errorCount
-            ]);
-            
-            return 0;
-            
-        } catch (Exception $e) {
-            $this->error('Fatal error during WhatsApp instance check: ' . $e->getMessage());
-            
-            Log::error('Fatal error in WhatsApp instance check command', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+        $dryRun  = $this->option('dry-run');
+        $userId  = $this->option('user');
+        $apiKey  = config('services.wasender.access_token');
+
+        if (!$apiKey) {
+            $this->error('WASENDER_ACCESS_TOKEN is not configured in .env â€” cannot check real status.');
             return 1;
         }
+
+        if ($dryRun) {
+            $this->warn('[DRY RUN] No database changes will be made.');
+        }
+
+        $this->info('Fetching all sessions from WaSender API...');
+
+        // â”€â”€ Step 1: Pull the full session list from WaSender once â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Accept'        => 'application/json',
+            ])->get("{$this->wasenderBaseUrl}/whatsapp-sessions");
+
+            if (!$response->successful()) {
+                $this->error("WaSender API error {$response->status()}: " . $response->body());
+                return 1;
+            }
+
+            $wasenderSessions = collect($response->json('data') ?? [])
+                ->keyBy('id');   // index by session ID for O(1) lookups
+
+            $this->info("  WaSender returned {$wasenderSessions->count()} session(s).");
+
+        } catch (Exception $e) {
+            $this->error('Failed to reach WaSender API: ' . $e->getMessage());
+            return 1;
+        }
+
+        // â”€â”€ Step 2: Load local instances â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $query = WhatsappInstance::whereNotNull('instance_id')
+            ->where('is_system_default', false);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $instances = $query->get()->filter(fn($i) => is_numeric($i->instance_id));
+
+        if ($instances->isEmpty()) {
+            $this->info('No local WhatsApp instances found to check.');
+            return 0;
+        }
+
+        $this->info("Comparing {$instances->count()} local instance(s) against WaSender...\n");
+
+        // â”€â”€ Step 3: Compare and sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $stats = ['synced' => 0, 'already_ok' => 0, 'not_in_wasender' => 0, 'errors' => 0];
+
+        $headers = ['Instance ID', 'Phone', 'WaSender Status', 'Local Before', 'Local After', 'Action'];
+        $rows    = [];
+
+        foreach ($instances as $instance) {
+            $wasenderData   = $wasenderSessions->get($instance->instance_id);
+            $localConnectStatus = $instance->connect_status ?? 'unknown';
+            $localStatus        = $instance->status         ?? 'unknown';
+
+            // â”€â”€ Instance not found in WaSender at all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            if (!$wasenderData) {
+                $stats['not_in_wasender']++;
+                $rows[] = [
+                    $instance->instance_id,
+                    $instance->phone_number,
+                    'NOT FOUND',
+                    $localConnectStatus,
+                    $dryRun ? 'disconnected (dry)' : 'disconnected',
+                    'âš  Not in WaSender',
+                ];
+
+                if (!$dryRun) {
+                    $instance->update([
+                        'connect_status'  => 'disconnected',
+                        'status'          => 'disconnected',
+                        'disconnected_at' => now(),
+                    ]);
+                    Cache::forget('whatsapp_disconnected_' . $instance->user_id);
+                }
+                continue;
+            }
+
+            // â”€â”€ Map live WaSender status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            $apiRawStatus      = $wasenderData['status'] ?? 'unknown';
+            $newConnectStatus  = $this->mapToConnectStatus($apiRawStatus);
+            $newStatus         = $this->mapToStatus($apiRawStatus);
+
+            // â”€â”€ Already in sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            if ($localConnectStatus === $newConnectStatus) {
+                $stats['already_ok']++;
+                $rows[] = [
+                    $instance->instance_id,
+                    $instance->phone_number,
+                    $apiRawStatus,
+                    $localConnectStatus,
+                    $newConnectStatus,
+                    'âœ“ In sync',
+                ];
+                continue;
+            }
+
+            // â”€â”€ Out of sync â€” update local to match WaSender â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            $direction = $this->syncDirection($localConnectStatus, $newConnectStatus);
+            $rows[]    = [
+                $instance->instance_id,
+                $instance->phone_number,
+                $apiRawStatus,
+                $localConnectStatus,
+                $dryRun ? "$newConnectStatus (dry)" : $newConnectStatus,
+                $direction,
+            ];
+            $stats['synced']++;
+
+            if (!$dryRun) {
+                $update = [
+                    'connect_status' => $newConnectStatus,
+                    'status'         => $newStatus,
+                    'last_seen'      => now(),
+                ];
+
+                if ($newConnectStatus === 'disconnected' || $newConnectStatus === 'error') {
+                    $update['disconnected_at'] = now();
+                }
+
+                $instance->update($update);
+
+                // Always clear cache so the warning banner re-evaluates immediately
+                Cache::forget('whatsapp_disconnected_' . $instance->user_id);
+
+                Log::info('WhatsApp instance status synced from WaSender', [
+                    'instance_id'     => $instance->instance_id,
+                    'user_id'         => $instance->user_id,
+                    'wasender_status' => $apiRawStatus,
+                    'old_local'       => $localConnectStatus,
+                    'new_local'       => $newConnectStatus,
+                ]);
+            }
+        }
+
+        // â”€â”€ Output table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $this->table($headers, $rows);
+
+        // â”€â”€ Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $this->newLine();
+        $this->info("=== Sync Summary ===");
+        $this->line("  Already in sync : {$stats['already_ok']}");
+        $this->line("  Updated (synced): {$stats['synced']}");
+        $this->line("  Not in WaSender : {$stats['not_in_wasender']}");
+
+        if ($stats['errors'] > 0) {
+            $this->error("  Errors          : {$stats['errors']}");
+        }
+
+        if ($dryRun) {
+            $this->newLine();
+            $this->warn('Dry run complete â€” no database changes were made. Remove --dry-run to apply.');
+        }
+
+        return 0;
     }
-    
+
     /**
-     * Map API status to database-allowed values
-     * 
-     * Database allows: disconnected, connecting, ready, error
-     * 
-     * @param string $apiStatus
-     * @return string
+     * Map WaSender API status â†’ connect_status enum
+     * DB enum: disconnected | connecting | ready | error
      */
-    private function mapApiStatusToDbStatus(string $apiStatus): string
+    private function mapToConnectStatus(string $apiStatus): string
     {
-        // Normalize to lowercase for comparison
-        $status = strtolower($apiStatus);
-        
-        // Map API statuses to database-allowed values
-        return match($status) {
+        return match (strtolower($apiStatus)) {
             'connected', 'ready', 'open' => 'ready',
             'connecting', 'initializing', 'starting' => 'connecting',
             'disconnected', 'closed', 'logged_out', 'offline' => 'disconnected',
             'failed', 'error', 'timeout' => 'error',
-            default => 'disconnected' // Safe default
+            default => 'disconnected',
         };
     }
-    
+
     /**
-     * Notify user about WhatsApp disconnection
-     * 
-     * @param WhatsappInstance $instance
-     * @return void
+     * Map WaSender API status â†’ status enum
+     * DB enum: connecting | connected | disconnected | error
      */
-    private function notifyUserAboutDisconnection($instance)
+    private function mapToStatus(string $apiStatus): string
     {
-        try {
-            // You can implement notification logic here
-            // For example, send an email, SMS, or in-app notification to the user
-            // This is a placeholder for future implementation
-            
-            Log::info('User notification triggered for disconnected WhatsApp instance', [
-                'instance_id' => $instance->id,
-                'user_id' => $instance->user_id,
-                'phone_number' => $instance->phone_number
-            ]);
-            
-            // Example: Send notification via notification service
-            // $notificationService = app(\App\Services\AccountNotificationService::class);
-            // $notificationService->notifyWhatsAppDisconnected($instance->user, $instance);
-            
-        } catch (Exception $e) {
-            Log::error('Failed to notify user about WhatsApp disconnection', [
-                'instance_id' => $instance->id,
-                'user_id' => $instance->user_id,
-                'error' => $e->getMessage()
-            ]);
+        return match (strtolower($apiStatus)) {
+            'connected', 'ready', 'open' => 'connected',
+            'connecting', 'initializing', 'starting' => 'connecting',
+            'disconnected', 'closed', 'logged_out', 'offline' => 'disconnected',
+            'failed', 'error', 'timeout' => 'error',
+            default => 'disconnected',
+        };
+    }
+
+    /**
+     * Human-readable description of the sync change direction.
+     */
+    private function syncDirection(string $from, string $to): string
+    {
+        $fromConnected = in_array($from, ['ready', 'connecting']);
+        $toConnected   = in_array($to,   ['ready', 'connecting']);
+
+        if (!$fromConnected && $toConnected) {
+            return 'â†‘ Local updated â†’ CONNECTED';
         }
+        if ($fromConnected && !$toConnected) {
+            return 'â†“ Local updated â†’ DISCONNECTED';
+        }
+        return "~ {$from} â†’ {$to}";
     }
 }
+
