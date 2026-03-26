@@ -403,29 +403,59 @@ class WaSenderService
      */
     protected function resolveSchemaName(?int $userId, $instance = null): string
     {
-        // Priority 1: Use WhatsappInstance UUID if provided
+        // Priority 1: Use WhatsappInstance UUID directly from object
         if ($instance instanceof \App\Models\WhatsappInstance) {
             return $instance->uuid;
         }
-        
-        // Priority 2: If string instance ID provided, find instance and use UUID
-        if (is_string($instance)) {
-            $whatsappInstance = WhatsappInstance::where('instance_id', $instance)->first();
+
+        // Priority 2: String instance identifier — try instance_id first, then api_key.
+        // incoming_messages.instance_id may be either the WaSender session name or the api_key.
+        if (is_string($instance) && !empty($instance)) {
+            $whatsappInstance = WhatsappInstance::where('instance_id', $instance)
+                ->orWhere('api_key', $instance)
+                ->first();
             if ($whatsappInstance && $whatsappInstance->uuid) {
+                Log::debug('resolveSchemaName: resolved via instance string lookup', [
+                    'instance_value' => $instance,
+                    'resolved_uuid'  => $whatsappInstance->uuid,
+                ]);
                 return $whatsappInstance->uuid;
             }
         }
-        
-        // Fallback: Try to get user UUID from user ID (for backward compatibility)
+
+        // Priority 3: Resolve from the user's active WhatsApp instance.
+        // IMPORTANT: We must use whatsapp_instances.uuid (the schema_name registered
+        // with the Notification API), NOT users.uuid — they are completely different UUIDs.
         if ($userId) {
-            $user = User::find($userId);
-            if ($user && $user->uuid) {
-                return $user->uuid;
+            $whatsappInstance = WhatsappInstance::where('user_id', $userId)
+                ->whereNotNull('uuid')
+                ->where(function ($q) {
+                    $q->where('status', 'active')
+                      ->orWhere('connect_status', 'connected');
+                })
+                ->orderByDesc('is_primary')
+                ->orderByDesc('connected_at')
+                ->first();
+
+            if ($whatsappInstance && $whatsappInstance->uuid) {
+                Log::debug('resolveSchemaName: resolved via user_id instance lookup', [
+                    'user_id'       => $userId,
+                    'instance_id'   => $whatsappInstance->instance_id,
+                    'resolved_uuid' => $whatsappInstance->uuid,
+                ]);
+                return $whatsappInstance->uuid;
             }
-            // Fallback to user ID as string
+
+            // No active instance found — log a warning so this is visible in logs
+            Log::warning('resolveSchemaName: no active WhatsApp instance with uuid found for user', [
+                'user_id' => $userId,
+            ]);
+
+            // Last resort: return user ID as string (will fail at Notification API but
+            // the warning above makes the real problem obvious in logs)
             return (string) $userId;
         }
-        
+
         // Final fallback to default schema
         return config('notifications.defaults.schema_name', 'shulesoft');
     }
