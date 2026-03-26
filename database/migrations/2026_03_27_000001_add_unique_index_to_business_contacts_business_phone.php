@@ -29,7 +29,7 @@ return new class extends Migration
             ->where('guest_phone', '!=', '')
             ->whereNotNull('business_id')
             ->groupBy('business_id', 'guest_phone')
-            ->having('cnt', '>', 1)
+            ->havingRaw('COUNT(*) > 1')
             ->count();
 
         if ($duplicates > 0) {
