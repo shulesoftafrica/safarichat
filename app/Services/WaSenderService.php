@@ -403,60 +403,73 @@ class WaSenderService
      */
     protected function resolveSchemaName(?int $userId, $instance = null): string
     {
-        // Priority 1: Use WhatsappInstance UUID directly from object
+        // CANONICAL SOURCE OF TRUTH:
+        // The Notification API schema_name is ALWAYS registered as users.uuid (from the users table).
+        // whatsapp_instances.uuid is a completely separate UUID and is NOT the schema_name.
+        // Registration code (WaSenderController::registerWithUnifiedNotificationApi) confirms:
+        //   $schemaName = $user->uuid ?? 'user_' . $user->id;
+        // ALL paths below must resolve to users.uuid.
+
+        // Priority 1: WhatsappInstance object — load the user relation and return users.uuid
         if ($instance instanceof \App\Models\WhatsappInstance) {
-            return $instance->uuid;
+            $user = $instance->relationLoaded('user') ? $instance->user : $instance->user()->first();
+            if ($user && $user->uuid) {
+                Log::debug('resolveSchemaName: resolved via instance object → users.uuid', [
+                    'instance_id'   => $instance->instance_id,
+                    'user_id'       => $user->id,
+                    'resolved_uuid' => $user->uuid,
+                ]);
+                return $user->uuid;
+            }
+            // Fallback within Priority 1: use user_id
+            if ($instance->user_id) {
+                $userId = $instance->user_id;
+            }
         }
 
-        // Priority 2: String instance identifier — try instance_id first, then api_key.
-        // incoming_messages.instance_id may be either the WaSender session name or the api_key.
+        // Priority 2: String instance identifier — look up the instance, then its user → users.uuid
         if (is_string($instance) && !empty($instance)) {
             $whatsappInstance = WhatsappInstance::where('instance_id', $instance)
                 ->orWhere('api_key', $instance)
                 ->first();
-            if ($whatsappInstance && $whatsappInstance->uuid) {
-                Log::debug('resolveSchemaName: resolved via instance string lookup', [
-                    'instance_value' => $instance,
-                    'resolved_uuid'  => $whatsappInstance->uuid,
-                ]);
-                return $whatsappInstance->uuid;
+            if ($whatsappInstance) {
+                $user = $whatsappInstance->user()->first();
+                if ($user && $user->uuid) {
+                    Log::debug('resolveSchemaName: resolved via instance string lookup → users.uuid', [
+                        'instance_value' => $instance,
+                        'user_id'        => $user->id,
+                        'resolved_uuid'  => $user->uuid,
+                    ]);
+                    return $user->uuid;
+                }
+                // Fallback: capture user_id for Priority 3
+                if ($whatsappInstance->user_id && !$userId) {
+                    $userId = $whatsappInstance->user_id;
+                }
             }
         }
 
-        // Priority 3: Resolve from the user's active WhatsApp instance.
-        // IMPORTANT: We must use whatsapp_instances.uuid (the schema_name registered
-        // with the Notification API), NOT users.uuid — they are completely different UUIDs.
+        // Priority 3: User ID — look up the user directly and return users.uuid
         if ($userId) {
-            $whatsappInstance = WhatsappInstance::where('user_id', $userId)
-                ->whereNotNull('uuid')
-                ->where(function ($q) {
-                    $q->where('status', 'active')
-                      ->orWhere('connect_status', 'connected');
-                })
-                ->orderByDesc('is_primary')
-                ->orderByDesc('connected_at')
-                ->first();
-
-            if ($whatsappInstance && $whatsappInstance->uuid) {
-                Log::debug('resolveSchemaName: resolved via user_id instance lookup', [
+            $user = \App\Models\User::find($userId);
+            if ($user && $user->uuid) {
+                Log::debug('resolveSchemaName: resolved via user_id → users.uuid', [
                     'user_id'       => $userId,
-                    'instance_id'   => $whatsappInstance->instance_id,
-                    'resolved_uuid' => $whatsappInstance->uuid,
+                    'resolved_uuid' => $user->uuid,
                 ]);
-                return $whatsappInstance->uuid;
+                return $user->uuid;
             }
-
-            // No active instance found — log a warning so this is visible in logs
-            Log::warning('resolveSchemaName: no active WhatsApp instance with uuid found for user', [
-                'user_id' => $userId,
-            ]);
-
-            // Last resort: return user ID as string (will fail at Notification API but
-            // the warning above makes the real problem obvious in logs)
-            return (string) $userId;
+            // User found but has no uuid — use deterministic fallback matching registration logic
+            if ($user) {
+                return 'user_' . $user->id;
+            }
         }
 
-        // Final fallback to default schema
+        // Final fallback — should never reach here in normal operation
+        Log::warning('resolveSchemaName: could not resolve schema_name from any source', [
+            'user_id'  => $userId,
+            'instance' => is_string($instance) ? $instance : ($instance instanceof \App\Models\WhatsappInstance ? $instance->instance_id : null),
+        ]);
         return config('notifications.defaults.schema_name', 'shulesoft');
     }
 
@@ -468,7 +481,10 @@ class WaSenderService
      */
     public function getInstanceBySchemaName(string $schemaName): ?WhatsappInstance
     {
-        return WhatsappInstance::where('uuid', $schemaName)->first();
+        // schema_name is users.uuid — join through users table to find the instance
+        return WhatsappInstance::whereHas('user', function ($q) use ($schemaName) {
+            $q->where('uuid', $schemaName);
+        })->latest('connected_at')->first();
     }
 
     /**
