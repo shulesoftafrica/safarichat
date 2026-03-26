@@ -2561,10 +2561,16 @@ class Message extends Controller
             
             $cleanPhone = $phoneNumber[1];
             
-            // Find business contact
-            $contact = \App\Models\BusinessContact::where('guest_phone', $cleanPhone)
-                ->orWhere('guest_phone', 'LIKE', '%' . substr($cleanPhone, -9))
-                ->first();
+            // Find business contact — scope by business_id when available on the
+            // incoming $user object so we don't cross business boundaries
+            $contactQuery = \App\Models\BusinessContact::where(function($q) use ($cleanPhone) {
+                $q->where('guest_phone', $cleanPhone)
+                  ->orWhere('guest_phone', 'LIKE', '%' . substr($cleanPhone, -9));
+            });
+            if (!empty($user->business_id)) {
+                $contactQuery->where('business_id', $user->business_id);
+            }
+            $contact = $contactQuery->first();
                 
             if (!$contact) {
                 Log::info("No contact found for nurture mode check", ['phone' => $cleanPhone]);

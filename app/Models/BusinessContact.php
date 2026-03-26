@@ -159,6 +159,31 @@ class BusinessContact extends Model
     }
 
     /**
+     * Scope queries to a specific business.
+     * Use this everywhere instead of a bare where('guest_phone', ...) to ensure
+     * per-business contact isolation.
+     *
+     * Usage:  BusinessContact::forBusiness($businessId)->where('guest_phone', $phone)->first();
+     */
+    public function scopeForBusiness($query, int $businessId)
+    {
+        return $query->where('business_id', $businessId);
+    }
+
+    /**
+     * Scope queries to all contacts that belong to a specific user's business.
+     * Convenience wrapper that resolves user_id → business_id automatically.
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        $business = \App\Models\Business::where('user_id', $userId)->first();
+        if ($business) {
+            return $query->where('business_id', $business->id);
+        }
+        return $query->whereNull('id'); // Return empty set if no business found
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function leads()

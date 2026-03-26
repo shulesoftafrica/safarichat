@@ -230,19 +230,22 @@ class ProcessWebhookNotification implements ShouldQueue
         // Normalize phone number
         $normalizedPhone = UserResolutionService::normalizePhoneNumber($fromPhone);
 
-        // Find or create contact
-        $contact = UserResolutionService::resolveOrCreateContact([
-            'phone' => $normalizedPhone,
-            'name' => $this->webhookData['sender_name'] ?? 'Unknown'
-        ]);
-
-        // Find WhatsApp instance
+        // Resolve the WhatsApp instance FIRST so we can scope contact creation
+        // to the correct business — without this, contacts are created globally
+        // and a phone that contacts multiple businesses gets the wrong contact record.
         $instance = null;
         if ($sessionId) {
             $instance = WhatsappInstance::where('instance_id', $sessionId)
                 ->orWhere('api_key', $sessionId)
                 ->first();
         }
+
+        // Find or create contact scoped to the business that owns this instance
+        $contact = UserResolutionService::resolveOrCreateContact([
+            'phone'   => $normalizedPhone,
+            'name'    => $this->webhookData['sender_name'] ?? 'Unknown',
+            'user_id' => $instance?->user_id,  // ensures per-business isolation
+        ]);
 
         // Create incoming message record
         $incomingMessage = IncomingMessage::create([

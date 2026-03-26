@@ -133,14 +133,27 @@ class AiWhatsAppService
     }
 
     /**
-     * Find or create lead from incoming message
+     * Find or create lead from incoming message.
+     * Contact lookup is scoped to the specific business that owns this WhatsApp
+     * instance, so that a phone number that contacts multiple different businesses
+     * gets its own separate BusinessContact record (and Lead) for each business.
      */
     private function findOrCreateLead(IncomingMessage $message): Lead
     {
-        // First check if there's an existing BusinessContact
-        $businessContact = BusinessContact::where('guest_phone', $message->phone_number)->first();
+        // Resolve the business that owns this user/instance first.
+        // All subsequent contact and lead operations are scoped to this business.
+        $business = \App\Models\Business::where('user_id', $message->user_id)->first();
+        if (!$business) {
+            throw new \Exception("No business found for user_id={$message->user_id}. Cannot process incoming message.");
+        }
 
-        // Create BusinessContact if it doesn't exist
+        // Scope the contact lookup to THIS business — a customer may contact
+        // multiple businesses; each business must have its own contact record.
+        $businessContact = BusinessContact::where('guest_phone', $message->phone_number)
+                                          ->where('business_id', $business->id)
+                                          ->first();
+
+        // Create BusinessContact for this business if it doesn't exist yet
         if (!$businessContact) {
             // Check contact limit before creating new contact
             $limitCheck = BillingService::canAddContact($message->user_id);
@@ -163,14 +176,17 @@ class AiWhatsAppService
             }
             
             $businessContact = UserResolutionService::resolveOrCreateContact([
-                'phone' => $message->phone_number,
-                'name' => $message->sender_name ?? 'WhatsApp Contact',
-                'user_id' => $message->user_id
+                'phone'       => $message->phone_number,
+                'name'        => $message->sender_name ?? 'WhatsApp Contact',
+                'user_id'     => $message->user_id,
+                'business_id' => $business->id,  // Explicit — no ambiguity
             ]);
         }
 
-        // Look for existing lead
-        $lead = Lead::where('business_contact_id', $businessContact->id)->first();
+        // Look for existing lead for this contact + business combination
+        $lead = Lead::where('business_contact_id', $businessContact->id)
+                    ->where('user_id', $message->user_id)
+                    ->first();
 
         if (!$lead) {
             $lead = Lead::create([

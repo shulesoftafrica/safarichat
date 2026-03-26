@@ -34,6 +34,7 @@ class Kernel extends ConsoleKernel {
         Commands\CheckWhatsappInstancesCommand::class,
         Commands\SendScheduledMessagesCommand::class, // Phase 3: Campaign message scheduling
         Commands\PersonalizeCampaignMessages::class,  // AI-powered campaign personalization
+        Commands\DeduplicateBusinessContactsCommand::class, // Business contact isolation deduplication
     ];
     public $emails;
 

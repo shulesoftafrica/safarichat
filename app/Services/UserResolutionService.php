@@ -71,19 +71,40 @@ class UserResolutionService
     }
 
     /**
-     * Resolve or create BusinessContact contact
+     * Resolve or create BusinessContact contact.
+     * contactData should include 'user_id' or 'business_id' so that contact
+     * lookup and creation is scoped to the correct business.
      */
     public static function resolveOrCreateContact(array $contactData): BusinessContact
     {
         // Normalize phone number first
         $normalizedPhone = self::normalizePhoneNumber($contactData['phone'] ?? '');
-        
-        // Try to find existing contact
+
+        // Resolve business_id early — required for per-business contact isolation.
+        // business_id takes priority; if absent, resolve from user_id.
+        $businessId = $contactData['business_id'] ?? null;
+        if (!$businessId && !empty($contactData['user_id'])) {
+            $business = \App\Models\Business::where('user_id', $contactData['user_id'])->first();
+            if ($business) {
+                $businessId = $business->id;
+            }
+        }
+        if (!$businessId) {
+            Log::warning('resolveOrCreateContact called without resolvable business_id — contact isolation cannot be guaranteed', [
+                'phone'   => $normalizedPhone,
+                'caller'  => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1] ?? [],
+            ]);
+        }
+
+        // Stash resolved business_id so createNewContact() picks it up without another DB round-trip
+        $contactData['business_id'] = $businessId;
+
+        // Try to find existing contact scoped to this business
         $contact = self::findContactByMultipleMethods([
             'phone' => $normalizedPhone,
             'email' => $contactData['email'] ?? null,
-            'name' => $contactData['name'] ?? null
-        ]);
+            'name'  => $contactData['name'] ?? null,
+        ], $businessId);
 
         if ($contact) {
             // Update contact with any new information
@@ -96,22 +117,28 @@ class UserResolutionService
     }
 
     /**
-     * Find contact by multiple identification methods
+     * Find contact by multiple identification methods.
+     * When $businessId is provided, all lookups are scoped to that business,
+     * preventing cross-business contact contamination.
      */
-    public static function findContactByMultipleMethods(array $identifiers): ?BusinessContact
+    public static function findContactByMultipleMethods(array $identifiers, ?int $businessId = null): ?BusinessContact
     {
         $queries = [];
-        
+
         if (!empty($identifiers['phone'])) {
             $queries[] = ['guest_phone', 'LIKE', '%' . self::extractPhoneDigits($identifiers['phone']) . '%'];
         }
-        
+
         if (!empty($identifiers['email'])) {
             $queries[] = ['guest_email', '=', $identifiers['email']];
         }
 
         foreach ($queries as $query) {
-            $contact = BusinessContact::where($query[0], $query[1], $query[2])->first();
+            $builder = BusinessContact::where($query[0], $query[1], $query[2]);
+            if ($businessId) {
+                $builder->where('business_id', $businessId);
+            }
+            $contact = $builder->first();
             if ($contact) {
                 return $contact;
             }
@@ -119,7 +146,7 @@ class UserResolutionService
 
         // Try fuzzy name matching if no exact matches
         if (!empty($identifiers['name'])) {
-            return self::findContactByFuzzyName($identifiers['name']);
+            return self::findContactByFuzzyName($identifiers['name'], $businessId);
         }
 
         return null;
@@ -193,27 +220,29 @@ class UserResolutionService
     }
 
     /**
-     * Find contact by fuzzy name matching
+     * Find contact by fuzzy name matching, scoped to a specific business when provided.
      */
-    private static function findContactByFuzzyName(string $name): ?BusinessContact
+    private static function findContactByFuzzyName(string $name, ?int $businessId = null): ?BusinessContact
     {
+        $scope = fn($builder) => $businessId ? $builder->where('business_id', $businessId) : $builder;
+
         // Try exact match first
-        $contact = BusinessContact::where('guest_name', $name)->first();
+        $contact = $scope(BusinessContact::where('guest_name', $name))->first();
         if ($contact) return $contact;
-        
+
         // Try case-insensitive match
-        $contact = BusinessContact::whereRaw('LOWER(guest_name) = LOWER(?)', [$name])->first();
+        $contact = $scope(BusinessContact::whereRaw('LOWER(guest_name) = LOWER(?)', [$name]))->first();
         if ($contact) return $contact;
-        
+
         // Try partial match on each word
         $words = explode(' ', $name);
         foreach ($words as $word) {
             if (strlen($word) >= 3) { // Only search words with 3+ characters
-                $contact = BusinessContact::where('guest_name', 'LIKE', '%' . $word . '%')->first();
+                $contact = $scope(BusinessContact::where('guest_name', 'LIKE', '%' . $word . '%'))->first();
                 if ($contact) return $contact;
             }
         }
-        
+
         return null;
     }
 
@@ -292,10 +321,12 @@ class UserResolutionService
                 break;
         }
         
-        // Check if it's a returning customer (higher priority)
+        // Check if it's a returning customer (higher priority) — scoped to same business
         if (!empty($contactData['phone'])) {
+            $businessId = $contactData['business_id'] ?? null;
             $existingContact = BusinessContact::where('guest_phone', 'LIKE', '%' . substr($contactData['phone'], -8))
                                              ->where('contacted_for_sales', true)
+                                             ->when($businessId, fn($q) => $q->where('business_id', $businessId))
                                              ->first();
             if ($existingContact) {
                 $baseScore += 25; // Returning customers get higher priority
