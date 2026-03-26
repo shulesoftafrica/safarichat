@@ -47,7 +47,7 @@ class DeduplicateBusinessContactsCommand extends Command
             ->whereNotNull('guest_phone')
             ->where('guest_phone', '!=', '')
             ->groupBy('business_id', 'guest_phone')
-            ->having('cnt', '>', 1)
+            ->havingRaw('COUNT(*) > 1')
             ->get();
 
         if ($duplicateGroups->isEmpty()) {
