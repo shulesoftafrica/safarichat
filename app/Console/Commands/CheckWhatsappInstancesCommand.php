@@ -471,7 +471,7 @@ class CheckWhatsappInstancesCommand extends Command
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
-            ])->patch("{$this->wasenderBaseUrl}/whatsapp-sessions/{$sessionId}", [
+            ])->put("{$this->wasenderBaseUrl}/whatsapp-sessions/{$sessionId}", [
                 'webhook_url'     => $webhookUrl,
                 'webhook_enabled' => true,
                 'webhook_events'  => ['messages.received', 'session.status', 'messages.update'],
@@ -517,26 +517,26 @@ class CheckWhatsappInstancesCommand extends Command
         string $token
     ): array {
         try {
+            // Payload matches POST /api/wasender/sessions/create schema exactly.
+            // Fields wasender_session_id, api_key, status, connected_at are NOT accepted
+            // by that endpoint — they are returned in the response, not sent in the request.
             $payload = [
-                'schema_name'         => $schemaName,
-                'wasender_session_id' => (string) $instance->instance_id,
-                'api_key'             => $instance->api_key,
-                'phone_number'        => $instance->phone_number,
-                'instance_name'       => $instance->instance_name,
-                'webhook_url'         => url('/api/wasender/webhook/' . $instance->instance_id),
-                'webhook_enabled'     => true,
-                'webhook_events'      => ['messages.received', 'session.status', 'messages.update'],
-                'status'              => 'connected',
-                'connected_at'        => now()->toISOString(),
-                'account_protection'  => true,
-                'log_messages'        => true,
+                'schema_name'            => $schemaName,
+                'name'                   => $instance->instance_name ?? ('WhatsApp ' . $instance->phone_number),
+                'phone_number'           => $instance->phone_number,
+                'webhook_url'            => url('/api/wasender/webhook/' . $instance->instance_id),
+                'webhook_enabled'        => true,
+                'webhook_events'         => ['messages.received', 'session.status', 'messages.update'],
+                'account_protection'     => true,
+                'log_messages'           => true,
+                'read_incoming_messages' => false,
             ];
 
             $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
-            ])->post($baseUrl . '/wasender/sessions/register', $payload);
+            ])->post($baseUrl . '/wasender/sessions/create', $payload);
 
             if ($response->successful()) {
                 Log::info('whatsapp:check-instances — registered with Unified Notification API', [
