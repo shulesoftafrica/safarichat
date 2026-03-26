@@ -240,9 +240,10 @@ class CheckWhatsappInstancesCommand extends Command
             $this->newLine();
             $this->info("=== Health Checks for {$connectedInstances->count()} Connected Instance(s) ===");
 
-            $healthHeaders = ['Instance ID', 'Phone', 'WaSender Webhook', 'Notification API', 'Actions Taken'];
-            $healthRows    = [];
-            $healthStats   = [
+            $healthHeaders  = ['Instance ID', 'Phone', 'WaSender Webhook', 'Notification API', 'Actions Taken'];
+            $healthRows     = [];
+            $failureDetails = [];   // collected and printed as warnings below the table
+            $healthStats    = [
                 'webhook_ok'     => 0, 'webhook_fixed'    => 0, 'webhook_failed' => 0,
                 'notif_ok'       => 0, 'notif_registered' => 0, 'notif_failed'   => 0,
             ];
@@ -263,20 +264,28 @@ class CheckWhatsappInstancesCommand extends Command
                                && $actualEnabled
                                && empty($missingEvents);
 
+                // Build a human-readable description of what is wrong (used in dry-run and error output)
+                $webhookIssues = [];
+                if ($actualUrl !== $expectedWebhookUrl) {
+                    $webhookIssues[] = 'wrong URL (has: ' . ($actualUrl ?: 'none') . ', expected: ' . $expectedWebhookUrl . ')';
+                }
+                if (!$actualEnabled) {
+                    $webhookIssues[] = 'webhook_enabled=false';
+                }
+                if (!empty($missingEvents)) {
+                    $webhookIssues[] = 'missing events: ' . implode(', ', $missingEvents);
+                }
+
                 if ($webhookHealthy) {
                     $webhookStatus = '✓ OK';
                     $healthStats['webhook_ok']++;
                 } elseif ($dryRun) {
-                    $issues = [];
-                    if ($actualUrl !== $expectedWebhookUrl) $issues[] = 'wrong URL';
-                    if (!$actualEnabled)                    $issues[] = 'disabled';
-                    if (!empty($missingEvents))             $issues[] = 'missing events';
-                    $webhookStatus = '✗ ' . implode(', ', $issues) . ' (dry)';
+                    $webhookStatus = '✗ ' . implode('; ', $webhookIssues) . ' (dry)';
                     $actions[]     = 'Would fix webhook';
                     $healthStats['webhook_fixed']++;
                 } else {
-                    $fixed = $this->fixWasenderWebhook((string) $instance->instance_id, $apiKey);
-                    if ($fixed) {
+                    $fixResult = $this->fixWasenderWebhook((string) $instance->instance_id, $apiKey);
+                    if ($fixResult['success']) {
                         $webhookStatus = '↑ Fixed';
                         $actions[]     = 'Webhook re-configured';
                         $healthStats['webhook_fixed']++;
@@ -284,6 +293,15 @@ class CheckWhatsappInstancesCommand extends Command
                         $webhookStatus = '✗ Fix failed';
                         $actions[]     = 'Webhook fix FAILED';
                         $healthStats['webhook_failed']++;
+                        $failureDetails[] = [
+                            'instance_id' => $instance->instance_id,
+                            'phone'       => $instance->phone_number,
+                            'type'        => 'WaSender webhook PATCH',
+                            'issues'      => $webhookIssues,
+                            'http_status' => $fixResult['http_status'] ?? null,
+                            'http_body'   => $fixResult['http_body']   ?? null,
+                            'error'       => $fixResult['error']       ?? null,
+                        ];
                     }
                 }
 
@@ -332,6 +350,15 @@ class CheckWhatsappInstancesCommand extends Command
                             $notifStatus = '✗ Reg. failed';
                             $actions[]   = 'Notification API reg. FAILED';
                             $healthStats['notif_failed']++;
+                            $failureDetails[] = [
+                                'instance_id' => $instance->instance_id,
+                                'phone'       => $instance->phone_number,
+                                'type'        => 'Notification API registration POST',
+                                'issues'      => ['Session not found in Notification API (schema: ' . $schemaName . ')'],
+                                'http_status' => $regResult['status'] ?? null,
+                                'http_body'   => $regResult['body']   ?? null,
+                                'error'       => $regResult['error']  ?? null,
+                            ];
                         }
                     }
                 } elseif (!$schemaName) {
@@ -349,7 +376,30 @@ class CheckWhatsappInstancesCommand extends Command
 
             $this->table($healthHeaders, $healthRows);
 
-            $this->newLine();
+            // ── Print failure details so the operator knows exactly what went wrong ────────
+            if (!empty($failureDetails)) {
+                $this->newLine();
+                $this->warn('=== Failure Details ===');
+                foreach ($failureDetails as $fail) {
+                    $this->warn("  [{$fail['instance_id']}] {$fail['phone']} — {$fail['type']}");
+                    foreach ($fail['issues'] as $issue) {
+                        $this->line("    • Issue   : {$issue}");
+                    }
+                    if ($fail['http_status']) {
+                        $this->line("    • HTTP    : {$fail['http_status']}");
+                    }
+                    if ($fail['http_body']) {
+                        // Trim to first 300 chars so large HTML error pages don't flood the terminal
+                        $bodySnippet = mb_substr(trim($fail['http_body']), 0, 300);
+                        $this->line("    • Response: {$bodySnippet}");
+                    }
+                    if ($fail['error']) {
+                        $this->line("    • Exception: {$fail['error']}");
+                    }
+                    $this->newLine();
+                }
+            }
+
             $this->info('=== Health Check Summary ===');
             $this->line("  Webhook   — OK: {$healthStats['webhook_ok']}  Fixed: {$healthStats['webhook_fixed']}  Failed: {$healthStats['webhook_failed']}");
             $this->line("  Notif API — OK: {$healthStats['notif_ok']}  Registered: {$healthStats['notif_registered']}  Failed: {$healthStats['notif_failed']}");
@@ -409,7 +459,10 @@ class CheckWhatsappInstancesCommand extends Command
      * PATCH WaSender to set the correct webhook URL, enable it, and subscribe all three events.
      * Mirrors the logic of WaSenderController::updateSessionWebhook().
      */
-    private function fixWasenderWebhook(string $sessionId, string $apiKey): bool
+    /**
+     * Returns ['success' => bool, 'http_status' => int|null, 'http_body' => string|null, 'error' => string|null]
+     */
+    private function fixWasenderWebhook(string $sessionId, string $apiKey): array
     {
         try {
             $webhookUrl = url('/api/wasender/webhook/' . $sessionId);
@@ -429,7 +482,7 @@ class CheckWhatsappInstancesCommand extends Command
                     'session_id'  => $sessionId,
                     'webhook_url' => $webhookUrl,
                 ]);
-                return true;
+                return ['success' => true];
             }
 
             Log::warning('whatsapp:check-instances — webhook PATCH failed', [
@@ -437,14 +490,18 @@ class CheckWhatsappInstancesCommand extends Command
                 'status'     => $response->status(),
                 'body'       => $response->body(),
             ]);
-            return false;
+            return [
+                'success'     => false,
+                'http_status' => $response->status(),
+                'http_body'   => $response->body(),
+            ];
 
         } catch (Exception $e) {
             Log::error('whatsapp:check-instances — exception fixing webhook', [
                 'session_id' => $sessionId,
                 'error'      => $e->getMessage(),
             ]);
-            return false;
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
