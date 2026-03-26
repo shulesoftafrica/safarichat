@@ -456,19 +456,37 @@ class WaSenderController extends Controller
 
             if ($existingInstance) {
                 $instance = $existingInstance;
-                $instance->update([
-                    'instance_id' => $sessionId,
-                    'api_key' => $apiKey,
+
+                // Detect reconnection: if the session ID changed (e.g. user deleted
+                // the instance in WaSender and is re-onboarding), clear the Unified
+                // Notification registration timestamp so it re-registers with the new ID.
+                $sessionIdChanged = (string) $existingInstance->instance_id !== (string) $sessionId;
+
+                $updateData = [
+                    'instance_id'   => $sessionId,
+                    'api_key'       => $apiKey,
                     'instance_name' => $instanceName,
-                    'status' => $sessionStatus,
-                    'webhook_url' => $sessionData['webhook_url'] ?? null,
+                    'status'        => $sessionStatus,
+                    'webhook_url'   => $sessionData['webhook_url'] ?? null,
                     'webhook_secret' => $webhookSecret,
-                    'platform' => 'wasender',
-                    'metadata' => json_encode([
+                    'platform'      => 'wasender',
+                    'metadata'      => json_encode([
                         'session_data' => $sessionData,
-                        'updated_at' => now()->toISOString()
-                    ])
-                ]);
+                        'updated_at'   => now()->toISOString()
+                    ]),
+                ];
+
+                if ($sessionIdChanged) {
+                    // Reset so registerWithUnifiedNotificationApi() runs again for the new session
+                    $updateData['unified_api_registered_at'] = null;
+                    Log::info('Reconnection detected — session ID changed, Unified API registration reset', [
+                        'old_session_id' => $existingInstance->instance_id,
+                        'new_session_id' => $sessionId,
+                        'user_id'        => $user->id,
+                    ]);
+                }
+
+                $instance->update($updateData);
             } else {
                 $instance = WhatsappInstance::create([
                     'user_id' => $user->id,
@@ -664,6 +682,18 @@ class WaSenderController extends Controller
 
                 // Create default AI Sales Agent for this user if not exists
                 $this->createDefaultAiAgent($instance->user);
+
+                // Re-push webhook config now that the session is definitively connected.
+                // The initial updateSessionWebhook() call (made at pending-state during
+                // onboarding) may have been silently dropped/reset by WaSender before
+                // the QR was scanned.  Calling it here guarantees the webhook is live.
+                $webhookUpdated = $this->updateSessionWebhook($sessionId);
+                if (!$webhookUpdated) {
+                    Log::warning('Webhook re-registration may have failed at connection-confirmed stage', [
+                        'session_id' => $sessionId,
+                        'user_id'    => $instance->user_id,
+                    ]);
+                }
 
                 // Register / sync with Unified Notification API now that connection is confirmed
                 $unifiedResult = $this->registerWithUnifiedNotificationApi($instance, $connectionStatus['data'] ?? []);
