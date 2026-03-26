@@ -71,8 +71,36 @@ class CheckWhatsappInstancesCommand extends Command
             return 1;
         }
 
-        // â”€â”€ Step 2: Load local instances â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        $query = WhatsappInstance::whereNotNull('instance_id')
+        // ── Step 1b: Pre-fetch Unified Notification API sessions ──────────────────────────────
+        $notificationBaseUrl  = config('services.unified_notification.base_url', 'https://notifications.shulesoft.africa/api');
+        $notificationToken    = config('notifications.unified_api.bearer_token');
+        $notificationSessions = collect();  // indexed by schema_name
+
+        if ($notificationToken) {
+            $this->info('Pre-fetching sessions from Unified Notification API...');
+            try {
+                $notifResp = Http::timeout(20)->withHeaders([
+                    'Authorization' => 'Bearer ' . $notificationToken,
+                    'Accept'        => 'application/json',
+                ])->get($notificationBaseUrl . '/wasender/sessions');
+
+                if ($notifResp->successful()) {
+                    $notificationSessions = collect($notifResp->json('data') ?? [])
+                        ->keyBy('schema_name');
+                    $this->info("  Unified Notification API returned {$notificationSessions->count()} session(s).");
+                } else {
+                    $this->warn("  Unified Notification API responded {$notifResp->status()} — health checks will be skipped.");
+                }
+            } catch (Exception $e) {
+                $this->warn('  Unified Notification API unreachable: ' . $e->getMessage() . ' — health checks will be skipped.');
+            }
+        } else {
+            $this->warn('  UNIFIED_NOTIFICATION_BEARER_TOKEN not configured — notification registration checks will be skipped.');
+        }
+
+        // ── Step 2: Load local instances ────────────────────────────────────────────────────
+        $query = WhatsappInstance::with('user')
+            ->whereNotNull('instance_id')
             ->where('is_system_default', false);
 
         if ($userId) {
@@ -195,7 +223,136 @@ class CheckWhatsappInstancesCommand extends Command
 
         if ($dryRun) {
             $this->newLine();
-            $this->warn('Dry run complete â€” no database changes were made. Remove --dry-run to apply.');
+            $this->warn('Dry run complete — no database changes were made. Remove --dry-run to apply.');
+        }
+
+        // ── Step 4: Health checks for all currently-connected instances ──────────────────────
+        // Runs only for sessions WaSender reports as 'ready'. For each, we verify:
+        //   a) The webhook is correctly configured in WaSender (right URL, enabled, all events)
+        //   b) The session is registered in the Unified Notification API (remote GET check)
+        // If either is missing/wrong, we fix it — unless --dry-run is set.
+        $connectedInstances = $instances->filter(function ($inst) use ($wasenderSessions) {
+            $raw = $wasenderSessions->get($inst->instance_id)['status'] ?? '';
+            return $this->mapToConnectStatus($raw) === 'ready';
+        });
+
+        if ($connectedInstances->isNotEmpty()) {
+            $this->newLine();
+            $this->info("=== Health Checks for {$connectedInstances->count()} Connected Instance(s) ===");
+
+            $healthHeaders = ['Instance ID', 'Phone', 'WaSender Webhook', 'Notification API', 'Actions Taken'];
+            $healthRows    = [];
+            $healthStats   = [
+                'webhook_ok'     => 0, 'webhook_fixed'    => 0, 'webhook_failed' => 0,
+                'notif_ok'       => 0, 'notif_registered' => 0, 'notif_failed'   => 0,
+            ];
+
+            foreach ($connectedInstances as $instance) {
+                $wasenderData = $wasenderSessions->get($instance->instance_id);
+                $actions      = [];
+
+                // ── a) WaSender webhook check ─────────────────────────────────────────────
+                $expectedWebhookUrl = url('/api/wasender/webhook/' . $instance->instance_id);
+                $requiredEvents     = ['messages.received', 'session.status', 'messages.update'];
+                $actualUrl          = $wasenderData['webhook_url']     ?? '';
+                $actualEnabled      = $wasenderData['webhook_enabled'] ?? false;
+                $actualEvents       = (array) ($wasenderData['webhook_events'] ?? []);
+                $missingEvents      = array_diff($requiredEvents, $actualEvents);
+
+                $webhookHealthy = ($actualUrl === $expectedWebhookUrl)
+                               && $actualEnabled
+                               && empty($missingEvents);
+
+                if ($webhookHealthy) {
+                    $webhookStatus = '✓ OK';
+                    $healthStats['webhook_ok']++;
+                } elseif ($dryRun) {
+                    $issues = [];
+                    if ($actualUrl !== $expectedWebhookUrl) $issues[] = 'wrong URL';
+                    if (!$actualEnabled)                    $issues[] = 'disabled';
+                    if (!empty($missingEvents))             $issues[] = 'missing events';
+                    $webhookStatus = '✗ ' . implode(', ', $issues) . ' (dry)';
+                    $actions[]     = 'Would fix webhook';
+                    $healthStats['webhook_fixed']++;
+                } else {
+                    $fixed = $this->fixWasenderWebhook((string) $instance->instance_id, $apiKey);
+                    if ($fixed) {
+                        $webhookStatus = '↑ Fixed';
+                        $actions[]     = 'Webhook re-configured';
+                        $healthStats['webhook_fixed']++;
+                    } else {
+                        $webhookStatus = '✗ Fix failed';
+                        $actions[]     = 'Webhook fix FAILED';
+                        $healthStats['webhook_failed']++;
+                    }
+                }
+
+                // ── b) Unified Notification API registration check ────────────────────────
+                $user        = $instance->user;
+                $schemaName  = $user ? ($user->uuid ?? 'user_' . $user->id) : null;
+                $notifStatus = 'skipped (no token)';
+
+                if ($notificationToken && $schemaName) {
+                    $notifRecord = $notificationSessions->get($schemaName);
+
+                    if ($notifRecord) {
+                        $notifStatus = '✓ Registered';
+                        $healthStats['notif_ok']++;
+                    } elseif ($dryRun) {
+                        $notifStatus = '✗ Not registered (dry)';
+                        $actions[]   = 'Would register with Notification API';
+                        $healthStats['notif_registered']++;
+                    } else {
+                        // Not found remotely — re-register now
+                        $regResult = $this->registerWithNotificationApi(
+                            $instance, $schemaName, $notificationBaseUrl, $notificationToken
+                        );
+
+                        if ($regResult['success']) {
+                            $notifStatus = '↑ Registered';
+                            $actions[]   = 'Registered with Notification API';
+                            $healthStats['notif_registered']++;
+
+                            // Persist timestamp so the idempotent guard triggers on next run
+                            $existing = is_array($instance->metadata)
+                                ? $instance->metadata
+                                : (json_decode($instance->metadata ?? '{}', true) ?? []);
+
+                            $instance->update([
+                                'unified_api_registered_at' => now(),
+                                'metadata' => array_merge($existing, [
+                                    'unified_api_registration' => [
+                                        'registered_at' => now()->toISOString(),
+                                        'schema_name'   => $schemaName,
+                                        'response'      => $regResult['data'] ?? [],
+                                    ],
+                                ]),
+                            ]);
+                        } else {
+                            $notifStatus = '✗ Reg. failed';
+                            $actions[]   = 'Notification API reg. FAILED';
+                            $healthStats['notif_failed']++;
+                        }
+                    }
+                } elseif (!$schemaName) {
+                    $notifStatus = 'skipped (no user)';
+                }
+
+                $healthRows[] = [
+                    $instance->instance_id,
+                    $instance->phone_number,
+                    $webhookStatus,
+                    $notifStatus,
+                    empty($actions) ? '—' : implode('; ', $actions),
+                ];
+            }
+
+            $this->table($healthHeaders, $healthRows);
+
+            $this->newLine();
+            $this->info('=== Health Check Summary ===');
+            $this->line("  Webhook   — OK: {$healthStats['webhook_ok']}  Fixed: {$healthStats['webhook_fixed']}  Failed: {$healthStats['webhook_failed']}");
+            $this->line("  Notif API — OK: {$healthStats['notif_ok']}  Registered: {$healthStats['notif_registered']}  Failed: {$healthStats['notif_failed']}");
         }
 
         return 0;
@@ -245,7 +402,109 @@ class CheckWhatsappInstancesCommand extends Command
         if ($fromConnected && !$toConnected) {
             return 'â†“ Local updated â†’ DISCONNECTED';
         }
-        return "~ {$from} â†’ {$to}";
+        return "~ {$from} → {$to}";
+    }
+
+    /**
+     * PATCH WaSender to set the correct webhook URL, enable it, and subscribe all three events.
+     * Mirrors the logic of WaSenderController::updateSessionWebhook().
+     */
+    private function fixWasenderWebhook(string $sessionId, string $apiKey): bool
+    {
+        try {
+            $webhookUrl = url('/api/wasender/webhook/' . $sessionId);
+
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->patch("{$this->wasenderBaseUrl}/whatsapp-sessions/{$sessionId}", [
+                'webhook_url'     => $webhookUrl,
+                'webhook_enabled' => true,
+                'webhook_events'  => ['messages.received', 'session.status', 'messages.update'],
+            ]);
+
+            if ($response->successful()) {
+                Log::info('whatsapp:check-instances — webhook fixed on WaSender', [
+                    'session_id'  => $sessionId,
+                    'webhook_url' => $webhookUrl,
+                ]);
+                return true;
+            }
+
+            Log::warning('whatsapp:check-instances — webhook PATCH failed', [
+                'session_id' => $sessionId,
+                'status'     => $response->status(),
+                'body'       => $response->body(),
+            ]);
+            return false;
+
+        } catch (Exception $e) {
+            Log::error('whatsapp:check-instances — exception fixing webhook', [
+                'session_id' => $sessionId,
+                'error'      => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * POST to the Unified Notification API to register (or re-register) a WaSender session.
+     * Uses the same endpoint and payload shape as WaSenderController::registerWithUnifiedNotificationApi().
+     * Remote check (GET /wasender/sessions) already confirmed the record is absent before this is called.
+     */
+    private function registerWithNotificationApi(
+        WhatsappInstance $instance,
+        string $schemaName,
+        string $baseUrl,
+        string $token
+    ): array {
+        try {
+            $payload = [
+                'schema_name'         => $schemaName,
+                'wasender_session_id' => (string) $instance->instance_id,
+                'api_key'             => $instance->api_key,
+                'phone_number'        => $instance->phone_number,
+                'instance_name'       => $instance->instance_name,
+                'webhook_url'         => url('/api/wasender/webhook/' . $instance->instance_id),
+                'webhook_enabled'     => true,
+                'webhook_events'      => ['messages.received', 'session.status', 'messages.update'],
+                'status'              => 'connected',
+                'connected_at'        => now()->toISOString(),
+                'account_protection'  => true,
+                'log_messages'        => true,
+            ];
+
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->post($baseUrl . '/wasender/sessions/register', $payload);
+
+            if ($response->successful()) {
+                Log::info('whatsapp:check-instances — registered with Unified Notification API', [
+                    'instance_id'  => $instance->instance_id,
+                    'schema_name'  => $schemaName,
+                    'phone_number' => $instance->phone_number,
+                ]);
+                return ['success' => true, 'data' => $response->json()];
+            }
+
+            Log::warning('whatsapp:check-instances — Notification API registration failed', [
+                'instance_id' => $instance->instance_id,
+                'schema_name' => $schemaName,
+                'status'      => $response->status(),
+                'body'        => $response->body(),
+            ]);
+            return ['success' => false, 'status' => $response->status(), 'body' => $response->body()];
+
+        } catch (Exception $e) {
+            Log::error('whatsapp:check-instances — exception during Notification API registration', [
+                'instance_id' => $instance->instance_id,
+                'error'       => $e->getMessage(),
+            ]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 }
 
