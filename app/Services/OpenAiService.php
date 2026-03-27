@@ -354,6 +354,178 @@ class OpenAiService
         }
     }
 
+    // =========================================================================
+    // VISION PATH — premium plan only, called by AiWhatsAppService when all
+    // three guards pass: message_type=image, agent.vision_enabled=true, premium
+    // =========================================================================
+
+    /**
+     * Generate AI response for an incoming image message.
+     * Downloads the media URL, encodes it as base64, and passes it to
+     * GPT-4o as a multimodal content array alongside the product catalog.
+     * On any failure, gracefully falls back to the standard text-only RAG path.
+     *
+     * NEVER call this method without confirming premium plan + vision_enabled.
+     *
+     * @param  string  $mediaUrl  Temporary WaSender CDN URL — download immediately
+     * @param  string  $caption   WhatsApp caption text (may be empty)
+     */
+    public function generateSalesResponseWithVision(
+        string $mediaUrl,
+        string $caption,
+        \App\Models\AiSalesAgent $agent,
+        \App\Models\Lead $lead,
+        array $conversationHistory = [],
+        ?\App\Models\Product $product = null,
+        ?\App\Models\WhatsappInstance $instance = null
+    ): array {
+        try {
+            // --- 1. Download the image IMMEDIATELY (CDN URL expires in minutes) ---
+            $imageBase64 = $this->downloadImageAsBase64($mediaUrl);
+
+            if (!$imageBase64) {
+                // URL expired or network error — fall back to caption-only text response
+                Log::warning('[Vision] Image download failed, falling back to caption-only', [
+                    'agent_id' => $agent->id,
+                    'lead_id'  => $lead->id,
+                ]);
+                $fallbackText = !empty($caption)
+                    ? $caption
+                    : 'The customer sent an image but it could not be retrieved.';
+                return $this->generateSalesResponseWithRAG(
+                    $fallbackText, $agent, $lead, $conversationHistory, $product, $instance
+                );
+            }
+
+            // --- 2. Build full RAG context (system prompt + docs + history) ---
+            $ragService  = app(\App\Services\RagSearchService::class);
+            $productIds  = $product
+                ? [$product->id]
+                : $lead->leadProducts()->pluck('product_id')->toArray();
+            $relevantDocs = $ragService->searchDocuments($caption ?: 'image product match', $productIds, 3);
+
+            // Borrow the RAG prompt builder for system/context/history setup.
+            // It appends a plain-text user message at the end — we pop it and
+            // replace with the multimodal content array.
+            $messages = $this->buildRAGPrompt(
+                $caption ?: '', $agent, $lead,
+                $conversationHistory, $product, $relevantDocs, $instance
+            );
+            array_pop($messages); // remove the plain-text user turn
+
+            // --- 3. Build multimodal user turn ---
+            $userContent = [];
+
+            if (!empty($caption)) {
+                $userContent[] = ['type' => 'text', 'text' => $this->sanitizeText($caption)];
+            }
+
+            $userContent[] = [
+                'type'      => 'image_url',
+                'image_url' => [
+                    'url'    => 'data:image/jpeg;base64,' . $imageBase64,
+                    'detail' => 'low', // 'low' is cheaper; sufficient for product matching
+                ],
+            ];
+
+            $userContent[] = [
+                'type' => 'text',
+                'text' => 'Please analyse the image the customer shared. Using our product catalog above, '
+                        . 'tell them whether we stock a matching item and describe the closest alternatives we have. '
+                        . 'Be helpful, specific, and concise.',
+            ];
+
+            $messages[] = ['role' => 'user', 'content' => $userContent];
+
+            // --- 4. Call OpenAI (gpt-4o supports vision natively — no model switch) ---
+            $response = $this->client->chat()->create([
+                'model'             => $this->defaultModel, // gpt-4o
+                'messages'          => $messages,
+                'max_tokens'        => 1200,
+                'temperature'       => 0.7,
+                'presence_penalty'  => 0.1,
+                'frequency_penalty' => 0.1,
+            ]);
+
+            $aiResponse  = $response->choices[0]->message->content;
+            $tokensUsed  = $response->usage->totalTokens;
+            $constraints = $this->applyAgentConstraints($aiResponse, $agent, $product, $caption ?: '');
+
+            // --- 5. Deduct AI credits (same pattern as ConversationEngine path) ---
+            $actualCredits = max(1, (int) ceil($tokensUsed / 3.846));
+            $user = \App\Models\User::find($lead->user_id);
+            if ($user) {
+                $deducted = \App\Services\BillingService::deductCredits(
+                    $user,
+                    $actualCredits,
+                    "Vision AI response for lead {$lead->id} (image analysis)"
+                );
+                Log::info('[Vision] Credits deducted for image analysis', [
+                    'user_id'           => $user->id,
+                    'tokens_used'       => $tokensUsed,
+                    'credits_deducted'  => $actualCredits,
+                    'deduction_success' => $deducted,
+                ]);
+            }
+
+            return [
+                'success'     => true,
+                'response'    => $constraints['response'],
+                'actions'     => $constraints['actions'],
+                'confidence'  => $this->calculateConfidence($response),
+                'tokens_used' => $tokensUsed,
+                'rag_sources' => $relevantDocs,
+                'rag_used'    => count($relevantDocs) > 0,
+                'vision_used' => true,
+            ];
+
+        } catch (\Exception $e) {
+            Log::warning('[Vision] Vision response failed, falling back to text-only: ' . $e->getMessage(), [
+                'agent_id' => $agent->id,
+                'lead_id'  => $lead->id,
+            ]);
+            // Graceful degradation — never crash the incoming message processing
+            $fallbackText = !empty($caption) ? $caption : 'The customer sent an image.';
+            return $this->generateSalesResponseWithRAG(
+                $fallbackText, $agent, $lead, $conversationHistory, $product, $instance
+            );
+        }
+    }
+
+    /**
+     * Download a remote media URL and return its raw bytes as a base64 string.
+     * Returns null on any error so callers can fall back gracefully.
+     * Timeout is intentionally short (8 s) — if the CDN URL is already expired
+     * we want to fail fast and respond to the customer rather than hang.
+     */
+    private function downloadImageAsBase64(string $url): ?string
+    {
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(8)->get($url);
+
+            if (!$response->successful()) {
+                Log::warning('[Vision] Image download HTTP error', [
+                    'url'    => substr($url, 0, 80) . '...',
+                    'status' => $response->status(),
+                ]);
+                return null;
+            }
+
+            $body = $response->body();
+
+            if (empty($body)) {
+                Log::warning('[Vision] Image download returned empty body');
+                return null;
+            }
+
+            return base64_encode($body);
+
+        } catch (\Exception $e) {
+            Log::warning('[Vision] Image download exception: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Build RAG-enhanced prompt
      */

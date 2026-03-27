@@ -66,7 +66,8 @@ class AiSalesAgent extends Model
         'notification_methods',
         'additional_notifications',
         'accepted_terms',
-        'terms_accepted_at'
+        'terms_accepted_at',
+        'vision_enabled'
     ];
 
     /**
@@ -95,6 +96,7 @@ class AiSalesAgent extends Model
         'auto_followup' => 'boolean',
         'notify_on_deal' => 'boolean',
         'accepted_terms' => 'boolean',
+        'vision_enabled' => 'boolean',
         'is_active' => 'boolean',
         'allow_outreach' => 'boolean',
         'terms_accepted_at' => 'datetime',

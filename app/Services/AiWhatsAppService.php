@@ -68,15 +68,8 @@ class AiWhatsAppService
             // Determine if this is product-specific conversation
             $product = $this->identifyProduct($message, $lead);
 
-            // Enhanced: Use RAG-augmented AI response with instance context
-            $aiResult = $this->openAiService->generateSalesResponseWithRAG(
-                $message->message_body,
-                $agent,
-                $lead,
-                $conversationHistory,
-                $product,
-                $instance // Pass instance for context
-            );
+            // Route to vision or standard RAG path based on message type + plan + agent flag
+            $aiResult = $this->resolveAiResponse($message, $agent, $lead, $conversationHistory, $product, $instance);
 
             if (!$aiResult['success']) {
                 DB::rollback();
@@ -1196,5 +1189,83 @@ class AiWhatsAppService
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    // =========================================================================
+    // VISION ROUTING — determines whether to use vision or standard text path
+    // =========================================================================
+
+    /**
+     * Route an incoming message to the correct AI path.
+     *
+     * Vision path fires only when ALL three guards pass:
+     *   1. $message->message_type === 'image'
+     *   2. $agent->vision_enabled === true
+     *   3. user holds an active premium subscription
+     *
+     * Any other case — including any guard failure — falls through to the
+     * standard text-only RAG path, which is never touched.
+     */
+    private function resolveAiResponse(
+        IncomingMessage $message,
+        AiSalesAgent $agent,
+        Lead $lead,
+        array $conversationHistory,
+        ?Product $product,
+        ?\App\Models\WhatsappInstance $instance
+    ): array {
+        $isImage   = ($message->message_type === 'image');
+        $hasVision = (bool) ($agent->vision_enabled ?? false);
+        $mediaData = $message->media_data ?? [];
+        $mediaUrl  = $mediaData['url'] ?? null;
+        $caption   = $mediaData['caption'] ?? $message->message_body ?? '';
+
+        if ($isImage && $hasVision && !empty($mediaUrl)) {
+            // Guard 3: verify active premium plan at billing account level
+            $user           = \App\Models\User::find($message->user_id);
+            $billingAccount = $user?->business?->billingAccount ?? $user?->billingAccount;
+            $isPremium      = $billingAccount
+                              && $billingAccount->subscription_plan === 'premium'
+                              && $billingAccount->isActive();
+
+            if ($isPremium) {
+                Log::info('[Vision] Routing image message to vision path', [
+                    'message_id' => $message->id,
+                    'agent_id'   => $agent->id,
+                    'user_id'    => $message->user_id,
+                ]);
+
+                // Credit deduction happens inside generateSalesResponseWithVision
+                return $this->openAiService->generateSalesResponseWithVision(
+                    $mediaUrl,
+                    $caption,
+                    $agent,
+                    $lead,
+                    $conversationHistory,
+                    $product,
+                    $instance
+                );
+            }
+
+            Log::info('[Vision] Image message not eligible for vision path', [
+                'message_id'     => $message->id,
+                'plan'           => $billingAccount?->subscription_plan,
+                'vision_enabled' => $hasVision,
+            ]);
+        }
+
+        // ---- Standard text-only RAG path (untouched) ----
+        // For image messages on non-premium, use caption as the text body so
+        // the AI can still give a useful response based on what the customer typed.
+        $textBody = ($isImage && !empty($caption)) ? $caption : $message->message_body;
+
+        return $this->openAiService->generateSalesResponseWithRAG(
+            $textBody,
+            $agent,
+            $lead,
+            $conversationHistory,
+            $product,
+            $instance
+        );
     }
 }

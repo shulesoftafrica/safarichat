@@ -237,7 +237,8 @@ class BillingService
                 'customer_followups' => $billingAccount->customer_followups,
                 'customer_categorization' => $billingAccount->customer_categorization,
                 'booking_calendars' => $billingAccount->booking_calendars,
-                'sales_reports' => $billingAccount->sales_reports
+                'sales_reports' => $billingAccount->sales_reports,
+                'image_vision' => $billingAccount->isActive() && $plan === 'premium',
             ]
         ];
         
@@ -310,7 +311,8 @@ class BillingService
             'customer_followups' => $active && in_array($plan, ['pro', 'premium']),
             'customer_categorization' => $active && in_array($plan, ['pro', 'premium']),
             'booking_calendars' => $active && $plan === 'premium',
-            'sales_reports' => $active && in_array($plan, ['pro', 'premium'])
+            'sales_reports' => $active && in_array($plan, ['pro', 'premium']),
+            'image_vision' => $active && $plan === 'premium',
         ];
         
         return $data;
