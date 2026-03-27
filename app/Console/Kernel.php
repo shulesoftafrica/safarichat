@@ -37,6 +37,9 @@ class Kernel extends ConsoleKernel {
         Commands\DeduplicateBusinessContactsCommand::class, // Business contact isolation deduplication
         // Customer Success Phase 2
         Commands\SendCsDailySummaryCommand::class,
+        // Customer Success Phase 3 — trial lifecycle
+        Commands\SendTrialReminderCommand::class,
+        Commands\SendCsTrialMonitorCommand::class,
     ];
     public $emails;
 
@@ -153,6 +156,33 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'CS daily summary dispatch failed', 'error');
+            });
+
+        // Phase 3 — Daily trial-countdown reminder (09:00 EAT)
+        $schedule->command('cs:trial-reminders')
+            ->dailyAt('09:00')
+            ->timezone('Africa/Nairobi')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-trial-reminders.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS trial reminder jobs dispatched');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS trial reminder dispatch failed', 'error');
+            });
+
+        // Phase 3 — Trial lifecycle monitor every 15 minutes (T-3h + T=0 warnings, stale session cleanup)
+        $schedule->command('cs:trial-monitor')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-trial-monitor.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS trial monitor completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS trial monitor failed', 'error');
             });
     }
 

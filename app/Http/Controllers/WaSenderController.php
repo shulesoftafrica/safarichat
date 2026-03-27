@@ -1415,7 +1415,11 @@ class WaSenderController extends Controller
             switch ($eventType) {
                 case 'message':
                 case 'messages.received':
-                    return $this->handleIncomingMessage($webhookData, $instance);
+                    return match($instance->instance_type) {
+                        'customer_success' => $this->handleCsIncomingMessage($webhookData, $instance),
+                        'both'             => $this->handleHybridIncomingMessage($webhookData, $instance),
+                        default            => $this->handleIncomingMessage($webhookData, $instance),
+                    };
                 
                 case 'status':
                 case 'status.update':
@@ -1484,7 +1488,11 @@ class WaSenderController extends Controller
             switch ($eventType) {
                 case 'message':
                 case 'messages.received':
-                    return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+                    return match($instance->instance_type) {
+                        'customer_success' => $this->handleCsIncomingMessage($webhookData, $instance),
+                        'both'             => $this->handleHybridIncomingMessage($webhookData, $instance),
+                        default            => $this->handleIncomingMessageWithInstance($webhookData, $instance),
+                    };
                 
                 case 'status':
                 case 'status.update':
@@ -1653,6 +1661,102 @@ class WaSenderController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Handle incoming messages on a CS-only instance.
+     * All inbound text is treated as the business owner replying to CS prompts.
+     */
+    private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $instance): \Illuminate\Http\JsonResponse
+    {
+        try {
+            // Skip self-sent messages
+            if (! empty($webhookData['fromMe'])) {
+                return response()->json(['success' => true, 'message' => 'Self message ignored']);
+            }
+
+            $user = $instance->user;
+            if (! $user) {
+                Log::warning('[CS] Instance has no associated user', ['instance_id' => $instance->id]);
+                return response()->json(['success' => false, 'message' => 'No user for instance']);
+            }
+
+            $messageData = $this->extractMessageData($webhookData, $instance);
+            $body        = trim($messageData['message_body'] ?? '');
+
+            // Non-text / empty → treat as help request
+            if ($body === '') {
+                $body = 'help';
+            }
+
+            app(\App\Services\CustomerSuccess\CsConversationHandler::class)
+                ->handleInbound($user, $body, $webhookData, $instance);
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            Log::error('[CS] handleCsIncomingMessage error', [
+                'instance_id' => $instance->id,
+                'error'       => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'CS handler error'], 500);
+        }
+    }
+
+    /**
+     * Handle incoming messages on a hybrid instance (instance_type = 'both').
+     *
+     * Routing priority:
+     *   1. Instance owner with an active CS session, or sending a CS keyword → CS handler
+     *   2. Everything else → standard AI sales handler
+     */
+    private function handleHybridIncomingMessage(array $webhookData, WhatsappInstance $instance): \Illuminate\Http\JsonResponse
+    {
+        try {
+            if (! empty($webhookData['fromMe'])) {
+                return response()->json(['success' => true, 'message' => 'Self message ignored']);
+            }
+
+            $user = $instance->user;
+            if (! $user) {
+                return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+            }
+
+            $messageData = $this->extractMessageData($webhookData, $instance);
+            $body        = trim($messageData['message_body'] ?? '');
+
+            // Detect if the sender is the instance owner
+            $senderPhone = preg_replace('/[^0-9]/', '', $messageData['phone_number'] ?? '');
+            $ownerPhone  = preg_replace('/[^0-9]/', '', $user->phone ?? '');
+            $isOwner     = $ownerPhone !== '' && str_ends_with($senderPhone, substr($ownerPhone, -9));
+
+            if ($isOwner) {
+                $hasSession = \App\Models\CsConversationSession::findActive($user->id) !== null;
+                $csKeywords = ['upgrade', 'help', 'report', 'pause', 'buy credits', 'bei', 'package', 'lipa', 'pay', 'price', 'how much', 'nunua credits', 'gharama'];
+                $lowerBody  = mb_strtolower($body);
+                $isKeyword  = false;
+                foreach ($csKeywords as $kw) {
+                    if (str_contains($lowerBody, $kw)) {
+                        $isKeyword = true;
+                        break;
+                    }
+                }
+
+                if ($hasSession || $isKeyword) {
+                    app(\App\Services\CustomerSuccess\CsConversationHandler::class)
+                        ->handleInbound($user, $body ?: 'help', $webhookData, $instance);
+                    return response()->json(['success' => true]);
+                }
+            }
+
+            // Fall through to AI sales handler
+            return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+        } catch (\Throwable $e) {
+            Log::error('[CS] handleHybridIncomingMessage error', [
+                'instance_id' => $instance->id,
+                'error'       => $e->getMessage(),
+            ]);
+            return $this->handleIncomingMessageWithInstance($webhookData, $instance);
+        }
     }
 
     /**
