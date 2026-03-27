@@ -196,4 +196,89 @@ Or visit your dashboard:
 {{dashboard_link}}
 MSG,
 
+    // -------------------------------------------------------------------------
+    // Phase 4 — Expansion & Retention
+    // -------------------------------------------------------------------------
+
+    'subscription_success' => <<<MSG
+🎊 *You are now on SafariChat {{plan_name}}!*
+
+Your AI sales agent is back online and fully powered.
+
+*What you now have:*
+{{features}}
+
+*Your subscription renews on:* {{renewal_date}}
+
+To get the most from {{plan_name}}, here is your next recommended action:
+{{cta}}
+
+Thank you for trusting SafariChat. 🙏
+
+Visit your dashboard: {{dashboard_link}}
+MSG,
+
+    'upgrade_confirmation' => <<<MSG
+🚀 *Upgrade successful — Welcome to {{to_plan}}!*
+
+You have moved up from *{{from_plan}}* to *{{to_plan}}*.
+
+*You now have access to:*
+{{features}}
+
+*Your subscription renews on:* {{renewal_date}}
+
+Visit your dashboard to explore your new features:
+{{dashboard_link}}
+MSG,
+
+    'usage_limit_warning' => <<<MSG
+{{urgency_prefix}} *You are at {{usage_label}} your plan limit — SafariChat*
+
+Your AI has used *{{percent_used}}%* of your monthly *{{plan_name}}* plan credits.
+Remaining credits: *{{remaining}}*
+
+{{#if percent_used >= 95}}⚠️ You have approximately {{remaining}} credits left. After that, your AI will pause until next billing cycle.{{/if}}
+
+👉 Upgrade to a higher plan to unlock more capacity:
+{{billing_link}}
+
+Reply *UPGRADE* to choose a new plan right here.
+MSG,
+
+    'credit_low_warning' => <<<MSG
+{{urgency_prefix}} *Your AI credits are running low — SafariChat*
+
+Remaining credits: *{{remaining_credits}}* ({{percent_left}}% left)
+
+Credits power every AI-generated message. When they run out, your AI agent will stop responding to customers.
+
+To keep your AI running 24/7:
+• Reply *BUY CREDITS* to top up now
+• Or visit: {{billing_link}}
+MSG,
+
+    'credits_added' => <<<MSG
+✅ *{{credits_added}} credits added to your account — SafariChat*
+
+Your AI agent is fully powered again.
+Current balance: *{{new_balance}} credits*
+
+Visit your dashboard to see your AI at work:
+{{dashboard_link}}
+MSG,
+
+    'cs_credit_packages' => <<<MSG
+💳 *Top up your AI credits — SafariChat*
+
+Choose a credit package:
+
+1️⃣ *Small Top-up* — TZS 10,000 → ~100 credits
+2️⃣ *Popular Pack* — TZS 50,000 → ~600 credits *(+20% bonus)*
+3️⃣ *Power Pack*  — TZS 100,000 → ~1,400 credits *(+40% bonus)*
+
+Reply with *1*, *2*, or *3* to select your package.
+MSG,
+
 ];
+

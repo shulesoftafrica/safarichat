@@ -72,7 +72,12 @@ class CsConversationHandler
 
     private function isUpgradeKeyword(string $kw): bool
     {
-        return in_array($kw, ['upgrade', 'bei', 'package', 'lipa', 'pay', 'price', 'how much', 'gharama', 'buy credits', 'nunua credits'], true);
+        return in_array($kw, ['upgrade', 'bei', 'package', 'lipa', 'pay', 'price', 'how much', 'gharama'], true);
+    }
+
+    private function isCreditKeyword(string $kw): bool
+    {
+        return in_array($kw, ['buy credits', 'nunua credits'], true);
     }
 
     // ── Public entry point ───────────────────────────────────────────────────────
@@ -136,6 +141,12 @@ class CsConversationHandler
 
     private function handleKeyword(User $user, string $message, string $kw): void
     {
+        // Credit purchase intent
+        if ($this->isCreditKeyword($kw)) {
+            $this->startCreditPurchaseFlow($user);
+            return;
+        }
+
         if ($this->isUpgradeKeyword($kw)) {
             $context = ($user->subscription_status === 'trial')
                 ? CsConversationSession::CONTEXT_TRIAL_UPGRADE
@@ -152,6 +163,94 @@ class CsConversationHandler
 
         // 'yes', 'no', other words with no active session → help
         $this->sendHelpMenu($user);
+    }
+
+    // ── Credit purchase flow ──────────────────────────────────────────────────────
+
+    /** Credit package definitions */
+    private const CREDIT_PACKAGES = [
+        1 => ['label' => 'Small Top-up',  'amount' => 10000,  'credits' => 100],
+        2 => ['label' => 'Popular Pack',  'amount' => 50000,  'credits' => 600],
+        3 => ['label' => 'Power Pack',    'amount' => 100000, 'credits' => 1400],
+    ];
+
+    /**
+     * Show the credit package selection menu and open a credit_purchase session.
+     */
+    private function startCreditPurchaseFlow(User $user): void
+    {
+        CsConversationSession::startFor($user->id, CsConversationSession::CONTEXT_CREDIT_PURCHASE);
+        CsMessageRenderer::send($user, 'cs_credit_packages', [], $user->business_id ?? $user->id);
+    }
+
+    /**
+     * User chose a credit package (1 / 2 / 3).
+     */
+    private function handleCreditPackageChoice(CsConversationSession $session, string $message, User $user): void
+    {
+        $choice = (int) trim($message);
+
+        if (! isset(self::CREDIT_PACKAGES[$choice])) {
+            CsMessageRenderer::send(
+                $user,
+                'cs_invalid_choice',
+                ['max' => count(self::CREDIT_PACKAGES)],
+                $user->business_id ?? $user->id
+            );
+            return;
+        }
+
+        $package = self::CREDIT_PACKAGES[$choice];
+        $amount  = $package['amount'];
+        $label   = $package['label'];
+
+        // Use a pseudo plan ID for credits purchases (configurable)
+        $creditsPlanId = (int) config('services.billing.price_plans.credits', 10);
+
+        try {
+            $result = BillingService::createSubscriptionInvoice(
+                $user,
+                $creditsPlanId,
+                $amount,
+                'flutterwave',
+                config('app.url') . '/billing/success',
+                config('app.url') . '/billing/cancel'
+            );
+        } catch (\Throwable $e) {
+            Log::error('[CsConversationHandler] Credit invoice creation failed', [
+                'user_id' => $user->id, 'error' => $e->getMessage(),
+            ]);
+            CsMessageRenderer::send($user, 'cs_billing_error', [], $user->business_id ?? $user->id);
+            return;
+        }
+
+        if (! ($result['success'] ?? false)) {
+            CsMessageRenderer::send($user, 'cs_billing_error', [], $user->business_id ?? $user->id);
+            return;
+        }
+
+        $invoiceData     = $result['data']['invoice'] ?? $result['data'] ?? [];
+        $invoiceId       = $invoiceData['id']           ?? null;
+        $paymentLinks    = $result['data']['payment_links'] ?? [];
+        $ucn             = $paymentLinks['ucn']          ?? '';
+        $stripeLink      = $paymentLinks['stripe']        ?? '';
+        $flutterwaveLink = $paymentLinks['flutterwave']   ?? '';
+
+        $session->awaitPayment([
+            'credit_package' => $choice,
+            'plan_name'      => $label,
+            'amount'         => $amount,
+            'invoice_id'     => $invoiceId,
+            'ucn'            => $ucn,
+        ]);
+
+        CsMessageRenderer::send($user, 'cs_payment_details', [
+            'plan_name'        => $label . ' (Credits)',
+            'amount'           => number_format($amount),
+            'ucn'              => $ucn              ?: 'N/A',
+            'stripe_link'      => $stripeLink       ?: 'N/A',
+            'flutterwave_link' => $flutterwaveLink  ?: 'N/A',
+        ], $user->business_id ?? $user->id);
     }
 
     // ── Upgrade flow ─────────────────────────────────────────────────────────────
@@ -184,11 +283,22 @@ class CsConversationHandler
 
     private function continueSession(CsConversationSession $session, string $message, User $user): void
     {
-        match($session->state) {
-            CsConversationSession::STATE_AWAITING_PACKAGE => $this->handlePackageChoice($session, $message, $user),
-            CsConversationSession::STATE_AWAITING_PAYMENT => $this->handlePaymentConfirmation($session, $message, $user),
-            default => $this->sendHelpMenu($user), // expired / completed slipped past findActive
-        };
+        if ($session->state === CsConversationSession::STATE_AWAITING_PACKAGE) {
+            if ($session->context === CsConversationSession::CONTEXT_CREDIT_PURCHASE) {
+                $this->handleCreditPackageChoice($session, $message, $user);
+            } else {
+                $this->handlePackageChoice($session, $message, $user);
+            }
+            return;
+        }
+
+        if ($session->state === CsConversationSession::STATE_AWAITING_PAYMENT) {
+            $this->handlePaymentConfirmation($session, $message, $user);
+            return;
+        }
+
+        // expired / completed slipped past findActive
+        $this->sendHelpMenu($user);
     }
 
     /**

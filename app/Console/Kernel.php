@@ -40,6 +40,8 @@ class Kernel extends ConsoleKernel {
         // Customer Success Phase 3 — trial lifecycle
         Commands\SendTrialReminderCommand::class,
         Commands\SendCsTrialMonitorCommand::class,
+        // Customer Success Phase 4 — usage & credits
+        Commands\SendCsUsageMonitorCommand::class,
     ];
     public $emails;
 
@@ -183,6 +185,19 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'CS trial monitor failed', 'error');
+            });
+
+        // Phase 4 — Usage & credit monitors (hourly)
+        $schedule->command('cs:usage-monitor')
+            ->hourly()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-usage-monitor.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS usage monitor completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS usage monitor failed', 'error');
             });
     }
 

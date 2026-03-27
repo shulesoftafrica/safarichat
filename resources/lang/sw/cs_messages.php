@@ -194,4 +194,87 @@ Au tembelea dashibodi yako:
 {{dashboard_link}}
 MSG,
 
+    // -------------------------------------------------------------------------
+    // Awamu ya 4 — Upanuzi na Uhifadhi
+    // -------------------------------------------------------------------------
+
+    'subscription_success' => <<<MSG
+🎊 *Sasa uko kwenye SafariChat {{plan_name}}!*
+
+Wakala wako wa AI wa mauzo yuko mtandaoni tena na ana nguvu kamili.
+
+*Unachopata sasa:*
+{{features}}
+
+*Usajili wako unahuishwa tarehe:* {{renewal_date}}
+
+Ili kupata manufaa zaidi kutoka {{plan_name}}, hapa ndipo uanzie:
+{{cta}}
+
+Asante kwa kuamini SafariChat. 🙏
+
+Tembelea dashibodi yako: {{dashboard_link}}
+MSG,
+
+    'upgrade_confirmation' => <<<MSG
+🚀 *Usasishaji umefaulu — Karibu {{to_plan}}!*
+
+Umepanda kutoka *{{from_plan}}* hadi *{{to_plan}}*.
+
+*Sasa una uwezo wa:*
+{{features}}
+
+*Usajili wako unahuishwa tarehe:* {{renewal_date}}
+
+Tembelea dashibodi yako kuangalia vipengele vipya:
+{{dashboard_link}}
+MSG,
+
+    'usage_limit_warning' => <<<MSG
+{{urgency_prefix}} *Uko katika {{usage_label}} kikomo cha mpango wako — SafariChat*
+
+AI yako imetumia *{{percent_used}}%* ya mikopo ya kila mwezi ya mpango wako *{{plan_name}}*.
+Mikopo iliyobaki: *{{remaining}}*
+
+Sasisha mpango wa juu zaidi ili kupata uwezo zaidi:
+{{billing_link}}
+
+Jibu *UPGRADE* kuchagua mpango mpya hapa hapa.
+MSG,
+
+    'credit_low_warning' => <<<MSG
+{{urgency_prefix}} *Mikopo yako ya AI inakwisha — SafariChat*
+
+Mikopo iliyobaki: *{{remaining_credits}}* ({{percent_left}}% iliyobaki)
+
+Mikopo inawezesha kila ujumbe unaozalishwa na AI. Itakapoisha, wakala wako wa AI ataacha kujibu wateja.
+
+Ili AI yako iendelee kufanya kazi masaa 24/7:
+• Jibu *NUNUA CREDITS* kuongeza sasa
+• Au tembelea: {{billing_link}}
+MSG,
+
+    'credits_added' => <<<MSG
+✅ *Mikopo {{credits_added}} imeongezwa kwenye akaunti yako — SafariChat*
+
+Wakala wako wa AI ana nguvu kamili tena.
+Salio la sasa: *Mikopo {{new_balance}}*
+
+Tembelea dashibodi yako kuona AI yako ikifanya kazi:
+{{dashboard_link}}
+MSG,
+
+    'cs_credit_packages' => <<<MSG
+💳 *Ongeza mikopo ya AI yako — SafariChat*
+
+Chagua kifurushi cha mikopo:
+
+1️⃣ *Kidogo* — TZS 10,000 → ~credits 100
+2️⃣ *Maarufu* — TZS 50,000 → ~credits 600 *(+bonasi 20%)*
+3️⃣ *Nguvu*   — TZS 100,000 → ~credits 1,400 *(+bonasi 40%)*
+
+Jibu na *1*, *2*, au *3* kuchagua kifurushi chako.
+MSG,
+
 ];
+
