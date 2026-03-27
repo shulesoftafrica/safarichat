@@ -23,7 +23,11 @@ class SendCsTrialMonitorCommand extends Command
 
         // ── T-3h bucket ──────────────────────────────────────────────────────────
         // Users whose trial ends in the next 0–3 hours
-        $warningUsers = User::where('subscription_status', 'trial')
+        // NOTE: subscription_status lives on billing_accounts, not users.
+        // Filter through the billingAccount relationship (HasOneThrough via business).
+        $warningUsers = User::whereHas('billingAccount', fn ($q) =>
+                $q->where('subscription_plan', 'trial')
+            )
             ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '>', $now)
             ->where('trial_ends_at', '<=', $now->copy()->addHours(3))
@@ -40,8 +44,10 @@ class SendCsTrialMonitorCommand extends Command
         }
 
         // ── T=0 bucket ───────────────────────────────────────────────────────────
-        // Users whose trial has ended but subscription_status still = 'trial'
-        $expiredUsers = User::where('subscription_status', 'trial')
+        // Users whose trial has ended but billing plan is still 'trial'
+        $expiredUsers = User::whereHas('billingAccount', fn ($q) =>
+                $q->where('subscription_plan', 'trial')
+            )
             ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '<=', $now)
             ->get();

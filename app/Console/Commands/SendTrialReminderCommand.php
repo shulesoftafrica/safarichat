@@ -18,7 +18,9 @@ class SendTrialReminderCommand extends Command
     {
         $now = Carbon::now();
 
-        $users = User::where('subscription_status', 'trial')
+        $users = User::whereHas('billingAccount', fn ($q) =>
+                $q->where('subscription_plan', 'trial')
+            )
             ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '>', $now)
             ->get();

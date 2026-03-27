@@ -139,6 +139,42 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
+     * Virtual accessor: reads subscription_status from BillingAccount.
+     *
+     * The column does NOT exist on the users table — all subscription state
+     * lives on billing_accounts. This accessor keeps every piece of existing
+     * code that reads `$user->subscription_status` working correctly without
+     * requiring a schema change.
+     *
+     * Priority order:
+     *   1. billing_accounts.subscription_status  (primary source of truth)
+     *   2. Inferred from users.trial_ends_at     (fallback for new users
+     *      whose billing account hasn't been created yet)
+     *   3. 'inactive' as safe default
+     */
+    public function getSubscriptionStatusAttribute(): string
+    {
+        // HasOneThrough via business → billing_accounts
+        $billing = $this->billingAccount;
+
+        // Eager-load miss: try via the business relation directly
+        if (!$billing && $this->relationLoaded('business') && $this->business) {
+            $billing = $this->business->billingAccount;
+        }
+
+        if ($billing) {
+            return $billing->subscription_status ?? 'inactive';
+        }
+
+        // Fallback: infer from trial window stored on the users row
+        if ($this->trial_ends_at) {
+            return now()->lessThanOrEqualTo($this->trial_ends_at) ? 'trial' : 'inactive';
+        }
+
+        return 'inactive';
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function messages() {

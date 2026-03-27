@@ -18,8 +18,11 @@ class SendCsUsageMonitorCommand extends Command
     {
         $isDry = $this->option('dry-run');
 
-        // Target all active users (paid + trial — CreditLowAlertJob handles trial too)
-        $users = User::whereIn('subscription_status', ['active', 'trial'])
+        // Target all active users (paid + trial).
+        // NOTE: subscription_status lives on billing_accounts, not users — use whereHas.
+        $users = User::whereHas('billingAccount', fn ($q) =>
+                $q->whereIn('subscription_status', ['active', 'trial'])
+            )
             ->whereNotNull('available_credits')
             ->get();
 
