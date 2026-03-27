@@ -330,7 +330,12 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
             const subscriptionStatus = this.currentSubscription?.status || 'inactive';
-            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus);
+            // Also treat as expired when status is still 'active' in DB but expiry date has passed
+            // (mirrors PHP $isExpiredActiveSubscription logic)
+            const expiresAt = this.currentSubscription?.expires_at;
+            const isDateExpired = expiresAt && new Date(expiresAt) < new Date();
+            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus) ||
+                              (subscriptionStatus === 'active' && isDateExpired);
             
             console.log('🟢 [BILLING] Current plan:', currentPlan, 'Status:', subscriptionStatus, 'Expired:', isExpired);
             
@@ -385,7 +390,12 @@ $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
             const container = document.getElementById('availablePlans');
             const currentPlan = this.currentSubscription?.plan || 'trial';
             const subscriptionStatus = this.currentSubscription?.status || 'inactive';
-            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus);
+            // Also treat as expired when status is still 'active' in DB but expiry date has passed
+            // (mirrors PHP $isExpiredActiveSubscription logic)
+            const expiresAt = this.currentSubscription?.expires_at;
+            const isDateExpired = expiresAt && new Date(expiresAt) < new Date();
+            const isExpired = ['expired', 'cancelled', 'inactive'].includes(subscriptionStatus) ||
+                              (subscriptionStatus === 'active' && isDateExpired);
             
             const planOrder = ['starter', 'pro', 'premium'];
             const upgradePlans = planOrder.filter(plan => this.shouldShowPlan(plan, currentPlan));
