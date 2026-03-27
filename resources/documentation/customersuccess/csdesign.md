@@ -792,144 +792,169 @@ state = 'expired'
       → send: "Your session timed out. Reply UPGRADE to start again."
 ```
 
-### 4.3 Inbound Message Routing Priority
+### 4.3 Inbound Message Routing — Instance Type Flag
 
-> **Critical rule:** Routing is always scoped to the **receiving WhatsApp instance**, not the sender's identity. A person who is both a registered SafariChat business owner and a customer (`BusinessContact`) of another SafariChat business is handled entirely differently depending on which instance they message.
-
----
-
-#### 4.3.1 On a Business's Own WhatsApp Instance
-
-When a message arrives on **any WhatsApp instance that belongs to a business** (i.e., not the system number):
-
-```
-Incoming: phone X → Business B's instance
-
-→ ALWAYS route to Business B's AI sales agent (AiWhatsAppService, scoped to Business B)
-→ The fact that phone X may also be a registered SafariChat user is IRRELEVANT
-→ They are contacting Business B as a customer — treat them as a BusinessContact
-→ cs_conversation_sessions are NOT checked here — those only apply to the system number
-```
-
-This is the clean separation: a SafariChat business owner who is also a customer of another SafariChat business simply has both roles. When they message Business B's WhatsApp from their personal number, they are acting as a **customer**, and Business B's AI handles the conversation exactly as it would for any other lead. SafariChat's knowledge of their owner status on a different account is never consulted.
+> **Core principle:** The routing decision is made at the **instance level**, not the sender level. A `whatsapp_instances.instance_type` column declares what each instance is for. The webhook handler reads this flag and dispatches accordingly — no sender identity inspection required.
 
 ---
 
-#### 4.3.2 On the System Number Instance (CS Channel)
+#### 4.3.1 Why Instance-Type Routing is the Right Architecture
 
-The system number is **exclusively a CS channel**. No business routes sales conversations through it. Messages into this number only arrive because the person received a CS message from it and is replying.
-
-Routing steps executed in order:
-
-```
-Incoming: phone X → system number instance
-
-Step 1: Active CS session?
-  cs_conversation_sessions WHERE user.phone = X
-    AND state IN ('awaiting_package_selection', 'awaiting_payment_confirmation')
-    AND expires_at > NOW()
-  ──► YES:  route to CsConversationHandler → continue session
-  ──► NO:   continue to Step 2
-
-Step 2: Is phone X a registered SafariChat user? (users.phone = X)
-  ──► YES:  continue to sub-steps below
-  ──► NO:   continue to Step 4
-
-  2a. CS keyword detected?
-      (UPGRADE / HELP / REPORT / PAUSE / BUY CREDITS / YES / NO after a win-back)
-      ──► YES: route to CsConversationHandler
-      ──► NO:  continue
-
-  2b. CS message sent to this number recently?
-      cs_message_log WHERE user.phone = X AND sent_at > NOW() - INTERVAL '24 hours'
-      ──► YES: route to CsConversationHandler (contextual reply)
-      ──► NO:  continue
-
-  2c. Default for registered user:
-      Reply with CS help menu:
-      "Reply UPGRADE to manage your plan, REPORT for your daily summary,
-       or HELP to speak with our team."
-      Do NOT route to any sales AI.
-
-Step 3: Dual-role person?
-  Phone X matches both a registered user (users.phone) AND a BusinessContact
-  for some other business.
-  ──► Same as Step 2 — the CS channel is authoritative.
-      Apply 2a/2b/2c. Their BusinessContact record for other businesses is irrelevant
-      on the system number.
-
-Step 4: Unknown sender (not a registered user, not a known BusinessContact)
-  ──► Log as cs_message_log type = 'unknown_inbound', then reply:
-      "This is the SafariChat system channel.
-       For business support, please visit https://safarichat.ai or contact
-       your business directly on their published number."
-      Do NOT attempt to route to any sales AI.
-```
-
----
-
-#### 4.3.3 Dual-Role Identity — Canonical Position
-
-A person's SafariChat role depends **entirely on which number they are contacting**:
-
-| Person action | They are treated as | Handler |
-|---|---|---|
-| Messages Business B's WhatsApp (B's own instance) | A **customer lead** of Business B | `AiWhatsAppService` (Business B scoped) |
-| Replies to CS message on the system number | A **business owner** (SafariChat user) | `CsConversationHandler` |
-| Messages the system number unprompted, matches a registered user | A **business owner** using the CS channel | `CsConversationHandler` |
-| Messages the system number, not a registered user | Unknown / misdirected | Log + rejection message |
-
-The `business_contacts` table record for a person in Business B's context is **never consulted** on the system number, and the `users` table record for a person's own SafariChat account is **never consulted** on Business B's WhatsApp instance.
-
----
-
-#### 4.3.4 Implementation — `SystemNumberWebhookRouter`
-
-A dedicated router class handles the system number's webhook separately from the business instance webhooks:
+All WebhooK calls from WaSender — regardless of which number received the message — arrive at the same controller method: `WaSenderController::handleWebhook($instanceId)`. By the time the code needs to decide what to do with an inbound message, `$instance` is already loaded from the database. Adding a type column means the routing decision is:
 
 ```php
-// App\Http\Controllers\Webhook\SystemNumberWebhookRouter
+if ($instance->instance_type === 'customer_success') {
+    return $this->handleCsIncomingMessage($webhookData, $instance);
+}
+return $this->handleIncomingMessage($webhookData, $instance);   // existing sales AI path
+```
 
-public function handle(string $senderPhone, string $messageBody, array $raw): void
+This is a **zero-extra-query** branch — `$instance` is already in memory. It requires no inspection of the sender's phone number, no lookup in `users` table, no `SystemNumberWebhookRouter` class. The architecture stays in one place and is completely data-driven.
+
+**Comparison against alternatives:**
+
+| Approach | Extra DB queries | Complexity | Scales to new types | Single code path |
+|---|---|---|---|---|
+| Separate controller per instance type | 0 | High — duplicate event-switch logic | Poor | No |
+| Sender identity inspection (old §4.3) | 1+ (users lookup) | High — conditional chains | Poor | No |
+| **`instance_type` flag (this design)** | **0** | **Minimal — one if-branch** | **Yes — add enum value + handler** | **Yes** |
+
+---
+
+#### 4.3.2 The `instance_type` Column
+
+```sql
+-- Migration: add_instance_type_to_whatsapp_instances
+ALTER TABLE whatsapp_instances
+    ADD COLUMN instance_type VARCHAR(30) NOT NULL DEFAULT 'sales';
+
+COMMENT ON COLUMN whatsapp_instances.instance_type IS
+    '''sales'' = business AI agent instance
+     ''customer_success'' = SafariChat system CS channel
+     Future: ''support'', ''broadcast_only'', etc.';
+
+-- Seed: mark the system OTP/CS instance
+UPDATE whatsapp_instances
+SET instance_type = 'customer_success'
+WHERE user_id = (SELECT id FROM users WHERE is_system = TRUE LIMIT 1);
+```
+
+All existing instances keep `instance_type = 'sales'` (the default). Only the one system-owned instance is marked `customer_success`. This is a backfill-safe, non-breaking migration.
+
+---
+
+#### 4.3.3 Branch Point in `WaSenderController`
+
+The single change to the existing controller — inside `handleWebhookByUuid` and `handleWebhook`, within the `messages.received` case:
+
+```php
+// BEFORE
+case 'message':
+case 'messages.received':
+    return $this->handleIncomingMessage($webhookData, $instance);
+
+// AFTER
+case 'message':
+case 'messages.received':
+    if ($instance->instance_type === 'customer_success') {
+        return $this->handleCsIncomingMessage($webhookData, $instance);
+    }
+    return $this->handleIncomingMessage($webhookData, $instance);
+```
+
+All other events (`status.update`, `qr.update`, `connection.ready`, `disconnected`) are instance-type agnostic — they continue using the existing handlers unchanged.
+
+---
+
+#### 4.3.4 The CS Inbound Handler — `handleCsIncomingMessage`
+
+New private method added to `WaSenderController` (or delegated to `CsConversationHandler` directly):
+
+```php
+private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $instance): JsonResponse
 {
-    // Step 1 — active CS session
-    $user = User::where('phone', $senderPhone)->first();
-    if ($user) {
-        $session = CsConversationSession::activeFor($user->id)->first();
-        if ($session) {
-            $this->csConversationHandler->continueSession($session, $messageBody);
-            return;
-        }
+    // Skip self-sent messages (same guard as sales path)
+    if (!empty($webhookData['fromMe'])) {
+        return response()->json(['success' => true, 'message' => 'Self message ignored']);
     }
 
-    // Step 2a — CS keyword (any registered user or even unknown sender attempting keywords)
-    if ($user && $this->isCsKeyword($messageBody)) {
-        $this->csConversationHandler->startOrResume($user, $messageBody);
-        return;
+    $senderPhone = $webhookData['from'] ?? null;
+    $messageBody = $webhookData['body'] ?? $webhookData['message']['body'] ?? '';
+
+    if (!$senderPhone) {
+        return response()->json(['success' => false, 'message' => 'No sender phone'], 400);
     }
 
-    // Step 2b — recent CS message sent to this number
-    if ($user) {
-        $recentCsMessage = CsMessageLog::recentFor($user->id, hours: 24)->exists();
-        if ($recentCsMessage) {
-            $this->csConversationHandler->handleContextualReply($user, $messageBody);
-            return;
-        }
+    // Resolve to a registered SafariChat user by phone
+    $user = User::where('phone', $senderPhone)
+                ->orWhere('phone', ltrim($senderPhone, '+'))
+                ->first();
+
+    if (!$user) {
+        // Unknown sender — not a SafariChat business owner
+        Log::info('CS channel received message from unknown sender', ['phone' => $senderPhone]);
+        $this->waSenderService->sendTextMessage(
+            $instance,
+            $senderPhone,
+            "This is the SafariChat system channel. For support, visit https://safarichat.ai"
+        );
+        return response()->json(['success' => true]);
     }
 
-    // Step 2c — registered user but no context
-    if ($user) {
-        $this->sendCsHelpMenu($user);
-        return;
-    }
+    // Delegate entirely to the CS conversation handler
+    app(CsConversationHandler::class)->handleInbound(
+        user:        $user,
+        message:     $messageBody,
+        rawWebhook:  $webhookData,
+        instance:    $instance,
+    );
 
-    // Step 4 — unknown sender
-    $this->logUnknownInbound($senderPhone, $messageBody, $raw);
-    $this->sendRejectionNotice($senderPhone);
+    return response()->json(['success' => true]);
 }
 ```
 
-The business instance webhook (`BusinessInstanceWebhookController`) has **no equivalent check** — it routes everything to `AiWhatsAppService::handleInbound()` scoped to the business, without inspecting whether the sender is a registered SafariChat user.
+---
+
+#### 4.3.5 Inside `CsConversationHandler::handleInbound()`
+
+Once the sender is confirmed as a registered `User`, `CsConversationHandler` applies the reply routing waterfall — **entirely within the CS context, never touching the sales AI path**:
+
+```
+Step 1: Active CS session for this user?
+  cs_conversation_sessions WHERE user_id = $user->id
+    AND state IN ('awaiting_package_selection', 'awaiting_payment_confirmation')
+    AND expires_at > NOW()
+  ──► YES:  continueSession($session, $message)
+  ──► NO:   Step 2
+
+Step 2: CS keyword in message?
+  (UPGRADE / HELP / REPORT / PAUSE / BUY CREDITS / YES / NO)
+  ──► YES:  startOrResume($user, $message)
+  ──► NO:   Step 3
+
+Step 3: Recent CS message sent to this user (last 24h)?
+  cs_message_log WHERE user_id = $user->id AND sent_at > NOW() - INTERVAL '24 hours'
+  ──► YES:  handleContextualReply($user, $message)  -- they're replying to something we sent
+  ──► NO:   Step 4
+
+Step 4: Default — send CS help menu
+  "Reply UPGRADE to manage your plan, REPORT for your daily summary,
+   HELP to speak with our team, or PAUSE to pause your subscription."
+```
+
+---
+
+#### 4.3.6 Dual-Role Identity — Canonical Position
+
+A person's SafariChat role depends **entirely on which instance received their message** — not who they are:
+
+| Person messages... | Treated as | Handler |
+|---|---|---|
+| Business B's instance (`type = 'sales'`) | A customer lead of Business B | `AiWhatsAppService` scoped to Business B |
+| System instance (`type = 'customer_success'`) | A SafariChat business owner | `CsConversationHandler` |
+| System instance, not a registered user | Unknown / misdirected | Log + rejection notice |
+
+The `business_contacts` record for a person in Business B's context is **never consulted** on the system instance. The `users` record for a person's own SafariChat account is **never consulted** on a `sales` instance. The two channels are fully isolated by design.
 
 ---
 
@@ -983,6 +1008,7 @@ The business instance webhook (`BusinessInstanceWebhookController`) has **no equ
 
 | Table / Column | Purpose |
 |---|---|
+| **`whatsapp_instances.instance_type`** | `'sales'` (default) or `'customer_success'` — determines routing at the webhook level. This is the **primary routing key** for the entire CS channel. |
 | `users.cs_welcome_sent_at` | Prevent duplicate welcome messages |
 | `users.cs_first_product_message_sent_at` | Prevent duplicate first-product messages |
 | `users.cs_trial_reminder_last_sent_at` | Deduplicate daily trial reminders |
@@ -991,6 +1017,36 @@ The business instance webhook (`BusinessInstanceWebhookController`) has **no equ
 | `cs_inactivity_episodes` | Tracks each inactivity episode per business (start, tier, alerts sent, recovery) |
 | `cs_escalations` | Human handoff queue for high-value churned accounts |
 | `billing_invoices` (if not exists) | Store generated invoices for upgrade/credit purchases |
+
+**Migration for `instance_type`:**
+
+```php
+// database/migrations/YYYY_MM_DD_add_instance_type_to_whatsapp_instances.php
+public function up(): void
+{
+    Schema::table('whatsapp_instances', function (Blueprint $table) {
+        $table->string('instance_type', 30)
+              ->default('sales')
+              ->after('status')
+              ->comment('sales | customer_success');
+    });
+
+    // Mark the system-owned instance as the CS channel
+    $systemUserId = config('safarichat.system_user_id');
+    if ($systemUserId) {
+        DB::table('whatsapp_instances')
+          ->where('user_id', $systemUserId)
+          ->update(['instance_type' => 'customer_success']);
+    }
+}
+
+public function down(): void
+{
+    Schema::table('whatsapp_instances', function (Blueprint $table) {
+        $table->dropColumn('instance_type');
+    });
+}
+```
 
 ### 5.6 `cs_daily_snapshots` Table
 
