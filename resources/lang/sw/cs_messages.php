@@ -276,5 +276,94 @@ Chagua kifurushi cha mikopo:
 Jibu na *1*, *2*, au *3* kuchagua kifurushi chako.
 MSG,
 
+    // ── Awamu 5: Kuzuia Kutoroka ─────────────────────────────────────────────────
+
+    'inactivity_day3' => <<<MSG
+👋 *Habari {{business_name}} — wakala wako wa AI anakukosa!*
+
+Imepita siku 3 tangu mazungumzo yako ya mwisho na mteja. Hii ina maana ya wateja wanaoweza kujibu. 🕐
+
+Hapa kuna mambo 3 ya haraka ya kurudi kwenye mstari:
+
+✅ Jaribu bot yako sasa kwa kutuma ujumbe kwa *{{your_number}}* kwenye WhatsApp
+✅ Angalia sanduku lako la ujumbe kwa ujumbe wowote uliokosekana
+✅ Hakikisha WhatsApp yako imeunganishwa kwenye dashibodi yako
+
+👉 *{{dashboard_link}}*
+
+Wakala wako wa AI yuko tayari — sema neno tu. 💪
+MSG,
+
+    'inactivity_day3_trial_note' => <<<MSG
+⏳ *Kumbusho:* Una *siku {{days_left}} za majaribio* zilizobaki — zitumie vizuri!
+MSG,
+
+    'inactivity_day10_trial' => <<<MSG
+🚨 *{{business_name}} — siku 10 za ukimya. Hebu tusuluhishe.*
+
+Wakala wako wa AI hajafanya mazungumzo kwa siku 10. Wakati wa majaribio ni muhimu — na wako unaisha.
+
+Hapa kuna unachokosa:
+• Majibu ya papo hapo ya WhatsApp masaa 24/7
+• Kukusanya risasi kiatomati unapokuwa umelala
+• Mapendekezo ya bidhaa na huduma kwa otomatiki
+
+📲 *Ingia sasa na tuma ujumbe wa majaribio:*
+{{dashboard_link}}
+
+Unahitaji msaada? Timu yetu ipo hapa. Jibu *"Msaada"*.
+MSG,
+
+    'inactivity_day10_paid' => <<<MSG
+💔 *{{business_name}} — tumeona umekuwa mbali kwa siku 10.*
+
+Usajili wako wa *{{plan_name}}* unafanya kazi na wakala wako wa AI yuko tayari — lakini hakuna shughuli.
+
+Hatutaki upoteze thamani kwenye mpango unaolipa.
+
+Hapa jinsi ya kuanzisha AI yako kufanya kazi leo:
+1. Unganisha tena WhatsApp yako kwenye dashibodi
+2. Tuma ujumbe wa majaribio kuthibitisha inafanya kazi
+3. Shiriki nambari yako ya biashara na wateja
+
+👉 *{{dashboard_link}}*
+
+Maswali? Jibu *"Msaada"* na tutakusaidia.
+Upya wako ujao ni *{{renewal_date}}* — usipoteze.
+MSG,
+
+    'inactivity_abandoned' => <<<MSG
+⚠️ *{{business_name}} — wakala wako wa AI amekatika.*
+
+Inaonekana nambari yako ya WhatsApp haijaunganishwa tena na SafariChat. Hutaweza kupokea ujumbe wa wateja hadi uiunganishe tena.
+
+Hii inachukua chini ya dakika 2 kurekebisha:
+
+1. Nenda kwenye dashibodi yako: *{{dashboard_link}}*
+2. Bonyeza *"Unganisha WhatsApp"*
+3. Scan msimbo wa QR na simu yako
+
+Wakala wako wa AI atarudi mtandaoni mara moja.
+
+Unahitaji msaada? Timu yetu ya usaidizi ipo — jibu *"Msaada"*.
+MSG,
+
+    're_engagement_celebration' => <<<MSG
+🎉 *Karibu tena, {{business_name}}!*
+
+Wakala wako wa AI anafurahi kukuona ukiwa hai tena! 🤖✨
+
+Uko tayari — wakala wako anashughulikia ujumbe wa wateja na kufanya kazi kwa bidii kwa biashara yako.
+
+Endelea na kasi:
+• Angalia historia yako ya mazungumzo kwenye dashibodi
+• Kagua risasi zozote zilizokusanywa ulipokuwa mbali
+• Fikiria kuboreshwa kwa nguvu zaidi za AI
+
+👉 *{{dashboard_link}}*
+
+Unaweza! 💪
+MSG,
+
 ];
 

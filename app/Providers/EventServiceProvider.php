@@ -2,13 +2,18 @@
 
 namespace App\Providers;
 
+use App\Events\BusinessInactivityEscalated;
+use App\Events\BusinessReEngaged;
 use App\Events\CsFirstProductCreated;
 use App\Events\CreditsAdded;
 use App\Events\SubscriptionActivated;
 use App\Events\SubscriptionUpgraded;
 use App\Events\WhatsappInstanceConnected;
+use App\Listeners\CustomerSuccess\CreateCsEscalationRecordListener;
+use App\Listeners\CustomerSuccess\NotifyCsTeamListener;
 use App\Listeners\CustomerSuccess\SendCreditConfirmationListener;
 use App\Listeners\CustomerSuccess\SendFirstProductGuideListener;
+use App\Listeners\CustomerSuccess\SendReEngagementCelebrationListener;
 use App\Listeners\CustomerSuccess\SendSubscriptionSuccessMessageListener;
 use App\Listeners\CustomerSuccess\SendUpgradeConfirmationListener;
 use App\Listeners\CustomerSuccess\SendWelcomeMessageListener;
@@ -50,6 +55,17 @@ class EventServiceProvider extends ServiceProvider
         ],
         CreditsAdded::class => [
             SendCreditConfirmationListener::class,
+        ],
+
+        // ---------------------------------------------------------------------------
+        // Customer Success – Phase 5: churn prevention events
+        // ---------------------------------------------------------------------------
+        BusinessReEngaged::class => [
+            SendReEngagementCelebrationListener::class,
+        ],
+        BusinessInactivityEscalated::class => [
+            CreateCsEscalationRecordListener::class,
+            NotifyCsTeamListener::class,
         ],
     ];
 

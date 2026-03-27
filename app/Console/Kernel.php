@@ -42,6 +42,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendCsTrialMonitorCommand::class,
         // Customer Success Phase 4 — usage & credits
         Commands\SendCsUsageMonitorCommand::class,
+        // Customer Success Phase 5 — churn prevention
+        Commands\SendCsInactivityMonitorCommand::class,
     ];
     public $emails;
 
@@ -198,6 +200,20 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'CS usage monitor failed', 'error');
+            });
+
+        // Phase 5 — Churn prevention / inactivity monitor (08:00 EAT)
+        $schedule->command('cs:inactivity-monitor')
+            ->dailyAt('08:00')
+            ->timezone('Africa/Nairobi')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-inactivity-monitor.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS inactivity monitor completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS inactivity monitor failed', 'error');
             });
     }
 

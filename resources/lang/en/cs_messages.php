@@ -280,5 +280,94 @@ Choose a credit package:
 Reply with *1*, *2*, or *3* to select your package.
 MSG,
 
+    // ── Phase 5: Churn prevention ────────────────────────────────────────────────
+
+    'inactivity_day3' => <<<MSG
+👋 *Hey {{business_name}} — your AI agent misses you!*
+
+It's been 3 days since your last customer conversation. That means potential leads waiting to be answered. 🕐
+
+Here are 3 quick things to get back on track:
+
+✅ Test your bot now by messaging *{{your_number}}* on WhatsApp
+✅ Check your inbox for any missed customer messages
+✅ Make sure your WhatsApp is connected on your dashboard
+
+👉 *{{dashboard_link}}*
+
+Your AI agent is ready — just say the word. 💪
+MSG,
+
+    'inactivity_day3_trial_note' => <<<MSG
+⏳ *Reminder:* You have *{{days_left}} trial days* remaining — make them count!
+MSG,
+
+    'inactivity_day10_trial' => <<<MSG
+🚨 *{{business_name}} — 10 days of silence. Let's fix that.*
+
+Your AI agent hasn't had a conversation in 10 days. Trial time is precious — and yours is running out.
+
+Here's what you're missing:
+• Instant WhatsApp replies 24/7
+• Automated lead capture while you sleep
+• Product & service recommendations on autopilot
+
+📲 *Log in now and send a test message:*
+{{dashboard_link}}
+
+Need help? Our team is here. Just reply *"Help"*.
+MSG,
+
+    'inactivity_day10_paid' => <<<MSG
+💔 *{{business_name}} — we noticed you've been away for 10 days.*
+
+Your *{{plan_name}}* subscription is active and your AI agent is ready — but there's been no action.
+
+We don't want you to lose value on a plan you're paying for.
+
+Here's how to get your AI working again today:
+1. Reconnect your WhatsApp on the dashboard
+2. Send a test message to confirm it's working
+3. Share your business number with customers
+
+👉 *{{dashboard_link}}*
+
+Questions? Reply *"Help"* and we'll get you sorted.
+Your next renewal is *{{renewal_date}}* — don't waste it.
+MSG,
+
+    'inactivity_abandoned' => <<<MSG
+⚠️ *{{business_name}} — your AI agent is disconnected.*
+
+It looks like your WhatsApp number is no longer connected to SafariChat. You won't be able to receive customer messages until it's reconnected.
+
+This takes less than 2 minutes to fix:
+
+1. Go to your dashboard: *{{dashboard_link}}*
+2. Click *"Connect WhatsApp"*
+3. Scan the QR code with your phone
+
+Your AI agent will be back online immediately.
+
+Need assistance? Our support team is standing by — just reply *"Help"*.
+MSG,
+
+    're_engagement_celebration' => <<<MSG
+🎉 *Welcome back, {{business_name}}!*
+
+Your AI agent is happy to see you active again! 🤖✨
+
+You're all set — your agent is handling customer messages and working hard for your business.
+
+Keep the momentum going:
+• Check your conversation history on the dashboard
+• Review any leads captured while you were away
+• Consider upgrading for even more AI power
+
+👉 *{{dashboard_link}}*
+
+You've got this! 💪
+MSG,
+
 ];
 
