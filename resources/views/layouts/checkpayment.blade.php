@@ -1,63 +1,224 @@
 @php
-// NEW BILLING LOGIC - Load actual billing data
+// ─── BILLING GATE: load subscription data ────────────────────────────────────
 $user = Auth::user();
 $businessId = $user && $user->business ? $user->business->id : ($user ? $user->id : null);
 
-// Load billing account data
+// Load billing account (business-level, then user-level as fallback)
 $billingAccount = null;
 if ($user) {
-    if ($user->business) {
-        $billingAccount = $user->business->billingAccount;
-    } else {
-        // Fallback: try to get billing account through user
-        $billingAccount = $user->billingAccount;
-    }
+    $billingAccount = $user->business
+        ? $user->business->billingAccount
+        : $user->billingAccount;
 }
 
-// Determine subscription status
+// ── Primary source: BillingAccount ──────────────────────────────────────────
 $subscriptionStatus = $billingAccount ? ($billingAccount->subscription_status ?? 'inactive') : 'inactive';
-$currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
-$expiresAt = $billingAccount ? $billingAccount->subscription_expires_at : null;
-$aiCredits = $billingAccount ? ($billingAccount->ai_credits ?? 0) : 0;
+$currentPlan        = $billingAccount ? ($billingAccount->subscription_plan  ?? 'trial')    : 'trial';
+$expiresAt          = $billingAccount ? $billingAccount->subscription_expires_at             : null;
+$aiCredits          = $billingAccount ? ($billingAccount->ai_credits ?? 0)                   : 0;
 
-// Check if trial or subscription is still valid (not expired)
+// ── Fallback: use User model fields when BillingAccount is absent/incomplete ──
+if (!$expiresAt && $user && $user->trial_ends_at) {
+    // Use trial_ends_at from the users table as the expiry source
+    $expiresAt = $user->trial_ends_at;
+}
+if (!$billingAccount && $user && $user->subscription_status) {
+    // Sync status from users table if no billing account exists
+    $subscriptionStatus = $user->subscription_status ?? 'inactive';
+}
+
+// ── Expiry flags ──────────────────────────────────────────────────────────────
 $isStillValid = $expiresAt && now()->lessThanOrEqualTo($expiresAt);
 
-// Determine modal context - only show modal if actually expired or no valid subscription
+// Expired trial: plan=trial + expiresAt in the past (includes "active" status that was never updated)
 $isTrialExpired = $currentPlan === 'trial' && $expiresAt && now()->greaterThan($expiresAt);
-$isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled']) && (!$expiresAt || now()->greaterThan($expiresAt));
+
+// Explicitly expired/cancelled paid plan
+$isSubscriptionExpired = in_array($subscriptionStatus, ['expired', 'cancelled'])
+    && (!$expiresAt || now()->greaterThan($expiresAt));
+
+// Inactive or no billing account at all with no valid date
 $isInactive = ($subscriptionStatus === 'inactive' || !$billingAccount) && !$isStillValid;
 
-// Set dynamic messages based on status
-$modalTitle = 'Upgrade Required';
-$modalIcon = 'fa-crown';
+// Edge-case: BillingAccount exists as "active" but subscription_expires_at is in the past
+// (system didn't mark it expired yet) — treat it like expired
+$isExpiredActiveSubscription = $billingAccount
+    && $subscriptionStatus === 'active'
+    && $currentPlan !== 'trial'    // paid plan that silently lapsed
+    && $expiresAt
+    && now()->greaterThan($expiresAt);
+if ($isExpiredActiveSubscription) {
+    $isSubscriptionExpired = true;
+}
+
+// ── Modal copy ────────────────────────────────────────────────────────────────
+$modalTitle   = 'Upgrade Required';
+$modalIcon    = 'fa-crown';
 $modalIconColor = '#667eea';
 $defaultMessage = 'This feature is not included in your current subscription plan.';
 
 if ($isTrialExpired) {
-    $modalTitle = 'Trial Period Ended';
-    $modalIcon = 'fa-clock';
+    $modalTitle     = 'Trial Period Ended';
+    $modalIcon      = 'fa-clock';
     $modalIconColor = '#ff9800';
     $defaultMessage = 'Your free trial has ended. Please upgrade to continue using SafariChat features.';
 }
 if ($isSubscriptionExpired) {
-    $modalTitle = 'Subscription Expired';
-    $modalIcon = 'fa-exclamation-triangle';
+    $modalTitle     = 'Subscription Expired';
+    $modalIcon      = 'fa-exclamation-triangle';
     $modalIconColor = '#f44336';
     $defaultMessage = 'Your subscription has expired. Please renew to continue using SafariChat features.';
 }
 if ($isInactive) {
-    $modalTitle = 'Subscription Required';
-    $modalIcon = 'fa-lock';
+    $modalTitle     = 'Subscription Required';
+    $modalIcon      = 'fa-lock';
     $modalIconColor = '#dc3545';
     $defaultMessage = 'You need an active subscription to access this feature.';
 }
 @endphp
 
 @php
-// Determine if modal should be locked (subscription/trial expired) or closable (feature upgrade)
+// Hard-block: subscription/trial is definitively expired or absent
 $isHardBlock = $isTrialExpired || $isSubscriptionExpired || $isInactive;
+
+// Pages where we must NOT overlay (user needs to reach billing to pay)
+$isOnBillingPage = request()->routeIs('billing.*')
+    || request()->is('billing/*')
+    || request()->is('*/billing/*')
+    || request()->is('payment/*')
+    || str_contains(request()->url(), '/billing/')
+    || str_contains(request()->url(), '/payment');
 @endphp
+
+@auth
+@if($isHardBlock && !$isOnBillingPage)
+{{-- ══════════════════════════════════════════════════════════════════════════
+     SERVER-SIDE HARD-BLOCK OVERLAY
+     Rendered synchronously — no JavaScript required to show this.
+     Covers the entire viewport with a fixed overlay so users CANNOT interact
+     with UI beneath it, regardless of JS loading state.
+     ══════════════════════════════════════════════════════════════════════════ --}}
+<div id="hardBlockOverlay" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 99999;
+    background: rgba(10, 14, 26, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+">
+    <div style="
+        background: #ffffff;
+        border-radius: 16px;
+        max-width: 540px;
+        width: 95%;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+        overflow: hidden;
+        animation: slideInOverlay 0.35s ease-out;
+    ">
+        {{-- Header --}}
+        <div style="
+            background: linear-gradient(135deg, {{ $modalIconColor }} 0%, {{ $modalIconColor }}cc 100%);
+            padding: 28px 24px;
+            text-align: center;
+            color: white;
+        ">
+            <i class="fas {{ $modalIcon }}" style="font-size: 3rem; margin-bottom: 12px; display: block; opacity: 0.95;"></i>
+            <h4 style="color: white; margin: 0; font-weight: 700; font-size: 1.4rem;">{{ $modalTitle }}</h4>
+        </div>
+
+        {{-- Body --}}
+        <div style="padding: 28px 28px 20px; text-align: center;">
+            <p style="color: #555; margin-bottom: 8px; font-size: 15px; line-height: 1.6;">
+                {{ $defaultMessage }}
+            </p>
+            @if($expiresAt)
+            <p style="color: #999; font-size: 13px; margin-bottom: 24px;">
+                <i class="fas fa-calendar-times" style="color: #f44336;"></i>
+                @if($isTrialExpired) Trial ended @elseif($isSubscriptionExpired) Expired @else Expired @endif
+                on <strong>{{ $expiresAt->format('M d, Y') }}</strong>
+            </p>
+            @else
+            <div style="margin-bottom: 24px;"></div>
+            @endif
+
+            {{-- Primary CTA: go to billing/payment page --}}
+            <a href="{{ route('billing.payment') }}"
+               style="
+                   display: block;
+                   background: linear-gradient(135deg, #667eea, #764ba2);
+                   color: white;
+                   padding: 14px 20px;
+                   border-radius: 8px;
+                   text-decoration: none;
+                   font-weight: 600;
+                   font-size: 16px;
+                   margin-bottom: 12px;
+                   transition: opacity 0.2s;
+               "
+               onmouseover="this.style.opacity='0.9'"
+               onmouseout="this.style.opacity='1'"
+            >
+                <i class="fas fa-crown" style="margin-right: 8px;"></i> View Plans &amp; Subscribe
+            </a>
+
+            {{-- Secondary CTA: wallet top-up --}}
+            <a href="{{ route('billing.wallet') }}"
+               style="
+                   display: block;
+                   border: 2px solid #28a745;
+                   color: #28a745;
+                   padding: 12px 20px;
+                   border-radius: 8px;
+                   text-decoration: none;
+                   font-weight: 600;
+                   font-size: 15px;
+                   transition: all 0.2s;
+               "
+               onmouseover="this.style.background='#28a745'; this.style.color='#fff';"
+               onmouseout="this.style.background='transparent'; this.style.color='#28a745';"
+            >
+                <i class="fas fa-wallet" style="margin-right: 8px;"></i> Go to Wallet &amp; Top Up
+            </a>
+        </div>
+
+        {{-- Footer --}}
+        <div style="
+            background: #f8f9fa;
+            padding: 14px 24px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        ">
+            <small style="color: #6c757d;">
+                <i class="fas fa-lock" style="margin-right: 4px;"></i>
+                SafariChat is locked until an active subscription is confirmed.
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes slideInOverlay {
+    from { opacity: 0; transform: translateY(-30px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+/* Dark mode: keep overlay card readable */
+.dark-mode #hardBlockOverlay > div {
+    background: #1e2535 !important;
+}
+.dark-mode #hardBlockOverlay p,
+.dark-mode #hardBlockOverlay small {
+    color: #cbd5e0 !important;
+}
+.dark-mode #hardBlockOverlay h4 {
+    color: #ffffff !important;
+}
+</style>
+@endif
+@endauth
 
 <!-- Pricing Controls Modal - Reusable across all pages -->
 <div class="modal fade" id="pricingControlsModal" tabindex="-1" aria-labelledby="pricingControlsModalLabel" aria-hidden="true" data-bs-backdrop="{{ $isHardBlock ? 'static' : 'true' }}" data-bs-keyboard="{{ $isHardBlock ? 'false' : 'true' }}">
@@ -821,61 +982,87 @@ if (typeof window.requireFeatureUpgrade === 'undefined') {
 
 @auth
 @if($isTrialExpired || $isSubscriptionExpired || $isInactive)
-<!-- Auto-show pricing modal when subscription is required (authenticated users only) -->
+{{-- ── Secondary: also show Bootstrap modal (on top of the hard-block overlay) ─ --}}
 <script>
-(function() {
-    // Don't show modal if user is already on the payment page or wallet/top-up pages
-    var currentPath = window.location.pathname;
-    var isPaymentPage = currentPath.includes('/billing/payment') || 
-                        currentPath.includes('/payment') ||
-                        window.location.search.includes('plan_code=');
-    var isWalletPage = currentPath.includes('/billing/wallet') ||
-                       currentPath.includes('/wallet') ||
-                       currentPath.includes('/topup') ||
-                       currentPath.includes('/top-up') ||
-                       currentPath.includes('/credits');
-    
-    if (isPaymentPage) {
-        console.log('On payment page - skipping modal auto-show');
-        return;
-    }
-    
-    if (isWalletPage) {
-        console.log('On wallet/top-up page - skipping modal auto-show');
-        return;
-    }
-    
-    var maxRetries = 50; // Maximum 5 seconds (50 * 100ms)
-    var retryCount = 0;
-    
-    function tryShowModal() {
-        retryCount++;
-        
-        if (window.pricingControls && typeof window.pricingControls.showModal === 'function') {
-            @if($isTrialExpired)
-                window.pricingControls.showModal(null, 'Your free trial has ended on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please upgrade to continue using SafariChat features.', true);
-            @endif
-            @if($isSubscriptionExpired)
-                window.pricingControls.showModal(null, 'Your {{ ucfirst($currentPlan) }} subscription expired on {{ $expiresAt ? $expiresAt->format("M d, Y") : "N/A" }}. Please renew to continue using SafariChat features.', true);
-            @endif
-            @if($isInactive && !$isTrialExpired && !$isSubscriptionExpired)
-                window.pricingControls.showModal(null, 'You need an active subscription to access SafariChat features. Please choose a plan to get started.', true);
-            @endif
-        } else if (retryCount < maxRetries) {
-            // Retry after a short delay if pricingControls not ready yet
-            setTimeout(tryShowModal, 100);
-        } else {
-            console.warn('Failed to show pricing modal - pricingControls not initialized after', retryCount, 'attempts');
+(function () {
+    'use strict';
+
+    var HARD_BLOCK_MESSAGE = @json($defaultMessage);
+
+    /**
+     * Show the pricing Bootstrap modal directly — no dependency on PricingControls.
+     * This is the bullet-proof fallback that fires even if PricingControls fails.
+     */
+    function showBlockModal() {
+        if (typeof bootstrap === 'undefined') { return; }
+
+        var el = document.getElementById('pricingControlsModal');
+        if (!el) { return; }
+
+        // Ensure close buttons stay hidden for a hard block
+        var closeBtn   = document.getElementById('modalCloseBtn');
+        var cancelBtn  = document.getElementById('modalCancelBtn');
+        if (closeBtn)  closeBtn.classList.add('d-none');
+        if (cancelBtn) cancelBtn.classList.add('d-none');
+
+        // Update message text to the server-side computed message
+        var msgEl = document.getElementById('featureMessage');
+        if (msgEl) { msgEl.textContent = HARD_BLOCK_MESSAGE; }
+
+        el.setAttribute('data-bs-backdrop', 'static');
+        el.setAttribute('data-bs-keyboard', 'false');
+
+        try {
+            // Dispose any stale instance first
+            var existing = bootstrap.Modal.getInstance(el);
+            if (existing) { try { existing.dispose(); } catch (e) {} }
+
+            var modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: false });
+            modal.show();
+
+            // Expose on window so PricingControls can still reference it
+            if (window.pricingControls) {
+                window.pricingControls.modal = modal;
+            }
+        } catch (e) {
+            console.warn('[BillingGate] Modal show failed:', e);
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(tryShowModal, 500);
-        });
-    } else {
-        setTimeout(tryShowModal, 500);
+    /**
+     * Try via PricingControls first; fall back to direct Bootstrap call.
+     * Retries for up to 4 seconds, then falls back regardless.
+     */
+    function tryShow(attempt) {
+        attempt = attempt || 0;
+
+        if (window.pricingControls && typeof window.pricingControls.showModal === 'function') {
+            window.pricingControls.showModal(null, HARD_BLOCK_MESSAGE, true);
+            return;
+        }
+
+        if (attempt < 40) {
+            // Retry every 100 ms (4 s total)
+            setTimeout(function () { tryShow(attempt + 1); }, 100);
+            return;
+        }
+
+        // PricingControls never became ready — use direct Bootstrap
+        console.warn('[BillingGate] PricingControls not ready after 4 s, using direct modal.');
+        showBlockModal();
     }
+
+    function boot() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                setTimeout(function () { tryShow(0); }, 300);
+            });
+        } else {
+            setTimeout(function () { tryShow(0); }, 300);
+        }
+    }
+
+    boot();
 })();
 </script>
 @endif
