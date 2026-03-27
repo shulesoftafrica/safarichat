@@ -266,7 +266,7 @@ Reply *UPGRADE* to reactivate instantly.
 
 This is a **reply-driven conversation** triggered whenever a business owner responds to any CS message with an intent to pay, upgrade, or ask about pricing.
 
-**Handled by:** `CsConversationHandler`, integrated into the inbound webhook pipeline before the AI sales agent — CS intents always take routing priority.
+**Handled by:** `CsConversationHandler`, invoked by `handleHybridIncomingMessage` (or `handleCsIncomingMessage`) after `WaSenderController` routes the inbound message to the CS path based on `instance_type` and sender identity. By the time `CsConversationHandler` receives a message, it is already guaranteed to be from a registered SafariChat user — no further identity check is needed.
 
 ---
 
@@ -794,30 +794,32 @@ state = 'expired'
 
 ### 4.3 Inbound Message Routing — Instance Type Flag
 
-> **Core principle:** The routing decision is made at the **instance level**, not the sender level. A `whatsapp_instances.instance_type` column declares what each instance is for. The webhook handler reads this flag and dispatches accordingly — no sender identity inspection required.
+> **Core principle:** The routing decision is made at the **instance level first**, then at the **sender identity level** for hybrid instances. A `whatsapp_instances.instance_type` column declares what each instance supports: `'sales'`, `'customer_success'`, or `'both'`. The `'both'` type enables a single WhatsApp number to serve platform-level CS and AI sales simultaneously, disambiguated by whether the sender is a registered SafariChat account holder.
 
 ---
 
-#### 4.3.1 Why Instance-Type Routing is the Right Architecture
+#### 4.3.1 The Three Instance Types
 
-All WebhooK calls from WaSender — regardless of which number received the message — arrive at the same controller method: `WaSenderController::handleWebhook($instanceId)`. By the time the code needs to decide what to do with an inbound message, `$instance` is already loaded from the database. Adding a type column means the routing decision is:
+| `instance_type` | Purpose | Extra DB query on inbound? |
+|---|---|---|
+| `'sales'` | Dedicated AI sales agent. All inbound messages go to `AiWhatsAppService`. No CS routing. | None |
+| `'customer_success'` | Dedicated CS channel (e.g., a SafariChat-internal number used only for push notifications). Rejects unknown senders. | None |
+| `'both'` | Hybrid. One number handles both sales leads AND CS replies from business owners. Routes by sender identity. | One `users` lookup |
 
-```php
-if ($instance->instance_type === 'customer_success') {
-    return $this->handleCsIncomingMessage($webhookData, $instance);
-}
-return $this->handleIncomingMessage($webhookData, $instance);   // existing sales AI path
-```
+**Why `'both'` is a valid architecture for SafariChat's own number:**
+SafariChat's platform WhatsApp number is used to:
+1. Send CS messages to business owners (SafariChat users)
+2. Receive inbound inquiries from the public (leads interested in the SafariChat product itself)
 
-This is a **zero-extra-query** branch — `$instance` is already in memory. It requires no inspection of the sender's phone number, no lookup in `users` table, no `SystemNumberWebhookRouter` class. The architecture stays in one place and is completely data-driven.
+A hard `'customer_success'` type would reject all public leads. A hard `'sales'` type would route business owners replying to CS messages into the wrong AI agent. `'both'` solves this with one sender lookup.
 
 **Comparison against alternatives:**
 
 | Approach | Extra DB queries | Complexity | Scales to new types | Single code path |
 |---|---|---|---|---|
 | Separate controller per instance type | 0 | High — duplicate event-switch logic | Poor | No |
-| Sender identity inspection (old §4.3) | 1+ (users lookup) | High — conditional chains | Poor | No |
-| **`instance_type` flag (this design)** | **0** | **Minimal — one if-branch** | **Yes — add enum value + handler** | **Yes** |
+| Sender-identity inspection on all instances | 1+ always | High — conditional chains everywhere | Poor | No |
+| **`instance_type` flag + hybrid discriminator** | **0 for pure types, 1 for `'both'`** | **Minimal — one switch + one if** | **Yes — add enum value + handler** | **Yes** |
 
 ---
 
@@ -829,51 +831,60 @@ ALTER TABLE whatsapp_instances
     ADD COLUMN instance_type VARCHAR(30) NOT NULL DEFAULT 'sales';
 
 COMMENT ON COLUMN whatsapp_instances.instance_type IS
-    '''sales'' = business AI agent instance
-     ''customer_success'' = SafariChat system CS channel
-     Future: ''support'', ''broadcast_only'', etc.';
+    '''sales''            = dedicated AI sales agent — all inbound to AiWhatsAppService
+     ''customer_success'' = dedicated CS channel — reject unknown senders
+     ''both''             = hybrid: route by sender identity (users table lookup)
+     Future: ''support'', ''broadcast_only''';
 
--- Seed: mark the system OTP/CS instance
+-- Seed: mark the system CS/hybrid instance appropriately
+-- If this number also receives public leads, use 'both'; if truly internal-only, use 'customer_success'
 UPDATE whatsapp_instances
-SET instance_type = 'customer_success'
+SET instance_type = 'both'
 WHERE user_id = (SELECT id FROM users WHERE is_system = TRUE LIMIT 1);
 ```
 
-All existing instances keep `instance_type = 'sales'` (the default). Only the one system-owned instance is marked `customer_success`. This is a backfill-safe, non-breaking migration.
+All existing business instances keep `instance_type = 'sales'` (the default). This migration is backfill-safe and non-breaking.
 
 ---
 
 #### 4.3.3 Branch Point in `WaSenderController`
 
-The single change to the existing controller — inside `handleWebhookByUuid` and `handleWebhook`, within the `messages.received` case:
+The change to the existing controller — inside `handleWebhookByUuid` and `handleWebhook`, within the `messages.received` case:
 
 ```php
-// BEFORE
 case 'message':
 case 'messages.received':
-    return $this->handleIncomingMessage($webhookData, $instance);
-
-// AFTER
-case 'message':
-case 'messages.received':
-    if ($instance->instance_type === 'customer_success') {
-        return $this->handleCsIncomingMessage($webhookData, $instance);
-    }
-    return $this->handleIncomingMessage($webhookData, $instance);
+    return match($instance->instance_type) {
+        'customer_success' => $this->handleCsIncomingMessage($webhookData, $instance),
+        'both'             => $this->handleHybridIncomingMessage($webhookData, $instance),
+        default            => $this->handleIncomingMessage($webhookData, $instance), // 'sales'
+    };
 ```
 
 All other events (`status.update`, `qr.update`, `connection.ready`, `disconnected`) are instance-type agnostic — they continue using the existing handlers unchanged.
 
 ---
 
-#### 4.3.4 The CS Inbound Handler — `handleCsIncomingMessage`
+#### 4.3.4 The Correct Discriminator for `'both'` Instances — `users` Table, Not `business_contacts`
 
-New private method added to `WaSenderController` (or delegated to `CsConversationHandler` directly):
+> **Important architectural note:** The split must be made on `users.phone`, **not** `business_contacts.guest_phone`.
+
+**Why `business_contacts` is the wrong discriminator:**
+A brand-new lead who messages the hybrid number for the very first time does **not exist in `business_contacts` yet** — that record is created as a result of the conversation starting. Checking `business_contacts` would return nothing for new leads and incorrectly route them to CS.
+
+**Why `users` is the correct discriminator:**
+- `users.phone` = registered SafariChat account holder = **platform customer** = CS path
+- Not in `users` = regular person, new or returning lead = **Sales path** (their `business_contacts` record may or may not exist yet; the AI handles both cases)
+
+The `business_contacts` table is relevant **within** the sales path (to determine lead status, history, etc.), but it must never be used as the pre-routing gate.
+
+---
+
+#### 4.3.5 The Hybrid Inbound Handler — `handleHybridIncomingMessage`
 
 ```php
-private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $instance): JsonResponse
+private function handleHybridIncomingMessage(array $webhookData, WhatsappInstance $instance): JsonResponse
 {
-    // Skip self-sent messages (same guard as sales path)
     if (!empty($webhookData['fromMe'])) {
         return response()->json(['success' => true, 'message' => 'Self message ignored']);
     }
@@ -885,28 +896,71 @@ private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $i
         return response()->json(['success' => false, 'message' => 'No sender phone'], 400);
     }
 
-    // Resolve to a registered SafariChat user by phone
+    // THE routing discriminator: is this sender a registered SafariChat user?
+    $user = User::where('phone', $senderPhone)
+                ->orWhere('phone', ltrim($senderPhone, '+'))
+                ->first();
+
+    if ($user) {
+        // ── CS PATH ─────────────────────────────────────────────────────────
+        // This person is a SafariChat business owner replying to or initiating
+        // a CS conversation. Delegate to CsConversationHandler.
+        app(CsConversationHandler::class)->handleInbound(
+            user:       $user,
+            message:    $messageBody,
+            rawWebhook: $webhookData,
+            instance:   $instance,
+        );
+    } else {
+        // ── SALES PATH ───────────────────────────────────────────────────────
+        // This person is a regular lead (new or returning).
+        // business_contacts lookup and all sales AI logic happens inside here.
+        $messageData    = $this->extractMessageData($webhookData, $instance);
+        $incomingMessage = IncomingMessage::create($messageData);
+        $aiResult       = $this->aiWhatsAppService->processIncomingWhatsAppMessageWithAI(
+                              $incomingMessage, $instance
+                          );
+        if ($aiResult['success'] && !empty($aiResult['response'])) {
+            $this->aiWhatsAppService->sendResponse($aiResult['response'], $incomingMessage, $instance);
+            $incomingMessage->markAsReplied($aiResult['response']);
+        }
+    }
+
+    return response()->json(['success' => true]);
+}
+```
+
+---
+
+#### 4.3.6 The Dedicated CS-Only Handler — `handleCsIncomingMessage`
+
+Used when `instance_type = 'customer_success'` (internal-only, no public leads). Identical to the hybrid handler's CS branch, but rejects unknown senders instead of routing them to sales:
+
+```php
+private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $instance): JsonResponse
+{
+    if (!empty($webhookData['fromMe'])) {
+        return response()->json(['success' => true, 'message' => 'Self message ignored']);
+    }
+
+    $senderPhone = $webhookData['from'] ?? null;
+    $messageBody = $webhookData['body'] ?? $webhookData['message']['body'] ?? '';
+
     $user = User::where('phone', $senderPhone)
                 ->orWhere('phone', ltrim($senderPhone, '+'))
                 ->first();
 
     if (!$user) {
-        // Unknown sender — not a SafariChat business owner
-        Log::info('CS channel received message from unknown sender', ['phone' => $senderPhone]);
+        Log::info('CS-only channel received message from unregistered sender', ['phone' => $senderPhone]);
         $this->waSenderService->sendTextMessage(
-            $instance,
-            $senderPhone,
-            "This is the SafariChat system channel. For support, visit https://safarichat.ai"
+            $instance, $senderPhone,
+            "This is the SafariChat system channel. Visit https://safarichat.ai for support."
         );
         return response()->json(['success' => true]);
     }
 
-    // Delegate entirely to the CS conversation handler
     app(CsConversationHandler::class)->handleInbound(
-        user:        $user,
-        message:     $messageBody,
-        rawWebhook:  $webhookData,
-        instance:    $instance,
+        user: $user, message: $messageBody, rawWebhook: $webhookData, instance: $instance
     );
 
     return response()->json(['success' => true]);
@@ -915,9 +969,9 @@ private function handleCsIncomingMessage(array $webhookData, WhatsappInstance $i
 
 ---
 
-#### 4.3.5 Inside `CsConversationHandler::handleInbound()`
+#### 4.3.7 Inside `CsConversationHandler::handleInbound()`
 
-Once the sender is confirmed as a registered `User`, `CsConversationHandler` applies the reply routing waterfall — **entirely within the CS context, never touching the sales AI path**:
+Once the sender is confirmed as a registered `User` (by either handler above), the CS waterfall runs — **entirely within the CS context, never touching the sales AI path**:
 
 ```
 Step 1: Active CS session for this user?
@@ -944,17 +998,17 @@ Step 4: Default — send CS help menu
 
 ---
 
-#### 4.3.6 Dual-Role Identity — Canonical Position
+#### 4.3.8 Full Routing Summary
 
-A person's SafariChat role depends **entirely on which instance received their message** — not who they are:
+| Sender messages... | `instance_type` | Sender in `users`? | Handler | AI sales agent consulted? |
+|---|---|---|---|---|
+| Business B's number | `'sales'` | Irrelevant | `AiWhatsAppService` (B scoped) | Yes |
+| System number (public-facing) | `'both'` | Yes — SafariChat user | `CsConversationHandler` | No |
+| System number (public-facing) | `'both'` | No — regular lead | `AiWhatsAppService` (SafariChat's own agent) | Yes |
+| System number (internal-only) | `'customer_success'` | Yes | `CsConversationHandler` | No |
+| System number (internal-only) | `'customer_success'` | No | Rejection notice | No |
 
-| Person messages... | Treated as | Handler |
-|---|---|---|
-| Business B's instance (`type = 'sales'`) | A customer lead of Business B | `AiWhatsAppService` scoped to Business B |
-| System instance (`type = 'customer_success'`) | A SafariChat business owner | `CsConversationHandler` |
-| System instance, not a registered user | Unknown / misdirected | Log + rejection notice |
-
-The `business_contacts` record for a person in Business B's context is **never consulted** on the system instance. The `users` record for a person's own SafariChat account is **never consulted** on a `sales` instance. The two channels are fully isolated by design.
+The `business_contacts` record for any sender is **only ever consulted inside `AiWhatsAppService`** — never used as a routing gate. The `users` table is the sole routing discriminator for hybrid instances.
 
 ---
 
@@ -1008,7 +1062,7 @@ The `business_contacts` record for a person in Business B's context is **never c
 
 | Table / Column | Purpose |
 |---|---|
-| **`whatsapp_instances.instance_type`** | `'sales'` (default) or `'customer_success'` — determines routing at the webhook level. This is the **primary routing key** for the entire CS channel. |
+| **`whatsapp_instances.instance_type`** | `'sales'` (default), `'customer_success'`, or `'both'` — determines routing at the webhook level. `'both'` enables a single number to serve CS and sales, discriminated by `users.phone` lookup. This is the **primary routing key** for the entire CS channel. |
 | `users.cs_welcome_sent_at` | Prevent duplicate welcome messages |
 | `users.cs_first_product_message_sent_at` | Prevent duplicate first-product messages |
 | `users.cs_trial_reminder_last_sent_at` | Deduplicate daily trial reminders |
@@ -1028,15 +1082,16 @@ public function up(): void
         $table->string('instance_type', 30)
               ->default('sales')
               ->after('status')
-              ->comment('sales | customer_success');
+              ->comment('sales | customer_success | both');
     });
 
-    // Mark the system-owned instance as the CS channel
+    // Mark the system-owned instance — use 'both' if the number is publicly shared,
+    // or 'customer_success' if it is truly internal-only (no public leads expected)
     $systemUserId = config('safarichat.system_user_id');
     if ($systemUserId) {
         DB::table('whatsapp_instances')
           ->where('user_id', $systemUserId)
-          ->update(['instance_type' => 'customer_success']);
+          ->update(['instance_type' => 'both']); // change to 'customer_success' if internal-only
     }
 }
 
@@ -1087,7 +1142,7 @@ All three methods must call the same internal event (`SubscriptionActivated` / `
 
 | Rule | Detail |
 |---|---|
-| **Delivery channel** | **Sender:** system number (OTP number) → **Recipient:** business owner's registered phone number. Never use the business's own connected WhatsApp as the sender for CS messages. |
+| **Delivery channel** | **Sender:** system number (OTP number, `instance_type = 'both'` or `'customer_success'`) → **Recipient:** business owner's registered phone number. Never use the business's own connected WhatsApp (`instance_type = 'sales'`) as the sender for CS messages. |
 | **Message language** | Resolved from `users.locale`. Tier 1 (en/sw): static templates. Tier 2 (ar/es/fr/hi/pt-br): AI-translated from English source. Unsupported locales: enforce English. See §11. |
 | **Schema name** | `users.uuid` — resolved by `WaSenderService::resolveSchemaName()` |
 | **Retry on failure** | 3 retries with exponential backoff; after 3 failures log to `cs_message_failures` and skip |
