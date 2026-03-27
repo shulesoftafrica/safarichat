@@ -170,7 +170,6 @@ $(document).ready(ajax_setup);
                     <?php
                     // if (Auth::user()->usersEvents()->count() > 0) {
                     ?>
-                     @include('layouts.checkpayment')
 
                     @if (!Str::contains(request()->url(), 'billing'))
                         @include('layouts.nav')
