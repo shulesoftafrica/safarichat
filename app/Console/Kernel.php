@@ -35,6 +35,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendScheduledMessagesCommand::class, // Phase 3: Campaign message scheduling
         Commands\PersonalizeCampaignMessages::class,  // AI-powered campaign personalization
         Commands\DeduplicateBusinessContactsCommand::class, // Business contact isolation deduplication
+        // Customer Success Phase 2
+        Commands\SendCsDailySummaryCommand::class,
     ];
     public $emails;
 
@@ -75,6 +77,9 @@ class Kernel extends ConsoleKernel {
         
         // AI Sales Agent scheduled tasks
         $this->scheduleAiTasks($schedule);
+
+        // Customer Success scheduled tasks
+        $this->scheduleCsTasks($schedule);
         
         // Add cron health monitoring - every 30 minutes
         $schedule->command('cron:monitor --action=health')
@@ -127,6 +132,27 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Campaign personalization processing failed', 'error');
+            });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Customer Success scheduled tasks
+    // ─────────────────────────────────────────────────────────────────────────
+
+    protected function scheduleCsTasks(Schedule $schedule): void
+    {
+        // Phase 2 — Daily evening report (20:00 EAT)
+        $schedule->command('cs:daily-summary')
+            ->dailyAt('20:00')
+            ->timezone('Africa/Nairobi')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-daily-summary.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS daily summary jobs dispatched');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS daily summary dispatch failed', 'error');
             });
     }
 

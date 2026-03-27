@@ -46,4 +46,46 @@ Tazama na simamia katalogi yako kutoka dashibodi:
 – Timu ya SafariChat
 MSG,
 
+    // -------------------------------------------------------------------------
+    // Phase 2 — Muhtasari wa kila jioni
+    // -------------------------------------------------------------------------
+
+    'daily_summary' => <<<MSG
+📊 *Ripoti ya Kila Siku — {{business_name}}*
+📅 {{today_date}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Shughuli za Leo*
+━━━━━━━━━━━━━━━━━━━━━
+💬 Mazungumzo yote:      {{total_conversations}}{{conversations_delta}}
+🆕 Wateja wapya leo:     {{new_prospects}}{{prospects_delta}}
+🔥 Wateja wa kufuatilia: {{active_leads}}
+✅ Wakubaliano/Mauzo:    {{closed_today}}
+🔄 Mabadiliko ya hatua:  {{stage_changes}}
+
+*Mgawanyiko wa Wateja*
+  🟣 Wapya:         {{lead_new_count}}
+  🟡 Wanaovutiwa:   {{lead_interested_count}}
+  🟠 Wanaoshiriki:  {{lead_engaged_count}}
+  🟢 Wakubaliano:   {{lead_converted_count}}
+  🔴 Walioondoka:   {{lead_churned_count}}
+
+━━━━━━━━━━━━━━━━━━━━━
+💡 *Ushauri wa Leo*
+━━━━━━━━━━━━━━━━━━━━━
+{{recommendation}}
+
+Jibu *RIPOTI* kwa kiungo cha ripoti kamili ya PDF.
+MSG,
+
+    'disconnected_alert' => <<<MSG
+🔴 *WhatsApp yako imekatika — SafariChat*
+
+Wakala wako wa AI wa mauzo sasa yuko nje ya mtandao. Wateja wanaokutumia ujumbe saa hii hawapati majibu na wateja wanaopotea.
+
+👉 Unganisha tena sasa: {{reconnect_url}} → Mipangilio → WhatsApp → Scan QR Code
+
+Inachukua chini ya dakika 1. Usiacha wateja wakuepuke.
+MSG,
+
 ];

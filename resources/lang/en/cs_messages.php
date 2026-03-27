@@ -48,4 +48,46 @@ View and manage your catalogue from the dashboard:
 – The SafariChat Team
 MSG,
 
+    // -------------------------------------------------------------------------
+    // Phase 2 — Daily evening summary
+    // -------------------------------------------------------------------------
+
+    'daily_summary' => <<<MSG
+📊 *Daily Report — {{business_name}}*
+📅 {{today_date}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Today's Activity*
+━━━━━━━━━━━━━━━━━━━━━
+💬 Total conversations:  {{total_conversations}}{{conversations_delta}}
+🆕 New prospects today:  {{new_prospects}}{{prospects_delta}}
+🔥 Active leads:         {{active_leads}}
+✅ Closed / Converted:   {{closed_today}}
+🔄 Lead stage changes:   {{stage_changes}}
+
+*Lead Breakdown*
+  🟣 New:          {{lead_new_count}}
+  🟡 Interested:   {{lead_interested_count}}
+  🟠 Engaged:      {{lead_engaged_count}}
+  🟢 Converted:    {{lead_converted_count}}
+  🔴 Churned:      {{lead_churned_count}}
+
+━━━━━━━━━━━━━━━━━━━━━
+💡 *Today's Recommendation*
+━━━━━━━━━━━━━━━━━━━━━
+{{recommendation}}
+
+Reply *REPORT* for a full PDF report link.
+MSG,
+
+    'disconnected_alert' => <<<MSG
+🔴 *Your WhatsApp is disconnected — SafariChat*
+
+Your AI sales agent is currently offline. Customers messaging you right now are receiving no response and leads are being lost.
+
+👉 Reconnect now: {{reconnect_url}} → Settings → WhatsApp → Scan QR Code
+
+Takes less than 1 minute. Don't let leads go cold.
+MSG,
+
 ];
