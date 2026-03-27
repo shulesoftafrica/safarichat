@@ -1660,15 +1660,22 @@ class WaSenderController extends Controller
      */
     private function handleConnectionReady($webhookData, $instance)
     {
+        // Determine whether this is the very first successful connection
+        // before we overwrite connected_at with the current timestamp.
+        $isFirstConnection = $instance->connected_at === null;
+
         $instance->update([
-            'status' => 'connected',
-            'connected_at' => now()
+            'status'       => 'connected',
+            'connected_at' => now(),
         ]);
 
         // Create default AI sales agent if none exists
         if ($instance->user && !$instance->user->aiSalesAgents()->exists()) {
             $this->createDefaultAiAgent($instance->user);
         }
+
+        // Fire CS onboarding event so the welcome message can be queued
+        \App\Events\WhatsappInstanceConnected::dispatch($instance, $isFirstConnection);
 
         return response()->json(['success' => true]);
     }

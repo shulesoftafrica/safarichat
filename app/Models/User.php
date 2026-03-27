@@ -56,7 +56,10 @@ class User extends Authenticatable implements MustVerifyEmail{
         'is_active',
         'verified',
         'parent_business_id',
-        'role'
+        'role',
+        // Customer Success onboarding timestamps
+        'cs_welcome_sent_at',
+        'cs_first_product_message_sent_at',
     ];
 
     /**
@@ -81,7 +84,10 @@ class User extends Authenticatable implements MustVerifyEmail{
         'trial_ends_at' => 'datetime',
         'last_activity_at' => 'datetime',
         'available_credits' => 'integer',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        // CS onboarding
+        'cs_welcome_sent_at'               => 'datetime',
+        'cs_first_product_message_sent_at' => 'datetime',
     ];
 
     /**

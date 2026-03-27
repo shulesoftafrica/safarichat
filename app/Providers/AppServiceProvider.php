@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Appointment;
+use App\Models\Product;
+use App\Observers\ProductObserver;
 
 class AppServiceProvider extends ServiceProvider {
 
@@ -26,6 +28,9 @@ class AppServiceProvider extends ServiceProvider {
      * @return void
      */
     public function boot() {
+        // Register model observers
+        Product::observe(ProductObserver::class);
+
         // Share pending appointments count with navigation
         View::composer('layouts.nav', function ($view) {
             if (Auth::check() && Auth::user()->business) {

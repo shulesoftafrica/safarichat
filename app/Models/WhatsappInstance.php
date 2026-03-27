@@ -42,6 +42,8 @@ class WhatsappInstance extends Model
         'allowed_message_types',
         // Unified Notification API registration
         'unified_api_registered_at',
+        // CS routing
+        'instance_type',
     ];
 
     protected $casts = [
