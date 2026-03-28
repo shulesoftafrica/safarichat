@@ -37,24 +37,43 @@ class BillingWebhookRequest extends FormRequest
         return [
             // Core webhook fields
             'event' => ['required', 'string', 'in:payment.success,payment.failed,subscription.created,subscription.renewed,subscription.cancelled,subscription.expired,credits.purchased'],
+            'event_id' => ['nullable', 'string', 'max:100'],
             'timestamp' => ['required', 'date'],
+            'api_version' => ['nullable', 'string'],
             
             // Customer/Business identification (at least one required)
             'customer_id' => ['nullable', 'integer', 'min:1'],
             'business_id' => ['nullable', 'integer', 'min:1'],
+            'customer' => ['nullable', 'array'],
+            'customer.id' => ['nullable', 'integer'],
+            'customer.email' => ['nullable', 'email'],
+            'customer.phone' => ['nullable', 'string', 'max:30'],
             
             // Payment details (for payment events)
             'payment' => ['nullable', 'array'],
             'payment.transaction_id' => ['required_with:payment', 'string', 'max:255'],
             'payment.amount' => ['required_with:payment', 'numeric', 'min:0'],
             'payment.currency' => ['required_with:payment', 'string', 'size:3'],
-            'payment.status' => ['nullable', 'string', 'in:completed,failed,pending,cancelled'],
-            'payment.method' => ['nullable', 'string', 'in:stripe,flutterwave,ucn,lipa_namba,mpesa,card,bank_transfer'],
+            'payment.status' => ['nullable', 'string', 'in:success,paid,completed,failed,pending,cancelled,refunded'],
+            'payment.method' => ['nullable', 'string', 'in:stripe,flutterwave,ucn,lipa_namba,mpesa,card,bank_transfer,unknown'],
+            'payment.paid_at' => ['nullable', 'date'],
+            'payment.gateway' => ['nullable', 'string', 'max:50'],
             
             // Subscription details (for subscription events)
             'subscription' => ['nullable', 'array'],
+            'subscription.id' => ['nullable', 'integer'],
+            'subscription.status' => ['nullable', 'string', 'max:50'],
+            // Legacy field names kept for backwards compat
             'subscription.plan_id' => ['nullable', 'string', 'max:100'],
             'subscription.plan' => ['nullable', 'string', 'max:100'],
+            // Actual field names from billing platform
+            'subscription.price_plan_name' => ['nullable', 'string', 'max:100'],
+            'subscription.billing_interval' => ['nullable', 'string', 'in:monthly,yearly,annual,weekly,daily'],
+            'subscription.amount' => ['nullable', 'numeric', 'min:0'],
+            'subscription.currency' => ['nullable', 'string', 'max:10'],
+            'subscription.current_period_start' => ['nullable', 'date'],
+            'subscription.current_period_end' => ['nullable', 'date'],
+            'subscription.trial_ends_at' => ['nullable', 'date'],
             'subscription.duration_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'subscription.ai_credits' => ['nullable', 'integer', 'min:0'],
             'subscription.features' => ['nullable', 'array'],
@@ -65,6 +84,13 @@ class BillingWebhookRequest extends FormRequest
             'subscription.features.customer_categorization' => ['nullable', 'boolean'],
             'subscription.features.booking_calendars' => ['nullable', 'boolean'],
             'subscription.features.sales_reports' => ['nullable', 'boolean'],
+            
+            // Invoice details (sent with payment events)
+            'invoice' => ['nullable', 'array'],
+            'invoice.items' => ['nullable', 'array'],
+            'invoice.items.*.price_plan_name' => ['nullable', 'string', 'max:100'],
+            'invoice.items.*.amount' => ['nullable', 'numeric'],
+            'invoice.items.*.quantity' => ['nullable', 'integer'],
             
             // Credits purchase (for credits.purchased event)
             'credits' => ['nullable', 'integer', 'min:0'],

@@ -268,31 +268,83 @@ class BillingWebhookController extends Controller
                 throw new \Exception("Could not find or create billing account for customer {$customerId}");
             }
             
-            // Update subscription details
-            $plan = $subscription['plan'] ?? 'starter';
-            $durationDays = $subscription['duration_days'] ?? 30;
-            $aiCredits = $subscription['ai_credits'] ?? 0;
+            // ── Detect credit-only top-up (AI Credit Package) vs subscription activation ──
+            $invoiceItems = $request->input('invoice.items', []);
+            $isCreditPurchase = !empty($invoiceItems) && collect($invoiceItems)->every(
+                fn($item) => str_contains($item['price_plan_name'] ?? '', 'Credit')
+            );
+            
+            // AI credits: explicit field, or root-level credits field, or 0
+            $aiCredits = $subscription['ai_credits'] ?? $request->input('credits', 0);
+            
+            if ($isCreditPurchase) {
+                // Credit top-up only — update payment record and add credits; leave subscription untouched
+                $billingAccount->update([
+                    'last_payment_at'     => now(),
+                    'last_payment_amount' => $payment['amount'] ?? 0,
+                    'last_transaction_id' => $payment['transaction_id'] ?? null,
+                ]);
+                
+                if ($aiCredits > 0) {
+                    $billingAccount->increment('ai_credits', $aiCredits);
+                }
+                
+                Log::info('Credit top-up processed', [
+                    'billing_account_id' => $billingAccount->id,
+                    'customer_id'        => $customerId,
+                    'credits_added'      => $aiCredits,
+                    'transaction_id'     => $payment['transaction_id'] ?? null,
+                ]);
+                
+                return [
+                    'success'      => true,
+                    'message'      => 'Credits added successfully',
+                    'billing_account_id' => $billingAccount->id,
+                    'credits_added'      => $aiCredits,
+                ];
+            }
+            
+            // ── Subscription activation ─────────────────────────────────────────────────
+            
+            // Map plan name: "Premium Plan" → "premium", "Starter Plan" → "starter", etc.
+            $rawPlanName = $subscription['price_plan_name'] ?? $subscription['plan'] ?? $subscription['plan_id'] ?? 'starter';
+            $plan = strtolower(trim(str_ireplace(' plan', '', $rawPlanName)));
+            
+            // Determine features (legacy explicit features block, else keep existing values)
             $features = $subscription['features'] ?? [];
             
             // Calculate expiration date
-            $expiresAt = now()->addDays($durationDays);
+            if (!empty($subscription['current_period_end'])) {
+                // Billing platform provided exact end date — use it
+                $expiresAt = Carbon::parse($subscription['current_period_end']);
+            } elseif (!empty($subscription['duration_days'])) {
+                $expiresAt = now()->addDays((int) $subscription['duration_days']);
+            } else {
+                // Derive from billing_interval (monthly / yearly / annual / weekly)
+                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
+                $expiresAt = match(true) {
+                    in_array($billingInterval, ['yearly', 'annual']) => now()->addYear(),
+                    $billingInterval === 'weekly'                    => now()->addWeek(),
+                    default                                          => now()->addMonth(),
+                };
+            }
             
             // Update billing account (excluding ai_credits which we'll increment separately)
             $billingAccount->update([
-                'subscription_status' => 'active',
-                'subscription_plan' => $plan,
+                'subscription_status'    => 'active',
+                'subscription_plan'      => $plan,
                 'subscription_started_at' => now(),
                 'subscription_expires_at' => $expiresAt,
-                'max_contacts' => $features['max_contacts'] ?? $billingAccount->max_contacts,
-                'max_products' => $features['max_products'] ?? $billingAccount->max_products,
-                'whatsapp_channels' => $features['whatsapp_channels'] ?? $billingAccount->whatsapp_channels,
-                'customer_followups' => $features['customer_followups'] ?? false,
-                'customer_categorization' => $features['customer_categorization'] ?? false,
-                'booking_calendars' => $features['booking_calendars'] ?? false,
-                'sales_reports' => $features['sales_reports'] ?? false,
-                'last_payment_at' => now(),
-                'last_payment_amount' => $payment['amount'] ?? 0,
-                'last_transaction_id' => $payment['transaction_id'] ?? null
+                'max_contacts'           => $features['max_contacts'] ?? $billingAccount->max_contacts,
+                'max_products'           => $features['max_products'] ?? $billingAccount->max_products,
+                'whatsapp_channels'      => $features['whatsapp_channels'] ?? $billingAccount->whatsapp_channels,
+                'customer_followups'     => $features['customer_followups'] ?? $billingAccount->customer_followups,
+                'customer_categorization' => $features['customer_categorization'] ?? $billingAccount->customer_categorization,
+                'booking_calendars'      => $features['booking_calendars'] ?? $billingAccount->booking_calendars,
+                'sales_reports'          => $features['sales_reports'] ?? $billingAccount->sales_reports,
+                'last_payment_at'        => now(),
+                'last_payment_amount'    => $payment['amount'] ?? 0,
+                'last_transaction_id'    => $payment['transaction_id'] ?? null,
             ]);
             
             // Increment AI credits separately
@@ -374,7 +426,6 @@ class BillingWebhookController extends Controller
                 throw new \Exception("Could not find billing account for customer {$customerId}");
             }
             
-            $durationDays = $subscription['duration_days'] ?? 30;
             $aiCredits = $subscription['ai_credits'] ?? 0;
             
             // Extend expiration date from current expiry or now (whichever is later)
@@ -382,7 +433,19 @@ class BillingWebhookController extends Controller
                 ? $billingAccount->subscription_expires_at
                 : now();
             
-            $newExpiresAt = $baseDate->addDays($durationDays);
+            // Calculate new expiry from explicit end date, duration_days, or billing_interval
+            if (!empty($subscription['current_period_end'])) {
+                $newExpiresAt = Carbon::parse($subscription['current_period_end']);
+            } elseif (!empty($subscription['duration_days'])) {
+                $newExpiresAt = $baseDate->copy()->addDays((int) $subscription['duration_days']);
+            } else {
+                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
+                $newExpiresAt = match(true) {
+                    in_array($billingInterval, ['yearly', 'annual']) => $baseDate->copy()->addYear(),
+                    $billingInterval === 'weekly'                    => $baseDate->copy()->addWeek(),
+                    default                                          => $baseDate->copy()->addMonth(),
+                };
+            }
             
             // Update billing account (excluding ai_credits which we'll increment separately)
             $billingAccount->update([
