@@ -67,6 +67,27 @@ class Business extends Model
     }
 
     /**
+     * Get or ensure a stable billing email for this business.
+     *
+     * If the business has no email set, we auto-generate a deterministic address
+     * from the business ID (e.g. business-42@safarichat.africa) and persist it.
+     * This email is the single, immutable identifier used with the billing platform
+     * so webhook payloads always resolve back to the correct business.
+     *
+     * @return string
+     */
+    public function getBillingEmail(): string
+    {
+        if (!empty($this->email)) {
+            return $this->email;
+        }
+
+        $generated = 'business-' . $this->id . '@safarichat.africa';
+        $this->update(['email' => $generated]);
+        return $generated;
+    }
+
+    /**
      * Get or create billing account for this business
      * @return \App\Models\BillingAccount
      */

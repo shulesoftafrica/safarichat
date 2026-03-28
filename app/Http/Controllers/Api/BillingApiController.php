@@ -633,9 +633,9 @@ class BillingApiController extends Controller
             $invoiceData = [
                 'organization_id' => $organizationId,
                 'customer' => [
-                    'name' => $user->business->name ?? $user->name,
-                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
-                    'phone' => $user->business->phone ?? $user->phone ?? ''
+                    'name'  => $user->business->name,
+                    'email' => $user->business->getBillingEmail(),
+                    'phone' => $user->business->phone ?? '',
                 ],
                 'products' => [
                     [
@@ -790,9 +790,9 @@ class BillingApiController extends Controller
             $invoiceData = [
                 'organization_id' => $organizationId,
                 'customer' => [
-                    'name' => $user->business->name ?? $user->name,
-                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
-                    'phone' => $user->business->phone ?? $user->phone ?? ''
+                    'name'  => $user->business->name,
+                    'email' => $user->business->getBillingEmail(),
+                    'phone' => $user->business->phone ?? '',
                 ],
                 'products' => [
                     [
@@ -1165,9 +1165,9 @@ class BillingApiController extends Controller
                 $invoiceData = [
                     'organization_id' => $organizationId,
                     'customer' => [
-                        'name' => $user->business->name ?? $user->name,
-                        'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
-                        'phone' => $user->business->phone ?? $user->phone ?? ''
+                        'name'  => $user->business->name,
+                        'email' => $user->business->getBillingEmail(),
+                        'phone' => $user->business->phone ?? '',
                     ],
                     'products' => [
                         [
@@ -1308,9 +1308,9 @@ class BillingApiController extends Controller
             $invoiceData = [
                 'organization_id' => $organizationId,
                 'customer' => [
-                    'name' => $user->business->name ?? $user->name,
-                    'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
-                    'phone' => $user->business->phone ?? $user->phone ?? ''
+                    'name'  => $user->business->name,
+                    'email' => $user->business->getBillingEmail(),
+                    'phone' => $user->business->phone ?? '',
                 ],
                 'products' => [
                     [

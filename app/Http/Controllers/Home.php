@@ -453,7 +453,11 @@ class Home extends Controller
                     }
                     break;
                 case 'business':
-                    \App\Models\Business::findOrFail($userBusiness->id)->update(request()->all());
+                    // Exclude 'email' — it is the stable billing identifier auto-generated
+                    // by getBillingEmail() and must never be overwritten by the user.
+                    \App\Models\Business::findOrFail($userBusiness->id)->update(
+                        request()->except(['_token', '_method', 'table', 'email'])
+                    );
                     break;
                 default:
                     break;

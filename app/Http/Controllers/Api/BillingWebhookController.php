@@ -645,9 +645,22 @@ class BillingWebhookController extends Controller
         if ($request) {
             $email = $request->input('customer.email');
             if ($email) {
+                // 2a. Check businesses.email first — invoices created by SafariChat use
+                //     business-{id}@safarichat.africa as the billing identifier
+                $business = Business::where('email', $email)->first();
+                if ($business) {
+                    Log::debug('Webhook: resolved business by billing email', [
+                        'email'           => $email,
+                        'business_id'     => $business->id,
+                        'billing_cust_id' => $customerId,
+                    ]);
+                    return $business->billingAccount ?? $business->getOrCreateBillingAccount();
+                }
+
+                // 2b. Fall back to users.email (legacy invoices created before billing_email was introduced)
                 $user = User::where('email', $email)->first();
                 if ($user) {
-                    Log::debug('Webhook: resolved user by email', [
+                    Log::debug('Webhook: resolved user by email (legacy)', [
                         'email'          => $email,
                         'user_id'        => $user->id,
                         'billing_cust_id' => $customerId,
@@ -659,6 +672,18 @@ class BillingWebhookController extends Controller
             // 3. Try phone number as fallback
             $phone = $request->input('customer.phone');
             if ($phone) {
+                // 3a. Check business phone first
+                $business = Business::where('phone', $phone)->first();
+                if ($business) {
+                    Log::debug('Webhook: resolved business by phone', [
+                        'phone'          => $phone,
+                        'business_id'    => $business->id,
+                        'billing_cust_id' => $customerId,
+                    ]);
+                    return $business->billingAccount ?? $business->getOrCreateBillingAccount();
+                }
+
+                // 3b. Fall back to user phone
                 $user = User::where('phone', $phone)->first();
                 if ($user) {
                     Log::debug('Webhook: resolved user by phone', [

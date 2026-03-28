@@ -1130,8 +1130,12 @@ body:not(.dark-mode) .billing-card-header {
                                         </div>
                                         
                                         <div class="form-group">
-                                            <label>{{ __("settings.business.form.email_label") }}</label>
-                                            <input type="email" class="form-control" name="email" value="{{ $business->email ?? '' }}" placeholder="{{ __("settings.business.form.email_placeholder") }}">
+                                            <label>{{ __("settings.business.form.email_label") }} <span class="badge badge-secondary" style="font-size:10px;vertical-align:middle;">Billing ID</span></label>
+                                            <input type="email" class="form-control bg-light" name="email"
+                                                   value="{{ $business->getBillingEmail() }}"
+                                                   readonly
+                                                   title="This email is your unique billing identifier and cannot be changed.">
+                                            <small class="text-muted">Auto-generated billing identifier — used by the payment system to identify your account. Cannot be changed.</small>
                                         </div>
                                         
                                         <div class="form-group">
