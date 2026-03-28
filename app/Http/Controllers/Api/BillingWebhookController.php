@@ -194,16 +194,18 @@ class BillingWebhookController extends Controller
             ? config('services.billing.webhook_test_secret')
             : config('services.billing.webhook_secret');
         
-        if (!$signature) {
-            Log::warning('Webhook rejected: Missing signature header', [
-                'ip' => $request->ip()
+        // If no secret is configured, skip HMAC check and rely on IP allowlist only
+        if (!$secret) {
+            Log::warning('Webhook signature check skipped: BILLING_WEBHOOK_SECRET not configured — relying on IP allowlist', [
+                'ip' => $request->ip(),
             ]);
-            return false;
+            return true;
         }
         
-        if (!$secret) {
-            Log::error('Webhook configuration error: Missing webhook secret', [
-                'environment' => config('app.env')
+        // If secret is configured but no signature header was sent, reject
+        if (!$signature) {
+            Log::warning('Webhook rejected: Missing X-Webhook-Signature header', [
+                'ip' => $request->ip()
             ]);
             return false;
         }
