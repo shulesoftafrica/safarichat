@@ -20,8 +20,8 @@ class SendTrialReminderCommand extends Command
 
         $users = User::whereHas('billingAccount', function ($q) use ($now) {
             $q->where('subscription_plan', 'trial')
-              ->whereNotNull('trial_ends_at')
-              ->where('trial_ends_at', '>', $now);
+              ->whereNotNull('billing_accounts.trial_ends_at')
+              ->where('billing_accounts.trial_ends_at', '>', $now);
         })->get();
 
         $this->info(sprintf('[cs:trial-reminders] %d active trial user(s) found.', $users->count()));

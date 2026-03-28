@@ -1760,6 +1760,7 @@ class Setup extends Controller {
                 'subscription_plan' => 'trial',
                 'subscription_started_at' => now(),
                 'subscription_expires_at' => now()->addDays(3), // 3-day trial
+                'trial_ends_at' => now()->addDays(3),           // explicit trial expiry for CS crons
                 'next_billing_date' => now()->addDays(3),
                 'ai_credits' => $trialLimits['ai_credits'] ?? 1000,
                 'ai_credits_used' => 0,

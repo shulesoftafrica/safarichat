@@ -33,6 +33,8 @@ class BillingAccount extends Model
         'status',
         'credits_rollover',
         'notes',
+        // Trial tracking
+        'trial_ends_at',
         // Webhook-related fields
         'subscription_status',
         'last_transaction_id',
@@ -57,6 +59,8 @@ class BillingAccount extends Model
         'sales_reports' => 'boolean',
         'unlimited_messages' => 'boolean',
         'credits_rollover' => 'boolean',
+        // Trial tracking
+        'trial_ends_at' => 'datetime',
         // Webhook-related casts
         'last_payment_at' => 'datetime',
         'last_payment_amount' => 'decimal:2'
