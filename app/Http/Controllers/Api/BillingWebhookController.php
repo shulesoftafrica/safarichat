@@ -296,7 +296,7 @@ class BillingWebhookController extends Controller
             $subscription = $request->input('subscription', []);
             
             // Get or create billing account
-            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
             
             if (!$billingAccount) {
                 throw new \Exception("Could not find or create billing account for customer {$customerId}");
@@ -417,7 +417,7 @@ class BillingWebhookController extends Controller
         $businessId = $request->input('business_id');
         $payment = $request->input('payment', []);
         
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
         
         if ($billingAccount) {
             // Don't change subscription status, just log the failure
@@ -454,7 +454,7 @@ class BillingWebhookController extends Controller
             $businessId = $request->input('business_id');
             $subscription = $request->input('subscription', []);
             
-            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
             
             if (!$billingAccount) {
                 throw new \Exception("Could not find billing account for customer {$customerId}");
@@ -516,7 +516,7 @@ class BillingWebhookController extends Controller
         $customerId = $request->input('customer_id');
         $businessId = $request->input('business_id');
         
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
         
         if ($billingAccount) {
             $billingAccount->update([
@@ -543,7 +543,7 @@ class BillingWebhookController extends Controller
         $customerId = $request->input('customer_id');
         $businessId = $request->input('business_id');
         
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
         
         if ($billingAccount) {
             $billingAccount->update([
@@ -573,7 +573,7 @@ class BillingWebhookController extends Controller
             $payment = $request->input('payment', []);
             $credits = $request->input('credits', 0);
             
-            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId);
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
             
             if (!$billingAccount) {
                 throw new \Exception("Could not find billing account for customer {$customerId}");
@@ -624,25 +624,60 @@ class BillingWebhookController extends Controller
     
     /**
      * Get or create billing account for customer/business
+     * 
+     * customer_id in the webhook is the BILLING PLATFORM's customer ID, not users.id.
+     * Resolution order:
+     *   1. business_id  → Business::find
+     *   2. customer.email from payload → User::where('email')
+     *   3. customer_id as users.id fallback (for legacy/matching IDs)
      */
-    private function getOrCreateBillingAccount($customerId, $businessId): ?BillingAccount
+    private function getOrCreateBillingAccount($customerId, $businessId, ?Request $request = null): ?BillingAccount
     {
-        // Try to find by business first
+        // 1. Try to find by business first
         if ($businessId) {
             $business = Business::find($businessId);
             if ($business) {
                 return $business->billingAccount ?? $business->getOrCreateBillingAccount();
             }
         }
-        
-        // Fallback to user
+
+        // 2. Look up by email from customer object in payload (most reliable)
+        if ($request) {
+            $email = $request->input('customer.email');
+            if ($email) {
+                $user = User::where('email', $email)->first();
+                if ($user) {
+                    Log::debug('Webhook: resolved user by email', [
+                        'email'          => $email,
+                        'user_id'        => $user->id,
+                        'billing_cust_id' => $customerId,
+                    ]);
+                    return $user->billingAccount ?? $user->getOrCreateBillingAccount();
+                }
+            }
+
+            // 3. Try phone number as fallback
+            $phone = $request->input('customer.phone');
+            if ($phone) {
+                $user = User::where('phone', $phone)->first();
+                if ($user) {
+                    Log::debug('Webhook: resolved user by phone', [
+                        'phone'          => $phone,
+                        'user_id'        => $user->id,
+                        'billing_cust_id' => $customerId,
+                    ]);
+                    return $user->billingAccount ?? $user->getOrCreateBillingAccount();
+                }
+            }
+        }
+
+        // 4. Last resort: treat customer_id as users.id (only works when IDs match)
         if ($customerId) {
             $user = User::find($customerId);
             if ($user) {
                 return $user->billingAccount ?? $user->getOrCreateBillingAccount();
             }
         }
-        
+
         return null;
-    }
-}
+    }}
