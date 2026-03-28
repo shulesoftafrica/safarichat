@@ -132,14 +132,15 @@ class BillingWebhookController extends Controller
             // Route to appropriate handler based on event type
             try {
                 $result = match($event) {
-                    'payment.success' => $this->handlePaymentSuccess($request),
-                    'payment.failed' => $this->handlePaymentFailed($request),
-                    'subscription.created' => $this->handleSubscriptionCreated($request),
-                    'subscription.renewed' => $this->handleSubscriptionRenewed($request),
+                    'payment.success'        => $this->handlePaymentSuccess($request),
+                    'payment.failed'         => $this->handlePaymentFailed($request),
+                    'subscription.created'   => $this->handleSubscriptionCreated($request),
+                    'subscription.renewed'   => $this->handleSubscriptionRenewed($request),
+                    'subscription.upgraded'  => $this->handleSubscriptionUpgraded($request),
                     'subscription.cancelled' => $this->handleSubscriptionCancelled($request),
-                    'subscription.expired' => $this->handleSubscriptionExpired($request),
-                    'credits.purchased' => $this->handleCreditsPurchased($request),
-                    default => $this->handleUnknownEvent($request, $event)
+                    'subscription.expired'   => $this->handleSubscriptionExpired($request),
+                    'credits.purchased'      => $this->handleCreditsPurchased($request),
+                    default                  => $this->handleUnknownEvent($request, $event)
                 };
                 
                 // Mark webhook as successfully processed
@@ -562,6 +563,99 @@ class BillingWebhookController extends Controller
         ];
     }
     
+    /**
+     * Handle subscription upgrade webhook.
+     *
+     * Upgrade = plan change mid-cycle (e.g. Starter → Pro).
+     * Key differences from renewal:
+     *   - subscription_plan changes
+     *   - feature limits are updated to the new plan
+     *   - ai_credits are SET to the new plan allocation (not accumulated),
+     *     preserving any surplus the user already has above the new plan limit
+     *   - expiry is recalculated from today (new billing cycle starts now)
+     */
+    private function handleSubscriptionUpgraded(Request $request): array
+    {
+        return DB::transaction(function () use ($request) {
+            $customerId   = $request->input('customer_id');
+            $businessId   = $request->input('business_id');
+            $payment      = $request->input('payment', []);
+            $subscription = $request->input('subscription', []);
+
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
+
+            if (!$billingAccount) {
+                throw new \Exception("Could not find billing account for customer {$customerId}");
+            }
+
+            // Resolve new plan name: "Premium Plan" → "premium"
+            $rawPlanName = $subscription['price_plan_name'] ?? $subscription['plan'] ?? $subscription['plan_id'] ?? 'starter';
+            $newPlan = strtolower(trim(str_ireplace(' plan', '', $rawPlanName)));
+
+            // Feature limits from payload or keep existing
+            $features = $subscription['features'] ?? [];
+
+            // New expiry — upgrade starts a fresh billing cycle from today
+            if (!empty($subscription['current_period_end'])) {
+                $expiresAt = Carbon::parse($subscription['current_period_end']);
+            } elseif (!empty($subscription['duration_days'])) {
+                $expiresAt = now()->addDays((int) $subscription['duration_days']);
+            } else {
+                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
+                $expiresAt = match(true) {
+                    in_array($billingInterval, ['yearly', 'annual']) => now()->addYear(),
+                    $billingInterval === 'weekly'                    => now()->addWeek(),
+                    default                                          => now()->addMonth(),
+                };
+            }
+
+            // Credits: SET to new plan allocation (not accumulated).
+            // If user somehow has MORE credits than the new plan grants, keep their balance.
+            $newPlanCredits = (int) ($subscription['ai_credits'] ?? 0);
+            $currentCredits = (int) $billingAccount->ai_credits;
+            $creditsToSet   = max($newPlanCredits, $currentCredits);
+
+            $billingAccount->update([
+                'subscription_status'     => 'active',
+                'subscription_plan'       => $newPlan,
+                'subscription_started_at' => now(),
+                'subscription_expires_at' => $expiresAt,
+                'ai_credits'              => $creditsToSet,
+                'max_contacts'            => $features['max_contacts']            ?? $billingAccount->max_contacts,
+                'max_products'            => $features['max_products']            ?? $billingAccount->max_products,
+                'whatsapp_channels'       => $features['whatsapp_channels']       ?? $billingAccount->whatsapp_channels,
+                'customer_followups'      => $features['customer_followups']      ?? $billingAccount->customer_followups,
+                'customer_categorization' => $features['customer_categorization'] ?? $billingAccount->customer_categorization,
+                'booking_calendars'       => $features['booking_calendars']       ?? $billingAccount->booking_calendars,
+                'sales_reports'           => $features['sales_reports']           ?? $billingAccount->sales_reports,
+                'last_payment_at'         => now(),
+                'last_payment_amount'     => $payment['amount'] ?? 0,
+                'last_transaction_id'     => $payment['transaction_id'] ?? null,
+            ]);
+
+            Log::info('Subscription upgraded', [
+                'billing_account_id' => $billingAccount->id,
+                'customer_id'        => $customerId,
+                'new_plan'           => $newPlan,
+                'expires_at'         => $expiresAt->toDateTimeString(),
+                'credits_set_to'     => $creditsToSet,
+                'transaction_id'     => $payment['transaction_id'] ?? null,
+            ]);
+
+            return [
+                'success'            => true,
+                'message'            => 'Subscription upgraded successfully',
+                'billing_account_id' => $billingAccount->id,
+                'subscription'       => [
+                    'plan'       => $newPlan,
+                    'status'     => 'active',
+                    'expires_at' => $expiresAt->toISOString(),
+                    'ai_credits' => $creditsToSet,
+                ],
+            ];
+        });
+    }
+
     /**
      * Handle credits purchase webhook (standalone credit purchase without subscription)
      */
