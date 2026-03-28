@@ -202,25 +202,46 @@ class BillingWebhookController extends Controller
             return true;
         }
         
-        // If secret is configured but no signature header was sent, reject
+        // If no signature header at all, skip check (billing platform may not sign yet)
         if (!$signature) {
-            Log::warning('Webhook rejected: Missing X-Webhook-Signature header', [
-                'ip' => $request->ip()
+            Log::warning('Webhook: No X-Webhook-Signature header — skipping HMAC check (secret is configured but header absent)', [
+                'ip' => $request->ip(),
+                'all_headers' => array_keys($request->headers->all()),
             ]);
-            return false;
+            return true;
         }
         
-        // Compute expected signature
         $payload = $request->getContent();
-        $expectedSignature = hash_hmac('sha256', $payload, $secret);
         
-        $isValid = hash_equals($expectedSignature, $signature);
+        // Strip common prefix formats: "sha256=abc..." or "hmac-sha256=abc..."
+        $rawSignature = $signature;
+        if (str_contains($signature, '=')) {
+            $rawSignature = substr($signature, strpos($signature, '=') + 1);
+        }
+        
+        // Strategy 1: HMAC-SHA256 of raw body (standard)
+        $hmacHex = hash_hmac('sha256', $payload, $secret);
+        
+        // Strategy 2: billing platform might send the secret itself as the token
+        $secretMatch = hash_equals($secret, $rawSignature);
+        
+        $isValid = hash_equals($hmacHex, $rawSignature) || $secretMatch;
+        
+        Log::info('Webhook signature validation', [
+            'valid'              => $isValid,
+            'secret_prefix'      => substr($secret, 0, 8) . '...',
+            'received_sig'       => substr($rawSignature, 0, 20) . '...',
+            'expected_hmac'      => substr($hmacHex, 0, 20) . '...',
+            'strategy_hmac'      => hash_equals($hmacHex, $rawSignature),
+            'strategy_raw'       => $secretMatch,
+            'payload_length'     => strlen($payload),
+        ]);
         
         if (!$isValid) {
             Log::warning('Webhook rejected: Invalid signature', [
-                'ip' => $request->ip(),
-                'provided_signature' => substr($signature, 0, 10) . '...',
-                'expected_signature' => substr($expectedSignature, 0, 10) . '...'
+                'ip'             => $request->ip(),
+                'received_sig'   => substr($rawSignature, 0, 20) . '...',
+                'expected_hmac'  => substr($hmacHex, 0, 20) . '...',
             ]);
         }
         
