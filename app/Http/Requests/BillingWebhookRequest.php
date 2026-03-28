@@ -36,7 +36,7 @@ class BillingWebhookRequest extends FormRequest
     {
         return [
             // Core webhook fields
-            'event' => ['required', 'string', 'in:payment.success,payment.failed,subscription.created,subscription.renewed,subscription.cancelled,subscription.expired,credits.purchased'],
+            'event' => ['required', 'string', 'in:payment.success,payment.failed,subscription.created,subscription.renewed,subscription.upgraded,subscription.cancelled,subscription.expired,credits.purchased'],
             'event_id' => ['nullable', 'string', 'max:100'],
             'timestamp' => ['required', 'date'],
             'api_version' => ['nullable', 'string'],
@@ -68,7 +68,7 @@ class BillingWebhookRequest extends FormRequest
             'subscription.plan' => ['nullable', 'string', 'max:100'],
             // Actual field names from billing platform
             'subscription.price_plan_name' => ['nullable', 'string', 'max:100'],
-            'subscription.billing_interval' => ['nullable', 'string', 'in:monthly,yearly,annual,weekly,daily'],
+            'subscription.billing_interval' => ['nullable', 'string', 'in:monthly,quarterly,yearly,annual,weekly,daily'],
             'subscription.amount' => ['nullable', 'numeric', 'min:0'],
             'subscription.currency' => ['nullable', 'string', 'max:10'],
             'subscription.current_period_start' => ['nullable', 'date'],
@@ -92,8 +92,20 @@ class BillingWebhookRequest extends FormRequest
             'invoice.items.*.amount' => ['nullable', 'numeric'],
             'invoice.items.*.quantity' => ['nullable', 'numeric'],
             
-            // Credits purchase (for credits.purchased event)
-            'credits' => ['nullable', 'integer', 'min:0'],
+            // Credits purchase — platform sends credits as an object {id, amount, balance, ...}
+            'credits' => ['nullable', 'array'],
+            'credits.id' => ['nullable', 'integer'],
+            'credits.amount' => ['nullable', 'integer', 'min:0'],
+            'credits.balance' => ['nullable', 'integer', 'min:0'],
+            'credits.description' => ['nullable', 'string', 'max:255'],
+            'credits.purchased_at' => ['nullable', 'date'],
+
+            // Upgrade block (subscription.upgraded event)
+            'upgrade' => ['nullable', 'array'],
+            'upgrade.previous_plan' => ['nullable', 'array'],
+            'upgrade.new_plan' => ['nullable', 'array'],
+            'upgrade.new_plan.name' => ['nullable', 'string', 'max:100'],
+            'upgrade.upgraded_at' => ['nullable', 'date'],
         ];
     }
 
@@ -106,7 +118,7 @@ class BillingWebhookRequest extends FormRequest
     {
         return [
             'event.required' => 'Webhook event type is required',
-            'event.in' => 'Invalid webhook event type. Must be one of: payment.success, payment.failed, subscription.created, subscription.renewed, subscription.cancelled, subscription.expired, credits.purchased',
+            'event.in' => 'Invalid webhook event type. Must be one of: payment.success, payment.failed, subscription.created, subscription.renewed, subscription.upgraded, subscription.cancelled, subscription.expired, credits.purchased',
             'timestamp.required' => 'Webhook timestamp is required',
             'timestamp.date' => 'Webhook timestamp must be a valid date',
             'payment.transaction_id.required_with' => 'Transaction ID is required when payment data is provided',

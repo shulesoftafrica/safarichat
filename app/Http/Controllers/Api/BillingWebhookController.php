@@ -79,27 +79,32 @@ class BillingWebhookController extends Controller
             // Payload validation is handled by BillingWebhookRequest form request
             // No need for manual validation here
             
-            // Extract transaction ID and event type for idempotency check
-            $transactionId = $request->input('payment.transaction_id') 
+            // Extract idempotency key.
+            // Primary: event_id (globally unique per billing platform docs).
+            // Fallback: payment.transaction_id (for payment events without event_id).
+            // Subscription events send payment: null — event_id is the ONLY safe key for those.
+            $eventId       = $request->input('event_id');
+            $transactionId = $request->input('payment.transaction_id')
                 ?? $request->input('transaction_id');
+            $idempotencyKey = $eventId ?? $transactionId;
             $eventType = $request->input('event');
             
             // IDEMPOTENCY CHECK: Prevent duplicate webhook processing
-            if ($transactionId) {
-                $existing = BillingWebhookEvent::where('transaction_id', $transactionId)
+            if ($idempotencyKey) {
+                $existing = BillingWebhookEvent::where('transaction_id', $idempotencyKey)
                     ->where('event_type', $eventType)
                     ->first();
                 
                 if ($existing && $existing->processing_status === 'success') {
                     Log::info('Duplicate webhook detected - already processed successfully', [
-                        'transaction_id' => $transactionId,
-                        'event'          => $eventType,
-                        'ip'             => $request->ip(),
+                        'idempotency_key' => $idempotencyKey,
+                        'event'           => $eventType,
+                        'ip'              => $request->ip(),
                     ]);
                     return response()->json([
-                        'success'        => true,
-                        'message'        => 'Webhook already processed (idempotency)',
-                        'transaction_id' => $transactionId,
+                        'success'         => true,
+                        'message'         => 'Webhook already processed (idempotency)',
+                        'idempotency_key' => $idempotencyKey,
                     ], 200);
                 }
             }
@@ -108,7 +113,7 @@ class BillingWebhookController extends Controller
             // without hitting the unique_transaction_event constraint
             $webhookEvent = BillingWebhookEvent::updateOrCreate(
                 [
-                    'transaction_id'    => $transactionId,
+                    'transaction_id'    => $idempotencyKey,
                     'event_type'        => $eventType,
                 ],
                 [
@@ -123,8 +128,8 @@ class BillingWebhookController extends Controller
             
             Log::info('Processing webhook event', [
                 'webhook_event_id' => $webhookEvent->id,
-                'event' => $eventType,
-                'transaction_id' => $transactionId
+                'event'            => $eventType,
+                'idempotency_key'  => $idempotencyKey,
             ]);
             
             $event = $request->input('event');
@@ -588,8 +593,14 @@ class BillingWebhookController extends Controller
                 throw new \Exception("Could not find billing account for customer {$customerId}");
             }
 
-            // Resolve new plan name: "Premium Plan" → "premium"
-            $rawPlanName = $subscription['price_plan_name'] ?? $subscription['plan'] ?? $subscription['plan_id'] ?? 'starter';
+            // Resolve new plan name from upgrade block first (subscription.upgraded events
+            // carry the new plan in upgrade.new_plan.name per billing platform docs),
+            // then fall back to subscription.price_plan_name for other event types.
+            $rawPlanName = $request->input('upgrade.new_plan.name')
+                ?? $subscription['price_plan_name']
+                ?? $subscription['plan']
+                ?? $subscription['plan_id']
+                ?? 'starter';
             $newPlan = strtolower(trim(str_ireplace(' plan', '', $rawPlanName)));
 
             // Feature limits from payload or keep existing
@@ -664,37 +675,45 @@ class BillingWebhookController extends Controller
         return DB::transaction(function () use ($request) {
             $customerId = $request->input('customer_id');
             $businessId = $request->input('business_id');
-            $payment = $request->input('payment', []);
-            $credits = $request->input('credits', 0);
-            
+            $payment    = $request->input('payment', []);
+
+            // credits is an object from the billing platform: {id, amount, balance, description, purchased_at}
+            // NOT a bare integer — read credits.amount for the quantity to add.
+            $creditsObj = $request->input('credits', []);
+            $credits    = is_array($creditsObj)
+                ? (int) ($creditsObj['amount'] ?? 0)
+                : (int) $creditsObj;  // defensive: handle legacy bare-integer payloads
+
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
-            
+
             if (!$billingAccount) {
                 throw new \Exception("Could not find billing account for customer {$customerId}");
             }
-            
-            // Add credits to account
-            $billingAccount->addCredits($credits, "Purchased via payment: " . ($payment['transaction_id'] ?? 'N/A'));
-            
+
+            if ($credits > 0) {
+                $billingAccount->increment('ai_credits', $credits);
+            }
+
             $billingAccount->update([
-                'last_payment_at' => now(),
+                'last_payment_at'     => now(),
                 'last_payment_amount' => $payment['amount'] ?? 0,
-                'last_transaction_id' => $payment['transaction_id'] ?? null
+                'last_transaction_id' => $payment['transaction_id'] ?? null,
             ]);
-            
+
             Log::info('Credits purchased', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId,
-                'credits_added' => $credits,
-                'new_balance' => $billingAccount->ai_credits,
-                'transaction_id' => $payment['transaction_id'] ?? null
+                'customer_id'        => $customerId,
+                'credits_added'      => $credits,
+                'new_balance'        => $billingAccount->fresh()->ai_credits,
+                'transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
-            
+
             return [
-                'success' => true,
-                'message' => 'Credits added successfully',
-                'credits_added' => $credits,
-                'new_balance' => $billingAccount->ai_credits
+                'success'            => true,
+                'message'            => 'Credits added successfully',
+                'billing_account_id' => $billingAccount->id,
+                'credits_added'      => $credits,
+                'new_balance'        => $billingAccount->fresh()->ai_credits,
             ];
         });
     }
