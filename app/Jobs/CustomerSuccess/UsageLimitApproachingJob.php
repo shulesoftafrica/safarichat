@@ -43,19 +43,24 @@ class UsageLimitApproachingJob implements ShouldQueue
         }
 
         // Only apply to paid (non-trial) users
-        if ($user->subscription_status === 'trial' || $user->subscription_status === 'inactive') {
+        // subscription_plan and ai_credits live on billing_accounts — never on users/businesses
+        $billingAccount = $user->billingAccount;
+        if (! $billingAccount) {
             return;
         }
 
-        $business  = $user->business;
-        $planCode  = $business?->subscription_plan ?? 'starter';
+        if ($billingAccount->subscription_status === 'trial' || $billingAccount->subscription_status === 'inactive') {
+            return;
+        }
+
+        $planCode  = $billingAccount->subscription_plan ?? 'starter';
         $planLimit = (int) config("safarichat_billing.plans.{$planCode}.limits.ai_credits", 0);
 
         if ($planLimit <= 0) {
             return;
         }
 
-        $available      = (int) ($user->available_credits ?? 0);
+        $available      = (int) ($billingAccount->ai_credits ?? 0);
         $percentUsed    = (int) round((1 - $available / $planLimit) * 100);
         $percentRemain  = 100 - $percentUsed;
 

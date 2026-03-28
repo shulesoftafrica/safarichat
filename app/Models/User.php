@@ -219,8 +219,8 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
 
      public function messagesLeft($channel = 'bulksms') {   
-        // Use the new credits system - return available_credits for all channels
-        return $this->available_credits ?? 0;
+        // ai_credits is the live balance on billing_accounts (available_credits was dropped from users)
+        return $this->billingAccount?->ai_credits ?? 0;
     }
 
     /**

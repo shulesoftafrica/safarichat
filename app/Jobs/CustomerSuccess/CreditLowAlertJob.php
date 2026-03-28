@@ -43,15 +43,20 @@ class CreditLowAlertJob implements ShouldQueue
         }
 
         // Credits alerts apply to all users (trial and paid)
-        $business  = $user->business;
-        $planCode  = $business?->subscription_plan ?? ($user->subscription_status === 'trial' ? 'trial' : 'starter');
+        // subscription_plan and ai_credits live on billing_accounts — never on users/businesses
+        $billingAccount = $user->billingAccount;
+        if (! $billingAccount) {
+            return;
+        }
+
+        $planCode  = $billingAccount->subscription_plan ?? 'starter';
         $planLimit = (int) config("safarichat_billing.plans.{$planCode}.limits.ai_credits", 1000);
 
         if ($planLimit <= 0) {
             return;
         }
 
-        $available      = (int) ($user->available_credits ?? 0);
+        $available      = (int) ($billingAccount->ai_credits ?? 0);
         $percentRemain  = (int) round(($available / $planLimit) * 100);
 
         // Only fire if remaining is at or below the threshold

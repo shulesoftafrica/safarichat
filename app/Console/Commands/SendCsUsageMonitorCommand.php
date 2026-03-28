@@ -19,11 +19,11 @@ class SendCsUsageMonitorCommand extends Command
         $isDry = $this->option('dry-run');
 
         // Target all active users (paid + trial).
-        // NOTE: subscription_status lives on billing_accounts, not users — use whereHas.
+        // NOTE: all billing state lives on billing_accounts — eager-load to avoid N+1.
         $users = User::whereHas('billingAccount', fn ($q) =>
                 $q->whereIn('subscription_status', ['active', 'trial'])
             )
-            ->whereNotNull('available_credits')
+            ->with('billingAccount')
             ->get();
 
         $this->info(sprintf('[cs:usage-monitor] Checking %d user(s).', $users->count()));
@@ -31,16 +31,21 @@ class SendCsUsageMonitorCommand extends Command
         $dispatched = 0;
 
         foreach ($users as $user) {
-            $business   = $user->business;
-            $planCode   = $business?->subscription_plan
-                ?? ($user->subscription_status === 'trial' ? 'trial' : 'starter');
-            $planLimit  = (int) config("safarichat_billing.plans.{$planCode}.limits.ai_credits", 0);
+            $billingAccount = $user->billingAccount;
+            if (! $billingAccount) {
+                continue;
+            }
+
+            // subscription_plan lives on billing_accounts (removed from businesses/users)
+            $planCode  = $billingAccount->subscription_plan ?? 'starter';
+            $planLimit = (int) config("safarichat_billing.plans.{$planCode}.limits.ai_credits", 0);
 
             if ($planLimit <= 0) {
                 continue;
             }
 
-            $available     = (int) ($user->available_credits ?? 0);
+            // ai_credits is the live balance (available_credits column was dropped from users)
+            $available     = (int) ($billingAccount->ai_credits ?? 0);
             $percentRemain = ($available / $planLimit) * 100;
             $percentUsed   = 100 - $percentRemain;
 
@@ -56,7 +61,7 @@ class SendCsUsageMonitorCommand extends Command
             }
 
             // ── Usage limit approaching (paid users, 80% and 95% thresholds) ──────
-            if ($user->subscription_status === 'active') {
+            if ($billingAccount->subscription_status === 'active') {
                 if ($percentUsed >= 80) {
                     UsageLimitApproachingJob::dispatch($user->id, 80)->onQueue('cs');
                     $dispatched++;
