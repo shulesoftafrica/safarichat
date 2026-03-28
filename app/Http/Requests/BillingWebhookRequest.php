@@ -136,11 +136,18 @@ class BillingWebhookRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // Custom validation: Ensure either customer_id or business_id is provided
-            if (!$this->input('customer_id') && !$this->input('business_id')) {
+            // Custom validation: Ensure customer identity is present in any recognised location.
+            // The billing platform sends customer data as a nested object (customer.id / customer.email),
+            // not as a top-level customer_id / business_id field.
+            $hasCustomer = $this->input('customer_id')
+                || $this->input('business_id')
+                || $this->input('customer.id')
+                || $this->input('customer.email');
+
+            if (!$hasCustomer) {
                 $validator->errors()->add(
                     'customer_id',
-                    'Either customer_id or business_id must be provided'
+                    'Either customer_id, business_id, or a nested customer object (customer.id / customer.email) must be provided'
                 );
             }
             
