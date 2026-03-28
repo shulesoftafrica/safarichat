@@ -85,29 +85,41 @@ class BillingWebhookController extends Controller
             $eventType = $request->input('event');
             
             // IDEMPOTENCY CHECK: Prevent duplicate webhook processing
-            if ($transactionId && BillingWebhookEvent::isProcessed($transactionId, $eventType)) {
-                Log::info('Duplicate webhook detected - already processed successfully', [
-                    'transaction_id' => $transactionId,
-                    'event' => $eventType,
-                    'ip' => $request->ip()
-                ]);
+            if ($transactionId) {
+                $existing = BillingWebhookEvent::where('transaction_id', $transactionId)
+                    ->where('event_type', $eventType)
+                    ->first();
                 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Webhook already processed (idempotency)',
-                    'transaction_id' => $transactionId
-                ], 200);
+                if ($existing && $existing->processing_status === 'success') {
+                    Log::info('Duplicate webhook detected - already processed successfully', [
+                        'transaction_id' => $transactionId,
+                        'event'          => $eventType,
+                        'ip'             => $request->ip(),
+                    ]);
+                    return response()->json([
+                        'success'        => true,
+                        'message'        => 'Webhook already processed (idempotency)',
+                        'transaction_id' => $transactionId,
+                    ], 200);
+                }
             }
             
-            // Create webhook event record for audit trail
-            $webhookEvent = BillingWebhookEvent::create([
-                'event_type' => $eventType,
-                'transaction_id' => $transactionId,
-                'payload' => $request->all(),
-                'signature' => $request->header('X-Webhook-Signature'),
-                'source_ip' => $request->ip(),
-                'processing_status' => 'processing'
-            ]);
+            // Upsert webhook event record — handles retries of previously failed deliveries
+            // without hitting the unique_transaction_event constraint
+            $webhookEvent = BillingWebhookEvent::updateOrCreate(
+                [
+                    'transaction_id'    => $transactionId,
+                    'event_type'        => $eventType,
+                ],
+                [
+                    'payload'           => $request->all(),
+                    'signature'         => $request->header('X-Webhook-Signature'),
+                    'source_ip'         => $request->ip(),
+                    'processing_status' => 'processing',
+                    'error_message'     => null,
+                    'processed_at'      => null,
+                ]
+            );
             
             Log::info('Processing webhook event', [
                 'webhook_event_id' => $webhookEvent->id,
