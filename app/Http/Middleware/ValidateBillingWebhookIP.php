@@ -24,9 +24,7 @@ class ValidateBillingWebhookIP
      */
     private const ALLOWED_IPS = [
         // Example IP ranges - REPLACE WITH ACTUAL BILLING PLATFORM IPs
-        '41.59.0.0/16',      // Example: Tanzania IP range
-        '197.156.0.0/16',    // Example: Africa IP range
-        '102.0.0.0/8',       // Example: Broad Africa range
+        '144.91.101.154',       // Example: Broad Africa range
         
         // Single IP example:
         // '41.59.123.45',
