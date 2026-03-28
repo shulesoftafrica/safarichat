@@ -90,7 +90,7 @@ class BillingWebhookRequest extends FormRequest
             'invoice.items' => ['nullable', 'array'],
             'invoice.items.*.price_plan_name' => ['nullable', 'string', 'max:100'],
             'invoice.items.*.amount' => ['nullable', 'numeric'],
-            'invoice.items.*.quantity' => ['nullable', 'integer'],
+            'invoice.items.*.quantity' => ['nullable', 'numeric'],
             
             // Credits purchase (for credits.purchased event)
             'credits' => ['nullable', 'integer', 'min:0'],
