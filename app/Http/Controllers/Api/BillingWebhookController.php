@@ -189,10 +189,9 @@ class BillingWebhookController extends Controller
     {
         $signature = $request->header('X-Webhook-Signature');
         
-        // Use different secrets for different environments
-        $secret = config('app.env') === 'local' || config('app.env') === 'testing'
-            ? config('services.billing.webhook_test_secret')
-            : config('services.billing.webhook_secret');
+        // Always prefer the real secret; fall back to test secret only when real one is absent
+        $secret = config('services.billing.webhook_secret')
+            ?: config('services.billing.webhook_test_secret');
         
         // If no secret is configured, skip HMAC check and rely on IP allowlist only
         if (!$secret) {
