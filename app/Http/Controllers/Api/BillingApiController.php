@@ -170,7 +170,7 @@ class BillingApiController extends Controller
                 'plans' => [],
                 'wallet_types' => ['ai_credits', 'sms', 'whatsapp_messages'],
                 'entitlements' => [
-                    'max_contacts' => 2500,
+                    'max_contacts' => 4000,
                     'max_products' => 200,
                     'max_channels' => 7,
                     'storage_gb' => 50,
@@ -1048,7 +1048,7 @@ class BillingApiController extends Controller
                     'currency' => 'TZS',
                     'billing_cycle' => 'monthly',
                     'features' => [
-                        'max_contacts' => 2500,
+                        'max_contacts' => 4000,
                         'max_products' => 200,
                         'whatsapp_channels' => 7,
                         'ai_credits' => 299000,
