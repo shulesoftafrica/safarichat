@@ -96,7 +96,7 @@ class BillingAlertService
             }
 
             // Check contact limit
-            $contactAlert = $this->checkContactLimit($userId, $billingAccount->subscription_plan);
+            $contactAlert = $this->checkContactLimit($userId, $billingAccount->subscription_plan, $user->business->id);
             if ($contactAlert) {
                 $alerts[] = $contactAlert;
             }
@@ -196,7 +196,7 @@ class BillingAlertService
     /**
      * Check contact limit and return alert if approaching/exceeded
      */
-    private function checkContactLimit($userId, $planType): ?array
+    private function checkContactLimit($userId, $planType, $businessId = null): ?array
     {
         $limits = config("safarichat_billing.plans.{$planType}.limits.max_contacts");
         
@@ -204,7 +204,14 @@ class BillingAlertService
             return null;
         }
 
-        $currentCount = BusinessContact::where('user_id', $userId)->count();
+        // Count contacts at business scope (a business is the billing unit)
+        if (!$businessId) {
+            $user = User::find($userId);
+            $businessId = $user?->business?->id;
+        }
+        $currentCount = $businessId
+            ? BusinessContact::where('business_id', $businessId)->count()
+            : BusinessContact::where('user_id', $userId)->count();
         $percentage = $limits > 0 ? ($currentCount / $limits) * 100 : 0;
 
         if ($currentCount >= $limits) {

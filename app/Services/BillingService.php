@@ -661,9 +661,12 @@ class BillingService
             ];
         }
         
-        // Get current contact count for this user/business
-        $userId = is_numeric($user) ? $user : $user->id;
-        $currentCount = \App\Models\BusinessContact::where('user_id', $userId)->count();
+        // Count contacts at business scope (a business is the billing unit)
+        $userObj = is_numeric($user) ? \App\Models\User::find($user) : $user;
+        $businessId = $userObj?->business?->id;
+        $currentCount = $businessId
+            ? \App\Models\BusinessContact::where('business_id', $businessId)->count()
+            : \App\Models\BusinessContact::where('user_id', is_numeric($user) ? $user : $user->id)->count();
         
         $maxContacts = $billingAccount->max_contacts;
         $plan = $billingAccount->subscription_plan;
@@ -702,9 +705,12 @@ class BillingService
             ];
         }
         
-        // Get current contact count for this user/business
-        $userId = is_numeric($user) ? $user : $user->id;
-        $currentCount = \App\Models\BusinessContact::where('user_id', $userId)->count();
+        // Count contacts at business scope (a business is the billing unit)
+        $userObj = is_numeric($user) ? \App\Models\User::find($user) : $user;
+        $businessId = $userObj?->business?->id;
+        $currentCount = $businessId
+            ? \App\Models\BusinessContact::where('business_id', $businessId)->count()
+            : \App\Models\BusinessContact::where('user_id', is_numeric($user) ? $user : $user->id)->count();
         
         $maxContacts = $billingAccount->max_contacts;
         $plan = $billingAccount->subscription_plan;

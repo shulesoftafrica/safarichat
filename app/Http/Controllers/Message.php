@@ -339,8 +339,8 @@ class Message extends Controller
             ->where('received_at', '>=', now()->startOfWeek())
             ->count();
         
-        // Customer engagement metrics — user_id scope matches billing limit checks
-        $this->data['total_contacts'] = \App\Models\BusinessContact::where('user_id', $user_id)->count();
+        // Customer engagement metrics
+        $this->data['total_contacts'] = \App\Models\BusinessContact::where('business_id', Auth::user()->business->id)->count();
         $this->data['contacts_messaged'] = \App\Models\OutgoingMessage::where('user_id', $user_id)
             ->distinct()
             ->count('phone_number');
