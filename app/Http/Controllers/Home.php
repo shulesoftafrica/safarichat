@@ -100,8 +100,8 @@ class Home extends Controller
             return $query;
         };
         
-        // Total WhatsApp contacts (guests)
-        $this->data['guests'] = BusinessContact::where('business_id', $business_id)->count();
+        // Total WhatsApp contacts (guests) — use user_id scope to match billing limit checks
+        $this->data['guests'] = BusinessContact::where('user_id', $user_id)->count();
         
         // Instance-aware active conversations
         $this->data['active_conversations'] = $messageQuery(\App\Models\IncomingMessage::class)
