@@ -88,6 +88,22 @@ class Kernel extends ConsoleKernel {
         // Customer Success scheduled tasks
         $this->scheduleCsTasks($schedule);
         
+        // Auto-return handoffs that have had no human response for 3+ days back to AI
+        // This prevents leads from being permanently stuck and removes the need for
+        // developer intervention. The business owner is notified via WhatsApp automatically.
+        $schedule->call(function () {
+            try {
+                $handoffService = app(\App\Services\HandoffService::class);
+                $returned = $handoffService->autoReturnStaleHandoffsToAi(afterDays: 3);
+                if ($returned > 0) {
+                    $this->logCronActivity(null, "Auto-returned {$returned} stale handoff(s) to AI");
+                }
+            } catch (\Exception $e) {
+                $this->logCronActivity(null, 'Auto-return stale handoffs failed: ' . $e->getMessage(), 'error');
+            }
+        })->dailyAt('03:45')
+          ->name('auto-return-stale-handoffs-to-ai');
+
         // Add cron health monitoring - every 30 minutes
         $schedule->command('cron:monitor --action=health')
             ->everyThirtyMinutes()
@@ -566,11 +582,12 @@ class Kernel extends ConsoleKernel {
             
             $stats = app(\App\Services\WebhookProcessorService::class)->getProcessingStats($firstUser, 1);
 
-            // Check failure rate
-            if ($stats['instant_success_rate'] < (config('ai_sales_agent.monitoring.failure_rate_threshold', 0.1) * 100)) {
+            // Check failure rate — only meaningful when there is actual traffic
+            $threshold = config('ai_sales_agent.monitoring.failure_rate_threshold', 0.1) * 100;
+            if ($stats['total_messages'] > 0 && $stats['instant_success_rate'] < $threshold) {
                 $notificationService->sendSystemAlert('High Failure Rate', [
                     'success_rate' => $stats['instant_success_rate'],
-                    'threshold' => config('ai_sales_agent.monitoring.failure_rate_threshold', 0.1) * 100,
+                    'threshold' => $threshold,
                     'total_messages' => $stats['total_messages'],
                     'failed_messages' => $stats['failed_instant'],
                 ]);

@@ -27,13 +27,14 @@ class SendDailyBusinessSummaryJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public string $queue = 'cs';
-    public int    $tries = 2;
+    public int $tries = 2;
 
     public function __construct(
         public readonly int $userId,
         public readonly int $businessId,
-    ) {}
+    ) {
+        $this->queue = 'cs';
+    }
 
     public function handle(
         CsMessageRenderer         $renderer,

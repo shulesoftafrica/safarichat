@@ -21,10 +21,12 @@ class TrialExpiredJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public string $queue = 'cs';
-    public int    $tries = 2;
+    public int $tries = 2;
 
-    public function __construct(public readonly int $userId) {}
+    public function __construct(public readonly int $userId)
+    {
+        $this->queue = 'cs';
+    }
 
     public function handle(CsMessageRenderer $renderer): void
     {

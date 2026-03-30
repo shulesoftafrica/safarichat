@@ -405,6 +405,84 @@ class HandoffService
     }
 
     /**
+     * Auto-return stale unattended handoffs back to AI.
+     *
+     * If a handoff has been pending/escalated for more than $afterDays days
+     * with no human assignment, it means no one is available to handle it.
+     * The lead is returned to AI so it is not left dead, and the business
+     * owner receives a single final WhatsApp notice.
+     *
+     * This removes the need for any developer intervention.
+     */
+    public function autoReturnStaleHandoffsToAi(int $afterDays = 3): int
+    {
+        $cutoff = now()->subDays($afterDays);
+
+        $stale = Handoff::whereIn('status', [
+                Handoff::STATUS_PENDING,
+                Handoff::STATUS_ESCALATED,
+            ])
+            ->whereNull('human_agent_id')          // never assigned to anyone
+            ->where('created_at', '<', $cutoff)
+            ->with(['lead', 'lead.aiSalesAgent.user'])
+            ->get();
+
+        if ($stale->isEmpty()) {
+            return 0;
+        }
+
+        $closed = 0;
+
+        // Group by owner for one WhatsApp message per owner
+        $byOwner = $stale->groupBy(fn ($h) => optional($h->lead->aiSalesAgent)->user_id);
+
+        foreach ($stale as $handoff) {
+            $handoff->update([
+                'status'      => Handoff::STATUS_RESOLVED,
+                'resolved_at' => now(),
+                'resolution_notes' => "Auto-returned to AI after {$afterDays} days with no human assignment.",
+            ]);
+
+            // Return lead to active so AI can continue serving the customer
+            $handoff->lead?->update(['status' => Lead::STATUS_ENGAGED]);
+
+            $closed++;
+        }
+
+        // Notify each business owner once
+        foreach ($byOwner as $userId => $ownerHandoffs) {
+            $user = $ownerHandoffs->first()->lead->aiSalesAgent->user ?? null;
+            if (!$user || !$user->phone) continue;
+
+            $count   = $ownerHandoffs->count();
+            $names   = $ownerHandoffs->map(fn ($h) => $h->lead->contact->guest_name ?? "Lead #{$h->lead_id}")
+                                     ->implode(', ');
+
+            $message = "ℹ️ *AI Agent Notice*\n\n"
+                . "{$count} escalation(s) had no human response for {$afterDays}+ days:\n"
+                . "{$names}\n\n"
+                . "The AI agent has resumed handling these customers automatically.\n"
+                . "To handle manually, visit the Customers → Handoff tab and create a new handoff.";
+
+            try {
+                $this->notificationService->sendWhatsAppMessage($user->phone, $message);
+            } catch (\Throwable $e) {
+                Log::warning('autoReturnStaleHandoffsToAi: could not notify owner', [
+                    'user_id' => $userId,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::info('autoReturnStaleHandoffsToAi: stale handoffs returned to AI', [
+            'count'      => $closed,
+            'after_days' => $afterDays,
+        ]);
+
+        return $closed;
+    }
+
+    /**
      * Get handoff trends for reporting
      */
     public function getHandoffTrends(int $days = 30): array

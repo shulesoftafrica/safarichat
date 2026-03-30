@@ -15,7 +15,7 @@ class NotificationService
     /**
      * Send WhatsApp message
      */
-    private function sendWhatsAppMessage(string $phone, string $message): void
+    public function sendWhatsAppMessage(string $phone, string $message): void
     {
         try {
             // Use the same logic as in Setup controller

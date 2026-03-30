@@ -127,7 +127,7 @@ class ShulesoftAuthService
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json'
                 ])
-                ->post($apiUrl . '/v1/oauth/clients', [
+                ->post($apiUrl . '/oauth/clients', [
                     'organization_email' => $email,
                     'name' => 'SafariChat Production Client',
                     'environment' => 'live',
@@ -184,7 +184,7 @@ class ShulesoftAuthService
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])
-            ->post($apiUrl . '/v1/auth/login', [
+            ->post($apiUrl . '/auth/login', [
                 'email' => $email,
                 'password' => $password
             ]);
@@ -221,7 +221,7 @@ class ShulesoftAuthService
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ])
-            ->post($apiUrl . '/v1/oauth/token', [
+            ->post($apiUrl . '/oauth/token', [
                 'grant_type' => 'client_credentials',
                 'client_id' => $clientId,
                 'client_secret' => $clientSecret,
