@@ -98,7 +98,7 @@ class CsConversationSession extends Model
     /**
      * Bump the expiry by 30 minutes (user is still active).
      */
-    public function touch(): bool
+    public function touch($attribute = null): bool
     {
         return $this->update(['expires_at' => now()->addMinutes(30)]);
     }
