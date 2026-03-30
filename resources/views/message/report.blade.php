@@ -515,25 +515,6 @@
                     </div>
                 </div>
                 
-                <div class="insight-item">
-                    <div class="insight-icon" style="background: #fef3c7; color: #d97706;">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-text">
-                            {{ __('report.insights.cost.estimated_cost') }} TSh {{ number_format($total_messaging_cost) }}
-                        </div>
-                        <div class="insight-desc">
-                            @if($roi_percentage > 100)
-                                {{ __('report.insights.roi.excellent_prefix') }} {{ $roi_percentage }}%! {{ __('report.insights.roi.excellent_suffix') }}
-                            @elseif($roi_percentage > 0)
-                                {{ __('report.insights.roi.positive_prefix') }} {{ $roi_percentage }}% - {{ __('report.insights.roi.positive_suffix') }}
-                            @else
-                                {{ __('report.insights.cost.cost_comparison') }}
-                            @endif
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="insight-item">
                     <div class="insight-icon" style="background: #ede9fe; color: #7c3aed;">
@@ -694,10 +675,6 @@
                     <div class="engagement-item">
                         <div class="engagement-value">{{ number_format($media_messages) }}</div>
                         <div class="engagement-label">Media Messages</div>
-                    </div>
-                    <div class="engagement-item">
-                        <div class="engagement-value">TSh {{ number_format($total_messaging_cost) }}</div>
-                        <div class="engagement-label">Total Messaging Cost</div>
                     </div>
                 </div>
             </div>
@@ -949,7 +926,7 @@ function exportReport() {
         responses_received: {{ $whatsapp_received }},
         response_rate: {{ $response_rate }},
         active_conversations: {{ $active_conversations }},
-        total_cost: {{ $total_messaging_cost }},
+        total_cost: 0,
         estimated_revenue: {{ $estimated_total_revenue }},
         roi_percentage: {{ $roi_percentage }},
         success_score: {{ $success_score ?? 0 }}
@@ -967,7 +944,6 @@ PERFORMANCE SUMMARY:
 • Active Conversations: ${reportData.active_conversations.toLocaleString()}
 
 BUSINESS IMPACT:
-• Total Messaging Cost: TSh ${reportData.total_cost.toLocaleString()}
 • Estimated Revenue: TSh ${reportData.estimated_revenue.toLocaleString()}
 • ROI: ${reportData.roi_percentage}%
 • Success Score: ${reportData.success_score}/100

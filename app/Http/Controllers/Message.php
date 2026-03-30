@@ -341,9 +341,14 @@ class Message extends Controller
         
         // Customer engagement metrics
         $this->data['total_contacts'] = \App\Models\BusinessContact::where('business_id', Auth::user()->business->id)->count();
-        $this->data['contacts_messaged'] = \App\Models\OutgoingMessage::where('user_id', $user_id)
-            ->distinct()
-            ->count('phone_number');
+        // Count only stored contacts that have actually been messaged (prevents count exceeding total contacts)
+        $this->data['contacts_messaged'] = \App\Models\BusinessContact::where('business_id', Auth::user()->business->id)
+            ->whereIn('guest_phone', function ($query) use ($user_id) {
+                $query->select('phone_number')
+                      ->from('outgoing_messages')
+                      ->where('user_id', $user_id);
+            })
+            ->count();
             
         // WhatsApp instances
         $this->data['whatsapp_instances'] = \App\Models\WhatsappInstance::where('user_id', $user_id)->count();
