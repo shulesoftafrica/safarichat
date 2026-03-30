@@ -29,7 +29,7 @@ return [
             'currency' => 'TZS',
             'billing_cycle' => 'monthly',
             'limits' => [
-                'max_contacts' => 50,
+                'max_contacts' => 150,
                 'max_products' => 5,
                 'whatsapp_channels' => 1,
                 'customer_followups' => false,
@@ -51,7 +51,7 @@ return [
             'currency' => 'TZS',
             'billing_cycle' => 'monthly',
             'limits' => [
-                'max_contacts' => 150,
+                'max_contacts' => 350,
                 'max_products' => 50,
                 'whatsapp_channels' => 3,
                 'customer_followups' => true,
@@ -73,7 +73,7 @@ return [
             'currency' => 'TZS',
             'billing_cycle' => 'monthly',
             'limits' => [
-                'max_contacts' => 400,
+                'max_contacts' => 2500,
                 'max_products' => 200,
                 'whatsapp_channels' => 7,
                 'customer_followups' => true,
