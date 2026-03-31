@@ -746,7 +746,10 @@ class BillingWebhookController extends Controller
      */
     private function getOrCreateBillingAccount($customerId, $businessId, ?Request $request = null): ?BillingAccount
     {
-        // 1. Try to find by business first
+        // 1. Try to find by business_id if the billing platform echoes it back.
+        //    Note: business_id is NOT sent in the invoice payload (email/phone are
+        //    the only unique identifiers the billing API accepts), so this step only
+        //    fires when the platform happens to include it in its webhook.
         if ($businessId) {
             $business = Business::find($businessId);
             if ($business) {

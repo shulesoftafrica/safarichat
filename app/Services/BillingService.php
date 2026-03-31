@@ -878,25 +878,28 @@ class BillingService
             }
 
             // Prepare invoice data
+            // Note: email and phone are the only unique identifiers used by the billing API.
+            // business_id is not passed — the webhook resolver identifies businesses via
+            // the predictable business-{id}@safarichat.ai email pattern or phone lookup.
             $data = [
                 'organization_id' => config('services.billing.organization_id', 1),
                 'customer' => [
-                    'name' => $business->name,
+                    'name'  => $business->name,
                     'email' => $customerEmail,
                     'phone' => $business->phone
                 ],
                 'products' => [
                     [
                         'price_plan_id' => $pricePlanId,
-                        'amount' => $amount
+                        'amount'        => $amount
                     ]
                 ],
-                'description' => 'SafariChat subscription renewal',
-                'currency' => 'TZS',
-                'status' => 'issued',
+                'description'    => 'SafariChat subscription renewal',
+                'currency'       => 'TZS',
+                'status'         => 'issued',
                 'payment_gateway' => $paymentGateway,
-                'success_url' => $successUrl ?? route('billing.success'),
-                'cancel_url' => $cancelUrl ?? route('billing.cancel')
+                'success_url'    => $successUrl ?? route('billing.success'),
+                'cancel_url'     => $cancelUrl ?? route('billing.cancel')
             ];
 
             Log::info('Creating subscription invoice with data', [
@@ -959,7 +962,7 @@ class BillingService
             throw new \Exception('API returned error: ' . $response->body());
             
         } catch (\Exception $e) {
-            Log::error('yFailed to create subscription invoice', [
+            Log::error('Failed to create subscription invoice', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
