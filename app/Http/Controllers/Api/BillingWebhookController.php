@@ -452,26 +452,32 @@ class BillingWebhookController extends Controller
      */
     private function handlePaymentFailed(Request $request): array
     {
-        $customerId = $request->input('customer_id');
-        $businessId = $request->input('business_id');
-        $payment = $request->input('payment', []);
-        
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
-        
-        if ($billingAccount) {
-            // Don't change subscription status, just log the failure
+        return DB::transaction(function () use ($request) {
+            $customerId = $request->input('customer_id');
+            $businessId = $request->input('business_id');
+            $payment    = $request->input('payment', []);
+
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
+
+            if (!$billingAccount) {
+                throw new \Exception("Could not find billing account for customer {$customerId}");
+            }
+
+            // Don't downgrade subscription status on a failed payment —
+            // the billing platform will send subscription.cancelled/expired if needed.
             Log::warning('Payment failed', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId,
-                'transaction_id' => $payment['transaction_id'] ?? null,
-                'amount' => $payment['amount'] ?? 0
+                'customer_id'        => $customerId,
+                'transaction_id'     => $payment['transaction_id'] ?? null,
+                'amount'             => $payment['amount'] ?? 0,
             ]);
-        }
-        
-        return [
-            'success' => true,
-            'message' => 'Payment failure recorded'
-        ];
+
+            return [
+                'success'            => true,
+                'message'            => 'Payment failure recorded',
+                'billing_account_id' => $billingAccount->id,
+            ];
+        });
     }
     
     /**
@@ -550,29 +556,50 @@ class BillingWebhookController extends Controller
     
     /**
      * Handle subscription cancelled webhook
+     *
+     * Cancellations are typically "cancel at period end" — the subscription
+     * remains accessible until subscription.ends_at, then expires naturally.
+     * We mark status as 'cancelled' but preserve the ends_at date so access
+     * continues until the paid period runs out.
      */
     private function handleSubscriptionCancelled(Request $request): array
     {
-        $customerId = $request->input('customer_id');
-        $businessId = $request->input('business_id');
-        
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
-        
-        if ($billingAccount) {
-            $billingAccount->update([
-                'subscription_status' => 'cancelled'
-            ]);
-            
+        return DB::transaction(function () use ($request) {
+            $customerId   = $request->input('customer_id');
+            $businessId   = $request->input('business_id');
+            $subscription = $request->input('subscription', []);
+            $cancellation = $request->input('cancellation', []);
+
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
+
+            if (!$billingAccount) {
+                throw new \Exception("Could not find billing account for customer {$customerId}");
+            }
+
+            // Preserve ends_at so access continues until the paid period runs out.
+            // The subscription.expired webhook will set status to 'expired' when the time comes.
+            $updateData = ['subscription_status' => 'cancelled'];
+            if (!empty($subscription['ends_at'])) {
+                $updateData['subscription_expires_at'] = Carbon::parse($subscription['ends_at']);
+            }
+
+            $billingAccount->update($updateData);
+
             Log::info('Subscription cancelled', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId
+                'customer_id'        => $customerId,
+                'access_until'       => $subscription['ends_at'] ?? 'unknown',
+                'reason'             => $cancellation['reason'] ?? null,
+                'cancelled_at'       => $cancellation['cancelled_at'] ?? null,
             ]);
-        }
-        
-        return [
-            'success' => true,
-            'message' => 'Subscription cancelled'
-        ];
+
+            return [
+                'success'            => true,
+                'message'            => 'Subscription cancelled',
+                'billing_account_id' => $billingAccount->id,
+                'access_until'       => $subscription['ends_at'] ?? null,
+            ];
+        });
     }
     
     /**
@@ -580,26 +607,29 @@ class BillingWebhookController extends Controller
      */
     private function handleSubscriptionExpired(Request $request): array
     {
-        $customerId = $request->input('customer_id');
-        $businessId = $request->input('business_id');
-        
-        $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
-        
-        if ($billingAccount) {
-            $billingAccount->update([
-                'subscription_status' => 'expired'
-            ]);
-            
+        return DB::transaction(function () use ($request) {
+            $customerId = $request->input('customer_id');
+            $businessId = $request->input('business_id');
+
+            $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
+
+            if (!$billingAccount) {
+                throw new \Exception("Could not find billing account for customer {$customerId}");
+            }
+
+            $billingAccount->update(['subscription_status' => 'expired']);
+
             Log::info('Subscription expired', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId
+                'customer_id'        => $customerId,
             ]);
-        }
-        
-        return [
-            'success' => true,
-            'message' => 'Subscription expired'
-        ];
+
+            return [
+                'success'            => true,
+                'message'            => 'Subscription expired',
+                'billing_account_id' => $billingAccount->id,
+            ];
+        });
     }
     
     /**
