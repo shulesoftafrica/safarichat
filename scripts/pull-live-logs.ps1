@@ -51,6 +51,28 @@ if (-not $scpCommand) {
 
 Write-Success "✓ OpenSSH client found"
 
+# Ensure SSH agent is running and key is loaded — prevents per-connection passphrase prompts
+Write-Info "`nChecking SSH agent..."
+try {
+    $agentService = Get-Service -Name ssh-agent -ErrorAction SilentlyContinue
+    if ($agentService -and $agentService.Status -ne 'Running') {
+        Start-Service ssh-agent -ErrorAction SilentlyContinue
+        Write-Host "  SSH agent started" -ForegroundColor Gray
+    }
+    # Check if key is already loaded in agent
+    $loadedKeys = & ssh-add -l 2>&1
+    $keyPath = "$env:USERPROFILE\.ssh\id_rsa"
+    if ($loadedKeys -match "no identities" -or $loadedKeys -match "Could not") {
+        Write-Host "  Adding SSH key to agent (enter passphrase once)..." -ForegroundColor Yellow
+        & ssh-add $keyPath
+    } else {
+        Write-Success "  ✓ SSH key already loaded in agent — no passphrase needed"
+    }
+} catch {
+    Write-Warning "  Could not configure SSH agent: $($_.Exception.Message)"
+    Write-Host "  Continuing — you may be prompted for passphrase" -ForegroundColor Gray
+}
+
 # Display connection info
 Write-Info "`nConnection Details:"
 Write-Host "  Server: $ServerUser@$ServerHost" -ForegroundColor White
