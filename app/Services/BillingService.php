@@ -868,13 +868,20 @@ class BillingService
             $business = $user->business;
             $billingAccount = $business->billingAccount ?? $business->getOrCreateBillingAccount();
             
+            // Use business records for customer info; generate fallback email if missing
+            $customerEmail = $business->email ?: null;
+            if (empty($customerEmail)) {
+                $customerPhone = preg_replace('/\D/', '', $business->phone ?? '');
+                $customerEmail = time() . '.' . $customerPhone . '@safarichat.ai';
+            }
+
             // Prepare invoice data
             $data = [
                 'organization_id' => config('services.billing.organization_id', 1),
                 'customer' => [
-                    'name' => $user->name ?? $business->name,
-                    'email' => $user->email ?? $business->email,
-                    'phone' => $user->phone ?? $business->phone,
+                    'name' => $business->name,
+                    'email' => $customerEmail,
+                    'phone' => $business->phone
                 ],
                 'products' => [
                     [
