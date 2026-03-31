@@ -355,8 +355,7 @@ class BillingWebhookController extends Controller
                 ?? $subscription['price_plan_name']
                 ?? $subscription['plan_id']
                 ?? 'starter';
-            // Strip suffixes: "Starter Package" → "starter", "Pro Plan" → "pro"
-            $plan = strtolower(trim(str_ireplace([' package', ' plan'], '', $rawPlanName)));
+            $plan = $this->normalizePlanName($rawPlanName);
 
             // expires_at: must come from the billing platform — never fall back to a guess.
             // Actual payload field: subscription.ends_at
@@ -511,14 +510,12 @@ class BillingWebhookController extends Controller
             $newExpiresAt = Carbon::parse($endsAt);
 
             // AI credits: use payload value; derive from local config when absent.
-            $plan = strtolower(trim(str_ireplace(
-                [' package', ' plan'],
-                '',
+            $plan = $this->normalizePlanName(
                 (is_array($subscription['plan'] ?? null)
                     ? ($subscription['plan']['name'] ?? '')
                     : (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : ''))
                 ?: ($subscription['price_plan_name'] ?? $billingAccount->subscription_plan ?? 'starter')
-            )));
+            );
             $aiCredits = (int) ($subscription['ai_credits'] ?? 0);
             if ($aiCredits === 0) {
                 $aiCredits = (int) config("safarichat_billing.plans.{$plan}.limits.ai_credits", 0);
@@ -638,7 +635,8 @@ class BillingWebhookController extends Controller
                 ?? (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : null)
                 ?? $subscription['plan_id']
                 ?? 'starter';
-            $newPlan = strtolower(trim(str_ireplace([' package', ' plan'], '', $rawPlanName)));
+            // normalizePlanName handles aliases: "Professional Package" → "pro", etc.
+            $newPlan = $this->normalizePlanName($rawPlanName);
 
             // expires_at: must come from billing platform — never fall back to a guess.
             $endsAt = $subscription['ends_at'] ?? $subscription['current_period_end'] ?? null;
@@ -666,15 +664,27 @@ class BillingWebhookController extends Controller
             }
 
             // Credits: SET to new plan allocation (not accumulated).
+            // When not in payload, derive from local config for the new plan.
             // If user somehow has MORE credits than the new plan grants, keep their balance.
             $newPlanCredits = (int) ($subscription['ai_credits'] ?? 0);
+            if ($newPlanCredits === 0) {
+                $newPlanCredits = (int) config("safarichat_billing.plans.{$newPlan}.limits.ai_credits", 0);
+                if ($newPlanCredits > 0) {
+                    Log::info('Upgrade AI credits derived from local config (not in payload)', [
+                        'plan' => $newPlan, 'ai_credits' => $newPlanCredits,
+                    ]);
+                }
+            }
             $currentCredits = (int) $billingAccount->ai_credits;
             $creditsToSet   = max($newPlanCredits, $currentCredits);
+
+            // starts_at: use billing platform value when present.
+            $startsAt = Carbon::parse($subscription['starts_at'] ?? now());
 
             $billingAccount->update([
                 'subscription_status'     => 'active',
                 'subscription_plan'       => $newPlan,
-                'subscription_started_at' => now(),
+                'subscription_started_at' => $startsAt,
                 'subscription_expires_at' => $expiresAt,
                 'ai_credits'              => $creditsToSet,
                 'max_contacts'            => $features['max_contacts']            ?? $billingAccount->max_contacts,
@@ -780,6 +790,34 @@ class BillingWebhookController extends Controller
         ];
     }
     
+    /**
+     * Normalize a plan name from the billing platform to the local config key.
+     *
+     * Strips common suffixes (" package", " plan") then applies an alias map
+     * so billing platform display names map to our safarichat_billing.php config keys.
+     *
+     * Examples:
+     *   "Starter Package"      → "starter"
+     *   "Professional Package" → "pro"
+     *   "Premium Package"      → "premium"
+     *   "Pro Plan"             → "pro"
+     */
+    private function normalizePlanName(string $raw): string
+    {
+        $slug = strtolower(trim(str_ireplace([' package', ' plan'], '', $raw)));
+
+        // Map billing platform display names to local config keys
+        $aliases = [
+            'professional' => 'pro',
+            'standard'     => 'starter',
+            'basic'        => 'starter',
+            'enterprise'   => 'premium',
+            'business'     => 'pro',
+        ];
+
+        return $aliases[$slug] ?? $slug;
+    }
+
     /**
      * Get or create billing account for customer/business
      * 
