@@ -754,20 +754,43 @@ class BillingWebhookController extends Controller
 
     /**
      * Handle credits purchase webhook (standalone credit purchase without subscription)
+     *
+     * Actual payload structure (wallet_transaction):
+     * {
+     *   "wallet_transaction": {
+     *     "wallet_type": "ai_credits",
+     *     "units": 1000,
+     *     "unit_price": 50.0,
+     *     "amount": 50000.00,
+     *     "plan_name": "1000 AI Credits Pack",
+     *     "invoice_number": "INV20260331001",
+     *     "purchased_at": "2026-03-31T09:49:58+00:00"
+     *   },
+     *   "payment": { "transaction_id": "...", "amount": 50000.00 }
+     * }
      */
     private function handleCreditsPurchased(Request $request): array
     {
         return DB::transaction(function () use ($request) {
-            $customerId = $request->input('customer_id');
-            $businessId = $request->input('business_id');
-            $payment    = $request->input('payment', []);
+            $customerId      = $request->input('customer_id');
+            $businessId      = $request->input('business_id');
+            $payment         = $request->input('payment', []);
+            $walletTx        = $request->input('wallet_transaction', []);
 
-            // credits is an object from the billing platform: {id, amount, balance, description, purchased_at}
-            // NOT a bare integer — read credits.amount for the quantity to add.
-            $creditsObj = $request->input('credits', []);
-            $credits    = is_array($creditsObj)
-                ? (int) ($creditsObj['amount'] ?? 0)
-                : (int) $creditsObj;  // defensive: handle legacy bare-integer payloads
+            // Actual payload: wallet_transaction.units = number of credits to add
+            // wallet_transaction.wallet_type must be "ai_credits" — guard against
+            // other wallet types (e.g. cash wallet) accidentally adding AI credits.
+            $walletType = $walletTx['wallet_type'] ?? 'ai_credits';
+            if ($walletType !== 'ai_credits') {
+                Log::warning('credits.purchased: unexpected wallet_type — skipping credit increment', [
+                    'wallet_type' => $walletType,
+                    'customer_id' => $customerId,
+                ]);
+                // Still resolve the account and record the payment, just don't add credits
+                $credits = 0;
+            } else {
+                $credits = (int) ($walletTx['units'] ?? 0);
+            }
 
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
@@ -788,8 +811,11 @@ class BillingWebhookController extends Controller
             Log::info('Credits purchased', [
                 'billing_account_id' => $billingAccount->id,
                 'customer_id'        => $customerId,
+                'wallet_type'        => $walletType,
                 'credits_added'      => $credits,
                 'new_balance'        => $billingAccount->fresh()->ai_credits,
+                'plan_name'          => $walletTx['plan_name'] ?? null,
+                'invoice_number'     => $walletTx['invoice_number'] ?? null,
                 'transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
 
