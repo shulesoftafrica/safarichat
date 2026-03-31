@@ -70,6 +70,7 @@ class BillingService
         $token = self::getAccessToken();
         
         $http = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',

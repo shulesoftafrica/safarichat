@@ -116,6 +116,7 @@ return [
         
         // API Configuration
         'timeout' => env('BILLING_API_TIMEOUT', 30),
+        'connect_timeout' => env('BILLING_API_CONNECT_TIMEOUT', 5),
         
         // Price Plans
         'price_plans' => [

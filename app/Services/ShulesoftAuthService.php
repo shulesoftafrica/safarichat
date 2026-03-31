@@ -121,7 +121,10 @@ class ShulesoftAuthService
             $email = config('services.shulesoft_billing.organization_email');
             $apiUrl = config('services.shulesoft_billing.api_url');
             
-            $response = Http::timeout(30)
+            $apiTimeout = config('services.shulesoft_billing.timeout', 30);
+        $connectTimeout = config('services.shulesoft_billing.connect_timeout', 5);
+        $response = Http::timeout($apiTimeout)
+                ->connectTimeout($connectTimeout)
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $userToken,
                     'Content-Type' => 'application/json',
@@ -179,7 +182,8 @@ class ShulesoftAuthService
             throw new Exception('Shulesoft authentication credentials not configured. Set SHULESOFT_AUTH_EMAIL and SHULESOFT_AUTH_PASSWORD in .env');
         }
         
-        $response = Http::timeout(30)
+        $response = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
@@ -216,7 +220,8 @@ class ShulesoftAuthService
     {
         $apiUrl = config('services.shulesoft_billing.api_url');
         
-        $response = Http::timeout(30)
+        $response = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
