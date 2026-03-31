@@ -345,71 +345,105 @@ class BillingWebhookController extends Controller
             }
             
             // ── Subscription activation ─────────────────────────────────────────────────
-            
-            // Map plan name: "Premium Plan" → "premium", "Starter Plan" → "starter", etc.
-            $rawPlanName = $subscription['price_plan_name'] ?? $subscription['plan'] ?? $subscription['plan_id'] ?? 'starter';
-            $plan = strtolower(trim(str_ireplace(' plan', '', $rawPlanName)));
-            
-            // Determine features (legacy explicit features block, else keep existing values)
-            $features = $subscription['features'] ?? [];
-            
-            // Calculate expiration date
-            if (!empty($subscription['current_period_end'])) {
-                // Billing platform provided exact end date — use it
-                $expiresAt = Carbon::parse($subscription['current_period_end']);
-            } elseif (!empty($subscription['duration_days'])) {
-                $expiresAt = now()->addDays((int) $subscription['duration_days']);
-            } else {
-                // Derive from billing_interval (monthly / yearly / annual / weekly)
-                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
-                $expiresAt = match(true) {
-                    in_array($billingInterval, ['yearly', 'annual']) => now()->addYear(),
-                    $billingInterval === 'weekly'                    => now()->addWeek(),
-                    default                                          => now()->addMonth(),
-                };
+
+            // Map plan name.
+            // Actual payload: subscription.plan is an OBJECT {id, name, price, interval}
+            // Legacy payloads may send subscription.plan as a plain string or use price_plan_name.
+            $rawPlanName = (is_array($subscription['plan'] ?? null)
+                    ? ($subscription['plan']['name'] ?? null)
+                    : (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : null))
+                ?? $subscription['price_plan_name']
+                ?? $subscription['plan_id']
+                ?? 'starter';
+            // Strip suffixes: "Starter Package" → "starter", "Pro Plan" → "pro"
+            $plan = strtolower(trim(str_ireplace([' package', ' plan'], '', $rawPlanName)));
+
+            // expires_at: must come from the billing platform — never fall back to a guess.
+            // Actual payload field: subscription.ends_at
+            // Legacy field name:    subscription.current_period_end
+            $endsAt = $subscription['ends_at'] ?? $subscription['current_period_end'] ?? null;
+            if (!$endsAt) {
+                throw new \Exception(
+                    "Webhook payload missing subscription.ends_at — cannot set expiry safely. "
+                    . "Event: {$request->input('event')}, customer_id: {$customerId}"
+                );
             }
-            
-            // Update billing account (excluding ai_credits which we'll increment separately)
+            $expiresAt = Carbon::parse($endsAt);
+
+            // starts_at: use billing platform value when present.
+            $startsAt = Carbon::parse($subscription['starts_at'] ?? now());
+
+            // AI credits: use explicit payload value; derive from local config when absent.
+            $aiCredits = (int) ($subscription['ai_credits'] ?? $request->input('credits', 0));
+            if ($aiCredits === 0) {
+                $aiCredits = (int) config("safarichat_billing.plans.{$plan}.limits.ai_credits", 0);
+                if ($aiCredits > 0) {
+                    Log::info('AI credits derived from local config (not in payload)', [
+                        'plan' => $plan, 'ai_credits' => $aiCredits,
+                    ]);
+                }
+            }
+
+            // Features: use explicit payload block; derive from local config when absent.
+            $features = $subscription['features'] ?? [];
+            if (empty($features)) {
+                $planLimits = config("safarichat_billing.plans.{$plan}.limits", []);
+                $features = [
+                    'max_contacts'            => $planLimits['max_contacts']            ?? $billingAccount->max_contacts,
+                    'max_products'            => $planLimits['max_products']            ?? $billingAccount->max_products,
+                    'whatsapp_channels'       => $planLimits['whatsapp_channels']       ?? $billingAccount->whatsapp_channels,
+                    'customer_followups'      => $planLimits['customer_followups']      ?? $billingAccount->customer_followups,
+                    'customer_categorization' => $planLimits['customer_categorization'] ?? $billingAccount->customer_categorization,
+                    'booking_calendars'       => $planLimits['booking_calendars']       ?? $billingAccount->booking_calendars,
+                    'sales_reports'           => $planLimits['sales_reports']           ?? $billingAccount->sales_reports,
+                ];
+                Log::info('Features derived from local config (not in payload)', [
+                    'plan' => $plan, 'features' => $features,
+                ]);
+            }
+
+            // Update billing account (ai_credits incremented separately below)
             $billingAccount->update([
-                'subscription_status'    => 'active',
-                'subscription_plan'      => $plan,
-                'subscription_started_at' => now(),
+                'subscription_status'     => 'active',
+                'subscription_plan'       => $plan,
+                'subscription_started_at' => $startsAt,
                 'subscription_expires_at' => $expiresAt,
-                'max_contacts'           => $features['max_contacts'] ?? $billingAccount->max_contacts,
-                'max_products'           => $features['max_products'] ?? $billingAccount->max_products,
-                'whatsapp_channels'      => $features['whatsapp_channels'] ?? $billingAccount->whatsapp_channels,
-                'customer_followups'     => $features['customer_followups'] ?? $billingAccount->customer_followups,
-                'customer_categorization' => $features['customer_categorization'] ?? $billingAccount->customer_categorization,
-                'booking_calendars'      => $features['booking_calendars'] ?? $billingAccount->booking_calendars,
-                'sales_reports'          => $features['sales_reports'] ?? $billingAccount->sales_reports,
-                'last_payment_at'        => now(),
-                'last_payment_amount'    => $payment['amount'] ?? 0,
-                'last_transaction_id'    => $payment['transaction_id'] ?? null,
+                'max_contacts'            => $features['max_contacts'],
+                'max_products'            => $features['max_products'],
+                'whatsapp_channels'       => $features['whatsapp_channels'],
+                'customer_followups'      => $features['customer_followups'],
+                'customer_categorization' => $features['customer_categorization'],
+                'booking_calendars'       => $features['booking_calendars'],
+                'sales_reports'           => $features['sales_reports'],
+                'last_payment_at'         => now(),
+                'last_payment_amount'     => $payment['amount'] ?? 0,
+                'last_transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
-            
+
             // Increment AI credits separately
             if ($aiCredits > 0) {
                 $billingAccount->increment('ai_credits', $aiCredits);
             }
-            
+
             Log::info('Payment success processed', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId,
-                'plan' => $plan,
-                'expires_at' => $expiresAt->toDateTimeString(),
-                'credits_added' => $aiCredits,
-                'transaction_id' => $payment['transaction_id'] ?? null
+                'customer_id'        => $customerId,
+                'plan'               => $plan,
+                'starts_at'          => $startsAt->toDateTimeString(),
+                'expires_at'         => $expiresAt->toDateTimeString(),
+                'credits_added'      => $aiCredits,
+                'transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
-            
+
             return [
-                'success' => true,
-                'message' => 'Payment processed successfully',
+                'success'            => true,
+                'message'            => 'Payment processed successfully',
                 'billing_account_id' => $billingAccount->id,
-                'subscription' => [
-                    'plan' => $plan,
-                    'status' => 'active',
-                    'expires_at' => $expiresAt->toISOString()
-                ]
+                'subscription'       => [
+                    'plan'       => $plan,
+                    'status'     => 'active',
+                    'expires_at' => $expiresAt->toISOString(),
+                ],
             ];
         });
     }
@@ -466,25 +500,28 @@ class BillingWebhookController extends Controller
                 throw new \Exception("Could not find billing account for customer {$customerId}");
             }
             
-            $aiCredits = $subscription['ai_credits'] ?? 0;
-            
-            // Extend expiration date from current expiry or now (whichever is later)
-            $baseDate = $billingAccount->subscription_expires_at && $billingAccount->subscription_expires_at->isFuture()
-                ? $billingAccount->subscription_expires_at
-                : now();
-            
-            // Calculate new expiry from explicit end date, duration_days, or billing_interval
-            if (!empty($subscription['current_period_end'])) {
-                $newExpiresAt = Carbon::parse($subscription['current_period_end']);
-            } elseif (!empty($subscription['duration_days'])) {
-                $newExpiresAt = $baseDate->copy()->addDays((int) $subscription['duration_days']);
-            } else {
-                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
-                $newExpiresAt = match(true) {
-                    in_array($billingInterval, ['yearly', 'annual']) => $baseDate->copy()->addYear(),
-                    $billingInterval === 'weekly'                    => $baseDate->copy()->addWeek(),
-                    default                                          => $baseDate->copy()->addMonth(),
-                };
+            // expires_at: must come from billing platform — never fall back to a guess.
+            $endsAt = $subscription['ends_at'] ?? $subscription['current_period_end'] ?? null;
+            if (!$endsAt) {
+                throw new \Exception(
+                    "Webhook payload missing subscription.ends_at — cannot set expiry safely. "
+                    . "Event: subscription.renewed, customer_id: {$customerId}"
+                );
+            }
+            $newExpiresAt = Carbon::parse($endsAt);
+
+            // AI credits: use payload value; derive from local config when absent.
+            $plan = strtolower(trim(str_ireplace(
+                [' package', ' plan'],
+                '',
+                (is_array($subscription['plan'] ?? null)
+                    ? ($subscription['plan']['name'] ?? '')
+                    : (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : ''))
+                ?: ($subscription['price_plan_name'] ?? $billingAccount->subscription_plan ?? 'starter')
+            )));
+            $aiCredits = (int) ($subscription['ai_credits'] ?? 0);
+            if ($aiCredits === 0) {
+                $aiCredits = (int) config("safarichat_billing.plans.{$plan}.limits.ai_credits", 0);
             }
             
             // Update billing account (excluding ai_credits which we'll increment separately)
@@ -593,31 +630,39 @@ class BillingWebhookController extends Controller
                 throw new \Exception("Could not find billing account for customer {$customerId}");
             }
 
-            // Resolve new plan name from upgrade block first (subscription.upgraded events
-            // carry the new plan in upgrade.new_plan.name per billing platform docs),
-            // then fall back to subscription.price_plan_name for other event types.
+            // Resolve new plan name.
+            // upgrade.new_plan.name (upgrade event) → subscription.plan.name (object) → legacy strings
             $rawPlanName = $request->input('upgrade.new_plan.name')
+                ?? (is_array($subscription['plan'] ?? null) ? ($subscription['plan']['name'] ?? null) : null)
                 ?? $subscription['price_plan_name']
-                ?? $subscription['plan']
+                ?? (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : null)
                 ?? $subscription['plan_id']
                 ?? 'starter';
-            $newPlan = strtolower(trim(str_ireplace(' plan', '', $rawPlanName)));
+            $newPlan = strtolower(trim(str_ireplace([' package', ' plan'], '', $rawPlanName)));
 
-            // Feature limits from payload or keep existing
+            // expires_at: must come from billing platform — never fall back to a guess.
+            $endsAt = $subscription['ends_at'] ?? $subscription['current_period_end'] ?? null;
+            if (!$endsAt) {
+                throw new \Exception(
+                    "Webhook payload missing subscription.ends_at — cannot set expiry safely. "
+                    . "Event: subscription.upgraded, customer_id: {$customerId}"
+                );
+            }
+            $expiresAt = Carbon::parse($endsAt);
+
+            // Feature limits: payload block first, then local config, then keep existing.
             $features = $subscription['features'] ?? [];
-
-            // New expiry — upgrade starts a fresh billing cycle from today
-            if (!empty($subscription['current_period_end'])) {
-                $expiresAt = Carbon::parse($subscription['current_period_end']);
-            } elseif (!empty($subscription['duration_days'])) {
-                $expiresAt = now()->addDays((int) $subscription['duration_days']);
-            } else {
-                $billingInterval = strtolower($subscription['billing_interval'] ?? 'monthly');
-                $expiresAt = match(true) {
-                    in_array($billingInterval, ['yearly', 'annual']) => now()->addYear(),
-                    $billingInterval === 'weekly'                    => now()->addWeek(),
-                    default                                          => now()->addMonth(),
-                };
+            if (empty($features)) {
+                $planLimits = config("safarichat_billing.plans.{$newPlan}.limits", []);
+                $features = [
+                    'max_contacts'            => $planLimits['max_contacts']            ?? $billingAccount->max_contacts,
+                    'max_products'            => $planLimits['max_products']            ?? $billingAccount->max_products,
+                    'whatsapp_channels'       => $planLimits['whatsapp_channels']       ?? $billingAccount->whatsapp_channels,
+                    'customer_followups'      => $planLimits['customer_followups']      ?? $billingAccount->customer_followups,
+                    'customer_categorization' => $planLimits['customer_categorization'] ?? $billingAccount->customer_categorization,
+                    'booking_calendars'       => $planLimits['booking_calendars']       ?? $billingAccount->booking_calendars,
+                    'sales_reports'           => $planLimits['sales_reports']           ?? $billingAccount->sales_reports,
+                ];
             }
 
             // Credits: SET to new plan allocation (not accumulated).
