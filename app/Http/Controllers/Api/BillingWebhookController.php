@@ -148,6 +148,24 @@ class BillingWebhookController extends Controller
                     default                  => $this->handleUnknownEvent($request, $event)
                 };
                 
+                // Customer could not be resolved — log as unresolved, return clean response
+                if (($result['error_type'] ?? null) === 'customer_not_found') {
+                    $webhookEvent->update([
+                        'processing_status' => 'unresolved',
+                        'error_message'     => $result['message'] ?? 'Customer not found',
+                        'processed_at'      => now(),
+                    ]);
+                    Log::warning('Webhook unresolved: customer not found', [
+                        'webhook_event_id' => $webhookEvent->id,
+                        'event'            => $eventType,
+                        'customer_id'      => $request->input('customer_id'),
+                        'customer_email'   => $request->input('customer.email'),
+                        'customer_phone'   => $request->input('customer.phone'),
+                        'message'          => $result['message'] ?? null,
+                    ]);
+                    return response()->json($result, 422);
+                }
+
                 // Mark webhook as successfully processed
                 $webhookEvent->update([
                     'processing_status' => 'success',
@@ -305,7 +323,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
             
             if (!$billingAccount) {
-                throw new \Exception("Could not find or create billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
             
             // ── Detect credit-only top-up (AI Credit Package) vs subscription activation ──
@@ -460,7 +483,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
 
             // Don't downgrade subscription status on a failed payment —
@@ -502,7 +530,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
             
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
             
             // expires_at: must come from billing platform — never fall back to a guess.
@@ -573,7 +606,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
 
             // Preserve ends_at so access continues until the paid period runs out.
@@ -614,7 +652,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
 
             $billingAccount->update(['subscription_status' => 'expired']);
@@ -654,7 +697,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
 
             // Resolve new plan name.
@@ -795,7 +843,12 @@ class BillingWebhookController extends Controller
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
 
             if (!$billingAccount) {
-                throw new \Exception("Could not find billing account for customer {$customerId}");
+                return [
+                    'success'    => false,
+                    'error_type' => 'customer_not_found',
+                    'message'    => "No billing account found for customer_id={$customerId}. Webhook event recorded but not applied.",
+                    'event'      => $request->input('event'),
+                ];
             }
 
             if ($credits > 0) {
