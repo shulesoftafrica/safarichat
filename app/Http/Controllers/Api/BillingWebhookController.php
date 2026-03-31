@@ -758,6 +758,19 @@ class BillingWebhookController extends Controller
         if ($request) {
             $email = $request->input('customer.email');
             if ($email) {
+                // 2a-early. Generated fallback emails follow the pattern business-{id}@safarichat.ai
+                // Extract the business ID directly — no DB column needed.
+                if (preg_match('/^business-(\d+)@safarichat\.ai$/i', $email, $m)) {
+                    $business = Business::find((int) $m[1]);
+                    if ($business) {
+                        Log::debug('Webhook: resolved business by generated billing email pattern', [
+                            'email'       => $email,
+                            'business_id' => $business->id,
+                        ]);
+                        return $business->billingAccount ?? $business->getOrCreateBillingAccount();
+                    }
+                }
+
                 // 2a. Check businesses.email first — invoices created by SafariChat use
                 //     business-{id}@safarichat.africa as the billing identifier
                 $business = Business::where('email', $email)->first();

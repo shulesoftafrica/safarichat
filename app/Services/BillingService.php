@@ -869,11 +869,12 @@ class BillingService
             $business = $user->business;
             $billingAccount = $business->billingAccount ?? $business->getOrCreateBillingAccount();
             
-            // Use business records for customer info; generate fallback email if missing
+            // Use business records for customer info; generate stable fallback email if missing
+            // Pattern business-{id}@safarichat.ai is predictable so the webhook resolver
+            // can extract the business ID directly without a DB column.
             $customerEmail = $business->email ?: null;
             if (empty($customerEmail)) {
-                $customerPhone = preg_replace('/\D/', '', $business->phone ?? '');
-                $customerEmail = time() . '.' . $customerPhone . '@safarichat.ai';
+                $customerEmail = 'business-' . $business->id . '@safarichat.ai';
             }
 
             // Prepare invoice data
