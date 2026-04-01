@@ -88,7 +88,7 @@
                     $creditPercent = $billingSummary['credits']['percentage'] ?? 0;
                     $creditClass = match(true) {
                         $creditPercent <= 10 => 'bg-danger',
-                        $creditPercent <= 20 => 'bg-warning',
+                        $creditPercent <= 30 => 'bg-warning',
                         default => 'bg-success'
                     };
                 @endphp

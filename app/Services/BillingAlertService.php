@@ -124,72 +124,100 @@ class BillingAlertService
     }
 
     /**
-     * Check AI credits and return alert if low/depleted
+     * Check AI credits and return alert if low/depleted.
+     *
+     * Alert thresholds (based on % of credits REMAINING):
+     *   = 0  → critical "AI Credits Depleted"   (AI has stopped)
+     *   ≤ 10% → critical "AI Credits Critical"  (will stop imminently)
+     *   ≤ 30% → warning  "Low AI Credits"        (usage > 70% — user-configured threshold)
+     *   > 30% → no alert
      */
     private function checkAiCredits($billingAccount): ?array
     {
         $limits = config("safarichat_billing.plans.{$billingAccount->subscription_plan}.limits.ai_credits");
-        
+
         if ($limits === 'unlimited') {
             return null;
         }
 
-        $remaining = $billingAccount->ai_credits ?? 0;
-        $percentage = $limits > 0 ? ($remaining / $limits) * 100 : 0;
+        // Use available_credits (GENERATED column = base + topup - used) for the true
+        // remaining balance. Fall back to ai_credits for environments that have not yet
+        // run the credit-management migration.
+        $remaining = $billingAccount->available_credits ?? $billingAccount->ai_credits ?? 0;
+        $remaining = max(0, (int) $remaining);
+
+        // Total for percentage calculation: prefer ai_credits (kept in sync by trigger)
+        // then fall back to the config plan limit.
+        $total = max(1, (int) ($billingAccount->ai_credits > 0
+            ? $billingAccount->ai_credits
+            : ($limits > 0 ? $limits : 1)));
+
+        $percentage = ($remaining / $total) * 100;
 
         if ($remaining <= 0) {
             return [
                 'severity' => 'critical',
-                'type' => 'credits_depleted',
-                'title' => 'AI Credits Depleted',
-                'message' => 'Your AI assistant cannot respond to customers. Top up immediately.',
-                'action' => [
+                'type'     => 'credits_depleted',
+                'title'    => 'AI Credits Depleted',
+                'message'  => 'Your AI assistant cannot respond to customers. Top up immediately.',
+                'action'   => [
                     'text' => 'Top Up Now',
-                    'url' => url('billing/wallet')
+                    'url'  => url('billing/wallet'),
                 ],
-                'icon' => '🚨',
+                'icon'  => '🚨',
                 'stats' => [
-                    'remaining' => 0,
-                    'total' => $limits,
-                    'percentage' => 0
-                ]
+                    'remaining'  => 0,
+                    'total'      => $total,
+                    'percentage' => 0,
+                ],
             ];
         } elseif ($percentage <= 10) {
+            // Less than 10% remaining — credit will run out very soon.
             return [
                 'severity' => 'critical',
-                'type' => 'credits_critical',
-                'title' => 'AI Credits Critical',
-                'message' => sprintf('Only %s credits remaining (%.1f%%). Your AI will stop soon.', number_format($remaining), $percentage),
+                'type'     => 'credits_critical',
+                'title'    => 'AI Credits Critical',
+                'message'  => sprintf(
+                    'Only %s credits remaining (%.1f%%). Your AI will stop soon.',
+                    number_format($remaining),
+                    $percentage
+                ),
                 'action' => [
                     'text' => 'Top Up Now',
-                    'url' => url('billing/wallet')
+                    'url'  => url('billing/wallet'),
                 ],
-                'icon' => '⚠️',
+                'icon'  => '⚠️',
                 'stats' => [
-                    'remaining' => $remaining,
-                    'total' => $limits,
-                    'percentage' => round($percentage)
-                ]
+                    'remaining'  => $remaining,
+                    'total'      => $total,
+                    'percentage' => round($percentage),
+                ],
             ];
-        } elseif ($percentage <= 20) {
+        } elseif ($percentage <= 30) {
+            // 10%–30% remaining (70%+ of credits used) — early warning.
             return [
                 'severity' => 'warning',
-                'type' => 'credits_low',
-                'title' => 'Low AI Credits',
-                'message' => sprintf('%s credits remaining (%.1f%%). Consider topping up soon.', number_format($remaining), $percentage),
+                'type'     => 'credits_low',
+                'title'    => 'Low AI Credits',
+                'message'  => sprintf(
+                    '%s credits remaining (%.1f%%). Consider topping up soon.',
+                    number_format($remaining),
+                    $percentage
+                ),
                 'action' => [
                     'text' => 'Top Up',
-                    'url' => url('home/settings')
+                    'url'  => url('billing/wallet'),
                 ],
-                'icon' => '💰',
+                'icon'  => '💰',
                 'stats' => [
-                    'remaining' => $remaining,
-                    'total' => $limits,
-                    'percentage' => round($percentage)
-                ]
+                    'remaining'  => $remaining,
+                    'total'      => $total,
+                    'percentage' => round($percentage),
+                ],
             ];
         }
 
+        // More than 30% remaining — no alert needed.
         return null;
     }
 
