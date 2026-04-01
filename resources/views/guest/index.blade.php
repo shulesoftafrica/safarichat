@@ -429,6 +429,11 @@
     color: #f7fafc !important;
 }
 
+.dark-mode .modal-content label,
+.dark-mode .modal-content .col-form-label {
+    color: #f7fafc !important;
+}
+
 .dark-mode .modal-content .form-text {
     color: #a0aec0 !important;
 }
@@ -2535,7 +2540,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
     <div class="modal-dialog" role="document">
         <form class="modal-content start-here" id="ProfileStep5" onsubmit="return handleEditFormSubmission();">
 
-            <div class="modal-content" style="background-color: #ffffff !important; border-radius: 12px !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important; border: none !important;">
+            <div class="modal-content" style="border-radius: 12px !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important; border: none !important;">
                 <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-bottom: none !important; border-radius: 12px 12px 0 0 !important; padding: 20px 24px !important;">
                     <h5 class="modal-title mt-0" id="contactModalTitle" style="color: #ffffff !important; font-size: 1.25rem !important; font-weight: 600 !important;">{{ __('customers.modals.edit_title') }}</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #ffffff !important; opacity: 0.9 !important; text-shadow: none !important;">
@@ -2543,7 +2548,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     </button>
                 </div>
 
-                <div class="modal-body" style="background-color: #ffffff !important; padding: 24px !important;">
+                <div class="modal-body" style="padding: 24px !important;">
 
                     <div class="form-group">
                         <label for="quantity" class=" col-form-label text-right">{{ __('customers.fields.name') }}</label>
@@ -2600,7 +2605,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="background-color: #f8fafc !important; border-top: 1px solid #e5e7eb !important; border-radius: 0 0 12px 12px !important; padding: 16px 24px !important;">
+            <div class="modal-footer" style="border-top: 1px solid #e5e7eb !important; border-radius: 0 0 12px 12px !important; padding: 16px 24px !important;">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_guest" value="" name="id"/>
                 <div id="edit-form-status" class="w-100 mb-2"></div>
