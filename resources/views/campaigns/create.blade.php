@@ -550,7 +550,7 @@
 
     /* Dark Mode Styles */
     .dark-mode .compose-container {
-        background: var(--gray-900) !important;
+        background: #111827 !important;
         color: #e2e8f0 !important;
     }
 
@@ -1097,10 +1097,33 @@
         font-weight: 600 !important;
     }
     
-    /* Recipient icon backgrounds - make them more visible */
-    .dark-mode .recipient-icon {
-        opacity: 0.9 !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    /* Recipient icon backgrounds - per-card dark mode overrides.
+       The inline styles use light pastels (e.g. #dcfce7) which are invisible
+       when the icon glyph color is forced to near-white by .dark-mode div.
+       These rules override both background AND color for each card. */
+    .dark-mode [data-value="1"] .recipient-icon {
+        background: #14532d !important;
+        color: #4ade80 !important;
+        border-color: #15803d !important;
+    }
+    .dark-mode [data-value="2"] .recipient-icon {
+        background: #1e3a5f !important;
+        color: #60a5fa !important;
+        border-color: #2563eb !important;
+    }
+    .dark-mode [data-value="6"] .recipient-icon {
+        background: #3b0764 !important;
+        color: #c084fc !important;
+        border-color: #7c3aed !important;
+    }
+    .dark-mode [data-value="7"] .recipient-icon {
+        background: #451a03 !important;
+        color: #fbbf24 !important;
+        border-color: #b45309 !important;
+    }
+    /* Ensure glyph icons inside inherit the corrected per-card color */
+    .dark-mode .recipient-icon i {
+        color: inherit !important;
     }
     
     /* Text muted improvements */
