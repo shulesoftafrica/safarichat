@@ -824,9 +824,12 @@
     }
     
     /* Dark Mode - AI Section Overrides */
+    /* Give the AI Personalization banner a solid, readable background in dark mode.
+       The default rgba(59,130,246,0.1) is only 10% opacity — nearly invisible on dark.
+       Use a deeper blue with enough opacity so text is actually readable. */
     .dark-mode .alert-inline.alert-info {
-        background: rgba(59, 130, 246, 0.1) !important;
-        border: 1px solid rgba(59, 130, 246, 0.2) !important;
+        background: rgba(30, 58, 95, 0.85) !important;
+        border: 1px solid rgba(99, 179, 237, 0.45) !important;
     }
     
     .dark-mode .ai-section-title {
@@ -985,12 +988,18 @@
     
     /* AI-Powered Section - Dark Mode */
     .dark-mode .alert-inline.alert-info {
-        background: rgba(99, 179, 237, 0.15) !important;
-        border: 1px solid #4b5563 !important;
+        background: rgba(30, 58, 95, 0.85) !important;
+        border: 1px solid rgba(99, 179, 237, 0.45) !important;
     }
     
     .dark-mode .alert-inline .card-body {
         background: transparent !important;
+    }
+
+    /* Ensure direct text children of the AI banner (not caught by class rules)
+       are readable in dark mode — override the inherited blue from .alert-info */
+    .dark-mode .alert-inline.alert-info .card-body * {
+        color: #e2e8f0;
     }
     
     /* AI Section Title */

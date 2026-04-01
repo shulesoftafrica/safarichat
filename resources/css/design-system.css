@@ -253,28 +253,11 @@
 /* ========================================
    DARK MODE OVERRIDES
    ======================================== */
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Invert gray scale for dark mode */
-        --gray-50: #111827;
-        --gray-100: #1F2937;
-        --gray-200: #374151;
-        --gray-300: #4B5563;
-        --gray-400: #6B7280;
-        --gray-500: #9CA3AF;
-        --gray-600: #D1D5DB;
-        --gray-700: #E5E7EB;
-        --gray-800: #F3F4F6;
-        --gray-900: #F9FAFB;
-
-        /* Adjust primary light color for dark mode */
-        --primary-light: rgba(59, 89, 152, 0.15);
-
-        /* Adjust white/black */
-        --white: #1F2937;
-        --black: #F9FAFB;
-    }
-}
+/* NOTE: OS-level prefers-color-scheme is intentionally NOT used here.
+   Dark mode is controlled exclusively by the .dark-mode class toggle
+   so that the user's explicit in-app choice always takes priority over
+   the OS setting. Without this, OS dark mode would invert CSS variables
+   even when the user has selected light mode in the app. */
 
 /* Dark mode class override (for manual toggle) */
 .dark-mode {
