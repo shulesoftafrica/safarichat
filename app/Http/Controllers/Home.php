@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use \App\Models\BusinessContact;
 use \App\Models\Payment;
 use \App\Models\User;
+use \App\Models\BillingWebhookEvent;
 use Auth;
 use DB;
 use Illuminate\Support\Str;
@@ -485,6 +486,86 @@ class Home extends Controller
     }
 
     // Support system removed - use external support tools instead
+
+    /**
+     * Return billing history as JSON for the settings page modal.
+     * Reads from billing_webhook_events (successful subscription/payment events).
+     */
+    public function billingHistory()
+    {
+        $userBusiness = Auth::user()->business;
+        if (!$userBusiness) {
+            return response()->json(['success' => false, 'data' => []]);
+        }
+
+        $billingAccount = $userBusiness->billingAccount;
+        if (!$billingAccount) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        // Fetch successful webhook events linked to this billing account
+        $events = BillingWebhookEvent::where('billing_account_id', $billingAccount->id)
+            ->where('processing_status', 'success')
+            ->whereIn('event_type', [
+                'payment.success',
+                'subscription.created',
+                'subscription.renewed',
+                'subscription.upgraded',
+                'credits.purchased',
+            ])
+            ->orderByDesc('processed_at')
+            ->limit(50)
+            ->get()
+            ->map(function ($event) {
+                $payload = $event->payload ?? [];
+
+                // Description
+                $description = match($event->event_type) {
+                    'payment.success'        => 'Payment received',
+                    'subscription.created'   => 'Subscription activated',
+                    'subscription.renewed'   => 'Subscription renewed',
+                    'subscription.upgraded'  => 'Plan upgraded',
+                    'credits.purchased'      => 'AI Credits purchased',
+                    default                  => ucfirst(str_replace('.', ' ', $event->event_type)),
+                };
+
+                // Amount — from payment block
+                $amount = $payload['payment']['amount']
+                    ?? $payload['wallet_transaction']['amount']
+                    ?? null;
+
+                // Plan info
+                $planRaw = $payload['subscription']['plan']['name']
+                    ?? $payload['subscription']['plan']
+                    ?? $payload['wallet_transaction']['plan_name']
+                    ?? null;
+
+                // Invoice number
+                $invoiceNumber = $payload['wallet_transaction']['invoice_number']
+                    ?? $payload['invoice']['invoice_number']
+                    ?? null;
+
+                // Transaction ID
+                $txId = $payload['payment']['transaction_id']
+                    ?? $event->transaction_id
+                    ?? null;
+
+                return [
+                    'date'           => $event->processed_at
+                                            ? \Carbon\Carbon::parse($event->processed_at)->format('M d, Y H:i')
+                                            : ($event->created_at ? \Carbon\Carbon::parse($event->created_at)->format('M d, Y H:i') : '-'),
+                    'event_type'     => $event->event_type,
+                    'description'    => $description,
+                    'plan'           => $planRaw,
+                    'amount'         => $amount ? number_format((float)$amount) . ' TZS' : '-',
+                    'invoice_number' => $invoiceNumber,
+                    'transaction_id' => $txId,
+                    'status'         => 'Paid',
+                ];
+            });
+
+        return response()->json(['success' => true, 'data' => $events]);
+    }
 
     public function storeTeamMember()
     {

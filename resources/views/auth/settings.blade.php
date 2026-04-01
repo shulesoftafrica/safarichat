@@ -958,37 +958,44 @@ body:not(.dark-mode) .billing-card-header {
                                                                 @endif
                                                             </div>
                                                             <div class="col-md-6 text-center">
-                                                                @if($billing_account)
+                                                                @php
+                                                                    // Always derive plan features from config (authoritative source).
+                                                                    // DB values can be stale if the webhook didn't update them correctly.
+                                                                    $planLimits = config("safarichat_billing.plans.{$subscription_plan}.limits", []);
+                                                                    $displayContacts  = $planLimits['max_contacts']       ?? ($billing_account->max_contacts       ?? '-');
+                                                                    $displayProducts  = $planLimits['max_products']       ?? ($billing_account->max_products       ?? '-');
+                                                                    $displayChannels  = $planLimits['whatsapp_channels']  ?? ($billing_account->whatsapp_channels  ?? '-');
+                                                                    $displayFollowups = $planLimits['customer_followups'] ?? ($billing_account->customer_followups ?? false);
+                                                                @endphp
                                                                 <div class="mt-3">
                                                                     <h6 class="text-muted">{{ __("settings.subscription.plan_features") }}</h6>
                                                                     <div class="row mt-2">
                                                                         <div class="col-6">
                                                                             <div class="text-center p-2 border rounded">
-                                                                                <strong>{{ $billing_account->max_contacts }}</strong>
+                                                                                <strong>{{ $displayContacts }}</strong>
                                                                                 <small class="d-block text-muted">{{ __("settings.subscription.contacts") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6">
                                                                             <div class="text-center p-2 border rounded">
-                                                                                <strong>{{ $billing_account->max_products }}</strong>
+                                                                                <strong>{{ $displayProducts }}</strong>
                                                                                 <small class="d-block text-muted">{{ __("settings.subscription.products") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6 mt-2">
                                                                             <div class="text-center p-2 border rounded">
-                                                                                <strong>{{ $billing_account->whatsapp_channels }}</strong>
+                                                                                <strong>{{ $displayChannels }}</strong>
                                                                                 <small class="d-block text-muted">{{ __("settings.subscription.whatsapp_lines") }}</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-6 mt-2">
                                                                             <div class="text-center p-2 border rounded">
-                                                                                <strong>{{ $billing_account->customer_followups ? __("settings.subscription.yes") : __("settings.subscription.no") }}</strong>
+                                                                                <strong>{{ $displayFollowups ? __("settings.subscription.yes") : __("settings.subscription.no") }}</strong>
                                                                                 <small class="d-block text-muted">{{ __("settings.subscription.followups") }}</small>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                @endif
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1641,37 +1648,56 @@ body:not(.dark-mode) .billing-card-header {
     }
     
     async function loadBillingHistory() {
+        const container = document.getElementById('billingHistoryContent');
+        container.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm"></span> Loading...</div>';
         try {
-            // For now, show a placeholder since we don't have payment history table yet
-            const historyHTML = `
+            const response = await fetch('/api/billing/history', {
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+            });
+            const json = await response.json();
+            const rows = json.data ?? [];
+
+            if (rows.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3 d-block" style="opacity:0.3;"></i>
+                        <p>No billing history yet</p>
+                        <small>Your payment transactions will appear here once processed</small>
+                    </div>`;
+                return;
+            }
+
+            let html = `
                 <div class="table-responsive">
-                    <table class="table-standard">
+                    <table class="table table-sm table-hover">
                         <thead class="thead-light">
                             <tr>
                                 <th>Date</th>
                                 <th>Description</th>
+                                <th>Plan</th>
                                 <th>Amount</th>
+                                <th>Invoice</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block" style="opacity: 0.3;"></i>
-                                    <p>No billing history yet</p>
-                                    <small>Your payment transactions will appear here</small>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            document.getElementById('billingHistoryContent').innerHTML = historyHTML;
+                        <tbody>`;
+
+            rows.forEach(row => {
+                html += `<tr>
+                    <td><small>${row.date}</small></td>
+                    <td>${row.description}</td>
+                    <td><small class="text-muted">${row.plan ?? '-'}</small></td>
+                    <td><strong>${row.amount}</strong></td>
+                    <td><small class="text-muted">${row.invoice_number ?? row.transaction_id ?? '-'}</small></td>
+                    <td><span class="badge badge-success">${row.status}</span></td>
+                </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
         } catch (error) {
             console.error('Error loading billing history:', error);
-            document.getElementById('billingHistoryContent').innerHTML = '<div class="alert alert-danger">Failed to load billing history</div>';
+            container.innerHTML = '<div class="alert alert-danger">Failed to load billing history. Please try again.</div>';
         }
     }
     

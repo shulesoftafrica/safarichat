@@ -342,6 +342,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/billing/wallet/get-ucn', [App\Http\Controllers\Api\BillingApiController::class, 'getWalletUCN'])->name('api.billing.wallet.get-ucn');
     Route::post('/api/billing/upgrade', [App\Http\Controllers\BillingController::class, 'upgrade'])->name('api.billing.upgrade');
     Route::post('/api/billing/renew', [App\Http\Controllers\BillingController::class, 'renew'])->name('api.billing.renew');
+    Route::get('/api/billing/history', [App\Http\Controllers\Home::class, 'billingHistory'])->name('api.billing.history');
 });
 
 // Booking Calendar Routes
