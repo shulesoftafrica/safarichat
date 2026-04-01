@@ -425,6 +425,42 @@
 
 /* ========== BILLING & SUBSCRIPTION SECTION LIGHT MODE STYLES ========== */
 
+/* Light Mode - Plan comparison cards: force all text to solid readable colours.
+   Without this, text inherits from CSS variables that get inverted by the
+   prefers-color-scheme media query when OS is dark but app is light. */
+body:not(.dark-mode) .plan-comparison-card {
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .plan-comparison-card h5 {
+    /* keep the inline color: #667eea for plan name — don't override */
+}
+
+body:not(.dark-mode) .plan-comparison-card .plan-price {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .plan-comparison-card .plan-price small {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .plan-comparison-card p.text-muted {
+    color: #475569 !important;   /* darker than Bootstrap default for readability */
+}
+
+body:not(.dark-mode) .plan-features li {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .plan-features li span {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .plan-features li i.fa-check-circle {
+    color: #10b981 !important;
+}
+
 /* Light Mode - Ensure billing card text is visible */
 body:not(.dark-mode) .billing-card-body h5,
 body:not(.dark-mode) .billing-card-body p,
@@ -662,6 +698,64 @@ body:not(.dark-mode) .billing-card-header {
 
 .dark-mode .billing-card-body .row .col-6 {
     margin-bottom: 12px !important;
+}
+
+/* ========== DARK MODE — PLAN COMPARISON CARDS ========== */
+.dark-mode .plan-comparison-card {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .plan-comparison-card.current-plan {
+    background: #1e2f45 !important;
+    border-color: #48bb78 !important;
+}
+
+.dark-mode .plan-comparison-card.recommended {
+    border-color: #667eea !important;
+}
+
+.dark-mode .plan-comparison-card .plan-price {
+    color: #f7fafc !important;
+}
+
+.dark-mode .plan-comparison-card .plan-price small.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .plan-comparison-card p.text-muted {
+    color: #cbd5e0 !important;
+}
+
+.dark-mode .plan-features li {
+    color: #f7fafc !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.dark-mode .plan-features li span {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .plan-features li i.fa-check-circle {
+    color: #48bb78 !important;
+}
+
+.dark-mode .plan-comparison-card .btn-outline-secondary[disabled] {
+    color: #9ca3af !important;
+    border-color: #4b5563 !important;
+    background: transparent !important;
+}
+
+.dark-mode .plan-comparison-card .btn-primary {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+    border-color: #4299e1 !important;
+    color: #f7fafc !important;
+}
+
+.dark-mode .plan-comparison-card .btn-outline-success[disabled] {
+    color: #48bb78 !important;
+    border-color: #48bb78 !important;
 }
 </style>
 
