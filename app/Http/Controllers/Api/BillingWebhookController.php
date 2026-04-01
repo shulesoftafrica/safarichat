@@ -341,17 +341,19 @@ class BillingWebhookController extends Controller
             $aiCredits = $subscription['ai_credits'] ?? $request->input('credits', 0);
             
             if ($isCreditPurchase) {
-                // Credit top-up only — update payment record and add credits; leave subscription untouched
+                // Credit top-up only — update payment record and add credits; leave subscription untouched.
+                // Use topup_credits (never wiped on renewal) instead of ai_credits.
+                // The DB trigger detects topup_credits increasing and logs to credit_adjustments.
                 $billingAccount->update([
                     'last_payment_at'     => now(),
                     'last_payment_amount' => $payment['amount'] ?? 0,
                     'last_transaction_id' => $payment['transaction_id'] ?? null,
                 ]);
-                
+
                 if ($aiCredits > 0) {
-                    $billingAccount->increment('ai_credits', $aiCredits);
+                    $billingAccount->increment('topup_credits', $aiCredits);
                 }
-                
+
                 Log::info('Credit top-up processed', [
                     'billing_account_id' => $billingAccount->id,
                     'customer_id'        => $customerId,
@@ -424,27 +426,45 @@ class BillingWebhookController extends Controller
                 ]);
             }
 
-            // Update billing account (ai_credits incremented separately below)
-            $billingAccount->update([
-                'subscription_status'     => 'active',
-                'subscription_plan'       => $plan,
-                'subscription_started_at' => $startsAt,
-                'subscription_expires_at' => $expiresAt,
-                'max_contacts'            => $features['max_contacts'],
-                'max_products'            => $features['max_products'],
-                'whatsapp_channels'       => $features['whatsapp_channels'],
-                'customer_followups'      => $features['customer_followups'],
-                'customer_categorization' => $features['customer_categorization'],
-                'booking_calendars'       => $features['booking_calendars'],
-                'sales_reports'           => $features['sales_reports'],
-                'last_payment_at'         => now(),
-                'last_payment_amount'     => $payment['amount'] ?? 0,
-                'last_transaction_id'     => $payment['transaction_id'] ?? null,
-            ]);
+            // Form a unique billing cycle ID for this subscription period.
+            // Changing billing_cycle_id fires the DB trigger (SCENARIO 1 or 2)
+            // which sets base_credits to the plan limit and resets ai_credits_used=0.
+            // Format: {event_id|subscription_id|transaction_id}_{YYYYMM}
+            $subscriptionId = $request->input('event_id')
+                ?? ($subscription['id'] ?? null)
+                ?? ($payment['transaction_id'] ?? 'sub');
+            $cycleId = $subscriptionId . '_' . now()->format('Ym');
 
-            // Increment AI credits separately
-            if ($aiCredits > 0) {
-                $billingAccount->increment('ai_credits', $aiCredits);
+            // Idempotency: if billing_cycle_id already matches, this is a duplicate
+            // delivery for a period we already processed — skip credit reset.
+            if ($billingAccount->billing_cycle_id === $cycleId) {
+                Log::info('Duplicate subscription.created webhook ignored (same billing cycle)', [
+                    'billing_account_id' => $billingAccount->id,
+                    'cycle_id'           => $cycleId,
+                ]);
+            } else {
+                // New cycle — write signal columns only.
+                // The billing_credits_manager trigger handles:
+                //   base_credits = plan limit, ai_credits_used = 0, ai_credits sync
+                $billingAccount->update([
+                    'subscription_status'     => 'active',
+                    'subscription_plan'       => $plan,
+                    'billing_cycle_id'        => $cycleId,
+                    'subscription_started_at' => $startsAt,
+                    'subscription_expires_at' => $expiresAt,
+                    'max_contacts'            => $features['max_contacts'],
+                    'max_products'            => $features['max_products'],
+                    'whatsapp_channels'       => $features['whatsapp_channels'],
+                    'customer_followups'      => $features['customer_followups'],
+                    'customer_categorization' => $features['customer_categorization'],
+                    'booking_calendars'       => $features['booking_calendars'],
+                    'sales_reports'           => $features['sales_reports'],
+                    'last_payment_at'         => now(),
+                    'last_payment_amount'     => $payment['amount'] ?? 0,
+                    'last_transaction_id'     => $payment['transaction_id'] ?? null,
+                    // DO NOT set ai_credits, base_credits, ai_credits_used here.
+                    // The trigger sets them based on subscription_plan and billing_cycle_id.
+                ]);
             }
 
             Log::info('Payment success processed', [
@@ -519,16 +539,22 @@ class BillingWebhookController extends Controller
     
     /**
      * Handle subscription renewed webhook
+     *
+     * The billing platform sends one webhook per monthly period for multi-month
+     * subscriptions. Each delivery must:
+     *   1. Check idempotency — same month = same billing_cycle_id = skip.
+     *   2. Write billing_cycle_id signal — trigger resets base_credits and ai_credits_used.
      */
     private function handleSubscriptionRenewed(Request $request): array
     {
         return DB::transaction(function () use ($request) {
-            $customerId = $request->input('customer_id');
-            $businessId = $request->input('business_id');
+            $customerId   = $request->input('customer_id');
+            $businessId   = $request->input('business_id');
             $subscription = $request->input('subscription', []);
-            
+            $payment      = $request->input('payment', []);
+
             $billingAccount = $this->getOrCreateBillingAccount($customerId, $businessId, $request);
-            
+
             if (!$billingAccount) {
                 return [
                     'success'    => false,
@@ -537,7 +563,7 @@ class BillingWebhookController extends Controller
                     'event'      => $request->input('event'),
                 ];
             }
-            
+
             // expires_at: must come from billing platform — never fall back to a guess.
             $endsAt = $subscription['ends_at'] ?? $subscription['current_period_end'] ?? null;
             if (!$endsAt) {
@@ -548,41 +574,69 @@ class BillingWebhookController extends Controller
             }
             $newExpiresAt = Carbon::parse($endsAt);
 
-            // AI credits: use payload value; derive from local config when absent.
+            // Plan name normalisation
             $plan = $this->normalizePlanName(
                 (is_array($subscription['plan'] ?? null)
                     ? ($subscription['plan']['name'] ?? '')
                     : (is_string($subscription['plan'] ?? null) ? $subscription['plan'] : ''))
                 ?: ($subscription['price_plan_name'] ?? $billingAccount->subscription_plan ?? 'starter')
             );
-            $aiCredits = (int) ($subscription['ai_credits'] ?? 0);
-            if ($aiCredits === 0) {
-                $aiCredits = (int) config("safarichat_billing.plans.{$plan}.limits.ai_credits", 0);
+
+            // ── Idempotency guard ────────────────────────────────────────────────────
+            // billing_cycle_id = {event_id|subscription_id|transaction_id}_{YYYYMM}
+            // If the billing platform retries the same month's webhook, the cycle ID
+            // is identical — skip processing to avoid double-resetting credits.
+            $subscriptionId = $request->input('event_id')
+                ?? ($subscription['id'] ?? null)
+                ?? ($payment['transaction_id'] ?? 'renew');
+            $newCycleId = $subscriptionId . '_' . now()->format('Ym');
+
+            if ($billingAccount->billing_cycle_id === $newCycleId) {
+                Log::info('Duplicate subscription.renewed webhook ignored (same billing cycle)', [
+                    'billing_account_id' => $billingAccount->id,
+                    'cycle_id'           => $newCycleId,
+                    'customer_id'        => $customerId,
+                ]);
+                return [
+                    'success' => true,
+                    'message' => 'Webhook already processed for this billing cycle (idempotency)',
+                    'billing_account_id' => $billingAccount->id,
+                    'expires_at' => $newExpiresAt->toISOString(),
+                ];
             }
-            
-            // Update billing account (excluding ai_credits which we'll increment separately)
+
+            // ── New cycle — write signal columns only ────────────────────────────────
+            // Changing billing_cycle_id with the same plan fires SCENARIO 1 in the
+            // billing_credits_manager trigger:
+            //   • base_credits reset to plan limit
+            //   • ai_credits_used reset to 0
+            //   • topup_credits untouched
+            //   • available_credits recomputes via GENERATED column
             $billingAccount->update([
-                'subscription_status' => 'active',
+                'subscription_status'     => 'active',
+                'subscription_plan'       => $plan,
+                'billing_cycle_id'        => $newCycleId,
                 'subscription_expires_at' => $newExpiresAt,
-                'last_payment_at' => now()
+                'last_payment_at'         => now(),
+                'last_payment_amount'     => $payment['amount'] ?? 0,
+                'last_transaction_id'     => $payment['transaction_id'] ?? null,
+                // DO NOT set ai_credits, base_credits, ai_credits_used.
+                // The trigger handles all credit arithmetic.
             ]);
-            
-            // Increment AI credits separately
-            if ($aiCredits > 0) {
-                $billingAccount->increment('ai_credits', $aiCredits);
-            }
-            
+
             Log::info('Subscription renewed', [
                 'billing_account_id' => $billingAccount->id,
-                'customer_id' => $customerId,
-                'new_expires_at' => $newExpiresAt->toDateTimeString(),
-                'credits_added' => $aiCredits
+                'customer_id'        => $customerId,
+                'new_cycle_id'       => $newCycleId,
+                'plan'               => $plan,
+                'new_expires_at'     => $newExpiresAt->toDateTimeString(),
             ]);
-            
+
             return [
-                'success' => true,
-                'message' => 'Subscription renewed successfully',
-                'expires_at' => $newExpiresAt->toISOString()
+                'success'            => true,
+                'message'            => 'Subscription renewed successfully',
+                'billing_account_id' => $billingAccount->id,
+                'expires_at'         => $newExpiresAt->toISOString(),
             ];
         });
     }
@@ -741,30 +795,26 @@ class BillingWebhookController extends Controller
                 ];
             }
 
-            // Credits: SET to new plan allocation (not accumulated).
-            // When not in payload, derive from local config for the new plan.
-            // If user somehow has MORE credits than the new plan grants, keep their balance.
-            $newPlanCredits = (int) ($subscription['ai_credits'] ?? 0);
-            if ($newPlanCredits === 0) {
-                $newPlanCredits = (int) config("safarichat_billing.plans.{$newPlan}.limits.ai_credits", 0);
-                if ($newPlanCredits > 0) {
-                    Log::info('Upgrade AI credits derived from local config (not in payload)', [
-                        'plan' => $newPlan, 'ai_credits' => $newPlanCredits,
-                    ]);
-                }
-            }
-            $currentCredits = (int) $billingAccount->ai_credits;
-            $creditsToSet   = max($newPlanCredits, $currentCredits);
-
             // starts_at: use billing platform value when present.
             $startsAt = Carbon::parse($subscription['starts_at'] ?? now());
+
+            // Form billing_cycle_id for this new plan period.
+            // Changing subscription_plan fires SCENARIO 2/3 in the trigger:
+            //   • base_credits = new plan limit (fresh allocation)
+            //   • ai_credits_used = 0
+            //   • topup_credits unchanged
+            // DO NOT manually set ai_credits here — the trigger handles it.
+            $subscriptionId = $request->input('event_id')
+                ?? ($subscription['id'] ?? null)
+                ?? ($payment['transaction_id'] ?? 'upgrade');
+            $cycleId = $subscriptionId . '_' . now()->format('Ym');
 
             $billingAccount->update([
                 'subscription_status'     => 'active',
                 'subscription_plan'       => $newPlan,
+                'billing_cycle_id'        => $cycleId,
                 'subscription_started_at' => $startsAt,
                 'subscription_expires_at' => $expiresAt,
-                'ai_credits'              => $creditsToSet,
                 'max_contacts'            => $features['max_contacts']            ?? $billingAccount->max_contacts,
                 'max_products'            => $features['max_products']            ?? $billingAccount->max_products,
                 'whatsapp_channels'       => $features['whatsapp_channels']       ?? $billingAccount->whatsapp_channels,
@@ -777,24 +827,23 @@ class BillingWebhookController extends Controller
                 'last_transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
 
-            Log::info('Subscription upgraded', [
+            Log::info('Subscription upgraded/downgraded', [
                 'billing_account_id' => $billingAccount->id,
                 'customer_id'        => $customerId,
                 'new_plan'           => $newPlan,
+                'new_cycle_id'       => $cycleId,
                 'expires_at'         => $expiresAt->toDateTimeString(),
-                'credits_set_to'     => $creditsToSet,
                 'transaction_id'     => $payment['transaction_id'] ?? null,
             ]);
 
             return [
                 'success'            => true,
-                'message'            => 'Subscription upgraded successfully',
+                'message'            => 'Subscription upgraded/downgraded successfully',
                 'billing_account_id' => $billingAccount->id,
                 'subscription'       => [
                     'plan'       => $newPlan,
                     'status'     => 'active',
                     'expires_at' => $expiresAt->toISOString(),
-                    'ai_credits' => $creditsToSet,
                 ],
             ];
         });
@@ -852,7 +901,11 @@ class BillingWebhookController extends Controller
             }
 
             if ($credits > 0) {
-                $billingAccount->increment('ai_credits', $credits);
+                // Increment topup_credits (not ai_credits) so purchased credits
+                // survive monthly renewals and are never wiped by the trigger's
+                // ai_credits_used = 0 reset.
+                // The DB trigger detects topup_credits increasing and logs to credit_adjustments.
+                $billingAccount->increment('topup_credits', $credits);
             }
 
             $billingAccount->update([

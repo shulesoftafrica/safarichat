@@ -44,6 +44,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendCsUsageMonitorCommand::class,
         // Customer Success Phase 5 — churn prevention
         Commands\SendCsInactivityMonitorCommand::class,
+        // Billing — enforce subscription expiry and mark expired accounts
+        Commands\EnforceSubscriptionExpiry::class,
     ];
     public $emails;
 
@@ -155,6 +157,21 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Campaign personalization processing failed', 'error');
+            });
+
+        // Billing — enforce subscription expiry nightly at 00:05
+        // Marks active accounts past subscription_expires_at as expired
+        // and writes a credit_adjustments audit record for each.
+        $schedule->command('billing:enforce-expiry')
+            ->dailyAt('00:05')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/billing-enforce-expiry.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Subscription expiry enforcement completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Subscription expiry enforcement failed', 'error');
             });
     }
 

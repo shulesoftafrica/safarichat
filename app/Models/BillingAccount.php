@@ -21,7 +21,11 @@ class BillingAccount extends Model
         'next_billing_date',
         'ai_credits',
         'ai_credits_used',
-        'available_credits',
+        // available_credits is a GENERATED ALWAYS AS column — PHP reads it but cannot set it
+        // Formula: GREATEST(0, base_credits + topup_credits - ai_credits_used)
+        'base_credits',
+        'topup_credits',
+        'billing_cycle_id',
         'max_contacts',
         'max_products',
         'whatsapp_channels',
@@ -47,10 +51,12 @@ class BillingAccount extends Model
         'subscription_expires_at' => 'datetime',
         'last_billing_date' => 'datetime',
         'next_billing_date' => 'datetime',
-        'ai_credits' => 'integer',
-        'ai_credits_used' => 'integer',
-        'available_credits' => 'integer',
-        'max_contacts' => 'integer',
+        'ai_credits'       => 'integer',
+        'ai_credits_used'  => 'integer',
+        'available_credits' => 'integer',  // generated column — readable but not writable
+        'base_credits'     => 'integer',
+        'topup_credits'    => 'integer',
+        'max_contacts'     => 'integer',
         'max_products' => 'integer',
         'whatsapp_channels' => 'integer',
         'customer_followups' => 'boolean',
@@ -92,27 +98,49 @@ class BillingAccount extends Model
     }
 
     /**
-     * Check if account has sufficient credits
+     * Check if account has sufficient available credits.
+     * Reads available_credits (PostgreSQL GENERATED column) which is always accurate.
      */
     public function hasCredits(int $amount = 1): bool
     {
-        return $this->ai_credits >= $amount;
+        return ($this->available_credits ?? 0) >= $amount;
     }
 
     /**
-     * Deduct credits from account
+     * Check if AI features can be used:
+     *   - subscription must be active
+     *   - subscription must not be expired
+     *   - available_credits must be > 0
+     */
+    public function canUseAiFeatures(): bool
+    {
+        return $this->subscription_status === 'active'
+            && ($this->subscription_expires_at === null || $this->subscription_expires_at->isFuture())
+            && ($this->available_credits ?? 0) > 0;
+    }
+
+    /**
+     * Deduct credits by incrementing ai_credits_used.
+     *
+     * Only ai_credits_used is modified — available_credits recomputes automatically
+     * via the GENERATED ALWAYS AS column in PostgreSQL.
+     *
+     * ai_credits (total granted) is NOT touched here; it is managed exclusively
+     * by the billing_credits_manager trigger.
      */
     public function deductCredits(int $amount, string $reason = null): bool
     {
-        if (!$this->hasCredits($amount)) {
+        // Refresh from DB to get current generated available_credits value
+        // (avoids stale in-memory values when the model was loaded earlier)
+        $this->refresh();
+
+        if (($this->available_credits ?? 0) < $amount) {
             return false;
         }
 
-        $this->ai_credits -= $amount;
-        $this->ai_credits_used += $amount;
-        $this->save();
+        // Atomic increment — safe under concurrent requests
+        $this->increment('ai_credits_used', $amount);
 
-        // Log the transaction if needed
         if ($reason) {
             \Log::info("Credits deducted from billing account {$this->id}: {$amount} credits. Reason: {$reason}");
         }
@@ -121,15 +149,19 @@ class BillingAccount extends Model
     }
 
     /**
-     * Add credits to account
+     * Add purchased top-up credits to the account.
+     *
+     * Increments topup_credits (never wiped on renewal) rather than ai_credits.
+     * The billing_credits_manager trigger detects topup_credits increasing and logs
+     * the event to credit_adjustments automatically.
+     * available_credits recomputes via the GENERATED column.
      */
     public function addCredits(int $amount, string $reason = null): void
     {
-        $this->ai_credits += $amount;
-        $this->save();
+        $this->increment('topup_credits', $amount);
 
         if ($reason) {
-            \Log::info("Credits added to billing account {$this->id}: {$amount} credits. Reason: {$reason}");
+            \Log::info("Top-up credits added to billing account {$this->id}: {$amount} credits. Reason: {$reason}");
         }
     }
 
@@ -166,29 +198,25 @@ class BillingAccount extends Model
     }
 
     /**
-     * Upgrade/downgrade subscription plan
+     * Upgrade/downgrade subscription plan.
+     *
+     * Credit allocation is handled automatically by the billing_credits_manager
+     * PostgreSQL trigger (SCENARIO 2/3) when subscription_plan changes.
+     * PHP must NOT manually adjust ai_credits here.
      */
-    public function changePlan(string $newPlan, bool $addCredits = true): void
+    public function changePlan(string $newPlan): void
     {
         $oldPlan = $this->subscription_plan;
         $this->subscription_plan = $newPlan;
-        
-        // Sync limits from new plan
+
+        // Sync contact/product/channel limits from new plan config.
+        // syncLimitsFromPlan() calls save() which fires the DB trigger,
+        // which sets base_credits = new plan limit and ai_credits_used = 0.
         $this->syncLimitsFromPlan();
-        
-        // Add credits based on new plan
-        if ($addCredits) {
-            $limits = $this->getPlanLimits();
-            if (isset($limits['ai_credits'])) {
-                $this->ai_credits += $limits['ai_credits'];
-            }
-        }
-        
+
         $this->subscription_started_at = now();
-        $this->next_billing_date = now()->addMonth();
-        
         $this->save();
-        
+
         \Log::info("Plan changed for billing account {$this->id}: {$oldPlan} -> {$newPlan}");
     }
 
@@ -208,14 +236,16 @@ class BillingAccount extends Model
     }
 
     /**
-     * Get remaining credits percentage
+     * Get remaining credits percentage for the current billing cycle.
+     * total = base_credits + topup_credits  (maintained in sync by trigger via ai_credits)
+     * remaining = available_credits         (generated: GREATEST(0, total - ai_credits_used))
      */
     public function getCreditsPercentage(): float
     {
-        $total = $this->ai_credits + $this->ai_credits_used;
+        $total = $this->ai_credits ?? 0;  // trigger keeps ai_credits = base + topup
         if ($total === 0) {
             return 0;
         }
-        return ($this->ai_credits / $total) * 100;
+        return (($this->available_credits ?? 0) / $total) * 100;
     }
 }
