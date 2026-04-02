@@ -4,15 +4,33 @@
    
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="keywords" content="" />
-        <meta name="author" content="" />
-        <meta name="robots" content="" />
-        <meta name="description" content="Wedding Manager" />
-        <meta property="og:title" content="Wedding Manager" />
-        <meta property="og:description" content="Wedding Manager" />
-        <meta property="og:image" content="" />
-        <meta name="format-detection" content="telephone=no">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="format-detection" content="telephone=no">
+
+        {{-- Core SEO --}}
+        <meta name="author" content="SafariChat" />
+        <meta name="robots" content="index, follow" />
+        <meta name="keywords" content="WhatsApp CRM, AI sales agent, WhatsApp business automation, customer followup, lead management, WhatsApp marketing Tanzania, business CRM Africa, AI chatbot WhatsApp, customer success platform, automated WhatsApp replies" />
+        <meta name="description" content="SafariChat — AI-powered WhatsApp CRM for African businesses. Automate customer follow-ups, manage leads, and grow sales with your own WhatsApp AI agent." />
+
+        {{-- Open Graph (Facebook / WhatsApp link previews) --}}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="SafariChat" />
+        <meta property="og:title" content="{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM for African Businesses" />
+        <meta property="og:description" content="Automate customer follow-ups, manage leads, and close more deals with SafariChat's AI-powered WhatsApp CRM." />
+        <meta property="og:image" content="{{ asset('resources/images/safarichat-og.png') }}" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content="{{ url()->current() }}" />
+
+        {{-- Twitter Card --}}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM" />
+        <meta name="twitter:description" content="Automate customer follow-ups, manage leads, and close more deals with SafariChat's AI-powered WhatsApp CRM." />
+        <meta name="twitter:image" content="{{ asset('resources/images/safarichat-og.png') }}" />
+
+        {{-- Canonical URL --}}
+        <link rel="canonical" href="{{ url()->current() }}" />
 
         <!-- CSRF Token -->
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -23,7 +41,7 @@
         </script>
         
          <script src="{{ asset(ROOT.'assets/js/jquery.min.js')}}"></script>
-        <title>{{ config('app.name', 'SafariChat') }}</title>
+        <title>{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM for African Businesses</title>
 
         <!-- Scripts -->
         <!--<script src="{{ asset(ROOT.'js/app.js') }}" defer></script>-->
