@@ -393,5 +393,73 @@ Keep the momentum going:
 You've got this! 💪
 MSG,
 
-];
+    // ── Onboarding nudge: user registered but WhatsApp not yet connected ───────
 
+    'onboarding_connect_day1' => <<<MSG
+👋 *Hi {{business_name}} — one small step left!*
+
+You signed up for SafariChat but your WhatsApp number isn't connected yet.
+
+Without it your AI agent can't respond to customers
+and you're missing every inbound message right now.
+
+Connecting takes *under 2 minutes:*
+1️⃣ Open your dashboard: *{{connect_link}}*
+2️⃣ Click *"Connect WhatsApp"*
+3️⃣ Scan the QR code with your phone — done!
+
+Your AI agent goes live the moment you connect. 🚀
+MSG,
+
+    'onboarding_connect_day3' => <<<MSG
+⏰ *{{business_name}} — your AI agent is still waiting*
+
+3 days since you signed up, and WhatsApp still isn't connected.
+
+Every day without it means missed customer messages and leads going cold.
+
+Here is exactly what to do *right now* (takes 2 minutes):
+1️⃣ Click: *{{connect_link}}*
+2️⃣ Click *"Connect WhatsApp"*
+3️⃣ Scan the QR code
+
+That's it — your AI handles every reply automatically after that. 💪
+
+Stuck? Reply *"Help"* and we'll walk you through it.
+MSG,
+
+    'onboarding_connect_day7' => <<<MSG
+🚨 *One last nudge, {{business_name}}*
+
+7 days in and WhatsApp still isn't connected to SafariChat.
+
+Your AI agent is set up, your account is ready — you're just missing one step.
+
+👉 *Connect now in 2 minutes:*
+{{connect_link}}
+
+Once connected, your AI responds to every customer automatically — 24/7, while you sleep.
+
+Reply *"Help"* if you need assistance — we're here.
+MSG,
+
+    // ── Zero-activity encouragement (sent instead of a bare zero-report) ────────
+
+    'usage_report_zero' => <<<MSG
+📭 *No conversations today — {{business_name}}*
+📅 {{today_date}}
+
+Your AI agent was on standby all day — no customer messages came in yet.
+
+That's okay! Here are *3 quick ways to get your first message today:*
+
+📲 Share your WhatsApp number with customers — word of mouth is fastest
+📌 Add your WhatsApp link to your social media bios
+✅ Make sure your AI agent is turned ON in the dashboard
+
+👉 *{{dashboard_link}}*
+
+Your next customer could be one share away. Keep going! 💪
+MSG,
+
+];

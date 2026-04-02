@@ -44,6 +44,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendCsUsageMonitorCommand::class,
         // Customer Success Phase 5 — churn prevention
         Commands\SendCsInactivityMonitorCommand::class,
+        // Customer Success Phase 6 — onboarding (no WhatsApp connected)
+        Commands\SendCsOnboardingNudgeCommand::class,
         // Billing — enforce subscription expiry and mark expired accounts
         Commands\EnforceSubscriptionExpiry::class,
     ];
@@ -247,6 +249,20 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'CS inactivity monitor failed', 'error');
+            });
+
+        // Phase 6 — Onboarding nudge for users who never connected WhatsApp (10:00 EAT)
+        $schedule->command('cs:onboarding-nudge')
+            ->dailyAt('10:00')
+            ->timezone('Africa/Nairobi')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-onboarding-nudge.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS onboarding nudge completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS onboarding nudge failed', 'error');
             });
     }
 

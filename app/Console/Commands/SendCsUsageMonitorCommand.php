@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\CsDailySnapshot;
 use App\Models\CsMessageLog;
 use App\Models\User;
+use App\Models\WhatsappInstance;
 use App\Services\CustomerSuccess\CsMessageRenderer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -53,8 +54,9 @@ class SendCsUsageMonitorCommand extends Command
                 continue;
             }
 
-            // ── Dedup: one report per business per 20 hours ─────────────────
-            if (CsMessageLog::alreadySent($user->id, 'usage_report', hours: 20)) {
+            // ── Dedup: one report (either variant) per business per 20 hours ────────
+            if (CsMessageLog::alreadySent($user->id, 'usage_report', hours: 20)
+                || CsMessageLog::alreadySent($user->id, 'usage_report_zero', hours: 20)) {
                 $this->line(sprintf('  [SKIP] userId=%d %s — already sent today', $user->id, $user->email));
                 $skipped++;
                 continue;
@@ -73,7 +75,49 @@ class SendCsUsageMonitorCommand extends Command
                 continue;
             }
 
-            // ── Billing details ─────────────────────────────────────────────
+            // ── Zero-activity branch ─────────────────────────────────────────────
+            $isZeroDay = $snapshot->total_conversations === 0
+                && $snapshot->new_prospects === 0
+                && $snapshot->active_leads === 0
+                && $snapshot->converted === 0;
+
+            if ($isZeroDay) {
+                // Only nudge if WhatsApp IS connected — no-WhatsApp users handled by
+                // the cs:onboarding-nudge command.
+                $hasConnected = WhatsappInstance::where('user_id', $user->id)
+                    ->whereIn('status', ['connected', 'active'])
+                    ->exists();
+
+                if (! $hasConnected) {
+                    $this->line(sprintf('  [SKIP-NO-WA] userId=%d %s — no connected instance', $user->id, $user->email));
+                    $skipped++;
+                    continue;
+                }
+
+                $zeroVars = [
+                    'business_name'  => $business->name ?? $user->name,
+                    'today_date'     => $now->format('d M Y'),
+                    'dashboard_link' => config('app.url') . '/dashboard',
+                ];
+
+                if ($isDry) {
+                    $this->line(sprintf('  [DRY-ZERO] userId=%-6d %-30s — would send usage_report_zero', $user->id, $business->name));
+                    $sent++;
+                    continue;
+                }
+
+                $ok = $renderer->send($user, 'usage_report_zero', $zeroVars, $business->id);
+                if ($ok) {
+                    $this->line(sprintf('  [ZERO-OK] userId=%d %s', $user->id, $user->email));
+                    $sent++;
+                } else {
+                    Log::warning('cs:usage-monitor: zero-activity nudge failed', ['user_id' => $user->id]);
+                    $skipped++;
+                }
+                continue;
+            }
+
+            // ── Normal performance report ────────────────────────────────────────
             $planName      = ucfirst($billingAccount->subscription_plan ?? 'trial');
             $creditBalance = number_format((int) ($billingAccount->ai_credits ?? 0));
 

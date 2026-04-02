@@ -389,5 +389,74 @@ Endelea na kasi:
 Unaweza! 💪
 MSG,
 
+    // ── Kidokezo cha kuunganisha: mtumiaji alisajili lakini WhatsApp bado haijaunganishwa ──
+
+    'onboarding_connect_day1' => <<<MSG
+👋 *Habari {{business_name}} — hatua moja ndogo imebaki!*
+
+Umejisajili kwa SafariChat lakini nambari yako ya WhatsApp bado haijaunganishwa.
+
+Bila kuunganisha, wakala wako wa AI hawezi kujibu wateja
+na unakosa kila ujumbe unaoingia sasa hivi.
+
+Kuunganisha kunachukua *chini ya dakika 2:*
+1️⃣ Fungua dashibodi yako: *{{connect_link}}*
+2️⃣ Bonyeza *"Unganisha WhatsApp"*
+3️⃣ Scan msimbo wa QR na simu yako — tayari!
+
+Wakala wako wa AI atawaka mara moja ukiunganisha. 🚀
+MSG,
+
+    'onboarding_connect_day3' => <<<MSG
+⏰ *{{business_name}} — wakala wako wa AI bado anasubiri*
+
+Siku 3 tangu usajili wako, na WhatsApp bado haijaunganishwa.
+
+Kila siku bila kuunganisha maana yake ujumbe wa wateja uliokosekana na wateja waliovukia.
+
+Hapa kuna unapaswa kufanya *saa hii* (inachukua dakika 2):
+1️⃣ Bonyeza: *{{connect_link}}*
+2️⃣ Bonyeza *"Unganisha WhatsApp"*
+3️⃣ Scan msimbo wa QR
+
+Baada ya hapo — wakala wako wa AI atashughulikia kila majibu kiotomatiki. 💪
+
+Umekwama? Jibu *"Msaada"* nasi tutakuongoza.
+MSG,
+
+    'onboarding_connect_day7' => <<<MSG
+🚨 *Kumbusho la mwisho, {{business_name}}*
+
+Siku 7 zimepita na WhatsApp bado haijaunganishwa na SafariChat.
+
+Wakala wako wa AI yuko tayari, akaunti yako ipo — unahitaji hatua moja tu.
+
+👉 *Unganisha sasa ndani ya dakika 2:*
+{{connect_link}}
+
+Ukiunganisha, AI yako itajibu kila mteja kiotomatiki — masaa 24/7, hata unapokuwa umelala.
+
+Jibu *"Msaada"* ukihitaji usaidizi — tuko hapa.
+MSG,
+
+    // ── Kidokezo cha siku ya shughuli sifuri (badala ya ripoti tupu) ──────────────
+
+    'usage_report_zero' => <<<MSG
+📭 *Hakuna mazungumzo leo — {{business_name}}*
+📅 {{today_date}}
+
+Wakala wako wa AI alikuwa tayari leo yote — lakini hakuna ujumbe wa wateja ulioingia bado.
+
+Sawa! Hapa kuna *njia 3 za haraka za kupata ujumbe wako wa kwanza leo:*
+
+📲 Shiriki nambari yako ya WhatsApp na wateja — mdomo kwa mdomo ni haraka zaidi
+📌 Ongeza kiungo cha WhatsApp yako kwenye maelezo ya mitandao ya kijamii
+✅ Hakikisha wakala wako wa AI amewashwa kwenye dashibodi
+
+👉 *{{dashboard_link}}*
+
+Mteja wako wa pili anaweza kuwa kwa kugawana moja. Endelea! 💪
+MSG,
+
 ];
 
