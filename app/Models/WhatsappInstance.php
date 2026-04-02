@@ -350,7 +350,7 @@ class WhatsappInstance extends Model
     {
         return static::where('is_system_default', true)
             ->where('usage_scope', 'system')
-            ->where('status', 'active') // Use 'status' instead of 'is_active'
+            ->where('status', 'connected') // Use 'status' instead of 'is_active'
             ->first();
     }
     
