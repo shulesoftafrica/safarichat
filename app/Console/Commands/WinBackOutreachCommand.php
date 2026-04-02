@@ -188,16 +188,15 @@ class WinBackOutreachCommand extends Command
                 // Create conversation record for tracking
                 Conversation::create([
                     'lead_id' => $lead->id,
-                    'conversation_stage' => 'WIN_BACK',
+                    'conversation_state' => 'WIN_BACK',
                     'status' => Conversation::STATUS_ACTIVE,
                     'priority' => 6,
-                    'message_content' => $message,  // Add required field
-                    'last_message_content' => $message,
-                    'metadata' => json_encode([
+                    'message_content' => $message,
+                    'ai_metadata' => [
                         'strategy' => $strategy,
                         'agent_id' => $agent->id,
                         'campaign_type' => 'win_back'
-                    ])
+                    ]
                 ]);
 
                 return true;
@@ -232,14 +231,14 @@ class WinBackOutreachCommand extends Command
             ->get();
             
         $totalConversations = $conversations->count();
-        $lastConversationStage = $conversations->first()?->conversation_stage ?? 'UNKNOWN';
+        $lastConversationStage = $conversations->first()?->conversation_state ?? 'UNKNOWN';
         
         // Analyze conversation patterns
-        $hadDeepEngagement = $conversations->where('conversation_stage', 'NEGOTIATING')->count() > 0
-            || $conversations->where('conversation_stage', 'PROPOSAL_SENT')->count() > 0;
+        $hadDeepEngagement = $conversations->where('conversation_state', 'NEGOTIATING')->count() > 0
+            || $conversations->where('conversation_state', 'PROPOSAL_SENT')->count() > 0;
             
-        $showedHighInterest = $conversations->where('conversation_stage', 'INTERESTED')->count() > 2
-            || $conversations->where('conversation_stage', 'DEMO_REQUESTED')->count() > 0;
+        $showedHighInterest = $conversations->where('conversation_state', 'INTERESTED')->count() > 2
+            || $conversations->where('conversation_state', 'DEMO_REQUESTED')->count() > 0;
             
         $wasCloseToDeal = in_array($lastConversationStage, ['NEGOTIATING', 'PROPOSAL_SENT', 'DEMO_SCHEDULED']);
         
@@ -327,7 +326,7 @@ class WinBackOutreachCommand extends Command
         
         foreach ($recentConversations as $conv) {
             $conversationSummary[] = [
-                'stage' => $conv->conversation_stage,
+                'stage' => $conv->conversation_state,
                 'date' => $conv->updated_at->diffForHumans(),
                 'messages_count' => $conv->messages()->count()
             ];
@@ -365,7 +364,7 @@ class WinBackOutreachCommand extends Command
             'previous_interests' => $lead->interests ?? [],
             'strategy' => $strategy,
             'winback_attempts' => $lead->winback_attempts ?? 0,
-            'last_conversation_stage' => $recentConversations->first()?->conversation_stage,
+            'last_conversation_stage' => $recentConversations->first()?->conversation_state,
             'conversation_history' => $conversationSummary,
             'last_topics' => $lastTopics,
             'engagement_level' => $engagementLevel,
@@ -698,9 +697,7 @@ class WinBackOutreachCommand extends Command
             return 'NO_ENGAGEMENT';
         }
         
-        $lastStage = $conversations->first()->conversation_state ?? 
-                     $conversations->first()->conversation_stage ?? 
-                     'INTRO';
+        $lastStage = $conversations->first()->conversation_state ?? 'INTRO';
         
         return $lastStage;
     }

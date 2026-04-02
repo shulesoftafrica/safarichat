@@ -192,21 +192,21 @@ class NoReplyChaseCommand extends Command
 
                 if ($conversation) {
                     $conversation->update([
-                        'last_message_content' => $message,
+                        'last_ai_response' => $message,
                         'updated_at' => now()
                     ]);
                 } else {
                     Conversation::create([
                         'lead_id' => $lead->id,
-                        'conversation_stage' => 'CHASE_FOLLOW_UP',
+                        'conversation_state' => 'CHASE_FOLLOW_UP',
                         'status' => Conversation::STATUS_ACTIVE,
                         'priority' => 5,
-                        'last_message_content' => $message,
-                        'metadata' => json_encode([
+                        'message_content' => $message,
+                        'ai_metadata' => [
                             'strategy' => $strategy,
                             'chase_number' => $chaseCount + 1,
                             'agent_id' => $agent->id
-                        ])
+                        ]
                     ]);
                 }
 
