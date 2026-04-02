@@ -10,14 +10,14 @@
         {{-- Core SEO --}}
         <meta name="author" content="SafariChat" />
         <meta name="robots" content="index, follow" />
-        <meta name="keywords" content="WhatsApp CRM, AI sales agent, WhatsApp business automation, customer followup, lead management, WhatsApp marketing Tanzania, business CRM Africa, AI chatbot WhatsApp, customer success platform, automated WhatsApp replies" />
-        <meta name="description" content="SafariChat — AI-powered WhatsApp CRM for African businesses. Automate customer follow-ups, manage leads, and grow sales with your own WhatsApp AI agent." />
+        <meta name="keywords" content="AI sales agent, WhatsApp CRM, AI chatbot for business, WhatsApp business automation, lead management software, automated customer followup, conversational AI sales, WhatsApp AI assistant, sales automation platform, CRM with AI agent" />
+        <meta name="description" content="SafariChat — your AI sales agent on WhatsApp. Automate follow-ups, qualify leads, and close more deals 24/7 without lifting a finger." />
 
         {{-- Open Graph (Facebook / WhatsApp link previews) --}}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="SafariChat" />
-        <meta property="og:title" content="{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM for African Businesses" />
-        <meta property="og:description" content="Automate customer follow-ups, manage leads, and close more deals with SafariChat's AI-powered WhatsApp CRM." />
+        <meta property="og:title" content="{{ config('app.name', 'SafariChat') }} — AI Sales Agent on WhatsApp" />
+        <meta property="og:description" content="Deploy your own AI sales agent on WhatsApp. Automate follow-ups, qualify leads, and close more deals 24/7 — no coding required." />
         <meta property="og:image" content="{{ asset('resources/images/safarichat-og.png') }}" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
@@ -25,8 +25,8 @@
 
         {{-- Twitter Card --}}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM" />
-        <meta name="twitter:description" content="Automate customer follow-ups, manage leads, and close more deals with SafariChat's AI-powered WhatsApp CRM." />
+        <meta name="twitter:title" content="{{ config('app.name', 'SafariChat') }} — AI Sales Agent on WhatsApp" />
+        <meta name="twitter:description" content="Deploy your own AI sales agent on WhatsApp. Automate follow-ups, qualify leads, and close more deals 24/7 — no coding required." />
         <meta name="twitter:image" content="{{ asset('resources/images/safarichat-og.png') }}" />
 
         {{-- Canonical URL --}}
@@ -41,7 +41,7 @@
         </script>
         
          <script src="{{ asset(ROOT.'assets/js/jquery.min.js')}}"></script>
-        <title>{{ config('app.name', 'SafariChat') }} — AI WhatsApp CRM for African Businesses</title>
+        <title>{{ config('app.name', 'SafariChat') }} — AI Sales Agent on WhatsApp</title>
 
         <!-- Scripts -->
         <!--<script src="{{ asset(ROOT.'js/app.js') }}" defer></script>-->
