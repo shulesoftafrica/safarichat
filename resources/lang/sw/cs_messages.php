@@ -78,6 +78,30 @@ MSG,
 Jibu *RIPOTI* kwa kiungo cha ripoti kamili ya PDF.
 MSG,
 
+    // ── Ripoti ya matumizi ya kila siku (inatumwa mara moja kwa siku kwa biashara) ──
+
+    'usage_report' => <<<MSG
+📈 *Utendaji wa Leo — {{business_name}}*
+📅 {{today_date}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Shughuli za Leo*
+━━━━━━━━━━━━━━━━━━━━━
+💬 Mazungumzo:          {{conversations}}
+👥 Mawasiliano mapya:   {{new_contacts}}
+🔥 Wateja wa kufuatilia: {{active_leads}}
+✅ Mikataba iliyofungwa: {{deals_closed}}
+🔄 Mabadiliko ya hatua: {{stage_changes}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Hali ya Akaunti ya AI*
+━━━━━━━━━━━━━━━━━━━━━
+💳 Mpango:              {{plan_name}}
+⚡ Mikopo iliyobaki:    {{credit_balance}}
+
+Jibu *RIPOTI* kwa muhtasari kamili wa mstari wa mauzo.
+MSG,
+
     'disconnected_alert' => <<<MSG
 🔴 *WhatsApp yako imekatika — SafariChat*
 

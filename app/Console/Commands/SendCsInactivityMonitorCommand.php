@@ -124,7 +124,7 @@ class SendCsInactivityMonitorCommand extends Command
                 $episode = CsInactivityEpisode::openFor($businessId);
                 $episode->update(['tier_reached' => CsInactivityEpisode::TIER_ABANDONED]);
 
-                CsMessageRenderer::send($user, 'inactivity_abandoned', [
+                app(CsMessageRenderer::class)->send($user, 'inactivity_abandoned', [
                     'business_name'  => $businessName,
                     'dashboard_link' => $dashboardLink,
                 ], $businessId);
@@ -169,10 +169,10 @@ class SendCsInactivityMonitorCommand extends Command
             $this->info("Day-3 nudge: business #{$businessId} user #{$user->id}");
 
             if (! $dryRun) {
-                CsMessageRenderer::send($user, 'inactivity_day3', $vars, $businessId);
+                app(CsMessageRenderer::class)->send($user, 'inactivity_day3', $vars, $businessId);
 
                 if ($daysLeft !== null && $daysLeft > 0) {
-                    CsMessageRenderer::send($user, 'inactivity_day3_trial_note', [
+                    app(CsMessageRenderer::class)->send($user, 'inactivity_day3_trial_note', [
                         'days_left' => $daysLeft,
                     ], $businessId);
                 }
@@ -227,7 +227,7 @@ class SendCsInactivityMonitorCommand extends Command
             $this->info("Day-10 win-back ({$templateKey}): business #{$businessId} user #{$user->id}");
 
             if (! $dryRun) {
-                CsMessageRenderer::send($user, $templateKey, $vars, $businessId);
+                app(CsMessageRenderer::class)->send($user, $templateKey, $vars, $businessId);
 
                 $tier = $isTrial ? CsInactivityEpisode::TIER_CHURNED : CsInactivityEpisode::TIER_CHURNED;
                 $episode->update([

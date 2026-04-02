@@ -171,7 +171,7 @@ try {
 # Summary
 Write-Host ""
 Write-Info "Next steps:"
-Write-Host "  • Review logs in: $fullLocalPath"
-Write-Host "  • Check deduplicated logs if generated"
-Write-Host "  • Analyze errors for production issues"
+Write-Host "  - Review logs in: $fullLocalPath"
+Write-Host "  - Check deduplicated logs if generated"
+Write-Host "  - Analyze errors for production issues"
 Write-Host ""

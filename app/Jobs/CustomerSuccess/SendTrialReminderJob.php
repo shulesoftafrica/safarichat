@@ -25,7 +25,7 @@ class SendTrialReminderJob implements ShouldQueue
 
     public function __construct(public readonly int $userId)
     {
-        $this->queue = 'cs';
+        $this->onQueue('cs');
     }
 
     public function handle(CsMessageRenderer $renderer): void

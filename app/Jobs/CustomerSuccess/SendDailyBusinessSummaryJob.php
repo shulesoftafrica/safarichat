@@ -33,7 +33,7 @@ class SendDailyBusinessSummaryJob implements ShouldQueue
         public readonly int $userId,
         public readonly int $businessId,
     ) {
-        $this->queue = 'cs';
+        $this->onQueue('cs');
     }
 
     public function handle(

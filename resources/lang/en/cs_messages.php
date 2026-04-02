@@ -80,6 +80,30 @@ MSG,
 Reply *REPORT* for a full PDF report link.
 MSG,
 
+    // ── Daily usage / performance report (sent once per day per business) ──────
+
+    'usage_report' => <<<MSG
+📈 *Daily Performance — {{business_name}}*
+📅 {{today_date}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Today's Activity*
+━━━━━━━━━━━━━━━━━━━━━
+💬 Conversations:       {{conversations}}
+👥 New contacts:        {{new_contacts}}
+🔥 Active leads:        {{active_leads}}
+✅ Deals closed today:  {{deals_closed}}
+🔄 Stage changes:       {{stage_changes}}
+
+━━━━━━━━━━━━━━━━━━━━━
+*AI Account Status*
+━━━━━━━━━━━━━━━━━━━━━
+💳 Plan:                {{plan_name}}
+⚡ Credits remaining:   {{credit_balance}}
+
+Reply *REPORT* for your full pipeline breakdown.
+MSG,
+
     'disconnected_alert' => <<<MSG
 🔴 *Your WhatsApp is disconnected — SafariChat*
 

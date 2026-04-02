@@ -226,6 +226,71 @@ class CheckWhatsappInstancesCommand extends Command
             $this->warn('Dry run complete — no database changes were made. Remove --dry-run to apply.');
         }
 
+        // ── Step 3b: Reconnect alerts for disconnected instances ─────────────────────────────
+        // For every instance that WaSender reports as disconnected/logged-out, queue a single
+        // WhatsApp alert to the owner asking them to reconnect.  A 12-hour cache throttle per
+        // instance prevents the every-15-min cron from flooding the owner's phone.
+        if (!$dryRun) {
+            $disconnectedInstances = $instances->filter(function ($inst) use ($wasenderSessions) {
+                $raw    = $wasenderSessions->get($inst->instance_id)['status'] ?? '';
+                $status = $this->mapToConnectStatus($raw);
+                return in_array($status, ['disconnected', 'error']);
+            });
+
+            foreach ($disconnectedInstances as $instance) {
+                $cacheKey = 'whatsapp_reconnect_alerted_' . $instance->instance_id;
+
+                if (Cache::has($cacheKey)) {
+                    continue; // already notified within the last 12 hours
+                }
+
+                $user      = $instance->user;
+                $recipient = $user->whatsapp_number ?? $user->phone ?? null;
+
+                if (!$recipient) {
+                    $this->warn("  No phone/whatsapp on user {$user->id} — skipping reconnect alert for instance {$instance->instance_id}");
+                    continue;
+                }
+
+                $phoneSummary = $instance->phone_number ?? "Instance #{$instance->instance_id}";
+                $message = "⚠️ *WhatsApp Disconnected*\n\n"
+                    . "Your WhatsApp number *{$phoneSummary}* has been disconnected from SafariChat.\n\n"
+                    . "Please reconnect by scanning the QR code:\n"
+                    . url('/whatsapp/connect') . "\n\n"
+                    . "Your AI assistant is paused until reconnected.";
+
+                try {
+                    \App\Models\NotificationQueue::create([
+                        'user_id'           => $user->id,
+                        'notification_type' => 'whatsapp',
+                        'category'          => 'critical_alert',
+                        'priority'          => 'urgent',
+                        'recipient'         => $recipient,
+                        'message'           => $message,
+                        'scheduled_for'     => now(),
+                    ]);
+
+                    // Throttle: do not re-alert this instance for 12 hours
+                    Cache::put($cacheKey, true, now()->addHours(12));
+
+                    $this->warn("  Reconnect alert queued for {$user->email} (instance {$instance->instance_id} / {$phoneSummary})");
+
+                    Log::info('WhatsApp reconnect alert queued', [
+                        'instance_id' => $instance->instance_id,
+                        'user_id'     => $user->id,
+                        'phone'       => $phoneSummary,
+                    ]);
+                } catch (Exception $e) {
+                    $this->error("  Failed to queue reconnect alert for instance {$instance->instance_id}: " . $e->getMessage());
+
+                    Log::error('Failed to queue WhatsApp reconnect alert', [
+                        'instance_id' => $instance->instance_id,
+                        'error'       => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         // ── Step 4: Health checks for all currently-connected instances ──────────────────────
         // Runs only for sessions WaSender reports as 'ready'. For each, we verify:
         //   a) The webhook is correctly configured in WaSender (right URL, enabled, all events)
