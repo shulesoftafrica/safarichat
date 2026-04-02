@@ -138,9 +138,13 @@ class NoReplyChaseCommand extends Command
             ->where(function($query) use ($noReplyThreshold) {
                 // No reply received since our last contact
                 $query->whereNull('last_reply_at')
-                    ->orWhere('last_reply_at', '<', \DB::raw('last_contact_at'));
+                    ->orWhereColumn('last_reply_at', '<', 'last_contact_at');
             })
-            ->where('chase_count', '<', $maxChases)
+            ->where(function($query) use ($maxChases) {
+                // NULL chase_count means never chased — treat as 0
+                $query->whereNull('chase_count')
+                    ->orWhere('chase_count', '<', $maxChases);
+            })
             ->where(function($query) {
                 // Don't chase if recently chased
                 $query->whereNull('last_chase_at')
