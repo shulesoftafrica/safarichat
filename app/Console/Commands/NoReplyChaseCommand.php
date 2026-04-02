@@ -311,7 +311,7 @@ class NoReplyChaseCommand extends Command
             'days_since_contact' => $daysSinceContact,
             'chase_number' => $chaseCount + 1,
             'strategy' => $strategy,
-            'last_conversation_stage' => $lastConversation?->conversation_stage,
+            'last_conversation_stage' => $lastConversation?->conversation_state,
             'previous_interests' => $lead->interests ?? [],
             'is_final_attempt' => $chaseCount >= 2
         ];
