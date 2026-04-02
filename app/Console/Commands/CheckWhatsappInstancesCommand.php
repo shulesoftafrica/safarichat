@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\WhatsappInstance;
+use App\Services\SystemWhatsAppService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -253,37 +254,44 @@ class CheckWhatsappInstancesCommand extends Command
                 }
 
                 $phoneSummary = $instance->phone_number ?? "Instance #{$instance->instance_id}";
-                $message = "⚠️ *WhatsApp Disconnected*\n\n"
+                $message = "⚠️ *WhatsApp Disconnected — SafariChat*\n\n"
                     . "Your WhatsApp number *{$phoneSummary}* has been disconnected from SafariChat.\n\n"
-                    . "Please reconnect by scanning the QR code:\n"
+                    . "Your AI sales assistant is currently offline. Customers messaging you are receiving no replies.\n\n"
+                    . "👉 Reconnect now (takes less than 1 minute):\n"
                     . url('/whatsapp/connect') . "\n\n"
-                    . "Your AI assistant is paused until reconnected.";
+                    . "Go to Settings → WhatsApp → Scan QR Code.";
 
                 try {
-                    \App\Models\NotificationQueue::create([
-                        'user_id'           => $user->id,
-                        'notification_type' => 'whatsapp',
-                        'category'          => 'critical_alert',
-                        'priority'          => 'urgent',
-                        'recipient'         => $recipient,
-                        'message'           => $message,
-                        'scheduled_for'     => now(),
-                    ]);
+                    // Send via the SYSTEM WhatsApp instance, not the user's own (which is disconnected).
+                    // Using the user's disconnected session would always fail.
+                    $systemWa = app(SystemWhatsAppService::class);
+                    $sent     = $systemWa->sendGenericMessage($recipient, $message, 'cs_disconnected_alert');
 
-                    // Throttle: do not re-alert this instance for 12 hours
-                    Cache::put($cacheKey, true, now()->addHours(12));
+                    if ($sent) {
+                        // Throttle: do not re-alert this instance for 12 hours
+                        Cache::put($cacheKey, true, now()->addHours(12));
 
-                    $this->warn("  Reconnect alert queued for {$user->email} (instance {$instance->instance_id} / {$phoneSummary})");
+                        $this->warn("  Reconnect alert sent to {$user->email} / {$recipient} (instance {$instance->instance_id} / {$phoneSummary})");
 
-                    Log::info('WhatsApp reconnect alert queued', [
-                        'instance_id' => $instance->instance_id,
-                        'user_id'     => $user->id,
-                        'phone'       => $phoneSummary,
-                    ]);
+                        Log::info('WhatsApp reconnect alert sent via system WA', [
+                            'instance_id' => $instance->instance_id,
+                            'user_id'     => $user->id,
+                            'recipient'   => $recipient,
+                            'phone'       => $phoneSummary,
+                        ]);
+                    } else {
+                        $this->error("  Reconnect alert FAILED for instance {$instance->instance_id} — system WhatsApp could not send to {$recipient}");
+
+                        Log::warning('WhatsApp reconnect alert failed to send', [
+                            'instance_id' => $instance->instance_id,
+                            'user_id'     => $user->id,
+                            'recipient'   => $recipient,
+                        ]);
+                    }
                 } catch (Exception $e) {
-                    $this->error("  Failed to queue reconnect alert for instance {$instance->instance_id}: " . $e->getMessage());
+                    $this->error("  Exception sending reconnect alert for instance {$instance->instance_id}: " . $e->getMessage());
 
-                    Log::error('Failed to queue WhatsApp reconnect alert', [
+                    Log::error('Exception sending WhatsApp reconnect alert', [
                         'instance_id' => $instance->instance_id,
                         'error'       => $e->getMessage(),
                     ]);
