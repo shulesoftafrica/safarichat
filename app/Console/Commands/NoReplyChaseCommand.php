@@ -172,8 +172,8 @@ class NoReplyChaseCommand extends Command
                 return true;
             }
 
-            // Send chase message
-            $result = $this->aiWhatsAppService->sendChaseMessage($lead, $message, $agent, $strategy);
+            // Send chase message via the standard outreach channel
+            $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent);
 
             if ($result['success']) {
                 // Update lead tracking
@@ -260,11 +260,27 @@ class NoReplyChaseCommand extends Command
         try {
             // Build context for message generation
             $context = $this->buildChaseContext($lead, $strategy, $chaseCount);
-            
-            // Generate AI-powered chase message
-            $response = $this->openAiService->generateChaseMessage($lead, $strategy, $context);
 
-            return $response['message_text'] ?? $this->getFallbackChaseMessage($lead, $strategy, $chaseCount);
+            // Craft an instruction prompt for the sales AI
+            $prompt = "Generate a short, friendly WhatsApp follow-up message for a lead who hasn't replied. "
+                . "Strategy: {$strategy}. Chase attempt #{$context['chase_number']}. "
+                . "Lead name: {$context['lead_name']}. "
+                . "Days since last contact: {$context['days_since_contact']}. "
+                . "Keep it under 3 sentences. Be warm and conversational.";
+
+            // Generate AI-powered chase message via the standard sales-response API
+            $response = $this->openAiService->generateSalesResponse(
+                $prompt,
+                $agent,
+                $lead,
+                [],   // no prior conversation history needed for a chase
+                null, // no specific product context
+                null  // no specific WhatsApp instance context
+            );
+
+            return ($response['success'] ?? false)
+                ? ($response['response'] ?? $this->getFallbackChaseMessage($lead, $strategy, $chaseCount))
+                : $this->getFallbackChaseMessage($lead, $strategy, $chaseCount);
 
         } catch (\Exception $e) {
             Log::error('Chase message generation error', [
