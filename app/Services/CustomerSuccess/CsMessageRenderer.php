@@ -64,7 +64,10 @@ class CsMessageRenderer
             return false;
         }
 
-        $sent = $this->systemWhatsApp->sendGenericMessage($phone, $message, 'cs_' . $type);
+        // Use 'system_notification' as the WA message-type so the system instance's
+        // allowed_message_types check passes. The CS template identity ($type) is
+        // recorded separately in CsMessageLog below.
+        $sent = $this->systemWhatsApp->sendGenericMessage($phone, $message, 'system_notification');
 
         if ($sent) {
             CsMessageLog::record(
