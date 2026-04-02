@@ -679,6 +679,13 @@ class BillingController extends Controller
             'new_plan' => $planCode,
             'feature_requested' => $feature
         ]);
+
+        // CS events — send WhatsApp confirmation based on whether this is first-time activation or an upgrade
+        if ($currentPlan === 'trial') {
+            \App\Events\SubscriptionActivated::dispatch($user, $planCode);
+        } else {
+            \App\Events\SubscriptionUpgraded::dispatch($user, $currentPlan, $planCode);
+        }
     }
 
     /**

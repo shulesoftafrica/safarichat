@@ -932,7 +932,10 @@ class BillingApiController extends Controller
                 'credits_added' => $credits,
                 'new_balance' => $newBalance
             ]);
-            
+
+            // CS event — WhatsApp credit-confirmation message to user
+            \App\Events\CreditsAdded::dispatch($user, (int) $credits, (int) $newBalance);
+
             return response()->json([
                 'success' => true,
                 'message' => "Successfully added {$credits} AI credits!",

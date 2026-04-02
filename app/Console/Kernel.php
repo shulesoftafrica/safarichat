@@ -46,6 +46,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendCsInactivityMonitorCommand::class,
         // Customer Success Phase 6 — onboarding (no WhatsApp connected)
         Commands\SendCsOnboardingNudgeCommand::class,
+        // Customer Success Phase 7 — credit & usage-limit alerts
+        Commands\SendCsCreditMonitorCommand::class,
         // Billing — enforce subscription expiry and mark expired accounts
         Commands\EnforceSubscriptionExpiry::class,
     ];
@@ -263,6 +265,19 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'CS onboarding nudge failed', 'error');
+            });
+
+        // Phase 7 — Credit & usage-limit alert dispatcher (runs hourly)
+        $schedule->command('cs:credit-monitor')
+            ->hourly()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cs-credit-monitor.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'CS credit monitor completed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'CS credit monitor failed', 'error');
             });
     }
 
