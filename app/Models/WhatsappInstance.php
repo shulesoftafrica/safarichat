@@ -219,39 +219,27 @@ class WhatsappInstance extends Model
 
     /**
      * Scope: non-system user instances that are fully operational.
-     * BOTH columns must confirm connectivity — if either says disconnected,
-     * the instance is down (connect_status=ready with status=disconnected is
-     * a stale/contradictory state and must be treated as non-operational).
-     * NULL connect_status is treated as "not yet synced" — trust status alone.
+     * An instance is operational when EITHER the status column OR the
+     * connect_status column confirms connectivity — because the two columns
+     * are updated by different code paths and can temporarily disagree.
      */
     public function scopeOperational($query)
     {
         return $query->where('is_system_default', false)
-            ->whereIn('status', ['connected', 'active'])
             ->where(function ($q) {
-                $q->whereNull('connect_status')
+                $q->whereIn('status', ['connected', 'active'])
                   ->orWhere('connect_status', 'ready');
             });
     }
 
     /**
      * Instance-level check: is this instance operational?
-     * Mirrors scopeOperational logic for use on already-loaded collections.
-     * Rule: status must be connected/active AND connect_status must be ready
-     *       (or null = not yet reported, trust the status column).
+     * Mirrors the scopeOperational logic but works on a loaded model.
      */
     public function isOperational(): bool
     {
-        // Primary indicator: status must be connected or active
-        if (!in_array($this->status, ['connected', 'active'])) {
-            return false;
-        }
-        // Secondary indicator: if connect_status IS set it must be 'ready'
-        // (null means not yet synced — we trust the status column in that case)
-        if ($this->connect_status !== null && $this->connect_status !== 'ready') {
-            return false;
-        }
-        return true;
+        return in_array($this->status, ['connected', 'active'])
+            || $this->connect_status === 'ready';
     }
 
     /**
