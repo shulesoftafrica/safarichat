@@ -364,8 +364,18 @@ class WhatsappInstance extends Model
         if ($this->usage_scope === 'user') {
             return true; // User instances can send any message
         }
-        
-        return in_array($messageType, json_decode($this->allowed_message_types, true) ?? []);
+
+        // allowed_message_types is cast as 'array' — already decoded by Eloquent.
+        // Do NOT wrap in json_decode() or it double-decodes to null.
+        $allowed = $this->allowed_message_types;
+
+        // Null column = system instance was created before the column was populated.
+        // Default to allowing all known system message types rather than blocking everything.
+        if (empty($allowed)) {
+            return in_array($messageType, array_keys(self::getSystemMessageTypes()));
+        }
+
+        return in_array($messageType, $allowed);
     }
     
     /**
