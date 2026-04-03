@@ -24,26 +24,26 @@ class CheckWhatsAppSetup
         $user = Auth::user();
 
         // Skip check for WhatsApp setup pages and auth pages
+        // 'wasender*' covers the index page, QR, session-status, verify, cleanup, disconnect
         $allowedPaths = [
+            'wasender*',
             'auth/business/wasender',
-            'wasender/create-session',
-            'wasender/session-status',
-            'wasender/verify-connection',
-            'wasender/cleanup-session',
             'logout',
             'lang',
-            'home/settings'  // Allow settings access for configuration
+            'home/settings',
         ];
 
         foreach ($allowedPaths as $path) {
-            if ($request->is($path) || $request->is($path . '/*')) {
+            if ($request->is($path)) {
                 return $next($request);
             }
         }
 
-        // Check if user has connected WhatsApp instance
+        // Check if user has a connected WhatsApp instance.
+        // Accept both 'connected' and 'active' — seeder seeds with 'active',
+        // and some older rows use 'active' before going through the WaSender flow.
         $hasConnectedWhatsApp = $user->whatsappInstances()
-            ->where('status', 'connected')
+            ->whereIn('status', ['connected', 'active'])
             ->exists();
 
         if (!$hasConnectedWhatsApp) {

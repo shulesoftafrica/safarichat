@@ -72,7 +72,6 @@ Route::get('/api/demo-templates', [App\Http\Controllers\Api\LandingApiController
 Route::post('/api/track-interaction', [App\Http\Controllers\Api\LandingApiController::class, 'trackInteraction']);
 
 // Original routes (keeping for existing functionality)
-Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard')->middleware('onboarding.complete');
 Route::get('/terms', function() { return view('auth.termsandconditions'); });
 Route::get('/terms/use', function() { return view('auth.termsandconditions'); });
 
@@ -153,7 +152,7 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
 
 
 Route::get('/home', [App\Http\Controllers\Home::class, 'index'])->name('home')->middleware(['auth', 'whatsapp.setup']);
-Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->middleware(['auth', 'whatsapp.setup']);
+Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('dashboard')->middleware(['auth', 'whatsapp.setup']);
 // Support system removed - use external support tools
 
 // Guest management routes
