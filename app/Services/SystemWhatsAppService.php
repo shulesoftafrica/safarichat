@@ -237,11 +237,20 @@ class SystemWhatsAppService
     public function sendGenericMessage(string $phoneNumber, string $message, string $messageType = 'system_notification'): bool
     {
         if (!$this->systemInstance) {
+            Log::error('SystemWhatsAppService: no system instance found — check is_system_default + status in DB', [
+                'phone'        => $phoneNumber,
+                'message_type' => $messageType,
+            ]);
             return false;
         }
 
-       
         if (!$this->systemInstance->canSendMessageType($messageType)) {
+            Log::error('SystemWhatsAppService: system instance does not allow message type', [
+                'phone'                 => $phoneNumber,
+                'message_type'          => $messageType,
+                'instance_id'           => $this->systemInstance->id,
+                'allowed_message_types' => $this->systemInstance->allowed_message_types,
+            ]);
             return false;
         }
 

@@ -348,9 +348,11 @@ class WhatsappInstance extends Model
      */
     public static function getSystemDefault(): ?WhatsappInstance
     {
+        // Accept both 'connected' and 'active' — the seeder seeds with 'active',
+        // and system instances don't go through WaSender connection flow.
         return static::where('is_system_default', true)
             ->where('usage_scope', 'system')
-            ->where('status', 'connected') // Use 'status' instead of 'is_active'
+            ->whereIn('status', ['connected', 'active'])
             ->first();
     }
     
