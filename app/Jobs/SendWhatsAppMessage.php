@@ -164,15 +164,83 @@ class SendWhatsAppMessage implements ShouldQueue
      */
     public function failed(\Throwable $exception)
     {
+        $errorMessage = $exception->getMessage();
+        $reason       = $this->categorizeFailure($errorMessage);
+        $retryable    = $this->isRetryableFailure($reason);
+
         Log::error('WhatsApp message job failed permanently', [
-            'phone' => $this->phoneNumber,
-            'user_id' => $this->userId,
-            'error' => $exception->getMessage(),
-            'attempts' => $this->attempts()
+            'phone'          => $this->phoneNumber,
+            'user_id'        => $this->userId,
+            'error'          => $errorMessage,
+            'failure_reason' => $reason,
+            'retryable'      => $retryable,
+            'attempts'       => $this->attempts()
         ]);
 
-        // Send notification to admin about permanent failure
-        // You can implement admin notification here
+        // Write failure metadata so the retry command can make smart decisions
+        $record = $this->outgoingMessageId
+            ? OutgoingMessage::find($this->outgoingMessageId)
+            : null;
+
+        if ($record) {
+            $record->update([
+                'status'         => 'failed',
+                'failure_reason' => $reason,
+                'retryable'      => $retryable,
+                'error_message'  => $errorMessage,
+                'last_retry_at'  => now(),
+                'retry_count'    => ($record->retry_count ?? 0) + 1,
+            ]);
+        }
+    }
+
+    /**
+     * Map an exception message to a categorized failure reason.
+     * Used by the retry command to decide whether/when to re-queue.
+     */
+    private function categorizeFailure(string $error): string
+    {
+        $lower = strtolower($error);
+
+        if (str_contains($lower, 'no active whatsapp session') ||
+            str_contains($lower, 'session not found') ||
+            str_contains($lower, 'disconnected')) {
+            return 'instance_disconnected';
+        }
+
+        if (str_contains($lower, 'expired') ||
+            str_contains($lower, 'subscription') ||
+            str_contains($lower, 'plan')) {
+            return 'instance_expired';
+        }
+
+        if (str_contains($lower, '429') ||
+            str_contains($lower, 'rate limit') ||
+            str_contains($lower, 'too many requests')) {
+            return 'rate_limited';
+        }
+
+        if (str_contains($lower, 'invalid number') ||
+            str_contains($lower, 'not a whatsapp')) {
+            return 'invalid_number';
+        }
+
+        if (str_contains($lower, 'no whatsapp instance found') ||
+            str_contains($lower, 'no valid') ||
+            str_contains($lower, 'orphaned') ||
+            str_contains($lower, 'has no uuid')) {
+            return 'bug';
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * Permanent failures that must never be automatically re-queued.
+     */
+    private function isRetryableFailure(string $reason): bool
+    {
+        return $reason !== 'invalid_number';
     }
 
     /**

@@ -50,6 +50,8 @@ class Kernel extends ConsoleKernel {
         Commands\SendCsCreditMonitorCommand::class,
         // Billing — enforce subscription expiry and mark expired accounts
         Commands\EnforceSubscriptionExpiry::class,
+        // Smart retry — re-queue categorised failed outgoing messages
+        Commands\RetryFailedMessagesCommand::class,
     ];
     public $emails;
 
@@ -136,6 +138,14 @@ class Kernel extends ConsoleKernel {
             ->onFailure(function () {
                 $this->logCronActivity(null, 'WhatsApp instances check failed', 'error');
             });
+
+        // Retry categorised failed outgoing messages every 15 minutes
+        // Skips instance_disconnected messages whose instance is still offline
+        $schedule->command('messages:retry-failed --limit=100')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/retry-failed-messages.log'));
         
         // Phase 3: Send scheduled campaign messages every minute
         $schedule->command('messages:send-scheduled --limit=100')

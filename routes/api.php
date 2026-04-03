@@ -143,6 +143,7 @@ Route::prefix('crm-auth')->name('api.crm.auth.')->group(function () {
 // Registration Stats (Admin only)
 Route::middleware('auth:sanctum')->prefix('admin')->name('api.admin.')->group(function () {
     Route::get('/registration-stats', [WhatsAppRegistrationController::class, 'getStats'])->name('registration_stats');
+    Route::get('/failed-messages', [\App\Http\Controllers\Api\WaSenderApiController::class, 'failedMessages'])->name('failed_messages');
 });
 
 // API Key Management Routes

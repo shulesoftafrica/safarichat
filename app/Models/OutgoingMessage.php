@@ -39,7 +39,12 @@ class OutgoingMessage extends Model
         'message_queue_id',
         'original_message',
         'is_personalized',
-        'personalization_metadata'
+        'personalization_metadata',
+        // Failure tracking (retry system)
+        'failure_reason',
+        'retryable',
+        'last_retry_at',
+        'max_retries',
     ];
 
     protected $casts = [
@@ -47,6 +52,9 @@ class OutgoingMessage extends Model
         'is_system_message' => 'boolean',
         'scheduled_at' => 'datetime',
         'queued_at' => 'datetime',
+        'last_retry_at' => 'datetime',
+        'retryable' => 'boolean',
+        'max_retries' => 'integer',
         'is_personalized' => 'boolean',
         'personalization_metadata' => 'array'
     ];

@@ -1773,6 +1773,13 @@ class WaSenderController extends Controller
             'connected_at' => now(),
         ]);
 
+        // Re-queue any messages that failed because this instance was disconnected
+        \Artisan::queue('messages:retry-failed', [
+            '--reason' => 'instance_disconnected',
+            '--user'   => (string) $instance->user_id,
+            '--limit'  => '100',
+        ]);
+
         // Create default AI sales agent if none exists
         if ($instance->user && !$instance->user->aiSalesAgents()->exists()) {
             $this->createDefaultAiAgent($instance->user);

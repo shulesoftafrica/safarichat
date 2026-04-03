@@ -504,4 +504,52 @@ class WaSenderApiController extends Controller
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
         return 'Contact ' . substr($cleanPhone, -4); // Use last 4 digits
     }
+
+    /**
+     * Admin — summary + recent list of failed outgoing messages.
+     *
+     * GET /api/admin/failed-messages
+     * Optional query params: ?reason=instance_disconnected&user_id=123&limit=50
+     */
+    public function failedMessages(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $reason = $request->query('reason');
+        $userId = $request->query('user_id');
+        $limit  = min((int) ($request->query('limit', 50)), 200);
+
+        // Grouped breakdown — how many failed per reason / retryable flag
+        $breakdown = \App\Models\OutgoingMessage::where('status', 'failed')
+            ->select('failure_reason', 'retryable',
+                     \DB::raw('COUNT(*) as total'),
+                     \DB::raw('MAX(created_at) as latest'),
+                     \DB::raw('SUM(retry_count) as total_retries'))
+            ->groupBy('failure_reason', 'retryable')
+            ->orderByDesc('total')
+            ->get();
+
+        // Recent individual records
+        $query = \App\Models\OutgoingMessage::where('status', 'failed')
+            ->orderByDesc('created_at')
+            ->limit($limit);
+
+        if ($reason) {
+            $query->where('failure_reason', $reason);
+        }
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $records = $query->get([
+            'id', 'user_id', 'phone_number', 'message_type',
+            'failure_reason', 'retryable', 'retry_count', 'max_retries',
+            'last_retry_at', 'created_at',
+        ]);
+
+        return response()->json([
+            'success'    => true,
+            'breakdown'  => $breakdown,
+            'records'    => $records,
+            'filters'    => compact('reason', 'userId', 'limit'),
+        ]);
+    }
 }
