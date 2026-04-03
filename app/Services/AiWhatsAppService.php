@@ -957,19 +957,29 @@ class AiWhatsAppService
 
             // Create outgoing message record
             $outgoingMessage = OutgoingMessage::create([
+                'user_id'      => $lead->user_id,
                 'phone_number' => $phoneNumber,
-                'message' => $messageText,
-                'status' => 'pending',
+                'message'      => $messageText,
+                'status'       => 'pending',
                 'message_type' => 'text',
-                'priority' => $priority
+                'priority'     => $priority
             ]);
+
+            // Resolve the lead owner's WhatsApp instance so WaSenderService can build
+            // the correct schema_name (users.uuid) instead of falling through to the
+            // config fallback (safarichat_default / shulesoft).
+            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $lead->user_id)
+                ->where('is_primary', true)
+                ->first()
+                ?? \App\Models\WhatsappInstance::where('user_id', $lead->user_id)->first();
 
             // Send via WhatsApp using WaSenderService
             $sendResult = $this->waSenderService->sendMessage(
                 $phoneNumber,
                 $messageText,
                 [], // options
-                $conversation->whatsapp_instance // instance
+                $whatsappInstance, // resolved from lead owner
+                $lead->user_id     // always pass userId as safety fallback
             );
 
             if ($sendResult['success']) {
