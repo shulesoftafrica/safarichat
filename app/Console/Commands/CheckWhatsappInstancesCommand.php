@@ -265,7 +265,8 @@ class CheckWhatsappInstancesCommand extends Command
                     // Send via the SYSTEM WhatsApp instance, not the user's own (which is disconnected).
                     // Using the user's disconnected session would always fail.
                     $systemWa = app(SystemWhatsAppService::class);
-                    $sent     = $systemWa->sendGenericMessage($recipient, $message, 'cs_disconnected_alert');
+                    // Must use an allowed_message_types value — 'cs_*' types are not in that list.
+                    $sent     = $systemWa->sendGenericMessage($recipient, $message, 'system_notification');
 
                     if ($sent) {
                         // Throttle: do not re-alert this instance for 12 hours
