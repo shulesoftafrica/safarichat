@@ -34,15 +34,18 @@ class SmartFollowupService
                 Log::info('Smart followup: Skipped due to outside business hours (' . $now->format('H:i') . ')');
                 return;
             }
-            // Get leads that are NOT closed and need followup
-            // Include contacts with NO interaction (NULL) OR last interaction > 3 days ago
-            // OR last followup sent > 7 days ago (allow periodic re-engagement)
+            // Get leads that are NOT closed and need followup.
+            // Only fetch leads whose AI agent has auto_followup enabled — filtering here
+            // avoids fetching leads that will always be skipped and never updated.
             $leadsNeedingFollowUp = Lead::whereNotIn('status', [
                                         Lead::STATUS_CLOSED, 
                                         Lead::STATUS_LOST, 
                                         Lead::STATUS_DO_NOT_CONTACT,
                                         Lead::STATUS_CONVERTED
                                     ])
+                                    ->whereHas('aiSalesAgent', function($query) {
+                                        $query->where('auto_followup', true);
+                                    })
                                     ->where(function($query) {
                                         $query->whereNull('last_interaction_at')
                                               ->orWhere('last_interaction_at', '<', now()->subDays(3));
@@ -72,7 +75,11 @@ class SmartFollowupService
                         continue;
                     }
                     
+                    // Safety guard — should never be true thanks to whereHas filter in query,
+                    // but defend against edge cases (agent deleted mid-run, etc.)
                     if (!$lead->aiSalesAgent || !$lead->aiSalesAgent->auto_followup) {
+                        Log::warning("Lead {$lead->id} has no auto_followup agent — stamping follow_up_sent_at to remove from queue");
+                        $lead->update(['follow_up_sent_at' => now()]);
                         $skipCount++;
                         continue;
                     }
@@ -81,7 +88,10 @@ class SmartFollowupService
                     $followupMessage = $this->generatePersonalizedFollowup($lead);
                     
                     if (!$followupMessage) {
-                        Log::warning("Could not generate followup message for lead {$lead->id}");
+                        // Stamp follow_up_sent_at so this lead exits the 7-day window and
+                        // doesn't keep reappearing on every cron tick.
+                        Log::warning("Could not generate followup message for lead {$lead->id} — stamping follow_up_sent_at to suppress for 7 days");
+                        $lead->update(['follow_up_sent_at' => now()]);
                         $skipCount++;
                         continue;
                     }
