@@ -62,8 +62,16 @@ class Home extends Controller
 
           //Check if user has no active whatsapp instance
             $hasWhatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
-            ->where('status', 'connected')
-            ->exists();
+                ->where('status', 'connected')
+                ->exists();
+
+            $hasDisconnectedInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+                ->where('status', 'disconnected')
+                ->exists();
+
+            if ($hasDisconnectedInstance) {
+                $hasWhatsappInstance = false;
+            }
 
             if (!$hasWhatsappInstance) {
                   $this->data['ward'] = Auth::user()->business;
