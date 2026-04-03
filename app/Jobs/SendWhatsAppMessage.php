@@ -98,38 +98,28 @@ class SendWhatsAppMessage implements ShouldQueue
 
             $result = null;
             
-            // Special handling for system messages: Try Meta API first, fallback to Unified API
-            if ($this->isSystemMessage()) {
-                Log::info('System message detected, attempting Meta WhatsApp API first', [
-                    'phone' => $this->phoneNumber,
+            // OTP / password-reset → Meta API first (primary OTP channel), fallback to Unified API.
+            // All other messages (system notifications, regular business messages) → provider routing.
+            if ($this->isOtpMessage()) {
+                Log::info('OTP/password-reset message — trying Meta WhatsApp API first', [
+                    'phone'        => $this->phoneNumber,
                     'message_type' => $this->messageType
                 ]);
-                
                 try {
-                    // Try Meta WhatsApp API first for system messages
                     $result = $this->sendViaMetaWhatsAppApi($outgoingMessage);
-                    Log::info('System message sent successfully via Meta WhatsApp API', [
-                        'phone' => $this->phoneNumber,
-                        'message_id' => $outgoingMessage->id
-                    ]);
+                    Log::info('OTP sent via Meta WhatsApp API', ['phone' => $this->phoneNumber]);
                 } catch (Exception $metaException) {
-                    // If Meta API fails, fallback to Unified API for system messages
-                    Log::warning('Meta WhatsApp API failed for system message, falling back to Unified API', [
+                    Log::warning('Meta WhatsApp API failed for OTP, falling back to Unified API', [
                         'phone' => $this->phoneNumber,
                         'error' => $metaException->getMessage()
                     ]);
-                    
                     $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
-                    Log::info('System message sent successfully via Unified API (fallback)', [
-                        'phone' => $this->phoneNumber,
-                        'message_id' => $outgoingMessage->id
-                    ]);
                 }
             } else if ($this->provider === 'unified_api') {
-                // Use Unified Notification API for non-system messages
+                // All system notifications + regular business messages via Unified API
                 $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
             } else {
-                // Fallback to legacy WaSender for non-system messages
+                // Legacy WaSender fallback
                 $result = $this->sendViaWaSender($waSenderService, $outgoingMessage);
             }
 
@@ -215,7 +205,14 @@ class SendWhatsAppMessage implements ShouldQueue
     private function createOrUpdateOutgoingMessage()
     {
         if ($this->outgoingMessageId) {
-            return OutgoingMessage::find($this->outgoingMessageId);
+            $existing = OutgoingMessage::find($this->outgoingMessageId);
+            if ($existing) {
+                return $existing;
+            }
+            // Record was deleted between dispatch and execution — fall through and create a fresh one
+            Log::warning('OutgoingMessage record not found, creating replacement', [
+                'outgoing_message_id' => $this->outgoingMessageId
+            ]);
         }
 
         // Resolve or create contact
@@ -370,8 +367,19 @@ class SendWhatsAppMessage implements ShouldQueue
             );
         }
 
-        $schemaName = $whatsappInstance->user->uuid
-            ?? throw new Exception('WhatsApp instance has no associated user or user has no UUID');
+        $instanceUser = $whatsappInstance->user;
+        if (!$instanceUser) {
+            throw new Exception("WhatsApp instance {$whatsappInstance->id} has no associated user (orphaned record)");
+        }
+        if (!$instanceUser->uuid) {
+            throw new Exception("User {$instanceUser->id} has no UUID — cannot resolve schema_name");
+        }
+        $schemaName = $instanceUser->uuid;
+
+        // Write the resolved instance back to the OutgoingMessage for audit trail
+        if ($message && $message->exists && !$message->whatsapp_instance_id) {
+            $message->update(['whatsapp_instance_id' => $whatsappInstance->id]);
+        }
 
         $apiData = [
             'schema_name' => $schemaName,
@@ -387,14 +395,20 @@ class SendWhatsAppMessage implements ShouldQueue
         'schema_name' => $schemaName,
         'provider' => $this->provider
     ]);
-        // Add files if present
+        // Add files if present — API supports one attachment per message
         if ($this->files && is_array($this->files)) {
+            if (count($this->files) > 1) {
+                Log::warning('SendWhatsAppMessage: multiple files provided but API only supports one attachment — only the first valid file will be sent', [
+                    'phone'      => $this->phoneNumber,
+                    'file_count' => count($this->files)
+                ]);
+            }
             foreach ($this->files as $file) {
                 if (isset($file['content']) && isset($file['name'])) {
-                    $apiData['attachment'] = $file['content'];
+                    $apiData['attachment']      = $file['content'];
                     $apiData['attachment_name'] = $file['name'];
                     $apiData['attachment_type'] = $file['type'] ?? 'application/octet-stream';
-                    break; // API supports single attachment per message
+                    break;
                 }
             }
         }
@@ -402,14 +416,27 @@ class SendWhatsAppMessage implements ShouldQueue
         // Send via unified API
         $response = $service->sendNotification($apiData);
 
-        if ($response && isset($response['message_id'])) {
+        // Accept both 'message_id' and 'id' keys — API response shape may vary
+        $messageId     = $response['message_id'] ?? $response['id'] ?? null;
+        $responseStatus = $response['status'] ?? null;
+
+        if ($response && ($messageId || in_array($responseStatus, ['queued', 'sent', 'delivered']))) {
             return [
-                'success' => true,
-                'message_id' => $response['message_id'],
-                'external_id' => $response['external_id'] ?? null,
-                'status' => $response['status'] ?? 'sent',
+                'success'     => true,
+                'message_id'  => $messageId,
+                'external_id' => $response['external_id'] ?? $messageId,
+                'status'      => $responseStatus ?? 'sent',
                 'api_response' => $response
             ];
+        }
+
+        // Rate limited — release back to queue for 5 minutes instead of burning a retry
+        if (isset($response['status_code']) && (int) $response['status_code'] === 429) {
+            Log::warning('Unified API rate limited (429) — releasing job for 5 minutes', [
+                'phone' => $this->phoneNumber
+            ]);
+            $this->release(300);
+            return ['success' => false, 'rate_limited' => true];
         }
 
         throw new Exception('Unified API response invalid: ' . json_encode($response));
@@ -486,51 +513,30 @@ class SendWhatsAppMessage implements ShouldQueue
     /**
      * Determine if this is a system message that should use system default instance
      */
+    /**
+     * True only when message_type is an explicit system type.
+     * Never uses content-pattern matching — that caused normal business messages
+     * (e.g. order #12345) to be misclassified and sent from the wrong number.
+     */
     private function isSystemMessage(): bool
     {
-        // Check if message type is explicitly set as a system message type
-        if ($this->messageType) {
-            $systemMessageTypes = ['otp_verification', 'welcome_message', 'password_reset', 'payment_reminder', 'system_notification'];
-            if (in_array($this->messageType, $systemMessageTypes)) {
-                return true;
-            }
-        }
+        return $this->messageType && in_array($this->messageType, [
+            'otp_verification',
+            'welcome_message',
+            'password_reset',
+            'payment_reminder',
+            'system_notification',
+        ]);
+    }
 
-        // Check if this appears to be a system message based on priority and user context
-        if ($this->priority === 'high' && !$this->userId) {
-            return true; // High priority message with no user ID is likely system message
-        }
-
-        // Check message content patterns for OTP, welcome, etc.
-        $messageText = is_array($this->messageData) ? 
-            ($this->messageData['message'] ?? json_encode($this->messageData)) : 
-            $this->messageData;
-        
-        $messageText = strtolower($messageText);
-        
-        // OTP patterns
-        if (preg_match('/(verification code|otp|verify|code|\d{4,6})/', $messageText)) {
-            return true;
-        }
-        
-        // Welcome patterns
-        if (preg_match('/(welcome|greeting|hello.*safarichat|thank you for joining)/', $messageText)) {
-            return true;
-        }
-        
-        // Password reset patterns
-        if (preg_match('/(password|reset|forgot|change password)/', $messageText)) {
-            return true;
-        }
-
-        // Check if whatsappInstanceId points to system default instance
-        if ($this->whatsappInstanceId) {
-            $instance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
-            if ($instance && $instance->is_system_default) {
-                return true;
-            }
-        }
-
-        return false;
+    /**
+     * True only for OTP and password-reset types — the only ones that use Meta API.
+     */
+    private function isOtpMessage(): bool
+    {
+        return $this->messageType && in_array($this->messageType, [
+            'otp_verification',
+            'password_reset',
+        ]);
     }
 }
