@@ -69,15 +69,24 @@ class Handler extends ExceptionHandler {
      */
     function createLog($e, $notify_admins = FALSE) {
         $line = @$e->getTrace()[0]['line'];
+
+        // session() is unavailable during early boot (before session middleware runs).
+        // Wrap every session/url/helper call so the Handler never crashes itself.
+        try { $sessionId   = session('id');       } catch (\Throwable $t) { $sessionId   = 'n/a'; }
+        try { $sessionType = session('usertype');  } catch (\Throwable $t) { $sessionType = 'n/a'; }
+        try { $sessionUser = session('username');  } catch (\Throwable $t) { $sessionUser = 'n/a'; }
+        try { $currentUrl  = url()->current();     } catch (\Throwable $t) { $currentUrl  = 'n/a'; }
+        try { $route       = createRoute();        } catch (\Throwable $t) { $route       = 'n/a'; }
+
         $err = "<br/><hr/><ul>\n";
         $err .= "\t<li>date time " . date('Y-M-d H:m', time()) . "</li>\n";
-        $err .= "\t<li>Made By: " . session('id') . "</li>\n";
-        $err .= "\t<li>usertype " . session('usertype') . "</li>\n";
+        $err .= "\t<li>Made By: " . $sessionId . "</li>\n";
+        $err .= "\t<li>usertype " . $sessionType . "</li>\n";
         $err .= "\t<li>error msg: [" . $e->getCode() . '] ' . $e->getMessage() . ' on line ' . $line . ' of file ' . @$e->getTrace()[0]['file'] . "</li>\n";
-        $err .= "\t<li>url: " . url()->current() . "</li>\n";
-        $err .= "\t<li>Controller route: " . createRoute() . "</li>\n";
+        $err .= "\t<li>url: " . $currentUrl . "</li>\n";
+        $err .= "\t<li>Controller route: " . $route . "</li>\n";
         $err .= "\t<li>Error from which host: " . gethostname() . "</li>\n";
-        $err .= "\t<li>Error from username: " . session('username') . "</li>\n";
+        $err .= "\t<li>Error from username: " . $sessionUser . "</li>\n";
         $err .= "</ul>\n\n";
 
         $filename = '' . str_replace('-', '_', date('Y-M-d')) . '.html';
