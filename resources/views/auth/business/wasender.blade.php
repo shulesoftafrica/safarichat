@@ -540,7 +540,7 @@
                         <div class="alert-success">
                             <strong>Your WhatsApp number is already linked</strong><br>
                             <small>Phone: {{ $connectedInstance->phone_number }}</small><br>
-                            <small>Connected: {{ $connectedInstance->connected_at->diffForHumans() }}</small>
+                            <small>Connected: {{ $connectedInstance->connected_at ? $connectedInstance->connected_at->diffForHumans() : 'Recently' }}</small>
                         </div>
 
                         <div style="margin-top: 2rem;">
