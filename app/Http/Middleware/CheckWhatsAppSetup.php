@@ -39,21 +39,17 @@ class CheckWhatsAppSetup
             }
         }
 
-        // ALL non-system instances must be operational before the user can access the app.
-        // An instance is operational when status IN (connected, active) OR connect_status = ready.
-        // If ANY single instance is down the user is bounced to the connect/QR page so they
-        // can reconnect it — the Sales Agents page only shows active instances, so this is the
-        // only place where a disconnected instance is always visible.
-        $userInstances = $user->whatsappInstances()
-            ->where('is_system_default', false)
-            ->get();
+        // Check if user has a connected WhatsApp instance.
+        // Accept both 'connected' and 'active' — seeder seeds with 'active',
+        // and some older rows use 'active' before going through the WaSender flow.
+        $hasConnectedWhatsApp = $user->whatsappInstances()
+            ->whereIn('status', ['connected', 'active'])
+            ->exists();
 
-        $allOperational = $userInstances->isNotEmpty()
-            && $userInstances->every(fn($i) => $i->isOperational());
-
-        if (!$allOperational) {
+        if (!$hasConnectedWhatsApp) {
+            // Redirect to WhatsApp setup
             return redirect()->route('business.wasender')
-                ->with('message', 'Please ensure all your WhatsApp instances are connected to continue.');
+                ->with('message', 'Please connect your WhatsApp account first to continue.');
         }
 
         // Check if user has defined at least one product
