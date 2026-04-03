@@ -356,59 +356,14 @@ class SendWhatsAppMessage implements ShouldQueue
             }
         }
           
-        // Resolve schema_name as users.uuid — the remote notifications API registers tenants
-        // under users.uuid (see WaSenderController::registerWithUnifiedNotificationApi).
-        // whatsapp_instances.uuid is an internal app UUID and is NOT recognised by the API.
-        $schemaName = null;
-
-        // Priority 1: walk the WhatsApp instance → its owning user → users.uuid
-        if ($whatsappInstance) {
-            $instanceUser = $whatsappInstance->relationLoaded('user')
-                ? $whatsappInstance->user
-                : $whatsappInstance->user()->first();
-            if ($instanceUser && $instanceUser->uuid) {
-                $schemaName = $instanceUser->uuid;
-                Log::debug('schema_name resolved via whatsapp instance owner', [
-                    'instance_id'  => $whatsappInstance->id,
-                    'user_id'      => $instanceUser->id,
-                    'schema_name'  => $schemaName,
-                ]);
-            } elseif ($instanceUser) {
-                $schemaName = 'user_' . $instanceUser->id;
-            }
+        // schema_name must be users.uuid — the remote API registers tenants under users.uuid,
+        // NOT whatsapp_instances.uuid which is an internal app UUID the remote API never sees.
+        if (!$whatsappInstance) {
+            throw new Exception('No valid WhatsApp instance found for message sending');
         }
 
-        // Priority 2: resolve directly from $this->userId
-        if (!$schemaName && $this->userId) {
-            $user = User::find($this->userId);
-            if ($user && $user->uuid) {
-                $schemaName = $user->uuid;
-                Log::debug('schema_name resolved via userId', [
-                    'user_id'     => $user->id,
-                    'schema_name' => $schemaName,
-                ]);
-            } elseif ($user) {
-                $schemaName = 'user_' . $user->id;
-            }
-        }
-
-        // Final fallback — should never be reached in normal operation
-        if (!$schemaName) {
-            Log::warning('schema_name could not be resolved from instance or userId; falling back to system default user', [
-                'phone'       => $this->phoneNumber,
-                'user_id'     => $this->userId,
-                'instance_id' => $whatsappInstance?->id,
-            ]);
-            $systemInstance = \App\Models\WhatsappInstance::getSystemDefault();
-            $systemUser = $systemInstance?->user()->first();
-            if ($systemUser && $systemUser->uuid) {
-                $schemaName = $systemUser->uuid;
-            } elseif ($systemUser) {
-                $schemaName = 'user_' . $systemUser->id;
-            } else {
-                throw new Exception('No valid users.uuid could be resolved for schema_name');
-            }
-        }
+        $schemaName = $whatsappInstance->user->uuid
+            ?? throw new Exception('WhatsApp instance has no associated user or user has no UUID');
 
         $apiData = [
             'schema_name' => $schemaName,
