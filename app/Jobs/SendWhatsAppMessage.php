@@ -350,16 +350,24 @@ class SendWhatsAppMessage implements ShouldQueue
                 'instance_id' => $whatsappInstance ? $whatsappInstance->id : 'not_found'
             ]);
         } else {
-            // For regular messages, try to find the specified instance
+            // For regular messages: explicit instance → user's primary → user's any instance
             if ($this->whatsappInstanceId) {
                 $whatsappInstance = \App\Models\WhatsappInstance::find($this->whatsappInstanceId);
             }
+            if (!$whatsappInstance && $this->userId) {
+                $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $this->userId)
+                    ->where('is_primary', true)
+                    ->first()
+                    ?? \App\Models\WhatsappInstance::where('user_id', $this->userId)->first();
+            }
         }
-          
+
         // schema_name must be users.uuid — the remote API registers tenants under users.uuid,
         // NOT whatsapp_instances.uuid which is an internal app UUID the remote API never sees.
         if (!$whatsappInstance) {
-            throw new Exception('No valid WhatsApp instance found for message sending');
+            throw new Exception(
+                "No WhatsApp instance found for message sending (user_id={$this->userId}, instance_id={$this->whatsappInstanceId})"
+            );
         }
 
         $schemaName = $whatsappInstance->user->uuid
