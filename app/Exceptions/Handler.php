@@ -102,11 +102,13 @@ class Handler extends ExceptionHandler {
         //  return 
        $this->createLog($e);
         $line = @$e->getTrace()[0]['line'];
+        try { $errorRoute = createRoute();   } catch (\Throwable $t) { $errorRoute = 'n/a'; }
+        try { $errorUrl   = url()->current(); } catch (\Throwable $t) { $errorUrl   = 'n/a'; }
         $object = [
             'error_message' => $e->getMessage() . ' on line ' . $line . ' of file ' . @$e->getTrace()[0]['file'],
             'file' => @$e->getTrace()[0]['file'],
-            'route' => createRoute(),
-            "url" => url()->current(),
+            'route' => $errorRoute,
+            "url" => $errorUrl,
             'error_instance' => get_class($e),
             'request' => json_encode(request()->all()),
             'created_by' => 0,

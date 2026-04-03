@@ -60,16 +60,17 @@ class Home extends Controller
     public function index()
     {
 
-          //Check if user has no active whatsapp instance
-            $hasWhatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
-            ->where('status', 'connected')
-            ->exists();
+          // ALL non-system instances must be operational.
+            // If the user has no instances, or any one is down, redirect to the connect page.
+            $allUserInstances = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+                ->where('is_system_default', false)
+                ->get();
 
-            if (!$hasWhatsappInstance) {
-                  $this->data['ward'] = Auth::user()->business;
-                $this->data['event'] = [];
-           
-                return view('auth.business.wasender', $this->data);
+            $allOperational = $allUserInstances->isNotEmpty()
+                && $allUserInstances->every(fn($i) => $i->isOperational());
+
+            if (!$allOperational) {
+                return redirect()->route('business.wasender');
             }
 
          

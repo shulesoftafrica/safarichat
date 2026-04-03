@@ -218,6 +218,31 @@ class WhatsappInstance extends Model
     }
 
     /**
+     * Scope: non-system user instances that are fully operational.
+     * An instance is operational when EITHER the status column OR the
+     * connect_status column confirms connectivity — because the two columns
+     * are updated by different code paths and can temporarily disagree.
+     */
+    public function scopeOperational($query)
+    {
+        return $query->where('is_system_default', false)
+            ->where(function ($q) {
+                $q->whereIn('status', ['connected', 'active'])
+                  ->orWhere('connect_status', 'ready');
+            });
+    }
+
+    /**
+     * Instance-level check: is this instance operational?
+     * Mirrors the scopeOperational logic but works on a loaded model.
+     */
+    public function isOperational(): bool
+    {
+        return in_array($this->status, ['connected', 'active'])
+            || $this->connect_status === 'ready';
+    }
+
+    /**
      * Scope to get instances for specific user
      */
     public function scopeForUser($query, $userId)
