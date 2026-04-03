@@ -88,8 +88,8 @@
                             For questions or concerns about this Privacy Policy or your data:
                         </p>
                         <ul>
-                            <li>Email: support@safarichat.africa</li>
-                            <li>Phone: +255 655 406 004</li>
+                            <li>Email: support@safarichat.ai</li>
+                            <li>Phone: +255 689 908 004 </li>
                             <li>Address: Dar es Salaam, Tanzania</li>
                         </ul>
 

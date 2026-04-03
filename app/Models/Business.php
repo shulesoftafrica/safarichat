@@ -70,7 +70,7 @@ class Business extends Model
      * Get or ensure a stable billing email for this business.
      *
      * If the business has no email set, we auto-generate a deterministic address
-     * from the business ID (e.g. business-42@safarichat.africa) and persist it.
+     * from the business ID (e.g. business-42@safarichat.ai) and persist it.
      * This email is the single, immutable identifier used with the billing platform
      * so webhook payloads always resolve back to the correct business.
      *
@@ -82,7 +82,7 @@ class Business extends Model
             return $this->email;
         }
 
-        $generated = 'business-' . $this->id . '@safarichat.africa';
+        $generated = 'business-' . $this->id . '@safarichat.ai';
         $this->update(['email' => $generated]);
         return $generated;
     }

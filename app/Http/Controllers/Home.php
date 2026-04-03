@@ -296,10 +296,10 @@ class Home extends Controller
         if (in_array((int) $event->event_type_id, [1, 3])) {
             //register partner account and send notifications to the partners
             $phone = validate_phone_number(request('partner_phone'))[1];
-            $user_info = \App\Models\User::whereEmail(request('partner_name') . '@safarichat.africa')->wherePhone($phone)->first();
+            $user_info = \App\Models\User::whereEmail(request('partner_name') . '@safarichat.ai')->wherePhone($phone)->first();
             $user = empty($user_info) ? \App\Models\User::create([
                 'name' => request('partner_name'),
-                'email' => request('partner_name') . '@safarichat.africa',
+                'email' => request('partner_name') . '@safarichat.ai',
                 'password' => bcrypt(rand(45555, 999989)),
                 'phone' => $phone,
                 'event_type_id' > 1

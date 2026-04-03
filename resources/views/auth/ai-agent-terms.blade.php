@@ -109,8 +109,8 @@
                         <h4>13. Contact Information</h4>
                         <p>For questions about these terms or the service:</p>
                         <ul>
-                            <li>Email: support@safarichat.africa</li>
-                            <li>Phone: +255 655 406 004</li>
+                            <li>Email: support@safarichat.ai</li>
+                            <li>Phone: +255 689 908004</li>
                             <li>Address: Dar es Salaam, Tanzania</li>
                         </ul>
 

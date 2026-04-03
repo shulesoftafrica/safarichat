@@ -1020,7 +1020,7 @@ class BillingWebhookController extends Controller
                 }
 
                 // 2a. Check businesses.email first — invoices created by SafariChat use
-                //     business-{id}@safarichat.africa as the billing identifier
+                //     business-{id}@safarichat.ai as the billing identifier
                 $business = Business::where('email', $email)->first();
                 if ($business) {
                     Log::debug('Webhook: resolved business by billing email', [
