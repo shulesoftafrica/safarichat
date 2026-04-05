@@ -71,7 +71,7 @@ class PersonalizeCampaignMessagesJob implements ShouldQueue
     {
         $this->campaignId = $campaignId;
         $this->batchSize = $batchSize;
-        $this->onQueue('ai_personalization');
+        $this->onQueue('default');
     }
 
     /**
