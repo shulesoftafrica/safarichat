@@ -158,6 +158,7 @@ Route::get('/dashboard', [App\Http\Controllers\Home::class, 'index'])->name('das
 // Guest management routes
 Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/guest', [App\Http\Controllers\Guest::class, 'index'])->name('guest.index');
+    Route::get('/guest/{id}', [App\Http\Controllers\Guest::class, 'show'])->name('guest.show');
     Route::post('/guest/store/{id?}', [App\Http\Controllers\Guest::class, 'store'])->name('guest.store');
     Route::post('/guest/edit/{id?}', [App\Http\Controllers\Guest::class, 'update'])->name('guest.update');
     Route::delete('/guest/destroy/{id}', [App\Http\Controllers\Guest::class, 'destroy'])->name('guest.destroy');

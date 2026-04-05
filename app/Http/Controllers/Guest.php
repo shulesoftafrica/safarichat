@@ -84,6 +84,18 @@ class Guest extends Controller {
     }
 
     /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        // Redirect to index page as guest details are shown via modals
+        return redirect()->route('guest.index');
+    }
+
+    /**
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response
