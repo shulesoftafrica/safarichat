@@ -350,6 +350,17 @@
     </div>
     @endif
 
+    <!-- Original Message -->
+    <div class="chart-card">
+        <h3 class="chart-title">
+            <i class="fas fa-envelope mr-2"></i>
+            {{ __('campaigns.report.original_message') }}
+        </h3>
+        <div style="background: #f9fafb; border-left: 4px solid #667eea; padding: 20px; border-radius: 8px;">
+            <div style="white-space: pre-wrap; color: #374151; font-size: 1rem; line-height: 1.6;">{{ $campaign->original_message }}</div>
+        </div>
+    </div>
+
     <!-- Message Details Table -->
     <div class="chart-card">
         <div class="d-flex justify-content-between align-items-center mb-4">

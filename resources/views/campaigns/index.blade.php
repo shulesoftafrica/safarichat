@@ -602,6 +602,14 @@
                                 <i class="fas fa-copy"></i>
                             </button>
                         </form>
+                        
+                        <form action="{{ route('campaigns.destroy', $campaign->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('{{ __('campaigns.messages.delete_confirm') }}');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="action-btn action-btn-danger" title="{{ __('campaigns.actions.delete') }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 @endforeach

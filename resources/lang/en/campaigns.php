@@ -194,6 +194,9 @@ return [
         'neutral_replies' => 'Neutral Replies',
         'negative_replies' => 'Negative Replies',
         
+        // Original Message
+        'original_message' => 'Original Campaign Message',
+        
         // Message Recipients Table
         'message_recipients' => 'Message Recipients',
         'all_statuses' => 'All Statuses',
