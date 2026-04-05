@@ -69,7 +69,7 @@
 
 Verify your `.env` has the correct production URL:
 ```env
-APP_URL=https://safarichat.africa
+APP_URL=https://safarichat.ai
 ```
 
 This URL is used for:
@@ -87,25 +87,25 @@ This URL is used for:
 **Test all 7 languages:**
 ```bash
 # English (default)
-curl -I https://safarichat.africa/
+curl -I https://safarichat.ai/
 
 # Spanish
-curl -I https://safarichat.africa/es
+curl -I https://safarichat.ai/es
 
 # French
-curl -I https://safarichat.africa/fr
+curl -I https://safarichat.ai/fr
 
 # Arabic
-curl -I https://safarichat.africa/ar
+curl -I https://safarichat.ai/ar
 
 # Hindi
-curl -I https://safarichat.africa/hi
+curl -I https://safarichat.ai/hi
 
 # Portuguese-BR
-curl -I https://safarichat.africa/pt-br
+curl -I https://safarichat.ai/pt-br
 
 # Swahili
-curl -I https://safarichat.africa/sw
+curl -I https://safarichat.ai/sw
 ```
 
 **What to verify:**
@@ -149,7 +149,7 @@ curl -I https://safarichat.africa/sw
 
 **Check sitemap accessibility:**
 ```bash
-curl https://safarichat.africa/sitemap.xml
+curl https://safarichat.ai/sitemap.xml
 ```
 
 **What to verify:**
@@ -177,7 +177,7 @@ protected function schedule(Schedule $schedule)
 
 **Check robots.txt accessibility:**
 ```bash
-curl https://safarichat.africa/robots.txt
+curl https://safarichat.ai/robots.txt
 ```
 
 **What to verify:**
@@ -185,19 +185,19 @@ curl https://safarichat.africa/robots.txt
 - Contains `User-agent: *` directive
 - Public paths are allowed
 - Admin/API paths are disallowed
-- Sitemap reference is present: `Sitemap: https://safarichat.africa/sitemap.xml`
+- Sitemap reference is present: `Sitemap: https://safarichat.ai/sitemap.xml`
 
 ### 5. Validate Structured Data
 
 **Google Rich Results Test:**
 1. Go to [Google Rich Results Test](https://search.google.com/test/rich-results)
-2. Enter URL: `https://safarichat.africa/`
+2. Enter URL: `https://safarichat.ai/`
 3. Click **Test URL**
 4. Verify **Organization** schema is detected with no errors
 
 **Schema.org Validator:**
 1. Go to [Schema Markup Validator](https://validator.schema.org/)
-2. Enter URL: `https://safarichat.africa/`
+2. Enter URL: `https://safarichat.ai/`
 3. Click **Run Test**
 4. Verify JSON-LD markup is valid
 
@@ -205,14 +205,14 @@ curl https://safarichat.africa/robots.txt
 
 **Facebook Sharing Debugger:**
 1. Go to [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
-2. Enter URL: `https://safarichat.africa/`
+2. Enter URL: `https://safarichat.ai/`
 3. Click **Debug**
 4. Verify Open Graph tags are scraped correctly
 5. Preview how link will appear when shared
 
 **Twitter Card Validator:**
 1. Go to [Twitter Card Validator](https://cards-dev.twitter.com/validator)
-2. Enter URL: `https://safarichat.africa/`
+2. Enter URL: `https://safarichat.ai/`
 3. Verify Twitter Card renders correctly
 4. Check image, title, and description
 
@@ -224,18 +224,18 @@ curl https://safarichat.africa/robots.txt
 
 **Setup:**
 1. Go to [Google Search Console](https://search.google.com/search-console)
-2. Add property: `https://safarichat.africa`
+2. Add property: `https://safarichat.ai`
 3. Verify ownership (DNS, HTML file, or meta tag method)
 
 **Submit Sitemap:**
 1. In Google Search Console, go to **Sitemaps** (left menu)
-2. Enter sitemap URL: `https://safarichat.africa/sitemap.xml`
+2. Enter sitemap URL: `https://safarichat.ai/sitemap.xml`
 3. Click **Submit**
 4. Monitor indexing status over next few days/weeks
 
 **Request Indexing for Key Pages:**
 1. Go to **URL Inspection** tool
-2. Enter URL: `https://safarichat.africa/`
+2. Enter URL: `https://safarichat.ai/`
 3. Click **Request Indexing**
 4. Repeat for key pages (pricing, features, contact)
 
@@ -243,12 +243,12 @@ curl https://safarichat.africa/robots.txt
 
 **Setup:**
 1. Go to [Bing Webmaster Tools](https://www.bing.com/webmasters)
-2. Add site: `https://safarichat.africa`
+2. Add site: `https://safarichat.ai`
 3. Verify ownership
 
 **Submit Sitemap:**
 1. Go to **Sitemaps** section
-2. Submit sitemap URL: `https://safarichat.africa/sitemap.xml`
+2. Submit sitemap URL: `https://safarichat.ai/sitemap.xml`
 
 ### 3. Yandex Webmaster (Optional - for Russian traffic)
 
@@ -306,7 +306,7 @@ curl https://safarichat.africa/robots.txt
 6. Wait 24-48 hours for data to appear in reports (real-time should work immediately)
 
 ### Sitemap 404 Error
-**Issue:** `https://safarichat.africa/sitemap.xml` returns 404
+**Issue:** `https://safarichat.ai/sitemap.xml` returns 404
 
 **Solutions:**
 1. Verify file exists: `ls -la public/sitemap.xml`

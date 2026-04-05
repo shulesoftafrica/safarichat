@@ -2081,7 +2081,7 @@ Too few arguments to function App\Http\Controllers\Guest::update(),
 ```
 
 **Affected Routes:**
-- `https://safarichat.africa/guest/edit`
+- `https://safarichat.ai/guest/edit`
 - `route('Guest@edit')`
 
 ### Root Cause Analysis
@@ -2204,7 +2204,7 @@ Frequent unauthenticated API requests causing:
 **Error Pattern:**
 ```
 Unauthenticated. on line 81 of Authenticate.php
-url: https://safarichat.africa/api/billing/plans
+url: https://safarichat.ai/api/billing/plans
 ```
 
 **Affected Endpoints:**
@@ -2655,7 +2655,7 @@ protected $middlewareGroups = [
 # /etc/nginx/sites-available/safarichat.conf
 
 server {
-    server_name safarichat.africa;
+    server_name safarichat.ai;
     
     # Block common bot paths at web server level
     location ~* ^/(wp-|wordpress|xmlrpc|phpmyadmin) {

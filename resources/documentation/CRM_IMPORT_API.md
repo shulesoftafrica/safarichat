@@ -256,7 +256,7 @@ Before using any API endpoints, you need to obtain a USER_TOKEN for authenticati
 ---
 
 **Base URLs:**
-- Production: `https://safarichat.africa/api`
+- Production: `https://safarichat.ai/api`
 - Development: `http://localhost:8000/api`
 
 ---

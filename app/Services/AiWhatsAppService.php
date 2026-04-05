@@ -843,6 +843,8 @@ class AiWhatsAppService
         
         if ($totalInteractions > 0) {
             $overallScore = ($totalPositive - $totalNegative) / $totalInteractions;
+            // Cap score to database column range (-9.99 to 9.99)
+            $overallScore = max(-9.99, min(9.99, $overallScore));
             $lead->update(['overall_sentiment_score' => round($overallScore, 2)]);
         }
 

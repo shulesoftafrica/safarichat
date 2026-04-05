@@ -233,6 +233,12 @@ class Lead extends Model
         return $this->belongsTo(BusinessContact::class, 'business_contact_id');
     }
 
+    // Alias for contact() - for backward compatibility
+    public function businessContact()
+    {
+        return $this->contact();
+    }
+
     public function business()
     {
         return $this->belongsTo(Business::class, 'business_id');

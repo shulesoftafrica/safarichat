@@ -1027,7 +1027,7 @@ This approach gives you a **bulletproof, fast, and simple** billing system that 
 
 ### 13.1 Admin Authentication (Hardcoded)
 
-**Route: safarichat.africa/admin**
+**Route: safarichat.ai/admin**
 
 ```php
 // routes/web.php

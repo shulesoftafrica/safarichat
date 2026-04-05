@@ -298,7 +298,7 @@ class NotificationService
             
             // Get handoffs for user's agents
             $handoffs = Handoff::whereHas('aiSalesAgent', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
+                    $query->where('ai_sales_agents.user_id', $user->id);
                 })
                 ->whereDate('created_at', $yesterday)
                 ->with(['lead', 'aiSalesAgent'])

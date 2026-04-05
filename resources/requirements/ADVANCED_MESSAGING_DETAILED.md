@@ -348,7 +348,7 @@ Store attachment files for campaigns.
 | `campaign_id` | BIGINT | Parent campaign | 1 |
 | `file_name` | VARCHAR(255) | Original filename | 'discount_flyer.jpg' |
 | `file_path` | VARCHAR(500) | Storage path | 'storage/campaigns/2026/02/abc123.jpg' |
-| `file_url` | VARCHAR(500) | Public URL | 'https://safarichat.africa/storage/campaigns/2026/02/abc123.jpg' |
+| `file_url` | VARCHAR(500) | Public URL | 'https://safarichat.ai/storage/campaigns/2026/02/abc123.jpg' |
 | `file_type` | VARCHAR(50) | MIME type | 'image/jpeg' |
 | `file_size` | BIGINT | Size in bytes | 2048576 |
 | `created_at` | TIMESTAMP | Upload time | |

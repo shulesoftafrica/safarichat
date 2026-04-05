@@ -52,6 +52,7 @@ class Campaign extends Model
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_SENDING = 'sending';
     const STATUS_COMPLETED = 'completed';
+    const STATUS_FAILED = 'failed';
     const STATUS_PAUSED = 'paused';
     const STATUS_CANCELLED = 'cancelled';
 
@@ -113,7 +114,7 @@ class Campaign extends Model
      */
     public function scopeActive($query)
     {
-        return $query->whereNotIn('status', [self::STATUS_COMPLETED, self::STATUS_CANCELLED]);
+        return $query->whereNotIn('status', [self::STATUS_COMPLETED, self::STATUS_FAILED, self::STATUS_CANCELLED]);
     }
 
     /**

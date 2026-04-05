@@ -34,12 +34,12 @@ if (-not (Test-Path $fullLocalPath)) {
     New-Item -ItemType Directory -Path $fullLocalPath -Force | Out-Null
 }
 
-Write-Success "✓ Local directory ready: $fullLocalPath`n"
+Write-Success "[OK] Local directory ready: $fullLocalPath`n"
 
 # Check if OpenSSH client is available
 $scpCommand = Get-Command scp -ErrorAction SilentlyContinue
 if (-not $scpCommand) {
-    Write-Error "✗ SCP command not found!"
+    Write-Error "[ERROR] SCP command not found!"
     Write-Warning "`nOpenSSH client is required. Please install it:"
     Write-Host "  1. Open Settings - Apps - Optional Features"
     Write-Host "  2. Click 'Add a feature'"
@@ -49,9 +49,9 @@ if (-not $scpCommand) {
     exit 1
 }
 
-Write-Success "✓ OpenSSH client found"
+Write-Success "[OK] OpenSSH client found"
 
-# Ensure SSH agent is running and key is loaded — prevents per-connection passphrase prompts
+# Ensure SSH agent is running and key is loaded - prevents per-connection passphrase prompts
 Write-Info "`nChecking SSH agent..."
 try {
     $agentService = Get-Service -Name ssh-agent -ErrorAction SilentlyContinue
@@ -66,11 +66,11 @@ try {
         Write-Host "  Adding SSH key to agent (enter passphrase once)..." -ForegroundColor Yellow
         & ssh-add $keyPath
     } else {
-        Write-Success "  ✓ SSH key already loaded in agent — no passphrase needed"
+        Write-Success "  [OK] SSH key already loaded in agent - no passphrase needed"
     }
 } catch {
     Write-Warning "  Could not configure SSH agent: $($_.Exception.Message)"
-    Write-Host "  Continuing — you may be prompted for passphrase" -ForegroundColor Gray
+    Write-Host "  Continuing - you may be prompted for passphrase" -ForegroundColor Gray
 }
 
 # Display connection info
@@ -111,7 +111,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Success "✓ Logs successfully downloaded!"
+        Write-Success "[OK] Logs successfully downloaded!"
         
         # List downloaded files
         Write-Info "`nDownloaded files:"
@@ -138,7 +138,7 @@ try {
             $backupName = "$($_.BaseName)_${timestamp}$($_.Extension)"
             Copy-Item $_.FullName -Destination (Join-Path $backupDir $backupName)
         }
-        Write-Success "✓ Backup created in: $backupDir"
+        Write-Success "[OK] Backup created in: $backupDir"
         
         # Run deduplication if available
         $dedupeScript = Join-Path $scriptDir "deduplicate-log.ps1"
@@ -153,7 +153,7 @@ try {
         Write-Success "========================================`n"
         
     } else {
-        Write-Error "✗ SCP command failed with exit code: $LASTEXITCODE"
+        Write-Error "X SCP command failed with exit code: $LASTEXITCODE"
         Write-Warning "`nTroubleshooting tips:"
         Write-Host "  1. Verify SSH access: ssh $ServerUser@$ServerHost"
         Write-Host "  2. Check if remote path exists"
@@ -163,7 +163,7 @@ try {
     }
     
 } catch {
-    Write-Error "✗ Error occurred: $($_.Exception.Message)"
+    Write-Error "[ERROR] Error occurred: $($_.Exception.Message)"
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1
 }

@@ -555,7 +555,7 @@ public function getWalletUCN(Request $request) {
             'organization_id' => $organizationId,
             'customer' => [
                 'name' => $user->business->name ?? $user->name,
-                'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                'email' => $user->email ?? ('user.' . $user->id . '@safarichat.ai'),
                 'phone' => $user->business->phone ?? $user->phone ?? ''
             ],
             'products' => [
@@ -661,7 +661,7 @@ public function topUpWallet(Request $request) {
             'organization_id' => $organizationId,
             'customer' => [
                 'name' => $user->business->name ?? $user->name,
-                'email' => $user->email ?? ('user.' . $user->id . '@safarichat.africa'),
+                'email' => $user->email ?? ('user.' . $user->id . '@safarichat.ai'),
                 'phone' => $user->business->phone ?? $user->phone ?? ''
             ],
             'products' => [

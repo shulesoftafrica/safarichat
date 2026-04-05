@@ -1,4 +1,4 @@
-domain name: safarichat.africa
+domain name: safarichat.ai
 domain registered: https://my.hostafrica.com/login
 
 domain name: safarichat.ai

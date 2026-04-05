@@ -2597,6 +2597,7 @@ class Message extends Controller
             
             // Create a message queue entry for nurture processing
             $queueEntry = \App\Models\MessageQueue::create([
+                'campaign_id' => null, // Nurture messages are not part of a campaign
                 'user_id' => Auth::id(),
                 'contact_id' => $contact->id,
                 'phone_number' => $cleanPhone,
@@ -2607,6 +2608,7 @@ class Message extends Controller
                 'detected_tone' => $ghostingAnalysis['detected_tone'] ?? 'casual',
                 'relationship_stage' => 'ghosting',
                 'last_interaction_at' => $ghostingAnalysis['last_incoming_at'],
+                'is_nurture_mode' => true, // Flag as nurture mode message
             ]);
             
             // Dispatch nurture job

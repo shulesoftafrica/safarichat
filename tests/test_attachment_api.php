@@ -8,7 +8,7 @@ $data = [
     'to' => '+255714825469',
     'message' => 'Test attachment image message',
     'type' => 'wasender',
-    'attachment' => base64_encode('https://safarichat.africa/public/images/cards.png'),
+    'attachment' => base64_encode('https://safarichat.ai/public/images/cards.png'),
     'attachment_type' => 'application/pdf',
     'attachment_name' => 'card.pdf'
 ];

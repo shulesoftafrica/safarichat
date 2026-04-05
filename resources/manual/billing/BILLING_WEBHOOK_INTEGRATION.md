@@ -453,6 +453,6 @@ Configure the webhook URL in your billing platform:
 ## Support
 
 For webhook integration issues:
-- Email: support@safarichat.africa
-- Documentation: https://docs.safarichat.africa/billing-webhooks
-- Status Page: https://status.safarichat.africa
+- Email: support@safarichat.ai
+- Documentation: https://docs.safarichat.ai/billing-webhooks
+- Status Page: https://status.safarichat.ai
