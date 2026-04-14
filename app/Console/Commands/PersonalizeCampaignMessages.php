@@ -90,8 +90,8 @@ class PersonalizeCampaignMessages extends Command
         
         $this->info("📦 Will dispatch {$batchCount} job(s) with batch size of {$batchSize}");
         
-        // Ask for confirmation if processing many messages
-        if ($messagesToProcess > 100 && !$this->option('no-interaction')) {
+        // Ask for confirmation only in interactive terminal sessions, never in cron
+        if ($messagesToProcess > 100 && $this->input->isInteractive()) {
             if (!$this->confirm("Process {$messagesToProcess} messages?")) {
                 $this->warn('❌ Cancelled by user');
                 return self::SUCCESS;
