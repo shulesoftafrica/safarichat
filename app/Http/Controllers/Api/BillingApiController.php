@@ -56,11 +56,26 @@ class BillingApiController extends Controller
      * @param int $attempt Current attempt number
      * @return \Illuminate\Http\Client\Response
      */
+    private function getHttpClient(array $extraHeaders = [])
+    {
+        $http = Http::withHeaders($extraHeaders);
+
+        $verifySSL = config('services.shulesoft_billing.verify_ssl', true);
+
+        if (!$verifySSL) {
+            $http = $http->withOptions(['verify' => false]);
+        } elseif ($cacertPath = config('services.shulesoft_billing.cacert_path')) {
+            $http = $http->withOptions(['verify' => $cacertPath]);
+        }
+
+        return $http;
+    }
+
     private function makeAuthenticatedRequest($method, $url, $data = [], $attempt = 1)
     {
         $token = $this->getAccessToken();
         
-        $http = Http::withHeaders([
+        $http = $this->getHttpClient([
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json'
@@ -656,7 +671,7 @@ class BillingApiController extends Controller
                 
                 if ($invoiceId) {
                     // Step 3: Get payment gateway links
-                    $gatewayResponse = Http::withHeaders([
+                    $gatewayResponse = $this->getHttpClient([
                         'Authorization' => 'Bearer ' . $accessToken,
                         'Accept' => 'application/json'
                     ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
@@ -813,7 +828,7 @@ class BillingApiController extends Controller
                 
                 if ($invoiceId) {
                     // Step 3: Get payment gateway links
-                    $gatewayResponse = Http::withHeaders([
+                    $gatewayResponse = $this->getHttpClient([
                         'Authorization' => 'Bearer ' . $accessToken,
                         'Accept' => 'application/json'
                     ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
@@ -1191,7 +1206,7 @@ class BillingApiController extends Controller
                     
                     if ($invoiceId) {
                         // Step 2: Get payment gateways
-                        $gatewayResponse = Http::withHeaders([
+                        $gatewayResponse = $this->getHttpClient([
                             'Authorization' => 'Bearer ' . $accessToken,
                             'Accept' => 'application/json'
                         ])->get($billingApiUrl . '/invoices/' . $invoiceId . '/payment-gateways');
@@ -1422,7 +1437,7 @@ class BillingApiController extends Controller
                     ]);
                     
                     // Get payment gateways to extract UCN
-                    $gatewayResponse = Http::withHeaders([
+                    $gatewayResponse = $this->getHttpClient([
                         'Authorization' => 'Bearer ' . $accessToken,
                         'Accept' => 'application/json'
                     ])->get($gatewayUrl);
