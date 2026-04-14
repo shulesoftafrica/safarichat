@@ -29,9 +29,45 @@ class ShulesoftAuthService
     const CACHE_KEY_CLIENT_ID = 'shulesoft_client_id';
     const CACHE_KEY_CLIENT_SECRET = 'shulesoft_client_secret';
     const CACHE_KEY_TOKEN_EXPIRES = 'shulesoft_token_expires_at';
+    const CACHE_KEY_OAUTH_FAILED = 'shulesoft_oauth_failed';
+    const CACHE_KEY_FAILURE_COUNT = 'shulesoft_oauth_failure_count';
+    const CACHE_KEY_LAST_FAILURE_TIME = 'shulesoft_oauth_last_failure';
     
     // Token expiration: 90 days minus 1 day buffer for safety
     const TOKEN_LIFETIME = 89 * 24 * 60 * 60; // 89 days in seconds
+    
+    // Backoff configuration
+    const INITIAL_BACKOFF = 300; // 5 minutes
+    const MAX_BACKOFF = 3600; // 1 hour
+    const MAX_CONSECUTIVE_FAILURES = 3; // After 3 failures, stop trying for longer
+    
+    /**
+     * Get HTTP client with SSL configuration
+     * Handles SSL certificate verification based on environment
+     * 
+     * @return \Illuminate\Http\Client\PendingRequest
+     */
+    private static function getHttpClient()
+    {
+        $http = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5));
+        
+        // SSL Configuration
+        // In production, verify SSL certificates (secure)
+        // In development, can optionally disable for testing (set BILLING_VERIFY_SSL=false)
+        $verifySSL = config('services.shulesoft_billing.verify_ssl', true);
+        
+        if (!$verifySSL) {
+            Log::warning('⚠️ SSL verification is DISABLED - Not recommended for production!');
+            $http = $http->withOptions(['verify' => false]);
+        } elseif ($cacertPath = config('services.shulesoft_billing.cacert_path')) {
+            // Use custom CA certificate bundle if configured
+            $http = $http->withOptions(['verify' => $cacertPath]);
+        }
+        // Otherwise, use system default CA bundle (most secure)
+        
+        return $http;
+    }
     
     /**
      * Get active access token
@@ -42,6 +78,13 @@ class ShulesoftAuthService
      */
     public static function getAccessToken()
     {
+        // Check if OAuth is in backoff period
+        if (self::isInBackoffPeriod()) {
+            $backoffRemaining = self::getBackoffRemainingTime();
+            Log::debug("OAuth in backoff period, {$backoffRemaining}s remaining, using static token");
+            return null; // Will trigger fallback to static token
+        }
+        
         // Check if we have a valid cached token
         $token = Cache::get(self::CACHE_KEY_ACCESS_TOKEN);
         $expiresAt = Cache::get(self::CACHE_KEY_TOKEN_EXPIRES);
@@ -54,7 +97,18 @@ class ShulesoftAuthService
         try {
             return self::refreshAccessToken();
         } catch (Exception $e) {
-            Log::warning('OAuth unavailable: ' . $e->getMessage());
+            // Record the failure and apply backoff
+            self::recordOAuthFailure($e);
+            
+            $failureCount = Cache::get(self::CACHE_KEY_FAILURE_COUNT, 0);
+            $backoffTime = self::calculateBackoffTime($failureCount);
+            
+            Log::warning('OAuth unavailable: ' . $e->getMessage(), [
+                'failure_count' => $failureCount,
+                'backoff_seconds' => $backoffTime,
+                'retry_after' => date('Y-m-d H:i:s', time() + $backoffTime)
+            ]);
+            
             return null; // Will trigger fallback to static token
         }
     }
@@ -91,6 +145,9 @@ class ShulesoftAuthService
             Cache::put(self::CACHE_KEY_ACCESS_TOKEN, $token, self::TOKEN_LIFETIME);
             Cache::put(self::CACHE_KEY_TOKEN_EXPIRES, $expiresAt, self::TOKEN_LIFETIME);
             
+            // Clear failure tracking on successful authentication
+            self::clearOAuthFailures();
+            
             Log::info('Shulesoft access token refreshed successfully', [
                 'expires_at' => date('Y-m-d H:i:s', $expiresAt)
             ]);
@@ -121,10 +178,7 @@ class ShulesoftAuthService
             $email = config('services.shulesoft_billing.organization_email');
             $apiUrl = config('services.shulesoft_billing.api_url');
             
-            $apiTimeout = config('services.shulesoft_billing.timeout', 30);
-        $connectTimeout = config('services.shulesoft_billing.connect_timeout', 5);
-        $response = Http::timeout($apiTimeout)
-                ->connectTimeout($connectTimeout)
+            $response = self::getHttpClient()
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $userToken,
                     'Content-Type' => 'application/json',
@@ -182,8 +236,7 @@ class ShulesoftAuthService
             throw new Exception('Shulesoft authentication credentials not configured. Set SHULESOFT_AUTH_EMAIL and SHULESOFT_AUTH_PASSWORD in .env');
         }
         
-        $response = Http::timeout(config('services.shulesoft_billing.timeout', 30))
-            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
+        $response = self::getHttpClient()
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
@@ -220,8 +273,7 @@ class ShulesoftAuthService
     {
         $apiUrl = config('services.shulesoft_billing.api_url');
         
-        $response = Http::timeout(config('services.shulesoft_billing.timeout', 30))
-            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
+        $response = self::getHttpClient()
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
@@ -273,6 +325,7 @@ class ShulesoftAuthService
         Cache::forget(self::CACHE_KEY_CLIENT_ID);
         Cache::forget(self::CACHE_KEY_CLIENT_SECRET);
         Cache::forget(self::CACHE_KEY_TOKEN_EXPIRES);
+        self::clearOAuthFailures();
         
         Log::info('Shulesoft authentication cache cleared');
     }
@@ -288,6 +341,9 @@ class ShulesoftAuthService
         $hasToken = Cache::has(self::CACHE_KEY_ACCESS_TOKEN);
         $hasClient = Cache::has(self::CACHE_KEY_CLIENT_ID) && Cache::has(self::CACHE_KEY_CLIENT_SECRET);
         $expiresAt = Cache::get(self::CACHE_KEY_TOKEN_EXPIRES);
+        $failureCount = Cache::get(self::CACHE_KEY_FAILURE_COUNT, 0);
+        $lastFailure = Cache::get(self::CACHE_KEY_LAST_FAILURE_TIME);
+        $inBackoff = self::isInBackoffPeriod();
         
         return [
             'has_access_token' => $hasToken,
@@ -295,6 +351,11 @@ class ShulesoftAuthService
             'token_expires_at' => $expiresAt ? date('Y-m-d H:i:s', $expiresAt) : null,
             'is_expired' => self::isTokenExpired(),
             'client_id' => Cache::get(self::CACHE_KEY_CLIENT_ID),
+            'failure_count' => $failureCount,
+            'last_failure_at' => $lastFailure ? date('Y-m-d H:i:s', $lastFailure) : null,
+            'in_backoff_period' => $inBackoff,
+            'backoff_remaining_seconds' => $inBackoff ? self::getBackoffRemainingTime() : 0,
+            'last_error' => Cache::get(self::CACHE_KEY_OAUTH_FAILED),
         ];
     }
     
@@ -339,11 +400,121 @@ class ShulesoftAuthService
     }
     
     /**
+     * Check if OAuth is currently in backoff period
+     * 
+     * @return bool True if in backoff period
+     */
+    private static function isInBackoffPeriod()
+    {
+        $lastFailureTime = Cache::get(self::CACHE_KEY_LAST_FAILURE_TIME);
+        
+        if (!$lastFailureTime) {
+            return false;
+        }
+        
+        $failureCount = Cache::get(self::CACHE_KEY_FAILURE_COUNT, 0);
+        $backoffTime = self::calculateBackoffTime($failureCount);
+        
+        return (time() - $lastFailureTime) < $backoffTime;
+    }
+    
+    /**
+     * Get remaining backoff time in seconds
+     * 
+     * @return int Seconds remaining in backoff period
+     */
+    private static function getBackoffRemainingTime()
+    {
+        $lastFailureTime = Cache::get(self::CACHE_KEY_LAST_FAILURE_TIME);
+        
+        if (!$lastFailureTime) {
+            return 0;
+        }
+        
+        $failureCount = Cache::get(self::CACHE_KEY_FAILURE_COUNT, 0);
+        $backoffTime = self::calculateBackoffTime($failureCount);
+        $elapsed = time() - $lastFailureTime;
+        
+        return max(0, $backoffTime - $elapsed);
+    }
+    
+    /**
+     * Calculate backoff time based on failure count
+     * Uses exponential backoff with max limit
+     * 
+     * @param int $failureCount Number of consecutive failures
+     * @return int Backoff time in seconds
+     */
+    private static function calculateBackoffTime($failureCount)
+    {
+        if ($failureCount === 0) {
+            return 0;
+        }
+        
+        // Exponential backoff: 5min, 10min, 20min, 40min, capped at 1 hour
+        $backoffTime = self::INITIAL_BACKOFF * pow(2, $failureCount - 1);
+        
+        return min($backoffTime, self::MAX_BACKOFF);
+    }
+    
+    /**
+     * Record an OAuth authentication failure
+     * 
+     * @param Exception $e The exception that occurred
+     */
+    private static function recordOAuthFailure(Exception $e)
+    {
+        $failureCount = Cache::get(self::CACHE_KEY_FAILURE_COUNT, 0) + 1;
+        $backoffTime = self::calculateBackoffTime($failureCount);
+        
+        // Store failure information with backoff duration
+        Cache::put(self::CACHE_KEY_FAILURE_COUNT, $failureCount, $backoffTime);
+        Cache::put(self::CACHE_KEY_LAST_FAILURE_TIME, time(), $backoffTime);
+        Cache::put(self::CACHE_KEY_OAUTH_FAILED, $e->getMessage(), $backoffTime);
+        
+        // Special handling for HTML responses (indicates API endpoint issues)
+        if (self::isHtmlResponse($e->getMessage())) {
+            Log::error('⚠️ OAuth API returning HTML instead of JSON - Check credentials and API endpoints', [
+                'error' => substr($e->getMessage(), 0, 200),
+                'configured_email' => config('services.shulesoft_billing.auth_email'),
+                'api_url' => config('services.shulesoft_billing.api_url'),
+                'hint' => 'Verify SHULESOFT_AUTH_EMAIL and SHULESOFT_AUTH_PASSWORD are correct'
+            ]);
+        }
+    }
+    
+    /**
+     * Clear OAuth failure tracking (called on successful auth)
+     */
+    private static function clearOAuthFailures()
+    {
+        Cache::forget(self::CACHE_KEY_FAILURE_COUNT);
+        Cache::forget(self::CACHE_KEY_LAST_FAILURE_TIME);
+        Cache::forget(self::CACHE_KEY_OAUTH_FAILED);
+        
+        Log::info('OAuth failures cleared - authentication successful');
+    }
+    
+    /**
+     * Check if an error message contains HTML response
+     * 
+     * @param string $message Error message to check
+     * @return bool True if message contains HTML
+     */
+    private static function isHtmlResponse($message)
+    {
+        return strpos($message, '<!DOCTYPE') !== false || 
+               strpos($message, '<html') !== false ||
+               strpos($message, '<body') !== false;
+    }
+    
+    /**
      * Re-enable OAuth after it was disabled
      * Call this if you know the API server has been fixed
      */
     public static function enableOAuth()
     {
+        self::clearOAuthFailures();
         Cache::forget('shulesoft_oauth_disabled');
         Log::info('OAuth re-enabled, will attempt authentication on next request');
     }

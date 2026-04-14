@@ -118,6 +118,10 @@ return [
         'timeout' => env('BILLING_API_TIMEOUT', 30),
         'connect_timeout' => env('BILLING_API_CONNECT_TIMEOUT', 5),
         
+        // SSL Configuration
+        'verify_ssl' => env('BILLING_VERIFY_SSL', true), // Set to false to disable SSL verification (NOT recommended for production)
+        'cacert_path' => env('BILLING_CACERT_PATH'), // Optional: Path to CA certificate bundle
+        
         // Price Plans
         'price_plans' => [
             'starter' => env('BILLING_PRICE_PLAN_STARTER', 4),

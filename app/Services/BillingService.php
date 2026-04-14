@@ -24,8 +24,32 @@ class BillingService
     private static function getBillingApiBase()
     {
         // Use the configured billing API URL from Shulesoft config (includes /api/v1)
-        // .env should set: SHULESOFT_API_URL=https://shulesoftapi.shulesoft.africa/api/v1
+        // .env should set: SHULESOFT_API_URL=https://api.safaribank.africa/api/v1
         return rtrim(config('services.shulesoft_billing.api_url', 'https://api.safaribank.africa/api/v1'), '/');
+    }
+    
+    /**
+     * Get HTTP client with SSL configuration
+     * Handles SSL certificate verification based on environment
+     * 
+     * @return \Illuminate\Http\Client\PendingRequest
+     */
+    private static function getHttpClient()
+    {
+        $http = Http::timeout(config('services.shulesoft_billing.timeout', 30))
+            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5));
+        
+        // SSL Configuration
+        $verifySSL = config('services.shulesoft_billing.verify_ssl', true);
+        
+        if (!$verifySSL) {
+            Log::warning('⚠️ SSL verification is DISABLED - Not recommended for production!');
+            $http = $http->withOptions(['verify' => false]);
+        } elseif ($cacertPath = config('services.shulesoft_billing.cacert_path')) {
+            $http = $http->withOptions(['verify' => $cacertPath]);
+        }
+        
+        return $http;
     }
     
     /**
@@ -69,8 +93,8 @@ class BillingService
     {
         $token = self::getAccessToken();
         
-        $http = Http::timeout(config('services.shulesoft_billing.timeout', 30))
-            ->connectTimeout(config('services.shulesoft_billing.connect_timeout', 5))
+        // Use SSL-configured HTTP client with headers
+        $http = self::getHttpClient()
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
