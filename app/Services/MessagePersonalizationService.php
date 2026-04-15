@@ -364,15 +364,21 @@ PROMPT;
         $cacheKey = "conversation_history:{$contact->id}:{$limit}";
 
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($contact, $limit) {
-            $conversations = Conversation::where('business_contact_id', $contact->id)
+            $leadIds = $contact->leads()->pluck('id');
+
+            if ($leadIds->isEmpty()) {
+                return [];
+            }
+
+            $conversations = Conversation::whereIn('lead_id', $leadIds)
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
-                ->get(['message', 'is_incoming', 'created_at']);
+                ->get(['message_content', 'message_type', 'created_at']);
 
             return $conversations->map(function ($conv) {
                 return [
-                    'message' => $conv->message,
-                    'is_incoming' => $conv->is_incoming,
+                    'message' => $conv->message_content,
+                    'is_incoming' => $conv->message_type === 'CUSTOMER',
                     'timestamp' => $conv->created_at->toIso8601String()
                 ];
             })->toArray();
