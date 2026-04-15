@@ -44,6 +44,8 @@ class MessagePersonalizationService
     public function __construct()
     {
         $this->apiKey = config('services.openai.api_key');
+        $this->model = config('services.openai.model', 'gpt-4o');
+        $this->maxTokens = (int) config('services.openai.max_tokens', 1000);
     }
 
     /**
