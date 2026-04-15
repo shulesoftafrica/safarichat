@@ -161,7 +161,7 @@ class Kernel extends ConsoleKernel {
             });
         
         // AI Campaign Personalization: Process staged messages every 5 minutes
-        $schedule->command('campaigns:personalize --limit=200 --batch=50')
+        $schedule->command('campaigns:personalize --limit=200 --batch=50 --no-interaction')
             ->everyFiveMinutes()
             ->withoutOverlapping()
             ->runInBackground()
