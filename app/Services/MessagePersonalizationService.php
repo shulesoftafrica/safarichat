@@ -404,8 +404,12 @@ PROMPT;
      */
     private function determineRelationshipStage(BusinessContact $contact): string
     {
+        $leadIds = $contact->leads()->pluck('id');
+
         // Check conversation count
-        $conversationCount = Conversation::where('business_contact_id', $contact->id)->count();
+        $conversationCount = $leadIds->isNotEmpty()
+            ? Conversation::whereIn('lead_id', $leadIds)->count()
+            : 0;
 
         // Check if they've made a purchase (you can extend this based on your schema)
         $hasPurchased = false; // TODO: Implement based on your business logic
@@ -422,9 +426,9 @@ PROMPT;
         }
 
         // Check for inactivity (no conversation in 30+ days)
-        $lastConversation = Conversation::where('business_contact_id', $contact->id)
-            ->orderBy('created_at', 'desc')
-            ->first();
+        $lastConversation = $leadIds->isNotEmpty()
+            ? Conversation::whereIn('lead_id', $leadIds)->orderBy('created_at', 'desc')->first()
+            : null;
 
         if ($lastConversation && $lastConversation->created_at->diffInDays(now()) > 30) {
             return MessageQueue::STAGE_INACTIVE;
