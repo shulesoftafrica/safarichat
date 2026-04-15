@@ -113,7 +113,7 @@ class ProcessDocumentForRAG implements ShouldQueue
     /**
      * Handle a job failure.
      */
-    public function failed(Exception $exception)
+    public function failed(\Throwable $exception)
     {
         $attachment = ProductAttachment::find($this->attachmentId);
         
