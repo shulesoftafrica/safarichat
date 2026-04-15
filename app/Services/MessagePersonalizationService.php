@@ -103,7 +103,7 @@ class MessagePersonalizationService
             $analysis = $this->parseAIResponse($aiResponse);
 
             // Check for opt-out sentiment
-            if ($analysis['sentiment_filter_result'] === MessageQueue::SENTIMENT_OPT_OUT_DETECTED) {
+            if ($analysis['sentiment_filter_result'] === MessageQueue::SENTIMENT_OPT_OUT) {
                 Log::warning("Opt-out sentiment detected for contact {$contact->id}");
                 $message->markForReview('Opt-out language detected in analysis');
                 return [
