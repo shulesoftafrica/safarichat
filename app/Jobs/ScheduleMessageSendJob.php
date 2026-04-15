@@ -291,7 +291,7 @@ class ScheduleMessageSendJob implements ShouldQueue
             $requiredCredits = 3;
 
             // Check if user has sufficient credits
-            $hasCredits = $billingService->hasSufficientCredits(
+            $hasCredits = BillingService::hasCredits(
                 $this->messageQueue->user_id,
                 $requiredCredits
             );
