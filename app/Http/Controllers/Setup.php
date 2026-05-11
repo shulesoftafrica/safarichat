@@ -411,6 +411,12 @@ class Setup extends Controller {
     }
     $this->sendTextMessage($adminPhone, $userDetails, 'whatsapp', 'system_notification');
 
+        // Provision trial billing account for new user
+        $newUser = \App\Models\User::find($userId);
+        if ($newUser) {
+            $this->createTrialBillingAccount($newUser);
+        }
+
         $login=$this->loginUser($user['phone'], $code);
         
         return $login? response()->json([
@@ -1760,7 +1766,14 @@ class Setup extends Controller {
                 }
             }
             
-            // Create billing account with trial subscription
+            // Get trial limits from the nested 'limits' key in config
+            $limits = $trialLimits['limits'] ?? [];
+            $trialCredits = $limits['ai_credits'] ?? 1000;
+
+            // Create billing account with trial subscription.
+            // base_credits drives available_credits (GENERATED: base + topup - used).
+            // ai_credits is kept in sync with base + topup for backward-compat reads.
+            // available_credits is a GENERATED ALWAYS AS column — do NOT set it here.
             $billingAccount = \App\Models\BillingAccount::create([
                 'business_id' => $business->id,
                 'subscription_plan' => 'trial',
@@ -1768,17 +1781,18 @@ class Setup extends Controller {
                 'subscription_expires_at' => now()->addDays(3), // 3-day trial
                 'trial_ends_at' => now()->addDays(3),           // explicit trial expiry for CS crons
                 'next_billing_date' => now()->addDays(3),
-                'ai_credits' => $trialLimits['ai_credits'] ?? 1000,
+                'base_credits' => $trialCredits,  // drives available_credits via GENERATED column
+                'topup_credits' => 0,
+                'ai_credits' => $trialCredits,    // kept in sync for backward-compat reads
                 'ai_credits_used' => 0,
-                'available_credits' => $trialLimits['ai_credits'] ?? 1000,
-                'max_contacts' => $trialLimits['max_contacts'] ?? 5,
-                'max_products' => $trialLimits['max_products'] ?? 1,
-                'whatsapp_channels' => $trialLimits['whatsapp_channels'] ?? 1,
-                'customer_followups' => $trialLimits['customer_followups'] ?? false,
-                'customer_categorization' => $trialLimits['customer_categorization'] ?? false,
-                'booking_calendars' => $trialLimits['booking_calendars'] ?? false,
-                'sales_reports' => $trialLimits['sales_reports'] ?? false,
-                'unlimited_messages' => $trialLimits['unlimited_messages'] ?? false,
+                'max_contacts' => $limits['max_contacts'] ?? 10,
+                'max_products' => $limits['max_products'] ?? 1,
+                'whatsapp_channels' => $limits['whatsapp_channels'] ?? 1,
+                'customer_followups' => $limits['customer_followups'] ?? false,
+                'customer_categorization' => $limits['customer_categorization'] ?? false,
+                'booking_calendars' => $limits['booking_calendars'] ?? false,
+                'sales_reports' => $limits['sales_reports'] ?? false,
+                'unlimited_messages' => $limits['unlimited_messages'] ?? false,
                 'credits_rollover' => false,
                 'status' => 'active', // Active trial
                 'notes' => 'Auto-created trial account during registration'

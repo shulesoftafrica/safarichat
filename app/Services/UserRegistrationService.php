@@ -126,6 +126,9 @@ class UserRegistrationService
             ->first()
             ?->markVerified();
 
+        // Provision trial billing account so new users have credits from the start
+        $this->provisionTrialBilling($user);
+
         // Send welcome message via system instance
         try {
             $this->systemWhatsApp->sendWelcomeMessage($phoneNumber, $user->name);
@@ -352,5 +355,85 @@ class UserRegistrationService
             'period_days' => $days,
             'system_whatsapp_available' => $this->systemWhatsApp->isAvailable()
         ];
+    }
+
+    /**
+     * Provision a 3-day trial billing account for a newly registered user.
+     * Creates the business record if the user doesn't have one yet, then
+     * creates a BillingAccount with base_credits set so the GENERATED
+     * available_credits column starts at 1000 (not 0).
+     */
+    private function provisionTrialBilling(User $user): void
+    {
+        try {
+            $limits = config('safarichat_billing.plans.trial.limits', []);
+            $trialCredits = $limits['ai_credits'] ?? 1000;
+
+            $business = $user->business;
+            if (!$business) {
+                $business = \App\Models\Business::create([
+                    'user_id'    => $user->id,
+                    'name'       => $user->business_name ?? $user->name . "'s Business",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Skip if billing account already exists
+            if ($business->billingAccount) {
+                return;
+            }
+
+            \App\Models\BillingAccount::create([
+                'business_id'            => $business->id,
+                'subscription_plan'      => 'trial',
+                'subscription_started_at'=> now(),
+                'subscription_expires_at'=> now()->addDays(3),
+                'trial_ends_at'          => now()->addDays(3),
+                'next_billing_date'      => now()->addDays(3),
+                'base_credits'           => $trialCredits, // drives available_credits (GENERATED)
+                'topup_credits'          => 0,
+                'ai_credits'             => $trialCredits, // backward-compat reads
+                'ai_credits_used'        => 0,
+                'max_contacts'           => $limits['max_contacts'] ?? 10,
+                'max_products'           => $limits['max_products'] ?? 1,
+                'whatsapp_channels'      => $limits['whatsapp_channels'] ?? 1,
+                'customer_followups'     => $limits['customer_followups'] ?? false,
+                'customer_categorization'=> $limits['customer_categorization'] ?? false,
+                'booking_calendars'      => $limits['booking_calendars'] ?? false,
+                'sales_reports'          => $limits['sales_reports'] ?? false,
+                'unlimited_messages'     => $limits['unlimited_messages'] ?? false,
+                'credits_rollover'       => false,
+                'status'                 => 'active',
+                'notes'                  => 'Auto-created trial account during WhatsApp OTP registration',
+            ]);
+
+            \App\Models\Subscription::create([
+                'user_id'       => $user->id,
+                'status'        => 'active',
+                'starts_at'     => now(),
+                'trial_ends_at' => now()->addDays(3),
+                'ends_at'       => now()->addDays(3),
+                'auto_renew'    => false,
+                'metadata'      => [
+                    'plan_type'           => 'trial',
+                    'created_during'      => 'whatsapp_otp_registration',
+                    'trial_duration_days' => 3,
+                ],
+            ]);
+
+            \Log::info('Trial billing provisioned for new WhatsApp OTP user', [
+                'user_id'        => $user->id,
+                'business_id'    => $business->id,
+                'trial_credits'  => $trialCredits,
+                'trial_expires'  => now()->addDays(3)->toDateTimeString(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to provision trial billing after WhatsApp OTP registration', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+            // Do NOT rethrow — billing failure must not break registration
+        }
     }
 }

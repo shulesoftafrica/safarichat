@@ -100,19 +100,25 @@ class Business extends Model
         // Create new billing account for business
         $plan = $this->subscription_plan ?? 'trial';
         $planConfig = config("safarichat_billing.plans.{$plan}");
-        
+        $limits = $planConfig['limits'] ?? [];
+        $planCredits = $limits['ai_credits'] ?? 1000;
+
         $billingAccount = \App\Models\BillingAccount::create([
             'business_id' => $this->id,
             'subscription_plan' => $plan,
-            'ai_credits' => $planConfig['limits']['ai_credits'] ?? 1000,
-            'max_contacts' => $planConfig['limits']['max_contacts'] ?? 10,
-            'max_products' => $planConfig['limits']['max_products'] ?? 1,
-            'whatsapp_channels' => $planConfig['limits']['whatsapp_channels'] ?? 1,
-            'customer_followups' => $planConfig['limits']['customer_followups'] ?? false,
-            'customer_categorization' => $planConfig['limits']['customer_categorization'] ?? false,
-            'booking_calendars' => $planConfig['limits']['booking_calendars'] ?? false,
-            'sales_reports' => $planConfig['limits']['sales_reports'] ?? false,
-            'unlimited_messages' => $planConfig['limits']['unlimited_messages'] ?? false,
+            'base_credits' => $planCredits,  // drives available_credits via GENERATED column
+            'topup_credits' => 0,
+            'ai_credits' => $planCredits,    // kept in sync for backward-compat reads
+            'ai_credits_used' => 0,
+            'max_contacts' => $limits['max_contacts'] ?? 10,
+            'max_products' => $limits['max_products'] ?? 1,
+            'whatsapp_channels' => $limits['whatsapp_channels'] ?? 1,
+            'customer_followups' => $limits['customer_followups'] ?? false,
+            'customer_categorization' => $limits['customer_categorization'] ?? false,
+            'booking_calendars' => $limits['booking_calendars'] ?? false,
+            'sales_reports' => $limits['sales_reports'] ?? false,
+            'unlimited_messages' => $limits['unlimited_messages'] ?? false,
+            'status' => 'active',
         ]);
 
         return $billingAccount;
