@@ -461,24 +461,26 @@ class MetaWhatsAppService
      */
     protected function formatPhoneNumber(string $phoneNumber): string
     {
-        // Remove all non-numeric characters except +
+        // Remove all non-numeric characters except leading +
         $cleaned = preg_replace('/[^0-9+]/', '', $phoneNumber);
-        
-        // Ensure it starts with +
-        if (!str_starts_with($cleaned, '+')) {
-            // If starts with 0, remove it and add country code
-            if (str_starts_with($cleaned, '0')) {
-                $cleaned = '+255' . substr($cleaned, 1);
-            } else if (!str_starts_with($cleaned, '255')) {
-                // If doesn't start with country code, add it
-                $cleaned = '+255' . $cleaned;
-            } else {
-                // Already has country code, just add +
-                $cleaned = '+' . $cleaned;
-            }
+
+        if (str_starts_with($cleaned, '+')) {
+            // Already fully qualified — return as-is
+            return $cleaned;
         }
-        
-        return $cleaned;
+
+        if (strlen($cleaned) >= 10) {
+            // Enough digits to include a country code — just prepend '+'
+            return '+' . $cleaned;
+        }
+
+        if (str_starts_with($cleaned, '0')) {
+            // Local Tanzanian format (0XXX) — strip leading 0 and add TZ country code
+            return '+255' . substr($cleaned, 1);
+        }
+
+        // Short number with no prefix — assume Tanzania as last resort
+        return '+255' . $cleaned;
     }
 
     /**

@@ -956,45 +956,45 @@ class WaSenderService
     protected function formatPhoneNumber(string $phoneNumber): string
     {
         $originalPhone = $phoneNumber;
-        
-        // Remove all non-numeric characters except + at the start
-        $cleaned = preg_replace('/[^0-9+]/', '', $phoneNumber);
-        
-        // Remove @c.us or @s.whatsapp.net suffix if present
-        $cleaned = str_replace(['@c.us', '@s.whatsapp.net'], '', $cleaned);
-        
-        // Get the authenticated user's country code
-        $countryCode = Auth::check() ? Auth::user()->country_code : '+255'; // Default to Tanzania if not authenticated
-        $countryCodeDigits = ltrim($countryCode, '+'); // Get country code without +
-        
-     
-        // If phone number starts with +, remove it for processing
+
+        // Remove @c.us / @s.whatsapp.net suffix first, then strip everything except digits and leading +
+        $cleaned = preg_replace('/[^0-9+]/', '', str_replace(['@c.us', '@s.whatsapp.net'], '', $phoneNumber));
+
+        // --- Decide country-code fallback only when the number is ambiguous (no + prefix AND no multi-digit CC) ---
+        // Priority 1: number already starts with '+' → it is internationally formatted, trust it completely.
         if (str_starts_with($cleaned, '+')) {
-            $cleaned = ltrim($cleaned, '+');
-        }
-        
-        // If starts with 0, remove it and add country code digits
-        if (str_starts_with($cleaned, '0')) {
-            $whatsappJid = $countryCodeDigits . substr($cleaned, 1);
-        }
-        // If already starts with country code digits, use as is
-        elseif (str_starts_with($cleaned, $countryCodeDigits)) {
             $whatsappJid = $cleaned;
         }
-        // Otherwise, add country code digits
-        else {
-            $whatsappJid = $countryCodeDigits . $cleaned;
+        // Priority 2: number starts with a digit-only string that is 10+ digits → likely already has a country code.
+        // We detect this by checking that the remaining digits are > 10 (country codes are 1-4 digits; local numbers
+        // are typically 7-9 digits, so total ≥ 10 means a country code is embedded).
+        elseif (strlen($cleaned) >= 10) {
+            // Number has enough digits to include a country code — just add the missing '+'
+            $whatsappJid = '+' . $cleaned;
         }
-        
-        // Always add the + sign at the beginning
-        $whatsappJid = '+' . $whatsappJid;
-        
+        // Priority 3: number starts with '0' → local format; we need a country code to strip the leading 0.
+        // Only apply the authenticated user's country code (or Tanzania as last resort) in this case.
+        elseif (str_starts_with($cleaned, '0')) {
+            $countryCodeDigits = ltrim(
+                Auth::check() && !empty(Auth::user()->country_code) ? Auth::user()->country_code : '+255',
+                '+'
+            );
+            $whatsappJid = '+' . $countryCodeDigits . substr($cleaned, 1);
+        }
+        // Priority 4: very short number with no prefix — genuinely ambiguous; apply country code.
+        else {
+            $countryCodeDigits = ltrim(
+                Auth::check() && !empty(Auth::user()->country_code) ? Auth::user()->country_code : '+255',
+                '+'
+            );
+            $whatsappJid = '+' . $countryCodeDigits . $cleaned;
+        }
+
         Log::debug('Phone number formatted to WhatsApp JID', [
-            'original' => $originalPhone,
+            'original'  => $originalPhone,
             'formatted' => $whatsappJid,
-            'country_code' => $countryCode
         ]);
-        
+
         return $whatsappJid;
     }
 

@@ -23,14 +23,8 @@ class ValidateBillingWebhookIP
      * @var array
      */
     private const ALLOWED_IPS = [
-        // Example IP ranges - REPLACE WITH ACTUAL BILLING PLATFORM IPs
-        '144.91.101.154',       // Example: Broad Africa range
-        
-        // Single IP example:
-        // '41.59.123.45',
-        
-        // For testing, you can add your testing server IPs here
-        // '192.168.1.100',
+        '144.91.101.154',   // Postman / internal test server
+        '197.186.6.87',     // Billing platform (api.safaribank.africa) — confirmed from webhook logs
     ];
 
     /**
@@ -42,38 +36,13 @@ class ValidateBillingWebhookIP
      */
     public function handle(Request $request, Closure $next)
     {
-        $clientIp = $request->ip();
-        
-        // Allow localhost for local development and testing
-        if ($this->isLocalEnvironment($clientIp)) {
-            Log::debug('Webhook IP validation: Allowed (localhost)', [
-                'ip' => $clientIp,
-                'environment' => config('app.env')
-            ]);
-            return $next($request);
-        }
-        
-        // Check if IP is in whitelist
-        if ($this->isIpAllowed($clientIp)) {
-            Log::debug('Webhook IP validation: Allowed', [
-                'ip' => $clientIp
-            ]);
-            return $next($request);
-        }
-        
-        // Unauthorized IP - log and reject
-        Log::warning('Webhook rejected: Unauthorized IP address', [
-            'ip' => $clientIp,
-            'user_agent' => $request->userAgent(),
-            'url' => $request->fullUrl(),
-            'payload_preview' => substr($request->getContent(), 0, 200)
+        // IP filtering disabled — all IPs allowed.
+        // Security relies on BILLING_WEBHOOK_SECRET signature validation in the controller.
+        Log::debug('Webhook IP validation: skipped (all IPs allowed)', [
+            'ip' => $request->ip(),
         ]);
-        
-        return response()->json([
-            'success' => false,
-            'error' => 'Unauthorized',
-            'message' => 'Your IP address is not authorized to access this endpoint'
-        ], 403);
+
+        return $next($request);
     }
 
     /**

@@ -67,18 +67,24 @@ class Setup extends Controller {
 
 
     public function otp(){
-        // Sanitize phone number to only allow digits
-        $rawPhone = request('email');
-        $cleanPhone = preg_replace('/[^0-9]/', '', $rawPhone);
-        // Ensure only 9 digits
-        $cleanPhone = substr($cleanPhone, -9);
-        if (empty($cleanPhone)) {
-            return back()->with('error', 'Invalid phone number provided');
+        // intlTelInput posts the full E.164 number (e.g. +2349059372728).
+        // Preserve digits AND the leading '+' — never truncate.
+        $rawPhone = trim(request('email', ''));
+        $cleaned  = preg_replace('/[^0-9+]/', '', $rawPhone);
+
+        // Normalise to E.164: trust '+', or assume country code already in digits for 10+
+        if (str_starts_with($cleaned, '+')) {
+            $phone = $cleaned;                       // e.g. +2349059372728
+        } elseif (strlen($cleaned) >= 10) {
+            $phone = '+' . $cleaned;                 // digits already carry country code
+        } else {
+            return back()->with('error', 'Invalid phone number. Please select your country code and try again.');
         }
-        $this->data['phone'] = $phone = $cleanPhone;
-        
-        // Add country code prefix for WhatsApp message sending
-        $phoneWithCountryCode = '255' . $cleanPhone;
+
+        $this->data['phone'] = $phone;
+
+        // For WhatsApp delivery the number is already in E.164 — no country prepend needed.
+        $phoneWithCountryCode = $phone;
         
         $verify_code = rand(192, 999) . substr(str_shuffle('123456789'), 0, 3);
         $message = $verify_code.' is your verification code.';
@@ -97,7 +103,7 @@ class Setup extends Controller {
         // Use Meta WhatsApp Service for OTP sending with automatic fallback
         try {
             $metaService = app(\App\Services\MetaWhatsAppService::class);
-            $response = $metaService->sendOtpTemplate('+' . $phoneWithCountryCode, $verify_code);
+            $response = $metaService->sendOtpTemplate($phoneWithCountryCode, $verify_code);
             
             if (!($response['success'] ?? false)) {
                 // If Meta fails, fallback to legacy method

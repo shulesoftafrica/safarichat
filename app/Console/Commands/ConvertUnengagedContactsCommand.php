@@ -332,24 +332,47 @@ class ConvertUnengagedContactsCommand extends Command
     }
 
     /**
-     * Format phone number consistently
+     * Format a phone number to E.164.
+     *
+     * For uploaded contact lists the caller should pass the owning business
+     * contact so we can derive the correct country code from the business
+     * owner's account — rather than hard-coding a single country.
+     *
+     * Resolution order:
+     *   1. Number already starts with '+' → trust it as-is.
+     *   2. Number has ≥ 10 digits         → internationally qualified, just add '+'.
+     *   3. Number starts with '0'         → local format; strip leading 0 and use
+     *                                        the owner's country code if available.
+     *   4. Everything else                → apply the owner's country code.
+     *
+     * @param string               $phone
+     * @param BusinessContact|null $contact  Owning contact (provides country via business.user)
      */
-    private function formatPhoneNumber(string $phone): string
+    private function formatPhoneNumber(string $phone, ?\App\Models\BusinessContact $contact = null): string
     {
-        // Remove all non-numeric characters except +
         $phone = preg_replace('/[^0-9+]/', '', $phone);
-        
-        // Add country code if missing (assuming Tanzania +255)
-        if (!str_starts_with($phone, '+')) {
-            if (str_starts_with($phone, '0')) {
-                $phone = '+255' . substr($phone, 1);
-            } elseif (!str_starts_with($phone, '255')) {
-                $phone = '+255' . $phone;
-            } else {
-                $phone = '+' . $phone;
-            }
+
+        if (str_starts_with($phone, '+')) {
+            return $phone; // Already E.164 — trust it.
         }
-        
-        return $phone;
+
+        if (strlen($phone) >= 10) {
+            return '+' . $phone; // Enough digits to include a country code.
+        }
+
+        // Derive country code from the business owner's profile.
+        // Falls back to '+255' only when no owner data is available at all,
+        // which should not happen for contacts imported via the platform.
+        $ownerCountryCode = null;
+        if ($contact?->business?->user?->country_code) {
+            $ownerCountryCode = '+' . ltrim($contact->business->user->country_code, '+');
+        }
+        $countryCode = $ownerCountryCode ?? '+255';
+
+        if (str_starts_with($phone, '0')) {
+            return $countryCode . substr($phone, 1);
+        }
+
+        return $countryCode . $phone;
     }
 }
