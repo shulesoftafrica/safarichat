@@ -335,6 +335,9 @@ Route::post('/wasender/test-qr-generation', [WaSenderController::class, 'testQRG
 Route::post('/wasender/webhook/{instanceId}', 'WaSenderController@handleWebhook')->middleware(['throttle:webhooks']); // Legacy route
 Route::post('/webhook/whatsapp/{instanceUuid}', 'WaSenderController@handleWebhookByUuid')->middleware(['throttle:webhooks']); // New UUID-based route
 
+// Ignored-contacts management (owner only, requires authentication)
+Route::middleware('auth:sanctum')->put('/wasender/instances/{instanceId}/ignored-contacts', [App\Http\Controllers\WaSenderController::class, 'updateIgnoredContacts']);
+
 // WhatsApp Instance Management API Routes
 Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whatsapp.instances.')->group(function () {
     Route::get('/', 'WhatsappInstanceController@index');

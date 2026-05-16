@@ -44,6 +44,8 @@ class WhatsappInstance extends Model
         'unified_api_registered_at',
         // CS routing
         'instance_type',
+        // Contacts to silently ignore (personal contacts, test numbers, etc.)
+        'ignored_contacts',
     ];
 
     protected $casts = [
@@ -62,7 +64,8 @@ class WhatsappInstance extends Model
         'last_active_at' => 'datetime',
         'unified_api_registered_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'ignored_contacts' => 'array',
     ];
 
     /**

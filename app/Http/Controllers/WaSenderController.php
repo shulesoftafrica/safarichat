@@ -1053,6 +1053,71 @@ class WaSenderController extends Controller
     }
 
     /**
+     * Update the ignored-contacts list for a WhatsApp instance.
+     *
+     * PUT /api/wasender/instances/{instanceId}/ignored-contacts
+     *
+     * Request body:
+     *   {
+     *     "ignored_contacts": [
+     *       {"phone": "255714825469", "label": "John (friend)"},
+     *       {"phone": "255756123456"}
+     *     ]
+     *   }
+     *
+     * Phone numbers are normalised to digits-only before storage.
+     */
+    public function updateIgnoredContacts(Request $request, $instanceId): \Illuminate\Http\JsonResponse
+    {
+        $instance = WhatsappInstance::where('instance_id', $instanceId)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$instance) {
+            return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'ignored_contacts'           => ['required', 'array'],
+            'ignored_contacts.*.phone'   => ['required', 'string', 'regex:/^[0-9+\- ]{7,20}$/'],
+            'ignored_contacts.*.label'   => ['sometimes', 'nullable', 'string', 'max:100'],
+        ]);
+
+        // Normalise phone numbers to digits-only before persisting
+        $contacts = array_map(function (array $entry): array {
+            $entry['phone'] = preg_replace('/[^0-9]/', '', $entry['phone']);
+            if (isset($entry['label'])) {
+                $entry['label'] = trim($entry['label']);
+            }
+            return $entry;
+        }, $validated['ignored_contacts']);
+
+        // Deduplicate by phone number
+        $seen     = [];
+        $contacts = array_values(array_filter($contacts, function (array $entry) use (&$seen): bool {
+            if ($entry['phone'] === '' || isset($seen[$entry['phone']])) {
+                return false;
+            }
+            $seen[$entry['phone']] = true;
+            return true;
+        }));
+
+        $instance->update(['ignored_contacts' => $contacts]);
+
+        Log::info('Ignored contacts updated', [
+            'instance_id' => $instance->instance_id,
+            'user_id'     => Auth::id(),
+            'count'       => count($contacts),
+        ]);
+
+        return response()->json([
+            'success'          => true,
+            'ignored_contacts' => $contacts,
+            'count'            => count($contacts),
+        ]);
+    }
+
+    /**
      * Generate placeholder QR code for testing
      */
     private function generatePlaceholderQR($sessionId)
@@ -1567,6 +1632,15 @@ class WaSenderController extends Controller
                 return response()->json(['success' => false, 'message' => 'Invalid message data']);
             }
 
+            // Silently drop messages from contacts the business owner chose to ignore
+            if ($this->isContactIgnored($instance, $messageData['phone_number'] ?? '')) {
+                Log::info('[Sales] Ignored contact silently skipped', [
+                    'phone'       => $messageData['phone_number'] ?? '',
+                    'instance_id' => $instance->id,
+                ]);
+                return response()->json(['success' => true, 'message' => 'Contact ignored']);
+            }
+
             // Create IncomingMessage record
             $incomingMessage = IncomingMessage::create($messageData);
             
@@ -1664,6 +1738,36 @@ class WaSenderController extends Controller
     }
 
     /**
+     * Check whether a phone number is in the instance's ignored-contacts list.
+     *
+     * Comparison is digits-only on both sides so callers don't need to
+     * worry about whether the stored or incoming value contains a leading +.
+     */
+    private function isContactIgnored(WhatsappInstance $instance, string $rawPhone): bool
+    {
+        $ignored = $instance->ignored_contacts ?? [];
+
+        if (empty($ignored)) {
+            return false;
+        }
+
+        $normalized = preg_replace('/[^0-9]/', '', $rawPhone);
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        foreach ($ignored as $entry) {
+            $stored = preg_replace('/[^0-9]/', '', $entry['phone'] ?? '');
+            if ($stored !== '' && $stored === $normalized) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Handle incoming messages on a CS-only instance.
      * All inbound text is treated as the business owner replying to CS prompts.
      */
@@ -1682,6 +1786,16 @@ class WaSenderController extends Controller
             }
 
             $messageData = $this->extractMessageData($webhookData, $instance);
+
+            // Silently drop messages from contacts the business owner chose to ignore
+            if ($this->isContactIgnored($instance, $messageData['phone_number'] ?? '')) {
+                Log::info('[CS] Ignored contact silently skipped', [
+                    'phone'       => $messageData['phone_number'] ?? '',
+                    'instance_id' => $instance->id,
+                ]);
+                return response()->json(['success' => true, 'message' => 'Contact ignored']);
+            }
+
             $body        = trim($messageData['message_body'] ?? '');
 
             // Non-text / empty → treat as help request
@@ -1722,6 +1836,16 @@ class WaSenderController extends Controller
             }
 
             $messageData = $this->extractMessageData($webhookData, $instance);
+
+            // Silently drop messages from contacts the business owner chose to ignore
+            if ($this->isContactIgnored($instance, $messageData['phone_number'] ?? '')) {
+                Log::info('[Hybrid] Ignored contact silently skipped', [
+                    'phone'       => $messageData['phone_number'] ?? '',
+                    'instance_id' => $instance->id,
+                ]);
+                return response()->json(['success' => true, 'message' => 'Contact ignored']);
+            }
+
             $body        = trim($messageData['message_body'] ?? '');
 
             // Detect if the sender is the instance owner
