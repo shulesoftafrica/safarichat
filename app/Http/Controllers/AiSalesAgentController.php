@@ -87,8 +87,9 @@ class AiSalesAgentController extends Controller
     {
         $userTypes = UserType::active()->orderBy('name')->get();
         $existingAgent = AiSalesAgent::forUser(Auth::id())->latest()->first();
+        $ignoredContactsLine = $this->getIgnoredContactsLineForUser();
         
-        return view('service.job-description', compact('userTypes', 'existingAgent'));
+        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine'));
     }
 
     /**
@@ -118,6 +119,9 @@ class AiSalesAgentController extends Controller
             
             // Create the AI sales agent
             $agent = AiSalesAgent::create($validatedData);
+
+            // Keep ignored contacts on the user's WhatsApp instance in sync
+            $this->syncIgnoredContactsFromLine($request);
             
             DB::commit();
             
@@ -152,8 +156,9 @@ class AiSalesAgentController extends Controller
         
         $userTypes = UserType::active()->orderBy('name')->get();
         $existingAgent = $aiSalesAgent;
+        $ignoredContactsLine = $this->getIgnoredContactsLineForUser();
         
-        return view('service.job-description', compact('userTypes', 'existingAgent'));
+        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine'));
     }
 
     /**
@@ -206,6 +211,9 @@ class AiSalesAgentController extends Controller
             }
 
             $aiSalesAgent->update($validatedData);
+
+            // Keep ignored contacts on the user's WhatsApp instance in sync
+            $this->syncIgnoredContactsFromLine($request);
 
             DB::commit();
 
@@ -445,6 +453,7 @@ class AiSalesAgentController extends Controller
             // Fallback & Escalation
             'fallback_number' => 'required|string|max:20',
             'fallback_person' => 'nullable|string|max:255',
+            'ignored_contacts_line' => 'nullable|string|max:2000',
             'escalation_triggers' => 'nullable|array',
             'escalation_triggers.*' => 'string|in:complex-questions,complaints,large-orders,payment-issues,angry-customer',
             'large_order_threshold' => 'nullable|numeric|min:0',
@@ -465,5 +474,67 @@ class AiSalesAgentController extends Controller
             // Terms & Conditions
             'accepted_terms' => 'required|accepted'
         ]);
+    }
+
+    /**
+     * Get preferred WhatsApp instance for current user (primary first, then oldest).
+     */
+    private function getPreferredWhatsappInstanceForUser(): ?\App\Models\WhatsappInstance
+    {
+        return \App\Models\WhatsappInstance::where('user_id', Auth::id())
+            ->orderByDesc('is_primary')
+            ->orderBy('created_at')
+            ->first();
+    }
+
+    /**
+     * Pre-fill helper for the single-line ignored contacts input on agent setup.
+     */
+    private function getIgnoredContactsLineForUser(): string
+    {
+        $instance = $this->getPreferredWhatsappInstanceForUser();
+        if (! $instance) {
+            return '';
+        }
+
+        return collect($instance->ignored_contacts ?? [])
+            ->pluck('phone')
+            ->map(function ($phone) {
+                return preg_replace('/[^0-9]/', '', (string) $phone);
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode(', ');
+    }
+
+    /**
+     * Sync comma-separated ignored contacts from the agent form to whatsapp instance.
+     */
+    private function syncIgnoredContactsFromLine(Request $request): void
+    {
+        $instance = $this->getPreferredWhatsappInstanceForUser();
+        if (! $instance) {
+            return;
+        }
+
+        $line = (string) $request->input('ignored_contacts_line', '');
+        $parts = preg_split('/[\n,]+/', $line) ?: [];
+
+        $phones = collect($parts)
+            ->map(function ($value) {
+                return preg_replace('/[^0-9]/', '', trim((string) $value));
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        $ignoredContacts = $phones
+            ->map(function ($phone) {
+                return ['phone' => $phone];
+            })
+            ->all();
+
+        $instance->update(['ignored_contacts' => $ignoredContacts]);
     }
 }

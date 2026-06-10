@@ -631,7 +631,7 @@
             <!-- Hidden form fields -->
             <form id="registration-form" method="POST" action="{{ route('register.business') }}" style="display: none;">
                 @csrf
-                <input type="hidden" name="phone" value="{{$phone}}">
+                <input type="hidden" name="phone" value="{{$phone ?? ''}}">
                 <input type="hidden" name="business_type" id="selected_business_type">
                 <input type="hidden" name="business_data" id="business_data_json">
             </form>

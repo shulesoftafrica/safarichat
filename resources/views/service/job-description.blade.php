@@ -157,6 +157,16 @@
                                     <small class="form-hint">This helps personalize conversations</small>
                                 </div>
                             </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Ignored Contacts</label>
+                                    <input type="text" class="form-control" name="ignored_contacts_line"
+                                           value="{{ old('ignored_contacts_line', $ignoredContactsLine ?? '') }}"
+                                           placeholder="255714825469, 255756123456">
+                                    <small class="form-hint">Comma-separated phone numbers. AI will not auto-reply to these contacts.</small>
+                                </div>
+                            </div>
                             
                             <div class="form-row">
                                 <div class="form-group">

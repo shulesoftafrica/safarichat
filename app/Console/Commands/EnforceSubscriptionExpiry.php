@@ -66,7 +66,7 @@ class EnforceSubscriptionExpiry extends Command
                 ]);
 
                 // Notify business owner if linked
-                if ($account->business) {
+                if ($account->business && class_exists('\App\Notifications\SubscriptionExpiredNotification')) {
                     try {
                         $account->business->notify(
                             new \App\Notifications\SubscriptionExpiredNotification($account)

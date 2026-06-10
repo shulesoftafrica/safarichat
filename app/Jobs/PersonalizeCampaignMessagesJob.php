@@ -353,7 +353,7 @@ class PersonalizeCampaignMessagesJob implements ShouldQueue
     /**
      * Handle a job failure.
      *
-     * @param Exception $exception
+     * @param \Throwable $exception
      * @return void
      */
     public function failed(\Throwable $exception)

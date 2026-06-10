@@ -236,7 +236,7 @@ class Lead extends Model
     // Alias for contact() - for backward compatibility
     public function businessContact()
     {
-        return $this->contact();
+        return $this->belongsTo(BusinessContact::class, 'business_contact_id');
     }
 
     public function business()
@@ -262,7 +262,7 @@ class Lead extends Model
     // Alias for leadProducts() - for backward compatibility
     public function products()
     {
-        return $this->leadProducts();
+        return $this->hasMany(LeadProduct::class);
     }
 
     public function conversations()

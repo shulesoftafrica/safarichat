@@ -273,7 +273,7 @@ class CampaignController extends Controller
             ->firstOrFail();
 
         // Only allow deletion of completed or failed campaigns
-        if (!in_array($campaign->status, [Campaign::STATUS_COMPLETED, Campaign::STATUS_FAILED, Campaign::STATUS_STAGING])) {
+        if (!in_array($campaign->status, [Campaign::STATUS_COMPLETED, 'failed', Campaign::STATUS_STAGING])) {
             return redirect()->back()->with('error', 'Cannot delete an active campaign. Please pause it first.');
         }
 
@@ -297,7 +297,7 @@ class CampaignController extends Controller
             Campaign::STATUS_SENDING => 'primary',
             Campaign::STATUS_PAUSED => 'warning',
             Campaign::STATUS_COMPLETED => 'success',
-            Campaign::STATUS_FAILED => 'danger',
+            'failed' => 'danger',
         ];
 
         return $colors[$status] ?? 'secondary';
@@ -317,7 +317,7 @@ class CampaignController extends Controller
             Campaign::STATUS_SENDING => 'fas fa-paper-plane',
             Campaign::STATUS_PAUSED => 'fas fa-pause-circle',
             Campaign::STATUS_COMPLETED => 'fas fa-check-circle',
-            Campaign::STATUS_FAILED => 'fas fa-exclamation-circle',
+            'failed' => 'fas fa-exclamation-circle',
         ];
 
         return $icons[$status] ?? 'fas fa-circle';
