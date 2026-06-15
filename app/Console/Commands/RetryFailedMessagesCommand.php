@@ -91,6 +91,27 @@ class RetryFailedMessagesCommand extends Command
                 }
             }
 
+            // Skip messages without a valid WhatsApp instance - cannot be retried
+            $instance = $message->whatsappInstance
+                ?? ($message->user_id
+                    ? WhatsappInstance::where('user_id', $message->user_id)
+                        ->where('is_primary', true)
+                        ->first()
+                        ?? WhatsappInstance::where('user_id', $message->user_id)->first()
+                    : null);
+
+            if (!$instance) {
+                if (!$dryRun) {
+                    $message->update([
+                        'retryable' => false,
+                        'failure_reason' => 'no_instance_found'
+                    ]);
+                }
+                $this->warn("  Skipping #{$message->id} - No WhatsApp instance found for user {$message->user_id}");
+                $skipped++;
+                continue;
+            }
+
             if ($dryRun) {
                 $this->line("  [DRY RUN] #{$message->id} | {$message->phone_number} | reason: {$message->failure_reason} | retries: {$message->retry_count}/{$message->max_retries}");
                 $retried++;
@@ -105,9 +126,9 @@ class RetryFailedMessagesCommand extends Command
                 $message->source ?? 'whatsapp',
                 $message->user_id,
                 null, // files — not stored on the record, media retries not supported
-                $message->instance_id,
+                $instance->instance_id ?? $instance->id, // Use validated instance
                 [
-                    'whatsapp_instance_id' => $message->whatsapp_instance_id,
+                    'whatsapp_instance_id' => $instance->id, // Use validated instance ID
                     'provider'             => $message->provider ?? 'unified_api',
                     'priority'             => $message->priority ?? 'normal',
                     'batch_id'             => $message->batch_id,
