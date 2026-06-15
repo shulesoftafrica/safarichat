@@ -168,7 +168,7 @@ class Lead extends Model
 
         } catch (\Illuminate\Database\QueryException $e) {
             // Database constraint violation
-            \Log::error('Lead creation database error', [
+            \Illuminate\Support\Facades\Log::error('Lead creation database error', [
                 'data' => $data,
                 'error' => $e->getMessage(),
                 'code' => $e->getCode()
@@ -194,7 +194,7 @@ class Lead extends Model
 
         } catch (\Exception $e) {
             // General error
-            \Log::error('Lead creation failed', [
+            \Illuminate\Support\Facades\Log::error('Lead creation failed', [
                 'data' => $data,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

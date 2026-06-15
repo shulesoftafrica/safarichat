@@ -3,15 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\BusinessContact;
 use App\Models\BusinessContact as EventsGuest;
-use App\Models\BusinessContactCategory;
 use App\Models\BusinessContactCategory as EventGuestCategory;
 use App\Models\Lead;
 use App\Models\AiSalesAgent;
 use App\Services\BillingService;
-use App\Services\LocalBillingValidator;
-use Auth;
+use \Illuminate\Support\Facades\Log;
+use \Illuminate\Support\Facades\Auth;
 
 class Guest extends Controller {
 
@@ -180,7 +178,7 @@ class Guest extends Controller {
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Error creating contact: ' . $e->getMessage(), [
+            Log::error('Error creating contact: ' . $e->getMessage(), [
                 'request_data' => $request->all()
             ]);
             
@@ -197,7 +195,7 @@ class Guest extends Controller {
         }
     }
 
-    private function checkKeysExists($value, $keys_array = null) {
+    private function checkKeysExists(array $value, $keys_array = null) {
 
         $required = $keys_array == null ? array('name', 'category', 'phone', 'pledge') : $keys_array;
 
@@ -276,8 +274,8 @@ class Guest extends Controller {
                     continue;
                 }
                 $phone = validate_phone_number($user->phone)[1];
-                $category = \App\Models\EventGuestCategory::where('name', 'ilike', strtolower($user->category))->where('business_id', $business_id)->first();
-                $category_id = !empty($category) ? $category->id : \App\Models\EventGuestCategory::firstOrCreate(['name' => ucfirst($user->category), 'business_id' => $business_id])->id;
+                $category = EventGuestCategory::where('name', 'ilike', strtolower($user->category))->where('business_id', $business_id)->first();
+                $category_id = !empty($category) ? $category->id : EventGuestCategory::firstOrCreate(['name' => ucfirst($user->category), 'business_id' => $business_id])->id;
 
                 //check available event guests
                 $check_guests = EventsGuest::where('guest_phone', $phone)->first();
@@ -479,7 +477,7 @@ class Guest extends Controller {
                                 'personality_type' => 'professional'
                             ]);
                         } catch (\Exception $e) {
-                            \Log::error('Failed to create default AI agent', [
+                            Log::error('Failed to create default AI agent', [
                                 'business_id' => $guest->business_id,
                                 'error' => $e->getMessage()
                             ]);
@@ -504,7 +502,7 @@ class Guest extends Controller {
                     $result = Lead::safeCreate($leadData);
                     
                     if (!$result['success']) {
-                        \Log::error('Failed to create lead in Guest edit', [
+                        Log::error('Failed to create lead in Guest edit', [
                             'guest_id' => $guest->id,
                             'errors' => $result['errors']
                         ]);
@@ -525,7 +523,7 @@ class Guest extends Controller {
                     
                     // Log warnings if any
                     if (!empty($result['warnings'])) {
-                        \Log::warning('Lead created with warnings in Guest edit', [
+                       Log::warning('Lead created with warnings in Guest edit', [
                             'lead_id' => $lead->id,
                             'warnings' => $result['warnings']
                         ]);
@@ -550,7 +548,7 @@ class Guest extends Controller {
             return redirect()->back()->with('success', 'Contact updated successfully');
             
         } catch (\Exception $e) {
-            \Log::error('Error updating guest in edit method: ' . $e->getMessage(), [
+           Log::error('Error updating guest in edit method: ' . $e->getMessage(), [
                 'guest_id' => request('id'),
                 'request_data' => request()->all()
             ]);
@@ -634,7 +632,7 @@ class Guest extends Controller {
             return redirect()->back()->with('success', 'Contact updated successfully');
             
         } catch (\Exception $e) {
-            \Log::error('Error updating guest: ' . $e->getMessage(), [
+           Log::error('Error updating guest: ' . $e->getMessage(), [
                 'guest_id' => $id,
                 'request_data' => $request->all()
             ]);
@@ -685,7 +683,7 @@ class Guest extends Controller {
                             'updated_at' => now()
                         ]);
                     } catch (\Exception $e) {
-                        \Log::error('Failed to create default AI agent for lead status update', [
+                       Log::error('Failed to create default AI agent for lead status update', [
                             'business_id' => $guest->business_id,
                             'error' => $e->getMessage()
                         ]);
@@ -710,7 +708,7 @@ class Guest extends Controller {
                 $result = Lead::safeCreate($leadData);
                 
                 if (!$result['success']) {
-                    \Log::error('Failed to create lead in updateLeadStatus', [
+                   Log::error('Failed to create lead in updateLeadStatus', [
                         'guest_id' => $guest->id,
                         'lead_status' => $leadStatus,
                         'errors' => $result['errors']
@@ -722,14 +720,14 @@ class Guest extends Controller {
                 $lead = $result['lead'];
                 
                 // Log success and warnings
-                \Log::info('Lead created successfully in updateLeadStatus', [
+               Log::info('Lead created successfully in updateLeadStatus', [
                     'guest_id' => $guest->id,
                     'lead_id' => $lead->id,
                     'status' => $leadStatus
                 ]);
                 
                 if (!empty($result['warnings'])) {
-                    \Log::warning('Lead created with warnings in updateLeadStatus', [
+                   Log::warning('Lead created with warnings in updateLeadStatus', [
                         'lead_id' => $lead->id,
                         'warnings' => $result['warnings']
                     ]);
@@ -742,7 +740,7 @@ class Guest extends Controller {
                 ]);
             }
             
-            \Log::info('Lead status updated successfully', [
+           Log::info('Lead status updated successfully', [
                 'guest_id' => $guest->id,
                 'lead_id' => $lead->id,
                 'old_status' => $lead->getOriginal('status'),
@@ -750,7 +748,7 @@ class Guest extends Controller {
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error updating lead status: ' . $e->getMessage(), [
+           Log::error('Error updating lead status: ' . $e->getMessage(), [
                 'guest_id' => $guest->id,
                 'lead_status' => $leadStatus
             ]);
@@ -827,9 +825,9 @@ class Guest extends Controller {
         
         $business_id = Auth::user()->business->id;
         if (strlen(request('name')) > 2) {
-            \App\Models\EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $business_id]);
+            EventGuestCategory::firstOrCreate(['name' => request('name'), 'business_id' => $business_id]);
             $result = '<select class="form-control" name="event_guest_category_id" id="append_option">';
-            $guest_categories = \App\Models\EventGuestCategory::where('business_id', $business_id)->get();
+            $guest_categories = EventGuestCategory::where('business_id', $business_id)->get();
             foreach ($guest_categories as $category) {
                 $result .= ' <option value="' . $category->id . '">' . $category->name . '</option>';
             }
@@ -862,7 +860,7 @@ class Guest extends Controller {
             }
             
             // Log the instance details for debugging
-            \Log::info('WhatsApp instance check', [
+            \Illuminate\Support\Facades\Log::info('WhatsApp instance check', [
                 'instance_id' => $whatsappInstance->instance_id,
                 'status' => $whatsappInstance->status,
                 'connect_status' => $whatsappInstance->connect_status,
@@ -900,7 +898,7 @@ class Guest extends Controller {
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error checking WhatsApp instance status: ' . $e->getMessage());
+           Log::error('Error checking WhatsApp instance status: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'has_instance' => false,
@@ -937,7 +935,7 @@ class Guest extends Controller {
             ], 400);
             
         } catch (\Exception $e) {
-            \Log::error('Error syncing WhatsApp contacts: ' . $e->getMessage());
+           Log::error('Error syncing WhatsApp contacts: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error syncing contacts: ' . $e->getMessage()
@@ -1005,7 +1003,7 @@ class Guest extends Controller {
                     }
 
                 } catch (\Exception $e) {
-                    \Log::warning('Error importing contact: ' . $e->getMessage(), [
+                   Log::warning('Error importing contact: ' . $e->getMessage(), [
                         'contact' => $contact,
                         'user_id' => $user_id
                     ]);
@@ -1021,7 +1019,7 @@ class Guest extends Controller {
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in importWhatsappContacts: ' . $e->getMessage());
+           Log::error('Error in importWhatsappContacts: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
                 'message' => 'Failed to import contacts: ' . $e->getMessage(),
@@ -1119,17 +1117,17 @@ class Guest extends Controller {
                     ];
 
                     // Check if contact already exists for this event
-                    $existing = \App\Models\EventsGuest::where('business_id', $business_id)
+                    $existing = EventsGuest::where('business_id', $business_id)
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
                     if (!$existing) {
-                        \App\Models\EventsGuest::create($guest_data);
+                        EventsGuest::create($guest_data);
                         $imported_count++;
                     }
 
                 } catch (\Exception $e) {
-                    \Log::warning('Error importing Google contact: ' . $e->getMessage(), [
+                    \Illuminate\Support\Facades\Log::warning('Error importing Google contact: ' . $e->getMessage(), [
                         'contact' => $contact,
                         'user_id' => $user_id
                     ]);
@@ -1145,7 +1143,7 @@ class Guest extends Controller {
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in importGoogleContacts: ' . $e->getMessage());
+           Log::error('Error in importGoogleContacts: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
                 'message' => 'Failed to import Google contacts: ' . $e->getMessage(),
@@ -1157,7 +1155,7 @@ class Guest extends Controller {
     /**
      * Get contact details with group information
      */
-    public function getContactDetails($id)
+    public function getContactDetails(int $id)
     {
         try {
             $business_id = Auth::user()->business->id;
@@ -1190,7 +1188,7 @@ class Guest extends Controller {
     /**
      * Get conversations for a specific contact with pagination
      */
-    public function getConversations($id)
+    public function getConversations(int $id)
     {
         try {
             $business_id = Auth::user()->business->id;
@@ -1258,7 +1256,7 @@ class Guest extends Controller {
     /**
      * Get messages sent to a specific contact
      */
-    public function getContactMessages($id)
+    public function getContactMessages(int $id)
     {
         try {
             $business_id = Auth::user()->business->id;
@@ -1354,7 +1352,7 @@ class Guest extends Controller {
     /**
      * Get conversation summary for a specific contact
      */
-    public function getConversationSummary($id)
+    public function getConversationSummary(int $id)
     {
         try {
             $business_id = Auth::user()->business->id;
@@ -1584,7 +1582,7 @@ class Guest extends Controller {
 
                     $queuedCount++;
                 } catch (\Exception $e) {
-                    \Log::error('Failed to queue message for contact', [
+                   Log::error('Failed to queue message for contact', [
                         'contact_id' => $contact->id,
                         'phone' => $contact->guest_phone,
                         'error' => $e->getMessage()
@@ -1731,7 +1729,7 @@ class Guest extends Controller {
 
                     $successCount++;
                 } catch (\Exception $e) {
-                    \Log::error('Failed to queue message with attachments for contact', [
+                   Log::error('Failed to queue message with attachments for contact', [
                         'contact_id' => $contact->id,
                         'phone' => $contact->guest_phone,
                         'error' => $e->getMessage()
@@ -1794,7 +1792,7 @@ class Guest extends Controller {
     /**
      * Format phone number for WhatsApp
      */
-    private function formatPhoneNumber($phone)
+    private function formatPhoneNumber(string $phone): string
     {
         // Remove all non-numeric characters except +
         $phone = preg_replace('/[^0-9+]/', '', $phone);

@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Campaign;
-use App\Models\CampaignAnalytics;
 use App\Models\MessageQueue;
 use App\Models\OutgoingMessage;
 use App\Models\BusinessContact;
 use App\Models\Lead;
-use Auth;
-use DB;
+use \Illuminate\Support\Facades\Auth;
+
 use Carbon\Carbon;
 
 class CampaignController extends Controller
