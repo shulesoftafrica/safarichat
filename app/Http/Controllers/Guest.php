@@ -1993,7 +1993,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'reason' => 'required|string|max:1000',
                 'priority_level' => 'required|integer|in:1,2,3,4,5',
                 'assigned_agent_id' => 'nullable|exists:users,id'
@@ -2030,7 +2030,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'agent_id' => 'required|exists:users,id',
                 'notes' => 'nullable|string|max:1000'
             ]);
@@ -2062,7 +2062,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'notes' => 'nullable|string|max:1000'
             ]);
 
@@ -2093,7 +2093,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'notes' => 'nullable|string|max:1000'
             ]);
 
@@ -2124,7 +2124,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'priority_level' => 'required|integer|in:1,2,3,4,5'
             ]);
 
@@ -2156,7 +2156,7 @@ class Guest extends Controller {
     {
         try {
             $request->validate([
-                'guest_id' => 'required|exists:events_guests,id',
+                'guest_id' => 'required|exists:business_contacts,id',
                 'notes' => 'required|string|max:1000'
             ]);
 
