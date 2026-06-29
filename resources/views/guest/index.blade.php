@@ -3587,9 +3587,10 @@ body:not(.dark-mode) .modal-body .alert-danger {
             success: function(response) {
                 if (response.success) {
                     $('#deleteConfirmModal').modal('hide');
-                    $(`#contact-${contactId}`).closest('tr').fadeOut(function() {
-                        $(this).remove();
-                        updateSelectedContacts();
+                    var $row = $('#guest_name' + contactId).closest('tr');
+                    $row.css({'background-color': '#f8d7da', 'opacity': '0.6'});
+                    $row.fadeOut(500, function() {
+                        $('#datatable-buttons').DataTable().ajax.reload(null, false);
                     });
                     showSuccessMessage('{{__("contact_deleted_successfully")}}');
                 } else {
@@ -3616,9 +3617,15 @@ body:not(.dark-mode) .modal-body .alert-danger {
             success: function(response) {
                 if (response.success) {
                     $('#deleteConfirmModal').modal('hide');
+                    var remaining = contactIds.length;
                     contactIds.forEach(function(id) {
-                        $(`#contact-${id}`).closest('tr').fadeOut(function() {
-                            $(this).remove();
+                        var $row = $('#guest_name' + id).closest('tr');
+                        $row.css({'background-color': '#f8d7da', 'opacity': '0.6'});
+                        $row.fadeOut(500, function() {
+                            remaining--;
+                            if (remaining === 0) {
+                                $('#datatable-buttons').DataTable().ajax.reload(null, false);
+                            }
                         });
                     });
                     clearSelection();
