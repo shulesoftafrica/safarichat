@@ -2065,7 +2065,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                         ];
                     @endphp
                     <div class="table-responsive">
-                        <table class="table-standard dataTable" id="datatable-buttons">
+                        <table class="table-standard contacts-datatable" id="datatable-buttons">
                             <thead>
                                 <tr>
                                     <th>
@@ -2087,145 +2087,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php
-                              
-                                $total_pledge = 0;
-                                $i = 1;
-                                foreach ($guests as $guest) {
-                                    $total_pledge += $guest->guest_pledge;
-                                    ?>
-                                    <tr data-handoff-status="{{ $guest->handoff_status ?? 'ai' }}" data-priority="{{ $guest->priority_level ?? 3 }}">
-                                        <td>
-                                            <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-{{ $guest->id }}" value="{{ $guest->id }}">
-                                                <label class="custom-control-label" for="checkbox-{{ $guest->id }}"></label>
-                                            </div>
-                                        </td>
-                                        <td>{{$i}}</td>
-                                        <td><span id="guest_name<?= $guest->id ?>">{{$guest->guest_name}}</span></td>
-                                        <td><span id="guest_phone<?= $guest->id ?>">{{$guest->guest_phone}}</span></td>
-                                        <!--<td>{{$guest->guest_email}}</td>-->
-                                        <td>{{date('d M Y',strtotime($guest->created_at))}}</td>
-                                        <td>
-                                            @php
-                                                $leadStatus = $guest->lead ? $guest->lead->status : 'NEW';
-                                                $statusColors = [
-                                                    'NEW' => 'secondary',
-                                                    'OUTREACHED' => 'info',
-                                                    'REPLIED' => 'primary',
-                                                    'ENGAGED' => 'success',
-                                                    'QUALIFIED' => 'warning',
-                                                    'PITCHED' => 'orange',
-                                                    'DEMO_SCHEDULED' => 'purple',
-                                                    'PROPOSAL_SENT' => 'teal',
-                                                    'NEGOTIATING' => 'indigo',
-                                                    'CLOSED' => 'success',
-                                                    'LOST' => 'danger',
-                                                    'HANDED_OFF' => 'info',
-                                                    'DO_NOT_CONTACT' => 'dark',
-                                                    'NEEDS_ATTENTION' => 'warning',
-                                                    'CONVERTED' => 'success',
-                                                    'CHURNED' => 'danger'
-                                                ];
-                                                $statusIcons = [
-                                                    'NEW' => 'account-plus',
-                                                    'OUTREACHED' => 'send',
-                                                    'REPLIED' => 'reply',
-                                                    'ENGAGED' => 'account-heart',
-                                                    'QUALIFIED' => 'account-check',
-                                                    'PITCHED' => 'presentation',
-                                                    'DEMO_SCHEDULED' => 'calendar-clock',
-                                                    'PROPOSAL_SENT' => 'file-document',
-                                                    'NEGOTIATING' => 'handshake',
-                                                    'CLOSED' => 'check-circle',
-                                                    'LOST' => 'close-circle',
-                                                    'HANDED_OFF' => 'account-arrow-right',
-                                                    'DO_NOT_CONTACT' => 'account-cancel',
-                                                    'NEEDS_ATTENTION' => 'alert',
-                                                    'CONVERTED' => 'trophy',
-                                                    'CHURNED' => 'account-remove'
-                                                ];
-                                            @endphp
-                                            <span class="badge badge-{{ $statusColors[$leadStatus] ?? 'secondary' }}" style="font-size: 0.8em; padding: 5px 8px; min-width: 90px; text-align: center;">
-                                                <i class="mdi mdi-{{ $statusIcons[$leadStatus] ?? 'help' }} mr-1"></i>
-                                                {{ $statusLabels[$leadStatus] ?? $leadStatus }}
-                                            </span>
-                                            <span id="guest_lead_status<?= $guest->id ?>" style="display:none;">{{ $leadStatus }}</span>
-                                        </td>
-                                        
-                                        <!-- Handoff Status Column -->
-                                        <td>
-                                            @php
-                                                $handoffStatus = $guest->handoff_status ?? 'ai';
-                                                $statusColors = [
-                                                    'ai' => 'primary',
-                                                    'pending_handoff' => 'warning',
-                                                    'handed_off' => 'info',
-                                                    'completed' => 'success'
-                                                ];
-                                                $statusIcons = [
-                                                    'ai' => 'robot',
-                                                    'pending_handoff' => 'clock-outline',
-                                                    'handed_off' => 'account-check',
-                                                    'completed' => 'check-circle'
-                                                ];
-                                            @endphp
-                                            <span class="badge badge-{{ $statusColors[$handoffStatus] ?? 'secondary' }}" style="font-size: 0.85em; padding: 6px 10px;">
-                                                <i class="mdi mdi-{{ $statusIcons[$handoffStatus] ?? 'help' }} mr-1"></i>
-                                                {{ ucfirst(str_replace('_', ' ', $handoffStatus)) }}
-                                            </span>
-                                        </td>
-                                        
-                                        <!-- Priority Column -->
-                                        <td>
-                                            @php
-                                                $priority = $guest->priority_level ?? 3;
-                                                $priorityLabels = [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Urgent', 5 => 'Critical'];
-                                                $priorityColors = [1 => 'warning', 2 => 'info', 3 => 'secondary', 4 => 'danger', 5 => 'dark'];
-                                            @endphp
-                                            <span class="badge badge-{{ $priorityColors[$priority] ?? 'secondary' }}" style="font-size: 0.75em;">
-                                                {{ $priorityLabels[$priority] ?? 'Unknown' }}
-                                            </span>
-                                        </td>
-                                        
-                                        <!-- Assigned Agent Column -->
-                                        <td>
-                                            @if($guest->assignedAgent)
-                                                <span class="text-success">
-                                                    <i class="mdi mdi-account-check mr-1"></i>
-                                                    {{ $guest->assignedAgent->name }}
-                                                </span>
-                                            @else
-                                                <span class="text-muted">
-                                                    <i class="mdi mdi-account-off mr-1"></i>
-                                                    {{ __('customers.actions.unassigned') }}
-                                                </span>
-                                            @endif
-                                        </td>
-                                        
-                                        <td name="buttons">
-                                            <a onclick="viewContact('{{ $guest->id }}')" class="btn btn-info btn-sm" title="{{ __('customers.actions.view_contact') }}">
-                                                <i class="las la-eye"></i>
-                                            </a>
-                                            <a onclick="sendMessageToContact('{{ $guest->id }}')" class="btn btn-success btn-sm" title="{{ __('customers.actions.send_message') }}">
-                                                <i class="las la-comment"></i>
-                                            </a>
-                                            <!-- Handoff Management Button -->
-                                            <button onclick="openHandoffModal('{{ $guest->id }}')" class="btn btn-primary btn-sm" title="{{ __('customers.actions.manage_handoff') }}">
-                                                <i class="mdi mdi-account-supervisor"></i>
-                                            </button>
-                                            <a onclick="editGuest('{{ $guest->id }}')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="{{ __('customers.actions.edit') }}">
-                                                <i class="las la-pen"></i>
-                                            </a>
-                                            <a onclick="confirmDelete('{{ $guest->id }}')" class="btn btn-danger btn-sm" title="{{ __('customers.actions.delete') }}">
-                                                <i class="las la-trash-alt"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php
-                                    $i++;
-                                }
-                                ?>
+                                <!-- Rows are populated via server-side AJAX DataTables (GET /guest/data) -->
                             </tbody>
                             <tfoot>
                                 <tr>
@@ -4436,57 +4298,89 @@ function returnToAI() {
     }
 }
 
-// Handoff Status Filter Tabs
-document.addEventListener('DOMContentLoaded', function() {
-    const filterTabs = document.querySelectorAll('#handoff-tabs .nav-link');
-    const tableRows = document.querySelectorAll('#datatable-buttons tbody tr');
+// Handoff Status Filter Tabs + Server-Side DataTables Initialisation
+$(document).ready(function() {
 
-    filterTabs.forEach(tab => {
+    // ---------------------------------------------------------------
+    // Server-side DataTables — loads all contacts via AJAX pagination
+    // so there is no 1000-row limit and all contacts are accessible.
+    // ---------------------------------------------------------------
+    var activeHandoffFilter = 'all';
+
+    var contactsTable = $('#datatable-buttons').DataTable({
+        processing  : true,
+        serverSide  : true,
+        ajax        : {
+            url  : '{{ route("guest.getData") }}',
+            type : 'GET',
+            data : function (d) {
+                d.handoff_filter = activeHandoffFilter;
+            }
+        },
+        columns     : [
+            { orderable: false },   // 0 checkbox
+            { orderable: true  },   // 1 #
+            { orderable: true  },   // 2 Name
+            { orderable: true  },   // 3 Phone
+            { orderable: true  },   // 4 Added On
+            { orderable: false },   // 5 Lead Status
+            { orderable: true  },   // 6 Handoff
+            { orderable: true  },   // 7 Priority
+            { orderable: false },   // 8 Assigned Agent
+            { orderable: false },   // 9 Actions
+        ],
+        order       : [[1, 'desc']],
+        pageLength  : 25,
+        lengthMenu  : [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+        language    : {
+            processing : '<i class="mdi mdi-loading mdi-spin mr-1"></i> Loading contacts…',
+            emptyTable : 'No contacts found.',
+            zeroRecords: 'No contacts match your search.',
+        },
+    });
+
+    // Handoff tab clicks — pass filter param to AJAX and redraw
+    const filterTabs = document.querySelectorAll('#handoff-tabs .nav-link');
+
+    filterTabs.forEach(function(tab) {
         tab.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            // Remove active class from all tabs
-            filterTabs.forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
+
+            filterTabs.forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
-            
-            const filterStatus = this.getAttribute('data-status');
-            
-            tableRows.forEach(row => {
-                const rowStatus = row.getAttribute('data-handoff-status');
-                const rowPriority = parseInt(row.getAttribute('data-priority'));
-                
-                if (filterStatus === 'all') {
-                    row.style.display = '';
-                } else if (filterStatus === 'urgent') {
-                    row.style.display = (rowPriority >= 4) ? '' : 'none';
-                } else {
-                    row.style.display = (rowStatus === filterStatus) ? '' : 'none';
-                }
-            });
+
+            activeHandoffFilter = this.getAttribute('data-status');
+            contactsTable.ajax.reload();
         });
     });
-    
+
     // Add hover effects to tabs
-    filterTabs.forEach(tab => {
+    filterTabs.forEach(function(tab) {
         tab.addEventListener('mouseenter', function() {
             if (!this.classList.contains('active')) {
                 this.style.background = 'rgba(255,255,255,0.2)';
             }
         });
-        
         tab.addEventListener('mouseleave', function() {
             if (!this.classList.contains('active')) {
                 this.style.background = '';
             }
         });
     });
-    
-    // Style active tab
-    const activeTab = document.querySelector('#handoff-tabs .nav-link.active');
+
+    // Style the initially active tab
+    var activeTab = document.querySelector('#handoff-tabs .nav-link.active');
     if (activeTab) {
         activeTab.style.background = 'rgba(255,255,255,0.3)';
     }
+
+    // Select-all checkbox — works with current page rows
+    document.getElementById('select-all').addEventListener('change', function() {
+        document.querySelectorAll('.contact-checkbox').forEach(function(cb) {
+            cb.checked = document.getElementById('select-all').checked;
+        });
+        updateBulkActionsBar();
+    });
 });
 </script>
 

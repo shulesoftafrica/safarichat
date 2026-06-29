@@ -17,7 +17,8 @@ class Lead extends Model
         'churn_notes', 'win_back_eligible_at', 'win_back_attempts', 'last_win_back_at',
         'final_price', 'deal_value', 'conversion_probability', 'lead_score',
         'assigned_agent_id', 'metadata', 'negative_sentiment_count', 'positive_sentiment_count',
-        'overall_sentiment_score', 'last_reply_at', 'last_chase_at', 'chase_count'
+        'overall_sentiment_score', 'last_reply_at', 'last_chase_at', 'chase_count',
+        'ai_waiting_since'
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Lead extends Model
         'last_win_back_at' => 'datetime',
         'last_reply_at' => 'datetime',
         'last_chase_at' => 'datetime',
+        'ai_waiting_since' => 'datetime',
         'final_price' => 'decimal:2',
         'deal_value' => 'decimal:2',
         'conversion_probability' => 'integer',
@@ -77,6 +79,49 @@ class Lead extends Model
     public function hasValidPhoneNumber()
     {
         return !empty($this->phone_number) && is_valid_phone_number($this->phone_number);
+    }
+
+    // -------------------------------------------------------------------------
+    // WAITING_FOR_USER state machine helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true when the AI has sent a message and is still waiting for the
+     * user to reply (i.e. ai_waiting_since is set).
+     * The only exception allowed by callers is a reminder after 24+ hours.
+     */
+    public function isWaitingForUserReply(): bool
+    {
+        return $this->ai_waiting_since !== null;
+    }
+
+    /**
+     * Mark that the AI just sent a message — block further AI replies until
+     * the user responds.
+     */
+    public function markAiReplied(): void
+    {
+        $this->update(['ai_waiting_since' => now()]);
+    }
+
+    /**
+     * Clear the waiting state when a real user message arrives.
+     */
+    public function markUserReplied(): void
+    {
+        $this->update(['ai_waiting_since' => null]);
+    }
+
+    /**
+     * Returns true when the reminder exception applies:
+     * AI sent a message at least 24 hours ago and the user has not replied yet.
+     */
+    public function isEligibleForReminder(): bool
+    {
+        if ($this->ai_waiting_since === null) {
+            return false;
+        }
+        return $this->ai_waiting_since->diffInHours(now()) >= 24;
     }
 
     /**

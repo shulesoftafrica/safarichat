@@ -72,8 +72,10 @@ class WebhookProcessorService
                             'processed_instantly' => true,
                             'requires_human' => $result['requires_human'] ?? false,
                         ];
-                    } else {
-                        // Queue for background processing
+                    } elseif (!isset($result['skipped'])) {
+                        // Only queue if NOT already skipped (e.g. duplicate processing).
+                        // WAITING_FOR_USER: do not queue when the message was already
+                        // handled by the instant path above.
                         $this->queueForProcessing($incomingMessage);
                         
                         $responses[] = [

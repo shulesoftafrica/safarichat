@@ -4,16 +4,12 @@ namespace App\Jobs;
 
 use App\Models\IncomingMessage;
 use App\Models\WhatsappInstance;
-use App\Models\Message;
-use App\Models\MessageSentby;
-use App\Http\Controllers\Setup;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ProcessIncomingMessage implements ShouldQueue
@@ -118,6 +114,22 @@ class ProcessIncomingMessage implements ShouldQueue
 
             // Get recent conversation context (last 5 messages)
             $phoneNumber = $this->extractPhoneFromChatId($chatId);
+
+            // -------------------------------------------------------------------
+            // WAITING_FOR_USER guard: resolve the lead and check if the AI is
+            // still waiting for the user's reply before generating another response.
+            // -------------------------------------------------------------------
+            $lead = \App\Models\Lead::where('user_id', $this->whatsappInstance->user_id)
+                ->whereHas('contact', function ($q) use ($phoneNumber) {
+                    $q->where('guest_phone', $phoneNumber);
+                })
+                ->first();
+
+            if ($lead) {
+                // User just sent us a message — clear the waiting state.
+                $lead->markUserReplied();
+            }
+
             $recentMessages = IncomingMessage::where('phone_number', $phoneNumber)
                 ->where('instance_id', $this->instanceId)
                 ->orderBy('created_at', 'desc')
@@ -161,6 +173,11 @@ class ProcessIncomingMessage implements ShouldQueue
                     $this->instanceId,
                     ['whatsapp_instance_id' => $this->whatsappInstance->id] // Pass instance ID
                 )->delay(now()->addSeconds(2)); // Small delay to feel natural
+
+                // WAITING_FOR_USER: mark lead as waiting after queuing the AI reply.
+                if ($lead) {
+                    $lead->markAiReplied();
+                }
             }
 
         } catch (Exception $e) {

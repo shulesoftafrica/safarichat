@@ -27,58 +27,217 @@ class Guest extends Controller {
         if ($_POST) {
             (int) request('id') > 0 ? EventsGuest::find(request('id'))->update(request()->except('name', '_token', 'id')) : $this->store(request());
         }
-        
-        // Get paginated guests data with handoff information
-        $this->data['guests'] = EventsGuest::with(['contactCategory', 'assignedAgent', 'lead'])
-            ->where('business_id', $business_id)
-            ->limit(1000)
-            ->get();
+
         $this->data['guest_categories'] = EventGuestCategory::where('business_id', $business_id)->get();
-        $this->data['total_guests'] = EventsGuest::where('business_id', $business_id)->count();
-        
+        $this->data['total_guests']      = EventsGuest::where('business_id', $business_id)->count();
+
         // Get subscription plan and limits
-        $billingAccount = Auth::user()->business->billingAccount;
-        $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
-        $planLimits = config('safarichat_billing.plans.' . $currentPlan . '.limits', []);
+        $billingAccount  = Auth::user()->business->billingAccount;
+        $currentPlan     = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
+        $planLimits      = config('safarichat_billing.plans.' . $currentPlan . '.limits', []);
         $this->data['subscription_plan'] = $currentPlan;
-        $this->data['max_contacts'] = $planLimits['max_contacts'] ?? 10;
-        
-        // Add handoff statistics (using already loaded collection)
-        $guests = $this->data['guests'];
+        $this->data['max_contacts']      = $planLimits['max_contacts'] ?? 10;
+
+        // Handoff statistics — accurate DB counts across ALL records (no limit)
         $this->data['handoff_stats'] = [
-            'ai_handled' => $guests->where('handoff_status', 'ai')->count(),
-            'pending_handoff' => $guests->where('handoff_status', 'pending_handoff')->count(),
-            'handed_off' => $guests->where('handoff_status', 'handed_off')->count(),
-            'completed' => $guests->where('handoff_status', 'completed')->count(),
-            'urgent_cases' => $guests->where('priority_level', '<=', 2)->count()
+            'ai_handled'      => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'ai')->count(),
+            'pending_handoff' => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'pending_handoff')->count(),
+            'handed_off'      => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'handed_off')->count(),
+            'completed'       => EventsGuest::where('business_id', $business_id)->where('handoff_status', 'completed')->count(),
+            'urgent_cases'    => EventsGuest::where('business_id', $business_id)->where('priority_level', '>=', 4)->count(),
         ];
-        
-        // Add lead status statistics (using already loaded collection with lead relationship)
-        // More efficient than separate DB queries - uses in-memory filtering
-        $this->data['lead_status_stats'] = [
-            'NEW' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'NEW'; })->count(),
-            'OUTREACHED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'OUTREACHED'; })->count(),
-            'REPLIED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'REPLIED'; })->count(),
-            'ENGAGED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'ENGAGED'; })->count(),
-            'QUALIFIED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'QUALIFIED'; })->count(),
-            'PITCHED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'PITCHED'; })->count(),
-            'DEMO_SCHEDULED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'DEMO_SCHEDULED'; })->count(),
-            'PROPOSAL_SENT' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'PROPOSAL_SENT'; })->count(),
-            'NEGOTIATING' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'NEGOTIATING'; })->count(),
-            'CLOSED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'CLOSED'; })->count(),
-            'LOST' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'LOST'; })->count(),
-            'HANDED_OFF' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'HANDED_OFF'; })->count(),
-            'DO_NOT_CONTACT' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'DO_NOT_CONTACT'; })->count(),
-            'CHURNED' => $guests->filter(function($guest) { return $guest->lead && $guest->lead->status === 'CHURNED'; })->count(),
+
+        // Lead status stats — use the LATEST lead per contact (mirrors the lead() hasOne->latest() relationship)
+        // Subquery picks the most recent lead per contact so contacts with multiple leads aren't double-counted.
+        $latestLeads = \DB::table('leads')
+            ->select('business_contact_id', 'status')
+            ->whereIn('id', function ($sub) {
+                $sub->selectRaw('MAX(id)')->from('leads')->groupBy('business_contact_id');
+            });
+
+        $leadStatusCounts = \DB::table('business_contacts as bc')
+            ->leftJoinSub($latestLeads, 'latest_lead', 'latest_lead.business_contact_id', '=', 'bc.id')
+            ->where('bc.business_id', $business_id)
+            ->selectRaw("COALESCE(latest_lead.status, 'NEW') as status, COUNT(*) as cnt")
+            ->groupBy(\DB::raw("COALESCE(latest_lead.status, 'NEW')"))
+            ->pluck('cnt', 'status')
+            ->toArray();
+
+        $allStatuses = [
+            'NEW','OUTREACHED','REPLIED','ENGAGED','QUALIFIED','PITCHED',
+            'DEMO_SCHEDULED','PROPOSAL_SENT','NEGOTIATING','CLOSED','LOST',
+            'HANDED_OFF','DO_NOT_CONTACT','CHURNED',
         ];
-        
+        $this->data['lead_status_stats'] = [];
+        foreach ($allStatuses as $s) {
+            $this->data['lead_status_stats'][$s] = $leadStatusCounts[$s] ?? 0;
+        }
+
         // Get available agents for assignment
         $this->data['available_agents'] = \App\Models\User::select('id', 'name', 'email')
             ->where('id', '!=', Auth::id())
             ->orderBy('name')
             ->get();
-        
+
         return view('guest.index', $this->data);
+    }
+
+    /**
+     * Server-side DataTables AJAX endpoint for the customers table.
+     * Supports: pagination, search (name/phone), handoff/urgent filter, column sort.
+     */
+    public function getData(Request $request)
+    {
+        $business_id = Auth::user()->business->id;
+
+        $draw          = (int) $request->input('draw', 1);
+        $start         = (int) $request->input('start', 0);
+        $length        = (int) $request->input('length', 25);
+        $search        = $request->input('search.value', '');
+        $handoffFilter = $request->input('handoff_filter', 'all');
+
+        // Base query
+        $query = EventsGuest::with(['lead', 'assignedAgent'])
+            ->where('business_id', $business_id);
+
+        // Handoff / urgent filter from tab clicks
+        if ($handoffFilter === 'urgent') {
+            $query->where('priority_level', '>=', 4);
+        } elseif ($handoffFilter !== 'all') {
+            $query->where('handoff_status', $handoffFilter);
+        }
+
+        // Global search across name and phone
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('guest_name', 'like', "%{$search}%")
+                  ->orWhere('guest_phone', 'like', "%{$search}%");
+            });
+        }
+
+        $totalRecords    = EventsGuest::where('business_id', $business_id)->count();
+        $filteredRecords = $query->count();
+
+        // Column sort mapping (index → column name)
+        $sortableColumns = [
+            1 => 'id',
+            2 => 'guest_name',
+            3 => 'guest_phone',
+            4 => 'created_at',
+            6 => 'handoff_status',
+            7 => 'priority_level',
+        ];
+        $orderColIndex = (int) $request->input('order.0.column', 1);
+        $orderDir      = $request->input('order.0.dir', 'desc') === 'asc' ? 'asc' : 'desc';
+        $orderBy       = $sortableColumns[$orderColIndex] ?? 'id';
+        $query->orderBy($orderBy, $orderDir);
+
+        $guests = $query->skip($start)->take($length)->get();
+
+        // Badge / label maps
+        $leadStatusColors = [
+            'NEW' => 'secondary', 'OUTREACHED' => 'info', 'REPLIED' => 'primary',
+            'ENGAGED' => 'success', 'QUALIFIED' => 'warning', 'PITCHED' => 'orange',
+            'DEMO_SCHEDULED' => 'purple', 'PROPOSAL_SENT' => 'teal',
+            'NEGOTIATING' => 'indigo', 'CLOSED' => 'success', 'LOST' => 'danger',
+            'HANDED_OFF' => 'info', 'DO_NOT_CONTACT' => 'dark',
+            'NEEDS_ATTENTION' => 'warning', 'CONVERTED' => 'success', 'CHURNED' => 'danger',
+        ];
+        $leadStatusIcons = [
+            'NEW' => 'account-plus', 'OUTREACHED' => 'send', 'REPLIED' => 'reply',
+            'ENGAGED' => 'account-heart', 'QUALIFIED' => 'account-check',
+            'PITCHED' => 'presentation', 'DEMO_SCHEDULED' => 'calendar-clock',
+            'PROPOSAL_SENT' => 'file-document', 'NEGOTIATING' => 'handshake',
+            'CLOSED' => 'check-circle', 'LOST' => 'close-circle',
+            'HANDED_OFF' => 'account-arrow-right', 'DO_NOT_CONTACT' => 'account-cancel',
+            'NEEDS_ATTENTION' => 'alert', 'CONVERTED' => 'trophy', 'CHURNED' => 'account-remove',
+        ];
+        $leadStatusLabels = [
+            'NEW' => 'New Lead', 'OUTREACHED' => 'Outreached', 'REPLIED' => 'Replied',
+            'ENGAGED' => 'Engaged', 'QUALIFIED' => 'Qualified', 'PITCHED' => 'Pitched',
+            'DEMO_SCHEDULED' => 'Demo Scheduled', 'PROPOSAL_SENT' => 'Proposal Sent',
+            'NEGOTIATING' => 'Negotiating', 'CLOSED' => 'Closed Won', 'LOST' => 'Closed Lost',
+            'HANDED_OFF' => 'Handed Off', 'DO_NOT_CONTACT' => 'Do Not Contact',
+            'NEEDS_ATTENTION' => 'Needs Attention', 'CONVERTED' => 'Converted',
+            'CHURNED' => 'Churned',
+        ];
+        $handoffColors = [
+            'ai' => 'primary', 'pending_handoff' => 'warning',
+            'handed_off' => 'info', 'completed' => 'success',
+        ];
+        $handoffIcons = [
+            'ai' => 'robot', 'pending_handoff' => 'clock-outline',
+            'handed_off' => 'account-check', 'completed' => 'check-circle',
+        ];
+        $priorityLabels = [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Urgent', 5 => 'Critical'];
+        $priorityColors = [1 => 'warning', 2 => 'info', 3 => 'secondary', 4 => 'danger', 5 => 'dark'];
+
+        $rowNumber = $start + 1;
+        $data = $guests->map(function ($guest) use (
+            &$rowNumber,
+            $leadStatusColors, $leadStatusIcons, $leadStatusLabels,
+            $handoffColors, $handoffIcons,
+            $priorityLabels, $priorityColors
+        ) {
+            $id          = $guest->id;
+            $leadStatus  = $guest->lead ? $guest->lead->status : 'NEW';
+            $handoff     = $guest->handoff_status ?? 'ai';
+            $priority    = $guest->priority_level ?? 3;
+
+            $sColor = $leadStatusColors[$leadStatus] ?? 'secondary';
+            $sIcon  = $leadStatusIcons[$leadStatus]  ?? 'help';
+            $sLabel = $leadStatusLabels[$leadStatus] ?? $leadStatus;
+
+            $hColor = $handoffColors[$handoff] ?? 'secondary';
+            $hIcon  = $handoffIcons[$handoff]  ?? 'help';
+            $hLabel = ucfirst(str_replace('_', ' ', $handoff));
+
+            $pColor = $priorityColors[$priority] ?? 'secondary';
+            $pLabel = $priorityLabels[$priority] ?? 'Unknown';
+
+            $agentHtml = $guest->assignedAgent
+                ? '<span class="text-success"><i class="mdi mdi-account-check mr-1"></i>' . e($guest->assignedAgent->name) . '</span>'
+                : '<span class="text-muted"><i class="mdi mdi-account-off mr-1"></i>Unassigned</span>';
+
+            $checkboxHtml = '<div class="custom-control custom-checkbox">'
+                . '<input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-' . $id . '" value="' . $id . '">'
+                . '<label class="custom-control-label" for="checkbox-' . $id . '"></label>'
+                . '</div>';
+
+            $leadBadge = '<span class="badge badge-' . $sColor . '" style="font-size:0.8em;padding:5px 8px;min-width:90px;text-align:center;">'
+                . '<i class="mdi mdi-' . $sIcon . ' mr-1"></i>' . e($sLabel) . '</span>';
+
+            $handoffBadge = '<span class="badge badge-' . $hColor . '" style="font-size:0.85em;padding:6px 10px;">'
+                . '<i class="mdi mdi-' . $hIcon . ' mr-1"></i>' . e($hLabel) . '</span>';
+
+            $priorityBadge = '<span class="badge badge-' . $pColor . '" style="font-size:0.75em;">' . e($pLabel) . '</span>';
+
+            $actionsHtml = '<a onclick="viewContact(\'' . $id . '\')" class="btn btn-info btn-sm" title="View Contact"><i class="las la-eye"></i></a> '
+                . '<a onclick="sendMessageToContact(\'' . $id . '\')" class="btn btn-success btn-sm" title="Send Message"><i class="las la-comment"></i></a> '
+                . '<button onclick="openHandoffModal(\'' . $id . '\')" class="btn btn-primary btn-sm" title="Manage Handoff"><i class="mdi mdi-account-supervisor"></i></button> '
+                . '<a onclick="editGuest(\'' . $id . '\')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="Edit"><i class="las la-pen"></i></a> '
+                . '<a onclick="confirmDelete(\'' . $id . '\')" class="btn btn-danger btn-sm" title="Delete"><i class="las la-trash-alt"></i></a>';
+
+            return [
+                $checkboxHtml,
+                $rowNumber++,
+                '<span id="guest_name' . $id . '">' . e($guest->guest_name) . '</span>',
+                '<span id="guest_phone' . $id . '">' . e($guest->guest_phone) . '</span>',
+                date('d M Y', strtotime($guest->created_at)),
+                $leadBadge,
+                $handoffBadge,
+                $priorityBadge,
+                $agentHtml,
+                $actionsHtml,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'draw'            => $draw,
+            'recordsTotal'    => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data'            => $data,
+        ]);
     }
 
     /**

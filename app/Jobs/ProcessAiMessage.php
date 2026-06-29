@@ -28,6 +28,21 @@ class ProcessAiMessage implements ShouldQueue
     public function handle(AiWhatsAppService $aiWhatsAppService)
     {
         try {
+            // ---------------------------------------------------------------
+            // WAITING_FOR_USER: idempotency guard for queue retries.
+            // If the message was already replied to by a previous attempt,
+            // do not generate another AI response.
+            // ---------------------------------------------------------------
+            $this->message->refresh();
+            if ($this->message->status === 'replied') {
+                Log::info('ProcessAiMessage: skipping retry — message already replied', [
+                    'message_id'   => $this->message->id,
+                    'phone_number' => $this->message->phone_number,
+                    'attempts'     => $this->attempts(),
+                ]);
+                return;
+            }
+
             // Increment processing attempts
             $this->message->increment('processing_attempts');
 

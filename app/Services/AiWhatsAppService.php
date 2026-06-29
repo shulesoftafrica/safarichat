@@ -32,11 +32,35 @@ class AiWhatsAppService
     public function processIncomingWhatsAppMessageWithAI(IncomingMessage $message, ?\App\Models\WhatsappInstance $instance = null): array
     {
         try {
+            // ---------------------------------------------------------------
+            // WAITING_FOR_USER guard — idempotency check.
+            // Atomically claim this inbound message so that concurrent webhook
+            // deliveries / queue retries cannot both generate an AI reply.
+            // ---------------------------------------------------------------
+            $claimed = DB::table('incoming_messages')
+                ->where('id', $message->id)
+                ->where('status', 'received')
+                ->update(['status' => 'processing']);
+
+            if (!$claimed) {
+                // Another process is already handling (or has handled) this exact
+                // message. Abort silently — do NOT generate another AI response.
+                Log::info('WAITING_FOR_USER: duplicate trigger skipped', [
+                    'message_id'   => $message->id,
+                    'phone_number' => $message->phone_number,
+                ]);
+                return ['success' => false, 'skipped' => true, 'reason' => 'duplicate_processing'];
+            }
+
             DB::beginTransaction();
 
             // Find or create lead from the message
             $lead = $this->findOrCreateLead($message);
-            
+
+            // User just messaged us — clear the WAITING_FOR_USER state so
+            // the next AI reply will be allowed.
+            $lead->markUserReplied();
+
             // Find appropriate AI sales agent for this lead
             $agent = $this->findBestAgent($message, $lead);
             
@@ -907,6 +931,19 @@ class AiWhatsAppService
                     'phone_number' => $originalMessage->phone_number,
                     'message_id' => $result['message_id'] ?? null
                 ]);
+
+                // ---------------------------------------------------------------
+                // WAITING_FOR_USER: mark lead as waiting for the user's next reply.
+                // No further AI message should be sent until the user responds.
+                // ---------------------------------------------------------------
+                $lead = Lead::where('user_id', $originalMessage->user_id)
+                    ->whereHas('contact', function ($q) use ($originalMessage) {
+                        $q->where('guest_phone', $originalMessage->phone_number);
+                    })
+                    ->first();
+                if ($lead) {
+                    $lead->markAiReplied();
+                }
 
                 return true;
             } else {

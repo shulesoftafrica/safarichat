@@ -74,6 +74,23 @@ class SmartFollowupService
                         $skipCount++;
                         continue;
                     }
+
+                    // -----------------------------------------------------------
+                    // WAITING_FOR_USER: skip ONLY when AI is actively waiting for
+                    // the user's reply AND less than 24 hours have elapsed.
+                    // - ai_waiting_since = null  → user already replied (or first
+                    //   outreach) → allow followup.
+                    // - ai_waiting_since < 24h   → AI waiting, too soon → skip.
+                    // - ai_waiting_since >= 24h  → reminder exception → allow.
+                    // -----------------------------------------------------------
+                    if ($lead->isWaitingForUserReply() && !$lead->isEligibleForReminder()) {
+                        Log::info("Smart followup: lead {$lead->id} in WAITING_FOR_USER (< 24h), skipping", [
+                            'lead_id'          => $lead->id,
+                            'ai_waiting_since' => $lead->ai_waiting_since,
+                        ]);
+                        $skipCount++;
+                        continue;
+                    }
                     
                     // Safety guard — should never be true thanks to whereHas filter in query,
                     // but defend against edge cases (agent deleted mid-run, etc.)
@@ -104,6 +121,10 @@ class SmartFollowupService
                         
                         // Cache the send to prevent duplicate sends today
                         Cache::put($cacheKey, true, now()->endOfDay());
+
+                        // WAITING_FOR_USER: after a reminder the system must again
+                        // wait for the user to reply before sending another message.
+                        $lead->markAiReplied();
                         
                         $successCount++;
                         Log::info("Smart followup sent to lead {$lead->id}");
