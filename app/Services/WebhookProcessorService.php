@@ -6,6 +6,7 @@ use App\Models\IncomingMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\DB;
 use App\Jobs\ProcessAiMessage;
 
 class WebhookProcessorService
@@ -76,6 +77,15 @@ class WebhookProcessorService
                         // Only queue if NOT already skipped (e.g. duplicate processing).
                         // WAITING_FOR_USER: do not queue when the message was already
                         // handled by the instant path above.
+                        //
+                        // The instant path ran processIncomingWhatsAppMessageWithAI(),
+                        // which atomically set status='processing'. Reset it back to
+                        // 'received' so the queue job's own atomic claim can succeed.
+                        DB::table('incoming_messages')
+                            ->where('id', $incomingMessage->id)
+                            ->where('status', 'processing')
+                            ->update(['status' => 'received']);
+
                         $this->queueForProcessing($incomingMessage);
                         
                         $responses[] = [
