@@ -224,7 +224,7 @@ class BusinessContact extends Model
      */
     public function needsHandoff()
     {
-        return in_array($this->handoff_status, ['requested', 'pending']);
+        return $this->handoff_status === 'pending_handoff';
     }
 
     /**
@@ -233,7 +233,7 @@ class BusinessContact extends Model
      */
     public function isHandedOff()
     {
-        return $this->handoff_status === 'assigned' && $this->assigned_agent_id;
+        return $this->handoff_status === 'handed_off' && $this->assigned_agent_id;
     }
 
     /**
@@ -285,7 +285,7 @@ class BusinessContact extends Model
      */
     public function requestHandoff($reason = null, $notes = null, $priority = 'normal')
     {
-        $this->handoff_status = 'requested';
+        $this->handoff_status = 'pending_handoff';
         $this->handoff_reason = $reason;
         $this->handoff_notes = $notes;
         $this->priority_level = $priority;
@@ -300,7 +300,7 @@ class BusinessContact extends Model
      */
     public function assignToAgent($agentId)
     {
-        $this->handoff_status = 'assigned';
+        $this->handoff_status = 'handed_off';
         $this->assigned_agent_id = $agentId;
         $this->handoff_assigned_at = now();
         $this->save();
@@ -326,7 +326,7 @@ class BusinessContact extends Model
      */
     public function scopeNeedsHandoff($query)
     {
-        return $query->whereIn('handoff_status', ['requested', 'pending']);
+        return $query->whereIn('handoff_status', ['pending_handoff', 'handed_off']);
     }
 
     /**
@@ -343,5 +343,20 @@ class BusinessContact extends Model
     public function scopeRecentlyActive($query, $hours = 24)
     {
         return $query->where('last_ai_interaction', '>=', now()->subHours($hours));
+    }
+
+    /**
+     * Return contact to AI handling (clears agent assignment).
+     * @param string|null $notes
+     * @return bool
+     */
+    public function returnToAI($notes = null)
+    {
+        $this->handoff_status    = 'ai';
+        $this->assigned_agent_id = null;
+        if ($notes) {
+            $this->handoff_notes = ($this->handoff_notes ? $this->handoff_notes . '\n' : '') . $notes;
+        }
+        return $this->save();
     }
 }
