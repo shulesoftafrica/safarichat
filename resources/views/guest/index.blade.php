@@ -2445,21 +2445,21 @@ body:not(.dark-mode) .modal-body .alert-danger {
                         <select class="form-control" name="lead_status" id="edit_lead_status">
                             <option value="">{{ __('customers.placeholders.lead_status') }}</option>
                             <option value="NEW">{{ __('customers.lead_status.new') }}</option>
-                            <option value="OUTREACHED">{{ __('customers.lead_status.contacted') }}</option>
-                            <option value="REPLIED">{{ __('customers.lead_status.qualified') }}</option>
-                            <option value="ENGAGED">{{ __('customers.lead_status.proposal') }}</option>
+                            <option value="OUTREACHED">{{ __('customers.lead_status.outreached') }}</option>
+                            <option value="REPLIED">{{ __('customers.lead_status.replied') }}</option>
+                            <option value="ENGAGED">{{ __('customers.lead_status.engaged') }}</option>
                             <option value="QUALIFIED">{{ __('customers.lead_status.qualified') }}</option>
-                            <option value="PITCHED">{{ __('customers.lead_status.proposal') }}</option>
-                            <option value="DEMO_SCHEDULED">{{ __('customers.lead_status.negotiation') }}</option>
+                            <option value="PITCHED">{{ __('customers.lead_status.pitched') }}</option>
+                            <option value="DEMO_SCHEDULED">{{ __('customers.lead_status.demo_scheduled') }}</option>
                             <option value="PROPOSAL_SENT">{{ __('customers.lead_status.proposal') }}</option>
-                            <option value="NEGOTIATING">{{ __('customers.lead_status.negotiation') }}</option>
+                            <option value="NEGOTIATING">{{ __('customers.lead_status.negotiating') }}</option>
                             <option value="CLOSED">{{ __('customers.lead_status.won') }}</option>
                             <option value="LOST">{{ __('customers.lead_status.lost') }}</option>
                             <option value="HANDED_OFF">{{ __('customers.handoff.handed_off') }}</option>
-                            <option value="DO_NOT_CONTACT">{{ __('customers.lead_status.cold') }}</option>
+                            <option value="DO_NOT_CONTACT">{{ __('customers.lead_status.do_not_contact') }}</option>
                             <option value="NEEDS_ATTENTION">{{ __('customers.lead_status.hot') }}</option>
                             <option value="CONVERTED">{{ __('customers.lead_status.won') }}</option>
-                            <option value="CHURNED">{{ __('customers.lead_status.lost') }}</option>
+                            <option value="CHURNED">{{ __('customers.lead_status.churned') }}</option>
                         </select>
                         <small class="form-text text-muted">
                             {{ __('customers.messages.lead_status_help') }}

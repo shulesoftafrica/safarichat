@@ -20,8 +20,8 @@ return [
 
     // List View
     'list' => [
-        'title' => 'List of Customers',
-        'subtitle' => 'Manage List of Customers',
+        'title' => 'Business Contact List',
+        'subtitle' => 'Manage Business Contacts',
         'total_contacts' => 'Total Contacts',
         'no_contacts' => 'No customers found',
         'showing' => 'Showing :from to :to of :total customers',
@@ -84,6 +84,7 @@ return [
 
     // Placeholders
     'placeholders' => [
+        'lead_status' => 'Select Lead Status',
         'name' => 'Enter customer name',
         'phone' => 'Enter phone number',
         'email' => 'Enter email address',
@@ -270,7 +271,7 @@ return [
     // Modals
     'modals' => [
         'add_title' => 'Add Customer Contact',
-        'edit_title' => 'Edit Customer Details',
+        'edit_title' => 'Edit Business Contact',
         'delete_title' => 'Delete Customer',
         'delete_message' => 'Are you sure you want to delete this customer?',
         'delete_confirm' => 'Yes, Delete',
