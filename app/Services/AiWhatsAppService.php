@@ -220,9 +220,11 @@ class AiWhatsAppService
                 'win_back_attempts' => 0,
             ]);
         } else {
-            // Update last activity
+            // Update last activity AND last_interaction_at so SmartFollowupService
+            // does not treat this lead as "inactive" and send a duplicate follow-up.
             $lead->update([
-                'last_activity_at' => now(),
+                'last_activity_at'    => now(),
+                'last_interaction_at' => now(),
             ]);
         }
 
@@ -849,8 +851,9 @@ class AiWhatsAppService
     {
         $lead->increment('interaction_count');
         $lead->update([
-            'last_activity_at' => now(),
-            'last_reply_at' => now()  // Track when lead last replied
+            'last_activity_at'    => now(),
+            'last_interaction_at' => now(),  // Keep SmartFollowupService filter current
+            'last_reply_at'       => now(),  // Track when lead last replied
         ]);
 
         // Update sentiment tracking
@@ -935,10 +938,14 @@ class AiWhatsAppService
                 // ---------------------------------------------------------------
                 // WAITING_FOR_USER: mark lead as waiting for the user's next reply.
                 // No further AI message should be sent until the user responds.
+                // Look up by contact phone first; fall back to lead.phone_number
+                // in case of format mismatch between IncomingMessage and BusinessContact.
                 // ---------------------------------------------------------------
                 $lead = Lead::where('user_id', $originalMessage->user_id)
-                    ->whereHas('contact', function ($q) use ($originalMessage) {
-                        $q->where('guest_phone', $originalMessage->phone_number);
+                    ->where(function ($q) use ($originalMessage) {
+                        $q->whereHas('contact', function ($q2) use ($originalMessage) {
+                            $q2->where('guest_phone', $originalMessage->phone_number);
+                        })->orWhere('phone_number', $originalMessage->phone_number);
                     })
                     ->first();
                 if ($lead) {
