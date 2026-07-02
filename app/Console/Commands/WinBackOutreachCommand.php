@@ -174,7 +174,17 @@ class WinBackOutreachCommand extends Command
             }
 
             // Send win-back message using existing outreach method
-            $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent);
+            $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent, 'win_back');
+
+            if (!empty($result['skipped'])) {
+                Log::info('Win-back message skipped by duplicate guard', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'reason' => $result['reason'] ?? 'unknown',
+                ]);
+
+                return true;
+            }
 
             if ($result['success']) {
                 // Update lead status and timestamps
@@ -458,8 +468,10 @@ class WinBackOutreachCommand extends Command
 
         $strategyPrompt = $strategyPrompts[$strategy] ?? "Create a personalized, respectful re-engagement message from {$businessName}.";
         
-        return $basePrompt . $strategyPrompt . " CRITICAL: Must mention '{$businessName}'. Keep under 160 characters. Be warm, conversational, and ACTION-oriented. " . 
-               "Tone: " . ($agent->personality_type ?? 'professional') . ".";
+         return $basePrompt . $strategyPrompt . " CRITICAL: Must mention '{$businessName}'. Keep under 320 characters. Be warm, conversational, and professional. " .
+             "No markdown, no separators, no signatures, and no meta phrases like 'Certainly' or 'Here is your message'. " .
+             "Output only the final WhatsApp message text. " .
+             "Tone: " . ($agent->personality_type ?? 'professional') . ".";
     }
 
     private function getFallbackWinBackMessage(Lead $lead, string $strategy): string
@@ -502,19 +514,19 @@ class WinBackOutreachCommand extends Command
         }
         
         $messages = [
-            'MISSED_CONNECTION' => "Hi {$name}! This is {$businessName}. We haven't connected in a while and wanted to reach out. Hope you're doing well! 😊",
-            'VALUE_REMINDER' => "Hi {$name}! It's {$businessName}{$mainProduct}. Remember when we discussed how we could help your business? Still here if you're interested! 💼",
-            'SPECIAL_OFFER' => "Hi {$name}! {$businessName} here. We have something special{$mainProduct} that might interest you. Would love to reconnect! ✨",
-            'CHECK_IN' => "Hi {$name}! Just a friendly check-in from {$businessName}{$mainProduct}. Hope all is well with you! 👋",
-            'UPDATE_SHARE' => "Hi {$name}! {$businessName} here. We've made some exciting updates{$mainProduct} that might interest you. Would love to share! 🚀",
-            'LAST_CHANCE' => "Hi {$name}! One final check from {$businessName}{$mainProduct} - are you still interested in what we discussed? No pressure! 🤝",
-            'RELATIONSHIP_RECOVERY' => "Hi {$name}! {$businessName} here. I know things didn't work out before, but I'd love to reconnect and see if we can help now. 🤝",
-            'REIGNITE_INTEREST' => "Hi {$name}! It's {$businessName}{$mainProduct}. I remember how excited you were about our solution. Any chance to revisit? ⭐",
-            'FRESH_START' => "Hi {$name}! I'd love to start fresh with {$businessName}{$mainProduct} and see if there's a way we can work together now. New possibilities! ✨",
-            'DEAL_REVIVAL' => "Hi {$name}! {$businessName} here. About that proposal we discussed{$mainProduct} - any interest in moving forward? Happy to revisit! 📋"
+            'MISSED_CONNECTION' => "Hi {$name}, this is {$businessName}. We have not connected in a while and wanted to check in. If this is still relevant, I can share the fastest next step.",
+            'VALUE_REMINDER' => "Hi {$name}, {$businessName} here{$mainProduct}. We previously discussed how this could support your operations. If useful, I can send a short summary tailored to your current priorities.",
+            'SPECIAL_OFFER' => "Hi {$name}, {$businessName} here. We have a limited win-back option{$mainProduct} that may suit your setup. Let me know and I will share the details.",
+            'CHECK_IN' => "Hi {$name}, this is {$businessName}{$mainProduct}. Quick check-in to see whether this is still a priority on your side.",
+            'UPDATE_SHARE' => "Hi {$name}, {$businessName} here. We have recent updates{$mainProduct} that address common operational gaps. I can share the key improvements in one message.",
+            'LAST_CHANCE' => "Hi {$name}, this is {$businessName}{$mainProduct}. Final follow-up from my side for now. If the timing changes, we will be ready to assist.",
+            'RELATIONSHIP_RECOVERY' => "Hi {$name}, {$businessName} here. I understand earlier conversations may not have met your expectations. If you are open to it, we can restart with a clearer and more tailored approach.",
+            'REIGNITE_INTEREST' => "Hi {$name}, this is {$businessName}{$mainProduct}. You previously showed strong interest, so I wanted to reconnect and see if this is back on your roadmap.",
+            'FRESH_START' => "Hi {$name}, {$businessName} here. We can begin with a fresh approach{$mainProduct} based on your current needs. If you want, I will share a concise plan.",
+            'DEAL_REVIVAL' => "Hi {$name}, this is {$businessName}. Following up on the proposal we discussed{$mainProduct}. If this is still under consideration, I can send an updated summary and next steps."
         ];
 
-        return $messages[$strategy] ?? "Hi {$name}! Hope you're doing well. This is {$businessName}. Would love to reconnect when you have a moment! 😊";
+        return $messages[$strategy] ?? "Hi {$name}, this is {$businessName}. We would be glad to reconnect when convenient and support your current priorities.";
     }
 
     /**
@@ -717,13 +729,13 @@ class WinBackOutreachCommand extends Command
         }
         
         $messages = [
-            'PRICE_CONCERN' => "Hi {$name}! {$businessName} here{$specificContext}. We now offer flexible payment plans{$mainProduct}. Can we revisit? 💰",
-            'TIMING_ISSUE' => "Hi {$name}! Hope timing is better now{$specificContext}. {$businessName}{$mainProduct} setup takes just 15 minutes. Still interested? ⏱️",
-            'COMPETITOR' => "Hi {$name}! {$businessName} has added unique features{$mainProduct}{$specificContext} competitors don't offer. Quick chat? 🚀",
-            'FEATURE_GAP' => "Hi {$name}! Great news{$specificContext}! {$businessName} now has the features{$mainProduct} you needed. Want to see? 📊",
-            'COMPLEXITY_CONCERN' => "Hi {$name}! {$businessName}{$mainProduct} is now simpler{$specificContext} with guided setup & dedicated support. Give it another look? 🤝",
+            'PRICE_CONCERN' => "Hi {$name}, this is {$businessName}{$specificContext}. We now have more flexible commercial options{$mainProduct}. If useful, I can share a concise breakdown.",
+            'TIMING_ISSUE' => "Hi {$name}, {$businessName} here{$specificContext}. If timing is better now, we can complete initial setup{$mainProduct} quickly with minimal disruption.",
+            'COMPETITOR' => "Hi {$name}, this is {$businessName}{$specificContext}. We have introduced improvements{$mainProduct} that may offer stronger value for your team.",
+            'FEATURE_GAP' => "Hi {$name}, {$businessName} here{$specificContext}. The features you previously needed{$mainProduct} are now available, and I can share what changed.",
+            'COMPLEXITY_CONCERN' => "Hi {$name}, this is {$businessName}{$specificContext}. We have simplified onboarding{$mainProduct} and added guided support to make rollout straightforward.",
         ];
         
-        return $messages[$churnReason] ?? "Hi {$name}! {$businessName} here{$mainProduct}. Would love to reconnect{$specificContext}! ✨";
+        return $messages[$churnReason] ?? "Hi {$name}, {$businessName} here{$mainProduct}. We would value the chance to reconnect{$specificContext}.";
     }
 }

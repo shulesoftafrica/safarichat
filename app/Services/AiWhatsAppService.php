@@ -889,6 +889,20 @@ class AiWhatsAppService
     public function sendResponse(string $response, IncomingMessage $originalMessage, ?\App\Models\WhatsappInstance $instance = null): bool
     {
         try {
+            // Burst and duplicate guard to prevent accidental double-texting.
+            if ($this->shouldSkipDuplicateOutbound(
+                $originalMessage->user_id,
+                $originalMessage->phone_number,
+                $response
+            )) {
+                Log::info('AI response skipped to prevent duplicate outbound message', [
+                    'phone_number' => $originalMessage->phone_number,
+                    'user_id' => $originalMessage->user_id,
+                    'incoming_message_id' => $originalMessage->id,
+                ]);
+                return true;
+            }
+
             // Create outgoing message record first with instance tracking
             $outgoingMessage = OutgoingMessage::create([
                 'user_id' => $originalMessage->user_id,
@@ -1104,7 +1118,7 @@ class AiWhatsAppService
     /**
      * Send outreach message to lead (used by daily outreach command)
      */
-    public function sendOutreachMessage(Lead $lead, string $message, AiSalesAgent $agent): array
+    public function sendOutreachMessage(Lead $lead, string $message, AiSalesAgent $agent, string $campaign = 'daily_outreach'): array
     {
         try {
             // Get lead's contact information
@@ -1128,6 +1142,21 @@ class AiWhatsAppService
                 ];
             }
 
+            if ($this->shouldSkipDuplicateOutbound($agent->user_id, $contact->guest_phone, $message)) {
+                Log::info('Outreach message skipped to prevent duplicate outbound message', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'phone' => $contact->guest_phone,
+                    'campaign' => $campaign,
+                ]);
+
+                return [
+                    'success' => true,
+                    'skipped' => true,
+                    'reason' => 'duplicate_guard',
+                ];
+            }
+
             // Create outgoing message record
             $outgoingMessage = OutgoingMessage::create([
                 'user_id' => $agent->user_id,
@@ -1135,10 +1164,11 @@ class AiWhatsAppService
                 'message_body' => $message,
                 'message_type' => 'text',
                 'status' => 'pending',
+                'is_ai_generated' => true,
                 'metadata' => [
                     'lead_id' => $lead->id,
                     'agent_id' => $agent->id,
-                    'campaign' => 'daily_outreach'
+                    'campaign' => $campaign
                 ]
             ]);
 
@@ -1168,7 +1198,7 @@ class AiWhatsAppService
                     'sender_type' => 'ai_agent', // Valid values: customer, ai_agent, user_manual, ai_agent_followup
                     'is_active' => true,
                     'metadata' => [
-                        'campaign' => 'daily_outreach',
+                        'campaign' => $campaign,
                         'outgoing_message_id' => $outgoingMessage->id
                     ]
                 ]);
@@ -1209,6 +1239,54 @@ class AiWhatsAppService
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Prevent accidental duplicate/burst sends to the same contact.
+     */
+    private function shouldSkipDuplicateOutbound(int $userId, string $phoneNumber, string $message): bool
+    {
+        $recentWindowStart = now()->subSeconds(90);
+        $duplicateWindowStart = now()->subHours(24);
+        $normalizedMessage = $this->normalizeMessageForCompare($message);
+
+        // Burst guard: avoid sending multiple AI messages too close together.
+        $hasRecentAiMessage = OutgoingMessage::where('user_id', $userId)
+            ->where('phone_number', $phoneNumber)
+            ->where('is_ai_generated', true)
+            ->whereIn('status', ['pending', 'sent'])
+            ->where('created_at', '>=', $recentWindowStart)
+            ->exists();
+
+        if ($hasRecentAiMessage) {
+            return true;
+        }
+
+        // Content guard: avoid repeating the exact same message body.
+        $candidates = OutgoingMessage::where('user_id', $userId)
+            ->where('phone_number', $phoneNumber)
+            ->where('is_ai_generated', true)
+            ->whereIn('status', ['pending', 'sent'])
+            ->where('created_at', '>=', $duplicateWindowStart)
+            ->orderByDesc('id')
+            ->limit(15)
+            ->get(['message_body']);
+
+        foreach ($candidates as $candidate) {
+            $previous = $this->normalizeMessageForCompare((string) ($candidate->message_body ?? ''));
+            if ($previous !== '' && $previous === $normalizedMessage) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeMessageForCompare(string $text): string
+    {
+        $text = mb_strtolower(trim($text));
+        $text = preg_replace('/\s+/u', ' ', $text);
+        return trim((string) $text);
     }
     
     /**

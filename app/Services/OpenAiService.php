@@ -48,6 +48,65 @@ class OpenAiService
     }
 
     /**
+     * Normalize outbound WhatsApp copy to avoid AI/meta wrappers and bulky email formatting.
+     */
+    private function normalizeOutgoingWhatsAppText(string $text): string
+    {
+        $text = $this->sanitizeText($text);
+        if ($text === '') {
+            return $text;
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', $text) ?: [];
+        $cleanLines = [];
+        $skipSignatureLines = 0;
+
+        foreach ($lines as $index => $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '') {
+                $cleanLines[] = '';
+                continue;
+            }
+
+            // Remove decorative separators commonly produced in AI-styled responses.
+            if (preg_match('/^[-_*]{2,}$/', $trimmed)) {
+                continue;
+            }
+
+            // Remove meta preambles like "Certainly! Here's a follow-up...".
+            if ($index === 0 && preg_match('/^(certainly|absolutely|sure|of course|great)\b.*\b(follow[- ]?up|message|version|approach|tailor|adjust)\b.*:?$/i', $trimmed)) {
+                continue;
+            }
+
+            // Remove explicit signature blocks.
+            if (preg_match('/^(best regards|kind regards|regards|sincerely)[,!?]?$/i', $trimmed)) {
+                $skipSignatureLines = 4;
+                continue;
+            }
+
+            if ($skipSignatureLines > 0) {
+                $skipSignatureLines--;
+                continue;
+            }
+
+            // Remove meta closing lines that ask for prompt tweaking.
+            if (preg_match('/^.*(let me know|please let me know).*(adjust|change|modify|tailor|anything else).*/i', $trimmed)) {
+                continue;
+            }
+
+            $cleanLines[] = $trimmed;
+        }
+
+        $result = implode("\n", $cleanLines);
+
+        // Collapse excess blank lines.
+        $result = preg_replace('/\n{3,}/', "\n\n", $result);
+        $result = trim($result, " \t\n\r\0\x0B\"");
+
+        return trim($result);
+    }
+
+    /**
      * Generate AI response for sales conversation
      */
     public function generateSalesResponse(
@@ -154,9 +213,16 @@ class OpenAiService
                 ];
             }
             
-            // Handle null or empty customer message
+            // Handle null or empty customer message.
+            // If a campaign/automation prompt is provided, use it directly.
             if (empty($customerMessage)) {
-                $customerMessage = 'Generate follow-up message based on conversation context';
+                $contextPrompt = isset($context['prompt']) && is_string($context['prompt'])
+                    ? trim($context['prompt'])
+                    : '';
+
+                $customerMessage = $contextPrompt !== ''
+                    ? $contextPrompt
+                    : 'Generate follow-up message based on conversation context';
             }
             
             // Get the AI sales agent for this lead
@@ -752,6 +818,14 @@ class OpenAiService
     $prompt .= "\nYou are not here to educate endlessly.";
     $prompt .= "\nYou are here to REMOVE CONFUSION, CREATE MOMENTUM, AND CLOSE.";
 
+    // === OUTPUT FORMAT RULES ===
+    $prompt .= "\n\nWHATSAPP OUTPUT RULES (MANDATORY):";
+    $prompt .= "\n- Output ONE final customer-facing message only";
+    $prompt .= "\n- Do NOT include preambles like 'Certainly' or 'Here's a message'";
+    $prompt .= "\n- Do NOT include separators like '---'";
+    $prompt .= "\n- Do NOT include email-style signatures (e.g., 'Best regards')";
+    $prompt .= "\n- Keep it concise, natural, and professional for WhatsApp";
+
     return $prompt;
 }
 
@@ -912,7 +986,7 @@ class OpenAiService
     private function applyAgentConstraints(string $aiResponse, AiSalesAgent $agent, ?Product $product, string $customerMessage = ''): array
     {
         $actions = [];
-        $modifiedResponse = $aiResponse;
+        $modifiedResponse = $this->normalizeOutgoingWhatsAppText($aiResponse);
 
         // Check for discount mentions and validate against limits
         if (preg_match('/(\d+)%?\s*(?:discount|off)/i', $aiResponse, $matches)) {
@@ -1024,7 +1098,7 @@ class OpenAiService
         }
 
         return [
-            'response' => $modifiedResponse,
+            'response' => $this->normalizeOutgoingWhatsAppText($modifiedResponse),
             'actions' => $actions
         ];
     }
