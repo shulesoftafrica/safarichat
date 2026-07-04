@@ -1678,6 +1678,18 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'Missing required data']);
             }
 
+            if ($this->isAdvisoryContent((string) $message)) {
+                Log::warning('Blocked advisory/internal style message from outbound sendUniqueMessage', [
+                    'user_id' => $user->id,
+                    'contact_count' => count($contactIds),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Advisory/internal AI coaching text is blocked from customer sending. Please send a direct customer-facing message only.'
+                ]);
+            }
+
             // Get user's WhatsApp instance
             $whatsappInstance = $user->whatsappInstance();
             
@@ -1785,6 +1797,19 @@ class Guest extends Controller {
 
             if (empty($contactIds) || (empty($message) && empty($attachments))) {
                 return response()->json(['success' => false, 'message' => 'Missing required data']);
+            }
+
+            if ($this->isAdvisoryContent((string) $message)) {
+                Log::warning('Blocked advisory/internal style message from outbound sendMessage', [
+                    'user_id' => $user->id,
+                    'contact_count' => count($contactIds),
+                    'has_attachments' => !empty($attachments),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Advisory/internal AI coaching text is blocked from customer sending. Please send a direct customer-facing message only.'
+                ]);
             }
 
             // Get user's WhatsApp instance (connected and ready)
@@ -1967,6 +1992,39 @@ class Guest extends Controller {
         }
         
         return $phone;
+    }
+
+    /**
+     * Prevent internal coaching/advisory AI drafts from being sent to customers.
+     */
+    private function isAdvisoryContent(string $message): bool
+    {
+        $normalized = mb_strtolower(trim($message));
+        if ($normalized === '') {
+            return false;
+        }
+
+        $advisoryPhrases = [
+            "it looks like you're ready to engage",
+            'here\'s a suggested approach',
+            'suggested approach:',
+            'maintain contact',
+            'be prepared for future opportunities',
+            'next year, maintaining regular communication will be key',
+        ];
+
+        foreach ($advisoryPhrases as $phrase) {
+            if (str_contains($normalized, $phrase)) {
+                return true;
+            }
+        }
+
+        // Common advisory layout: numbered strategic bullets with bold markdown.
+        if (preg_match('/\b\d\.\s+\*\*/', $message) === 1) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
