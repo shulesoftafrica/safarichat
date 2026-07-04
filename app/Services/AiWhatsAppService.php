@@ -14,6 +14,7 @@ use App\Services\WaSenderService;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AiWhatsAppService
 {
@@ -1249,28 +1250,37 @@ class AiWhatsAppService
         $recentWindowStart = now()->subSeconds(90);
         $duplicateWindowStart = now()->subHours(24);
         $normalizedMessage = $this->normalizeMessageForCompare($message);
+        $hasAiGeneratedColumn = Schema::hasColumn('outgoing_messages', 'is_ai_generated');
 
         // Burst guard: avoid sending multiple AI messages too close together.
-        $hasRecentAiMessage = OutgoingMessage::where('user_id', $userId)
+        $hasRecentAiMessageQuery = OutgoingMessage::where('user_id', $userId)
             ->where('phone_number', $phoneNumber)
-            ->where('is_ai_generated', true)
             ->whereIn('status', ['pending', 'sent'])
-            ->where('created_at', '>=', $recentWindowStart)
-            ->exists();
+            ->where('created_at', '>=', $recentWindowStart);
+
+        if ($hasAiGeneratedColumn) {
+            $hasRecentAiMessageQuery->where('is_ai_generated', true);
+        }
+
+        $hasRecentAiMessage = $hasRecentAiMessageQuery->exists();
 
         if ($hasRecentAiMessage) {
             return true;
         }
 
         // Content guard: avoid repeating the exact same message body.
-        $candidates = OutgoingMessage::where('user_id', $userId)
+        $candidatesQuery = OutgoingMessage::where('user_id', $userId)
             ->where('phone_number', $phoneNumber)
-            ->where('is_ai_generated', true)
             ->whereIn('status', ['pending', 'sent'])
             ->where('created_at', '>=', $duplicateWindowStart)
             ->orderByDesc('id')
-            ->limit(15)
-            ->get(['message_body']);
+            ->limit(15);
+
+        if ($hasAiGeneratedColumn) {
+            $candidatesQuery->where('is_ai_generated', true);
+        }
+
+        $candidates = $candidatesQuery->get(['message_body']);
 
         foreach ($candidates as $candidate) {
             $previous = $this->normalizeMessageForCompare((string) ($candidate->message_body ?? ''));

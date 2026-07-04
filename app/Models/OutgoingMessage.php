@@ -23,6 +23,7 @@ class OutgoingMessage extends Model
         'caption',
         'status',
         'delivery_status',
+        'is_ai_generated',
         'job_id',
         'batch_id',
         'waapi_message_id',
@@ -53,6 +54,7 @@ class OutgoingMessage extends Model
     protected $casts = [
         'metadata' => 'array',
         'is_system_message' => 'boolean',
+        'is_ai_generated' => 'boolean',
         'scheduled_at' => 'datetime',
         'queued_at' => 'datetime',
         'sent_at' => 'datetime',
