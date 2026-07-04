@@ -516,11 +516,21 @@ class SendWhatsAppMessage implements ShouldQueue
     private function sendViaWaSender(WaSenderService $service, OutgoingMessage $message)
     {
         if ($this->files) {
-            // Send media message
-            return $service->sendMediaMessage(
+            $attachment = $this->files[0] ?? null;
+
+            if (!$attachment || empty($attachment['path'])) {
+                throw new Exception('Attachment file path is missing for media message');
+            }
+
+            return $service->sendMessage(
                 $this->phoneNumber,
-                $this->messageData,
-                $this->files,
+                is_array($this->messageData) ? ($this->messageData['message'] ?? json_encode($this->messageData)) : $this->messageData,
+                [
+                    'attachment_path' => $attachment['path'],
+                    'attachment_name' => $attachment['filename'] ?? basename($attachment['path']),
+                    'attachment_type' => $attachment['mime_type'] ?? 'application/octet-stream',
+                    'priority' => $this->priority,
+                ],
                 $this->instanceId,
                 $this->userId
             );
