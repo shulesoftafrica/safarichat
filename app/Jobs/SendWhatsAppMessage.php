@@ -522,15 +522,47 @@ class SendWhatsAppMessage implements ShouldQueue
                 throw new Exception('Attachment file path is missing for media message');
             }
 
-            return $service->sendMessage(
+            $caption = is_array($this->messageData)
+                ? ($this->messageData['message'] ?? json_encode($this->messageData))
+                : $this->messageData;
+
+            $mimeType = $attachment['mime_type'] ?? null;
+            $fileName = $attachment['filename'] ?? basename($attachment['path']);
+
+            if ($mimeType && str_starts_with($mimeType, 'image/')) {
+                return $service->sendImage(
+                    $this->phoneNumber,
+                    $attachment['path'],
+                    $caption,
+                    $this->instanceId,
+                    $this->userId
+                );
+            }
+
+            if ($mimeType && str_starts_with($mimeType, 'audio/')) {
+                return $service->sendAudio(
+                    $this->phoneNumber,
+                    $attachment['path'],
+                    $this->instanceId,
+                    $this->userId
+                );
+            }
+
+            if ($mimeType && str_starts_with($mimeType, 'video/')) {
+                return $service->sendVideo(
+                    $this->phoneNumber,
+                    $attachment['path'],
+                    $caption,
+                    $this->instanceId,
+                    $this->userId
+                );
+            }
+
+            return $service->sendDocument(
                 $this->phoneNumber,
-                is_array($this->messageData) ? ($this->messageData['message'] ?? json_encode($this->messageData)) : $this->messageData,
-                [
-                    'attachment_path' => $attachment['path'],
-                    'attachment_name' => $attachment['filename'] ?? basename($attachment['path']),
-                    'attachment_type' => $attachment['mime_type'] ?? 'application/octet-stream',
-                    'priority' => $this->priority,
-                ],
+                $attachment['path'],
+                $fileName,
+                $caption,
                 $this->instanceId,
                 $this->userId
             );
