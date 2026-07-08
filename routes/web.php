@@ -133,6 +133,7 @@ Route::get('/service/tab-content', [App\Http\Controllers\Service::class, 'getTab
 Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     Route::post('/products', [App\Http\Controllers\ProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{id}/manage', [App\Http\Controllers\ProductController::class, 'manage'])->name('products.manage');
     Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{id}/edit', [App\Http\Controllers\ProductController::class, 'edit'])->name('products.edit');
     Route::put('/products/{id}', [App\Http\Controllers\ProductController::class, 'update'])->name('products.update');

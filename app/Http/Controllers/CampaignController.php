@@ -8,6 +8,7 @@ use App\Models\MessageQueue;
 use App\Models\OutgoingMessage;
 use App\Models\BusinessContact;
 use App\Models\Lead;
+use App\Models\Product;
 use \Illuminate\Support\Facades\Auth;
 
 use Carbon\Carbon;
@@ -96,6 +97,10 @@ class CampaignController extends Controller
         
         // Get user's credit balance
         $data['credit_balance'] = Auth::user()->credits ?? 0;
+
+        $data['products'] = Product::forUser(Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
         
         return view('campaigns.create', $data);
     }

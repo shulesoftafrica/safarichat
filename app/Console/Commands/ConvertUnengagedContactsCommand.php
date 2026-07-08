@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\BusinessContact;
 use App\Models\Lead;
 use App\Models\AiSalesAgent;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -105,12 +106,12 @@ class ConvertUnengagedContactsCommand extends Command
         $cutoffDate = now()->subDays($daysOld);
         
         // Get all phone numbers that have existing messages
-        $phonesWithIncoming = \DB::table('incoming_messages')
+        $phonesWithIncoming = DB::table('incoming_messages')
             ->whereNotNull('phone_number')
             ->pluck('phone_number')
             ->unique();
             
-        $phonesWithOutgoing = \DB::table('outgoing_messages')
+        $phonesWithOutgoing = DB::table('outgoing_messages')
             ->whereNotNull('phone_number')
             ->pluck('phone_number')
             ->unique();
@@ -196,7 +197,7 @@ class ConvertUnengagedContactsCommand extends Command
             $leadScore = $this->calculateInitialLeadScore($contact);
             
             // Create lead from business contact
-            $lead = Lead::create([
+            $result = Lead::safeCreate([
                 'business_contact_id' => $contact->id,
                 'business_id' => $contact->business_id,
                 'ai_sales_agent_id' => $aiAgent->id,
@@ -217,8 +218,18 @@ class ConvertUnengagedContactsCommand extends Command
                     'conversion_method' => 'automated',
                     'contact_phone' => $contact->guest_phone,
                     'contact_email' => $contact->guest_email
-                ])
+                ]),
             ]);
+
+            if (!$result['success']) {
+                Log::warning('Skipping contact conversion because no product assignment could be resolved', [
+                    'contact_id' => $contact->id,
+                    'errors' => $result['errors'],
+                ]);
+                return false;
+            }
+
+            $lead = $result['lead'];
 
             // Mark contact as contacted for sales
             $contact->update([
@@ -272,7 +283,7 @@ class ConvertUnengagedContactsCommand extends Command
         }
 
         // Recency boost for newer contacts
-        $daysOld = $contact->created_at->diffInDays(now());
+        $daysOld = Carbon::parse($contact->created_at)->diffInDays(now());
         if ($daysOld <= 7) {
             $score += 10;
         } elseif ($daysOld <= 30) {

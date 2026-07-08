@@ -1463,6 +1463,26 @@
                     </small>
                 </div>
 
+                <!-- Product Selection -->
+                <div class="form-section" id="productSection">
+                    <label class="form-label">
+                        <i class="fas fa-box"></i> Select Product
+                    </label>
+                    <select class="form-control-modern" name="product_id" id="productSelect">
+                        <option value="">Choose product</option>
+                        @if(isset($products))
+                            @foreach($products as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                    <div id="product-validation-feedback" class="invalid-feedback" style="display: none;"></div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="fas fa-info-circle"></i>
+                        Used to filter contact-based recipients (All Contacts / Lead Status).
+                    </small>
+                </div>
+
                 <!-- Message Composer -->
                 <div class="form-section">
                     <label class="form-label">
@@ -1568,6 +1588,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const categorySection = document.getElementById('categorySection');
     const customNumbersSection = document.getElementById('customNumbersSection');
     const excelUploadSection = document.getElementById('excelUploadSection');
+    const productSection = document.getElementById('productSection');
+    const productSelect = document.getElementById('productSelect');
     const contactInput = document.getElementById('contactInput');
     const contactTags = document.getElementById('contactTags');
     const customNumbersInput = document.getElementById('customNumbersInput');
@@ -1612,6 +1634,8 @@ document.addEventListener('DOMContentLoaded', function() {
             categorySection.style.display = value === '2' ? 'block' : 'none';
             customNumbersSection.style.display = value === '6' ? 'block' : 'none';
             excelUploadSection.style.display = value === '7' ? 'block' : 'none';
+            productSelect.classList.remove('is-invalid');
+            document.getElementById('product-validation-feedback').style.display = 'none';
             
             // Clear validation errors when switching criteria
             clearValidationErrors();
@@ -1627,6 +1651,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('category-validation-feedback').style.display = 'none';
         }
         updateRecipientCount();
+    });
+
+    productSelect.addEventListener('change', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+            document.getElementById('product-validation-feedback').style.display = 'none';
+        }
     });
 
     // Custom Numbers Input
@@ -1973,6 +2004,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 errors.push('Please select a lead status');
                 showValidationError('category', 'Please select a lead status');
                 categorySelect.classList.add('is-invalid');
+            }
+        }
+
+        // Validate product selection for contact-based criteria
+        if (selectedCriteria === '1' || selectedCriteria === '2') {
+            if (!productSelect.value) {
+                isValid = false;
+                errors.push('Please select a product');
+                showValidationError('product', 'Please select a product');
+                productSelect.classList.add('is-invalid');
             }
         }
 

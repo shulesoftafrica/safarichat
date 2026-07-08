@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class Lead extends Model
@@ -171,6 +173,88 @@ class Lead extends Model
     }
 
     /**
+     * Resolve and validate the product assignment for a new lead.
+     *
+     * Every lead must be created with at least one product. Callers can pass
+     * explicit product_ids/product_id/primary_product_id, or rely on a safe
+     * fallback to the user's active campaign product or their only active product.
+     *
+     * @param array $data
+     * @return array
+     */
+    public static function resolveProductAssignment(array $data)
+    {
+        $errors = [];
+        $warnings = [];
+        $userId = $data['user_id'] ?? null;
+
+        $productIds = [];
+
+        if (!empty($data['product_ids']) && is_array($data['product_ids'])) {
+            $productIds = $data['product_ids'];
+        } elseif (!empty($data['product_id'])) {
+            $productIds = [$data['product_id']];
+        } elseif (!empty($data['primary_product_id'])) {
+            $productIds = [$data['primary_product_id']];
+        } elseif (!empty($data['fallback_product_id'])) {
+            $productIds = [$data['fallback_product_id']];
+        }
+
+        $productIds = array_values(array_unique(array_map('intval', array_filter($productIds))));
+
+        if (empty($productIds) && $userId) {
+            $activeCampaignProduct = Product::getActiveCampaign($userId);
+
+            if ($activeCampaignProduct) {
+                $productIds = [$activeCampaignProduct->id];
+                $warnings[] = 'No product was provided. Using the active campaign product.';
+            } else {
+                $activeProducts = Product::forUser($userId)->active()->pluck('id')->all();
+
+                if (count($activeProducts) === 1) {
+                    $productIds = [(int) $activeProducts[0]];
+                    $warnings[] = 'No product was provided. Using the only active product for this user.';
+                }
+            }
+        }
+
+        if (empty($productIds)) {
+            $errors[] = 'At least one product is required for every lead.';
+        }
+
+        $primaryProductId = isset($data['primary_product_id']) ? (int) $data['primary_product_id'] : null;
+        if (!$primaryProductId && !empty($productIds)) {
+            $primaryProductId = (int) $productIds[0];
+        }
+
+        if (!empty($productIds)) {
+            $productQuery = Product::whereIn('id', $productIds);
+            if ($userId) {
+                $productQuery->where('user_id', $userId);
+            }
+
+            $validProductIds = $productQuery->pluck('id')->map(static fn ($id) => (int) $id)->all();
+            $missingProductIds = array_values(array_diff($productIds, $validProductIds));
+
+            if (!empty($missingProductIds)) {
+                $errors[] = 'Invalid product selection: ' . implode(', ', $missingProductIds);
+            }
+
+            if ($primaryProductId && !in_array($primaryProductId, $productIds, true)) {
+                $errors[] = 'Primary product must be included in the assigned products.';
+            }
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'warnings' => $warnings,
+            'product_ids' => $productIds,
+            'primary_product_id' => $primaryProductId,
+        ];
+    }
+
+    /**
      * Safely create a lead with validation and error handling.
      *
      * @param array $data
@@ -180,35 +264,57 @@ class Lead extends Model
     {
         // Validate relationships first
         $validation = self::validateRelationships($data);
+        $productAssignment = self::resolveProductAssignment($data);
         
-        if (!$validation['valid']) {
+        if (!$validation['valid'] || !$productAssignment['valid']) {
             return [
                 'success' => false,
                 'lead' => null,
-                'errors' => $validation['errors'],
-                'warnings' => $validation['warnings']
+                'errors' => array_merge($validation['errors'], $productAssignment['errors']),
+                'warnings' => array_merge($validation['warnings'], $productAssignment['warnings'])
             ];
         }
 
         try {
-            // Sanitize phone number if present
-            if (!empty($data['phone_number'])) {
-                $data['phone_number'] = sanitize_phone_number($data['phone_number']);
-            }
+            $lead = DB::transaction(function () use ($data, $productAssignment) {
+                // Sanitize phone number if present
+                if (!empty($data['phone_number'])) {
+                    $data['phone_number'] = sanitize_phone_number($data['phone_number']);
+                }
 
-            // Set defaults
-            $data['status'] = $data['status'] ?? self::STATUS_NEW;
-            $data['source'] = $data['source'] ?? 'manual';
-            $data['lead_score'] = $data['lead_score'] ?? 50;
+                // Set defaults
+                $data['status'] = $data['status'] ?? self::STATUS_NEW;
+                $data['source'] = $data['source'] ?? 'manual';
+                $data['lead_score'] = $data['lead_score'] ?? 50;
 
-            // Create the lead
-            $lead = self::create($data);
+                unset(
+                    $data['product_ids'],
+                    $data['product_id'],
+                    $data['primary_product_id'],
+                    $data['fallback_product_id']
+                );
+
+                $data = self::filterPersistableAttributes($data);
+
+                $lead = self::create($data);
+
+                foreach ($productAssignment['product_ids'] as $productId) {
+                    $lead->leadProducts()->create([
+                        'product_id' => $productId,
+                        'status' => LeadProduct::STATUS_INTERESTED,
+                        'is_primary_product' => $productId === $productAssignment['primary_product_id'],
+                        'is_active' => true,
+                    ]);
+                }
+
+                return $lead;
+            });
 
             return [
                 'success' => true,
                 'lead' => $lead,
                 'errors' => [],
-                'warnings' => $validation['warnings']
+                'warnings' => array_merge($validation['warnings'], $productAssignment['warnings'])
             ];
 
         } catch (\Illuminate\Database\QueryException $e) {
@@ -234,7 +340,7 @@ class Lead extends Model
                 'success' => false,
                 'lead' => null,
                 'errors' => $errors,
-                'warnings' => $validation['warnings']
+                'warnings' => array_merge($validation['warnings'], $productAssignment['warnings'])
             ];
 
         } catch (\Exception $e) {
@@ -249,7 +355,7 @@ class Lead extends Model
                 'success' => false,
                 'lead' => null,
                 'errors' => ['Failed to create lead: ' . $e->getMessage()],
-                'warnings' => $validation['warnings']
+                'warnings' => array_merge($validation['warnings'], $productAssignment['warnings'])
             ];
         }
     }
@@ -425,6 +531,25 @@ class Lead extends Model
         ]);
 
         return $this;
+    }
+
+    /**
+     * Keep lead inserts compatible with environments where the database schema
+     * may lag behind the current model's fillable attributes.
+     */
+    private static function filterPersistableAttributes(array $data): array
+    {
+        static $leadColumns = null;
+
+        if ($leadColumns === null) {
+            $leadColumns = array_flip(Schema::getColumnListing('leads'));
+        }
+
+        return array_filter(
+            $data,
+            static fn ($value, $key) => isset($leadColumns[$key]),
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 
     public function attemptWinBack()

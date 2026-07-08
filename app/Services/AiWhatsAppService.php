@@ -207,7 +207,9 @@ class AiWhatsAppService
                     ->first();
 
         if (!$lead) {
-            $lead = Lead::create([
+            $initialProduct = $this->detectInitialProductFromMessage($message) ?? Product::getActiveCampaign($message->user_id);
+
+            $result = Lead::safeCreate([
                 'business_contact_id' => $businessContact->id,
                 'business_id' => $businessContact->business_id,
                 'user_id' => $message->user_id,
@@ -219,7 +221,15 @@ class AiWhatsAppService
                 'lead_score' => 0,
                 'is_churned' => false,
                 'win_back_attempts' => 0,
+                'product_ids' => $initialProduct ? [$initialProduct->id] : [],
+                'primary_product_id' => $initialProduct?->id,
             ]);
+
+            if (!$result['success']) {
+                throw new \RuntimeException('Failed to create lead with product assignment: ' . implode(', ', $result['errors']));
+            }
+
+            $lead = $result['lead'];
         } else {
             // Update last activity AND last_interaction_at so SmartFollowupService
             // does not treat this lead as "inactive" and send a duplicate follow-up.
@@ -230,6 +240,34 @@ class AiWhatsAppService
         }
 
         return $lead;
+    }
+
+    /**
+     * Try to infer the initial product directly from the inbound message.
+     */
+    private function detectInitialProductFromMessage(IncomingMessage $message): ?Product
+    {
+        $messageBody = strtolower($message->message_body ?? '');
+        if ($messageBody === '') {
+            return null;
+        }
+
+        $products = Product::active()->forUser($message->user_id)->get();
+
+        foreach ($products as $product) {
+            if (strpos($messageBody, strtolower($product->name)) !== false ||
+                strpos($messageBody, strtolower($product->sku)) !== false) {
+                return $product;
+            }
+
+            foreach (($product->tags ?? []) as $tag) {
+                if (strpos($messageBody, strtolower($tag)) !== false) {
+                    return $product;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

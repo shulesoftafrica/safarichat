@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class WhatsappInstance extends Model
 {
@@ -96,7 +97,7 @@ class WhatsappInstance extends Model
                 if (is_string($value) || is_numeric($value)) {
                     // Check if it's just a number (like error code 42703)
                     if (is_numeric($value) && strlen((string)$value) < 8) {
-                        \Log::warning("Invalid date value for {$key}: {$value} in WhatsappInstance ID: {$this->id}");
+                        Log::warning("Invalid date value for {$key}: {$value} in WhatsappInstance ID: {$this->id}");
                         return null;
                     }
                 }
@@ -368,9 +369,7 @@ class WhatsappInstance extends Model
             return true; // User instances can send any message
         }
 
-        // allowed_message_types is cast as 'array' — already decoded by Eloquent.
-        // Do NOT wrap in json_decode() or it double-decodes to null.
-        $allowed = $this->allowed_message_types;
+        $allowed = $this->normalizeAllowedMessageTypes($this->allowed_message_types);
 
         // Null column = system instance was created before the column was populated.
         // Default to allowing all known system message types rather than blocking everything.
@@ -379,6 +378,27 @@ class WhatsappInstance extends Model
         }
 
         return in_array($messageType, $allowed);
+    }
+
+    /**
+     * Normalize legacy or malformed allowed message type storage to an array.
+     */
+    private function normalizeAllowedMessageTypes($allowed): array
+    {
+        if (is_array($allowed)) {
+            return array_values(array_filter($allowed, static fn ($value) => is_string($value) && $value !== ''));
+        }
+
+        if (!is_string($allowed) || trim($allowed) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($allowed, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return array_values(array_filter($decoded, static fn ($value) => is_string($value) && $value !== ''));
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $allowed)), static fn ($value) => $value !== ''));
     }
     
     /**

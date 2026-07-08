@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BusinessContact as EventsGuest;
 use App\Models\Lead;
-use App\Models\EventsGuest;
-use App\Models\Product;
 use App\Models\AiSalesAgent;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -95,7 +94,9 @@ class LeadApiController extends Controller
                 'status' => Lead::STATUS_NEW,
                 'notes' => $request->notes,
                 'lead_score' => 50, // Default score
-                'metadata' => $request->metadata ?? []
+                'metadata' => $request->metadata ?? [],
+                'product_ids' => $request->product_ids,
+                'primary_product_id' => $request->primary_product_id,
             ];
             
             // Use safeCreate method with proper validation
@@ -103,7 +104,7 @@ class LeadApiController extends Controller
             
             if (!$result['success']) {
                 DB::rollBack();
-                \Log::error('Failed to create lead via API', [
+                Log::error('Failed to create lead via API', [
                     'data' => $leadData,
                     'errors' => $result['errors']
                 ]);
@@ -119,21 +120,9 @@ class LeadApiController extends Controller
             
             // Log warnings if any
             if (!empty($result['warnings'])) {
-                \Log::warning('Lead created with warnings via API', [
+                Log::warning('Lead created with warnings via API', [
                     'lead_id' => $lead->id,
                     'warnings' => $result['warnings']
-                ]);
-            }
-
-            // Add products to the lead
-            $primaryProductId = $request->primary_product_id ?? $request->product_ids[0];
-            
-            foreach ($request->product_ids as $productId) {
-                $lead->leadProducts()->create([
-                    'product_id' => $productId,
-                    'status' => 'INTERESTED',
-                    'is_primary_product' => $productId == $primaryProductId,
-                    'is_active' => true
                 ]);
             }
 
@@ -525,14 +514,16 @@ class LeadApiController extends Controller
                         'status' => Lead::STATUS_NEW,
                         'notes' => $leadData['notes'] ?? null,
                         'lead_score' => 50,
-                        'metadata' => []
+                        'metadata' => [],
+                        'product_ids' => $leadData['product_ids'],
+                        'primary_product_id' => $leadData['primary_product_id'] ?? null,
                     ];
                     
                     // Use safeCreate method with proper validation
                     $result = Lead::safeCreate($newLeadData);
                     
                     if (!$result['success']) {
-                        \Log::error('Failed to create lead in bulk create', [
+                        Log::error('Failed to create lead in bulk create', [
                             'index' => $index,
                             'errors' => $result['errors']
                         ]);
@@ -544,20 +535,9 @@ class LeadApiController extends Controller
                     
                     // Log warnings if any
                     if (!empty($result['warnings'])) {
-                        \Log::warning('Lead created with warnings in bulk create', [
+                        Log::warning('Lead created with warnings in bulk create', [
                             'lead_id' => $lead->id,
                             'warnings' => $result['warnings']
-                        ]);
-                    }
-
-                    // Add products
-                    $primaryProductId = $leadData['product_ids'][0];
-                    foreach ($leadData['product_ids'] as $productId) {
-                        $lead->leadProducts()->create([
-                            'product_id' => $productId,
-                            'status' => 'INTERESTED',
-                            'is_primary_product' => $productId == $primaryProductId,
-                            'is_active' => true
                         ]);
                     }
 

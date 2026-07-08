@@ -1540,6 +1540,8 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                 $('#edit_guest_name').val('');
                                 $('#edit_guest_phone').val('');
                                 $('#edit_lead_status').val('');
+                                initializeProductSelect();
+                                $('#edit_product_ids').val(null).trigger('change');
                                 $('#edit_guest').val('');
                                 $('#edit-form-status').html('');
                                 
@@ -1564,6 +1566,16 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             <i class="mdi mdi-google" style="font-size: 1.2em; margin-right: 6px; color: #4285f4;"></i>
                             {{ __('customers.actions.sync_google') }}
                         </button>
+
+                        <div class="d-inline-flex align-items-center ml-2 mt-2 mt-md-0" style="min-width: 220px; vertical-align: middle;">
+                            <label for="product-filter" class="mb-0 mr-2 text-muted" style="white-space: nowrap;">Product</label>
+                            <select id="product-filter" class="form-control">
+                                <option value="">All Products</option>
+                                @foreach($products as $product)
+                                    <option value="{{ $product->id }}">{{ $product->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
                         <!-- WhatsApp Sync Modal -->
                         <div class="modal fade planner-modal-bx" id="whatsappSyncModal" tabindex="-1" role="dialog" aria-labelledby="whatsappSyncModalLabel" aria-hidden="true" style="display: none;">
@@ -2080,6 +2092,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                     <!--<th>{{ __('customers.table.email') }} </th>-->
                                     <th>{{ __('customers.table.created_at') }}</th>
                                     <th>{{ __('customers.table.lead_status') }}</th>
+                                    <th>Products</th>
                                     <th>{{ __('customers.table.handoff_status') }}</th>
                                     <th>{{ __('customers.table.priority') }}</th>
                                     <th>{{ __('customers.table.assigned_agent') }}</th>
@@ -2096,6 +2109,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                     <th></th>
                                     <th></th>
                                     <!--<th>Email </th>-->
+                                    <th></th>
                                     <th></th>
                                     <th></th>
                                     <th></th>
@@ -2465,6 +2479,18 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             {{ __('customers.messages.lead_status_help') }}
                         </small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="edit_product_ids" class="col-form-label text-right">Products</label>
+                        <select class="form-control" name="product_ids[]" id="edit_product_ids" multiple="multiple">
+                            @foreach($products as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">
+                            Select one or more products for this contact's lead.
+                        </small>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="border-top: 1px solid #e5e7eb !important; border-radius: 0 0 12px 12px !important; padding: 16px 24px !important;">
@@ -2663,6 +2689,21 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             <span id="char-count">0</span>/1000 {{__('characters')}}
                         </small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="message-product-id">Product to engage:</label>
+                        <select class="form-control" id="message-product-id" name="product_id" required>
+                            <option value="">Select product</option>
+                            @foreach($products as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">Only contacts associated with this product will receive the message.</small>
+                    </div>
+
+                    <div class="form-group" id="product-eligibility-wrapper" style="display: none;">
+                        <div class="alert alert-info mb-0" id="product-eligibility-info"></div>
+                    </div>
                     
                     <div class="form-group">
                         <label>{{__('attachments')}} ({{__('optional')}}):</label>
@@ -2792,7 +2833,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
     // Initialize edit form validation
     function initializeEditFormValidation() {
         // Clear any existing event handlers to prevent duplicates
-        $('#edit_guest_name, #edit_guest_phone, #edit_pledge, #edit_lead_status').off('input blur change');
+        $('#edit_guest_name, #edit_guest_phone, #edit_pledge, #edit_lead_status, #edit_product_ids').off('input blur change');
         
         // Real-time validation as user types
         $('#edit_guest_name').on('input blur', function() {
@@ -2816,11 +2857,34 @@ body:not(.dark-mode) .modal-body .alert-danger {
         $('#edit_lead_status').on('change', function() {
             validateEditField('edit_lead_status');
         });
+
+        $('#edit_product_ids').on('change', function() {
+            validateEditField('edit_product_ids');
+        });
+
+        initializeProductSelect();
+    }
+
+    function initializeProductSelect() {
+        if (!$.fn.select2) {
+            return;
+        }
+
+        if ($('#edit_product_ids').hasClass('select2-hidden-accessible')) {
+            $('#edit_product_ids').select2('destroy');
+        }
+
+        $('#edit_product_ids').select2({
+            width: '100%',
+            placeholder: 'Select products',
+            dropdownParent: $('#myModal')
+        });
     }
     
     function validateEditField(fieldId) {
         const field = $('#' + fieldId);
-        const value = field.val().trim();
+        const rawValue = field.val();
+        const value = Array.isArray(rawValue) ? rawValue : (rawValue || '').trim();
         let isValid = true;
         let errorMessage = '';
         
@@ -2889,6 +2953,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     isValid = false;
                 }
                 break;
+
+            case 'edit_product_ids':
+                if (!Array.isArray(value) || value.length === 0) {
+                    errorMessage = 'Please select at least one product';
+                    isValid = false;
+                }
+                break;
         }
         
         if (isValid) {
@@ -2899,7 +2970,11 @@ body:not(.dark-mode) .modal-body .alert-danger {
             }
         } else {
             field.addClass('is-invalid');
-            field.after('<div class="invalid-feedback d-block"><i class="fas fa-exclamation-circle"></i> ' + errorMessage + '</div>');
+            if (fieldId === 'edit_product_ids') {
+                field.parent().append('<div class="invalid-feedback d-block"><i class="fas fa-exclamation-circle"></i> ' + errorMessage + '</div>');
+            } else {
+                field.after('<div class="invalid-feedback d-block"><i class="fas fa-exclamation-circle"></i> ' + errorMessage + '</div>');
+            }
         }
         
         return isValid;
@@ -3314,6 +3389,9 @@ body:not(.dark-mode) .modal-body .alert-danger {
         
         // Clear form
         $('#message-content').val('');
+        $('#message-product-id').val('');
+        $('#product-eligibility-wrapper').hide();
+        $('#product-eligibility-info').html('');
         $('#message-attachments').val('');
         $('#file-preview').hide();
         $('#file-list').empty();
@@ -3328,6 +3406,10 @@ body:not(.dark-mode) .modal-body .alert-danger {
     function initializeMessageForm() {
         // Character count
         $('#message-content').on('input', updateCharCount);
+
+        $('#message-product-id').on('change', function() {
+            updateProductEligibilityPreview();
+        });
         
         // File upload handling
         $('#message-attachments').on('change', handleFileSelection);
@@ -3370,6 +3452,48 @@ body:not(.dark-mode) .modal-body .alert-danger {
             e.preventDefault();
             sendMessage();
         });
+    }
+
+    function getContactProductIds(contactId) {
+        const productText = ($('#guest_product_ids' + contactId).text() || '').trim();
+        if (!productText) {
+            return [];
+        }
+
+        return productText
+            .split(',')
+            .map(function(value) { return parseInt(value.trim(), 10); })
+            .filter(function(value) { return !isNaN(value); });
+    }
+
+    function updateProductEligibilityPreview() {
+        const selectedProductId = parseInt($('#message-product-id').val(), 10);
+        const contactIds = $('#messageForm').data('contactIds') || [];
+
+        if (!selectedProductId || contactIds.length === 0) {
+            $('#product-eligibility-wrapper').hide();
+            $('#product-eligibility-info').html('');
+            return;
+        }
+
+        let eligibleCount = 0;
+
+        contactIds.forEach(function(contactId) {
+            const productIds = getContactProductIds(contactId);
+            if (productIds.includes(selectedProductId)) {
+                eligibleCount++;
+            }
+        });
+
+        const ineligibleCount = contactIds.length - eligibleCount;
+        let infoHtml = '<strong>Delivery preview:</strong> ' + eligibleCount + ' of ' + contactIds.length + ' selected contact(s) are associated with this product.';
+
+        if (ineligibleCount > 0) {
+            infoHtml += ' <span class="text-warning">' + ineligibleCount + ' contact(s) will be skipped.</span>';
+        }
+
+        $('#product-eligibility-info').html(infoHtml);
+        $('#product-eligibility-wrapper').show();
     }
 
     // File handling functions
@@ -3486,8 +3610,22 @@ body:not(.dark-mode) .modal-body .alert-danger {
     function sendMessage() {
         const contactIds = $('#messageForm').data('contactIds');
         const message = $('#message-content').val();
+        const productId = $('#message-product-id').val();
         const scheduleDate = $('#schedule-message').is(':checked') ? $('#schedule-date').val() : null;
         const files = $('#message-attachments')[0].files;
+
+        if (!productId) {
+            alert('Please select a product before sending this message.');
+            return;
+        }
+
+        updateProductEligibilityPreview();
+
+        const eligibilityText = $('#product-eligibility-info').text() || '';
+        if (eligibilityText.includes('0 of')) {
+            alert('None of the selected contacts are associated with this product. Please choose another product or update contact product allocation.');
+            return;
+        }
         
         if (!message.trim() && files.length === 0) {
             alert('{{__("please_enter_a_message_or_select_files")}}');
@@ -3500,6 +3638,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
         const formData = new FormData();
         formData.append('contact_ids', JSON.stringify(contactIds));
         formData.append('message', message);
+        formData.append('product_id', productId);
         if (scheduleDate) {
             formData.append('schedule_date', scheduleDate);
         }
@@ -3682,6 +3821,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
         // Set lead status from hidden span
         const leadStatus = $('#guest_lead_status' + a).text().trim();
         $('#edit_lead_status').val(leadStatus);
+
+        const productIds = ($('#guest_product_ids' + a).text().trim() || '')
+            .split(',')
+            .map(function(value) { return value.trim(); })
+            .filter(function(value) { return value !== ''; });
+        initializeProductSelect();
+        $('#edit_product_ids').val(productIds).trigger('change');
         
         $('#edit_guest').val(a);
         $('#ProfileStep5').attr('action', '<?= url('guest/edit/null') ?>');
@@ -3743,6 +3889,12 @@ body:not(.dark-mode) .modal-body .alert-danger {
             showEditValidationError('edit_lead_status', '{{__('please_select_a_valid_lead_status')}}');
             isValid = false;
         }
+
+        const productIds = $('#edit_product_ids').val();
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            showEditValidationError('edit_product_ids', 'Please select at least one product');
+            isValid = false;
+        }
         
         return isValid;
     }
@@ -3755,7 +3907,11 @@ body:not(.dark-mode) .modal-body .alert-danger {
         field.next('.invalid-feedback').remove();
         
         // Add new error message
-        field.after('<div class="invalid-feedback">' + message + '</div>');
+        if (fieldId === 'edit_product_ids') {
+            field.parent().append('<div class="invalid-feedback d-block">' + message + '</div>');
+        } else {
+            field.after('<div class="invalid-feedback">' + message + '</div>');
+        }
     }
     
     function clearEditValidationMessages() {
@@ -3777,6 +3933,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
             guest_name: $('#edit_guest_name').val().trim(),
             guest_phone: getFullPhoneNumber(),
             lead_status: $('#edit_lead_status').val(),
+            product_ids: $('#edit_product_ids').val(),
             _token: '{{ csrf_token() }}'
         };
         
@@ -4313,6 +4470,7 @@ $(document).ready(function() {
     // so there is no 1000-row limit and all contacts are accessible.
     // ---------------------------------------------------------------
     var activeHandoffFilter = 'all';
+    var activeProductFilter = '';
 
     var contactsTable = $('#datatable-buttons').DataTable({
         processing  : true,
@@ -4322,6 +4480,7 @@ $(document).ready(function() {
             type : 'GET',
             data : function (d) {
                 d.handoff_filter = activeHandoffFilter;
+                d.product_id = activeProductFilter;
             }
         },
         columns     : [
@@ -4331,10 +4490,11 @@ $(document).ready(function() {
             { orderable: true  },   // 3 Phone
             { orderable: true  },   // 4 Added On
             { orderable: false },   // 5 Lead Status
-            { orderable: true  },   // 6 Handoff
-            { orderable: true  },   // 7 Priority
-            { orderable: false },   // 8 Assigned Agent
-            { orderable: false },   // 9 Actions
+            { orderable: false },   // 6 Products
+            { orderable: true  },   // 7 Handoff
+            { orderable: true  },   // 8 Priority
+            { orderable: false },   // 9 Assigned Agent
+            { orderable: false },   // 10 Actions
         ],
         order       : [[1, 'desc']],
         pageLength  : 25,
@@ -4359,6 +4519,11 @@ $(document).ready(function() {
             activeHandoffFilter = this.getAttribute('data-status');
             contactsTable.ajax.reload();
         });
+    });
+
+    $('#product-filter').on('change', function() {
+        activeProductFilter = $(this).val();
+        contactsTable.ajax.reload();
     });
 
     // Add hover effects to tabs

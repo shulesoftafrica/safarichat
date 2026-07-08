@@ -279,7 +279,7 @@ class MigrateCrmDataCommand extends Command
         // STEP 2B: Create Lead Record
         $leadStatus = $this->mapClientStatusToLeadStatus($client->status, $client->type);
         
-        $lead = Lead::create([
+        $result = Lead::safeCreate([
             'business_contact_id' => $businessContact->id,
             'ai_sales_agent_id' => $aiSalesAgent->id,
             'business_id' => $business->id,
@@ -295,8 +295,16 @@ class MigrateCrmDataCommand extends Command
                 'original_status' => $client->status,
                 'original_type' => $client->type,
                 'import_source' => 'admin_crm'
-            ])
+            ]),
+            'product_ids' => $activeCampaignProduct ? [$activeCampaignProduct->id] : [],
+            'primary_product_id' => $activeCampaignProduct?->id,
         ]);
+
+        if (!$result['success']) {
+            throw new \RuntimeException('Unable to create imported lead with product assignment: ' . implode(', ', $result['errors']));
+        }
+
+        $lead = $result['lead'];
 
         $result['lead'] = $lead;
 

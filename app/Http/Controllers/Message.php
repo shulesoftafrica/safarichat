@@ -10,6 +10,8 @@ use \App\Models\BusinessContact;
 use \App\Models\BusinessContact as EventsGuest;
 use \App\Models\OutgoingMessage;
 use \App\Models\Lead;
+use \App\Models\LeadProduct;
+use \App\Models\Product;
 use \App\Jobs\SendWhatsAppMessage;
 use \App\Jobs\SendWhatsAppMediaMessage;
 use \App\Jobs\ProcessBulkMessages;
@@ -93,6 +95,9 @@ class Message extends Controller
         $this->data['whatsapp'] = $this->checkChannelStatus('whatsapp');
         $this->data['remained_sms'] = $this->checkChannelStatus('quick-sms');
         $this->data['phone_sms'] = $this->checkChannelStatus('phone-sms');
+        $this->data['products'] = Product::forUser(Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
       
         return view('message.index', $this->data);
     }
@@ -494,6 +499,16 @@ class Message extends Controller
                 break;
         }
 
+        if ($criteria != 6 && $request != null && !empty($request->input('product_id'))) {
+            $productId = (int) $request->input('product_id');
+
+            if (!empty($productId) && !empty($users) && !is_array($users)) {
+                $users->whereHas('leads.leadProducts', function ($query) use ($productId) {
+                    $query->where('product_id', $productId);
+                });
+            }
+        }
+
         if ($criteria == 6) {
             $users = $users; // Already an array for custom numbers
         } else {
@@ -522,6 +537,15 @@ class Message extends Controller
     public function store(Request $request)
     {
         $criteria = $request->criteria;
+        $productId = (int) $request->input('product_id');
+
+        if ((int) $criteria === 6 && empty($productId)) {
+            $activeCampaignProduct = Product::getActiveCampaign(Auth::id());
+            if ($activeCampaignProduct) {
+                $productId = (int) $activeCampaignProduct->id;
+                $request->merge(['product_id' => $productId]);
+            }
+        }
         
         // Add debug logging
         \Log::info('Campaign store request received', [
@@ -563,6 +587,17 @@ class Message extends Controller
         if (empty($criteria)) {
             \Log::error('Campaign store: No criteria provided');
             return $responseHelper(false, 'Please select who you want to message', ['criteria' => 'Please select a recipient type']);
+        }
+
+        if (in_array((int) $criteria, [1, 2], true) && empty($productId)) {
+            return $responseHelper(false, 'Please select a product.', ['product_id' => 'Please select a product.']);
+        }
+
+        if (!empty($productId)) {
+            $isProductValid = Product::forUser(Auth::id())->where('id', $productId)->exists();
+            if (!$isProductValid) {
+                return $responseHelper(false, 'Invalid product selected.', ['product_id' => 'Invalid product selected.']);
+            }
         }
 
         //save message to DB here first
@@ -727,7 +762,7 @@ class Message extends Controller
         
      
         // Use queue system for message processing with attachments
-        $this->queueMessages($users, $request->message, $request->source, $attachments);
+        $this->queueMessages($users, $request->message, $request->source, $attachments, $productId);
         
         $messageCount = is_array($users) ? count($users) : (isset($users) && method_exists($users, 'count') ? $users->count() : 0);
         $attachmentCount = count($attachments);
@@ -763,7 +798,7 @@ class Message extends Controller
      * 5. Messages scheduled for optimal send time
      * 6. ScheduleMessageSendJob delivers refined messages
      */
-    private function queueMessages($users, $message, $sources, $attachments = [])
+    private function queueMessages($users, $message, $sources, $attachments = [], $productId = null)
     {
         // Only handle WhatsApp now, ignore other sources
         if (!in_array('whatsapp', $sources)) {
@@ -871,6 +906,10 @@ class Message extends Controller
                     ]
                 );
 
+                if (!empty($productId)) {
+                    $this->ensureLeadProductAssociation($contact, (int) $productId);
+                }
+
                 // Create MessageQueue entry (status: staged for AI personalization)
                 $messageQueue = \App\Models\MessageQueue::create([
                     'campaign_id' => $campaign->id,
@@ -924,6 +963,56 @@ class Message extends Controller
 
         // Note: Attachments will be sent during the final delivery phase
         // by ScheduleMessageSendJob after AI personalization is complete
+    }
+
+    private function ensureLeadProductAssociation(BusinessContact $contact, int $productId): void
+    {
+        $lead = Lead::where('business_contact_id', $contact->id)
+            ->latest('id')
+            ->first();
+
+        if (!$lead) {
+            $result = Lead::safeCreate([
+                'business_contact_id' => $contact->id,
+                'business_id' => $contact->business_id,
+                'user_id' => Auth::id(),
+                'name' => $contact->guest_name,
+                'phone_number' => $contact->guest_phone,
+                'email' => $contact->guest_email,
+                'status' => Lead::STATUS_NEW,
+                'source' => 'campaign_custom_numbers',
+                'product_ids' => [$productId],
+                'primary_product_id' => $productId,
+            ]);
+
+            if (!$result['success']) {
+                Log::warning('Failed to auto-associate lead product for campaign contact', [
+                    'contact_id' => $contact->id,
+                    'product_id' => $productId,
+                    'errors' => $result['errors'] ?? [],
+                ]);
+            }
+
+            return;
+        }
+
+        $hasAssociation = $lead->leadProducts()->where('product_id', $productId)->exists();
+        if (!$hasAssociation) {
+            $lead->leadProducts()->create([
+                'product_id' => $productId,
+                'status' => LeadProduct::STATUS_INTERESTED,
+                'is_primary_product' => false,
+                'is_active' => true,
+            ]);
+        }
+
+        $hasPrimary = $lead->leadProducts()->where('is_primary_product', true)->exists();
+        if (!$hasPrimary) {
+            $lead->leadProducts()->where('product_id', $productId)->update([
+                'is_primary_product' => true,
+                'is_active' => true,
+            ]);
+        }
     }
 
     /**

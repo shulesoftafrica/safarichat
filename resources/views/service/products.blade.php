@@ -280,6 +280,9 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
+                                    <a class="btn btn-sm btn-outline-info" href="{{ route('products.manage', $product->id) }}" title="Manage">
+                                        <i class="fas fa-chart-line"></i>
+                                    </a>
                                     <button class="btn btn-sm btn-outline-primary" onclick="viewProduct({{ $product->id }})" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </button>

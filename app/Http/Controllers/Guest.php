@@ -7,7 +7,9 @@ use App\Models\BusinessContact as EventsGuest;
 use App\Models\BusinessContactCategory as EventGuestCategory;
 use App\Models\Lead;
 use App\Models\AiSalesAgent;
+use App\Models\Product;
 use App\Services\BillingService;
+use Illuminate\Support\Facades\DB;
 use \Illuminate\Support\Facades\Log;
 use \Illuminate\Support\Facades\Auth;
 
@@ -49,17 +51,17 @@ class Guest extends Controller {
 
         // Lead status stats — use the LATEST lead per contact (mirrors the lead() hasOne->latest() relationship)
         // Subquery picks the most recent lead per contact so contacts with multiple leads aren't double-counted.
-        $latestLeads = \DB::table('leads')
+        $latestLeads = DB::table('leads')
             ->select('business_contact_id', 'status')
             ->whereIn('id', function ($sub) {
                 $sub->selectRaw('MAX(id)')->from('leads')->groupBy('business_contact_id');
             });
 
-        $leadStatusCounts = \DB::table('business_contacts as bc')
+        $leadStatusCounts = DB::table('business_contacts as bc')
             ->leftJoinSub($latestLeads, 'latest_lead', 'latest_lead.business_contact_id', '=', 'bc.id')
             ->where('bc.business_id', $business_id)
             ->selectRaw("COALESCE(latest_lead.status, 'NEW') as status, COUNT(*) as cnt")
-            ->groupBy(\DB::raw("COALESCE(latest_lead.status, 'NEW')"))
+            ->groupBy(DB::raw("COALESCE(latest_lead.status, 'NEW')"))
             ->pluck('cnt', 'status')
             ->toArray();
 
@@ -79,6 +81,10 @@ class Guest extends Controller {
             ->orderBy('name')
             ->get();
 
+        $this->data['products'] = Product::forUser(Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('guest.index', $this->data);
     }
 
@@ -95,9 +101,10 @@ class Guest extends Controller {
         $length        = (int) $request->input('length', 25);
         $search        = $request->input('search.value', '');
         $handoffFilter = $request->input('handoff_filter', 'all');
+        $productId     = $request->input('product_id');
 
         // Base query
-        $query = EventsGuest::with(['lead', 'assignedAgent'])
+        $query = EventsGuest::with(['lead.leadProducts.product', 'assignedAgent'])
             ->where('business_id', $business_id);
 
         // Handoff / urgent filter from tab clicks
@@ -105,6 +112,12 @@ class Guest extends Controller {
             $query->where('priority_level', '>=', 4);
         } elseif ($handoffFilter !== 'all') {
             $query->where('handoff_status', $handoffFilter);
+        }
+
+        if (!empty($productId)) {
+            $query->whereHas('leads.leadProducts', function ($q) use ($productId) {
+                $q->where('product_id', $productId);
+            });
         }
 
         // Global search across name and phone
@@ -124,8 +137,8 @@ class Guest extends Controller {
             2 => 'guest_name',
             3 => 'guest_phone',
             4 => 'created_at',
-            6 => 'handoff_status',
-            7 => 'priority_level',
+            7 => 'handoff_status',
+            8 => 'priority_level',
         ];
         $orderColIndex = (int) $request->input('order.0.column', 1);
         $orderDir      = $request->input('order.0.dir', 'desc') === 'asc' ? 'asc' : 'desc';
@@ -199,6 +212,19 @@ class Guest extends Controller {
                 ? '<span class="text-success"><i class="mdi mdi-account-check mr-1"></i>' . e($guest->assignedAgent->name) . '</span>'
                 : '<span class="text-muted"><i class="mdi mdi-account-off mr-1"></i>Unassigned</span>';
 
+            $productIds = $guest->lead
+                ? $guest->lead->leadProducts->pluck('product_id')->implode(',')
+                : '';
+
+            $productNames = $guest->lead
+                ? $guest->lead->leadProducts
+                    ->filter(static fn ($leadProduct) => $leadProduct->product)
+                    ->map(function ($leadProduct) {
+                        return '<span class="badge badge-light border mr-1 mb-1">' . e($leadProduct->product->name) . '</span>';
+                    })
+                    ->implode(' ')
+                : '<span class="text-muted">No product</span>';
+
             $checkboxHtml = '<div class="custom-control custom-checkbox">'
                 . '<input type="checkbox" class="custom-control-input contact-checkbox" id="checkbox-' . $id . '" value="' . $id . '">'
                 . '<label class="custom-control-label" for="checkbox-' . $id . '"></label>'
@@ -221,10 +247,13 @@ class Guest extends Controller {
             return [
                 $checkboxHtml,
                 $rowNumber++,
-                '<span id="guest_name' . $id . '">' . e($guest->guest_name) . '</span>',
+                '<span id="guest_name' . $id . '">' . e($guest->guest_name) . '</span>'
+                    . '<span id="guest_lead_status' . $id . '" class="d-none">' . e($leadStatus) . '</span>'
+                    . '<span id="guest_product_ids' . $id . '" class="d-none">' . e($productIds) . '</span>',
                 '<span id="guest_phone' . $id . '">' . e($guest->guest_phone) . '</span>',
                 date('d M Y', strtotime($guest->created_at)),
                 $leadBadge,
+                $productNames,
                 $handoffBadge,
                 $priorityBadge,
                 $agentHtml,
@@ -276,11 +305,17 @@ class Guest extends Controller {
             $validated = $this->validate(request(), [
                 'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'], // name validation, only letters, spaces, hyphens, apostrophes, parentheses allowed
                 'guest_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s\(\)]*$/'], // phone number validation
+                'lead_status' => ['required', 'string', 'in:NEW,OUTREACHED,REPLIED,ENGAGED,QUALIFIED,PITCHED,DEMO_SCHEDULED,PROPOSAL_SENT,NEGOTIATING,CLOSED,LOST,HANDED_OFF,DO_NOT_CONTACT,NEEDS_ATTENTION,CONVERTED,CHURNED'],
+                'product_ids' => ['required', 'array', 'min:1'],
+                'product_ids.*' => ['integer'],
             ], [
                 'guest_name.required' => 'Name is required',
                 'guest_name.regex' => 'Name can only contain letters, spaces, hyphens, apostrophes and parentheses',
                 'guest_phone.required' => 'Phone number is required',
                 'guest_phone.regex' => 'Phone number format is invalid',
+                'lead_status.required' => 'Lead status is required',
+                'product_ids.required' => 'At least one product is required',
+                'product_ids.min' => 'At least one product is required',
             ]);
             
             // Clean phone number
@@ -309,13 +344,18 @@ class Guest extends Controller {
                     ->withInput();
             }
             
-            $user_events = Auth::user()->usersEvents()->orderBy('id', 'desc')->first();
             $data = array_merge($request->all(), [
                 'business_id' => $business_id,
                 'guest_phone' => $phone
             ]);
           
             $guest = EventsGuest::create($data);
+
+            $this->createOrSyncLeadForGuest(
+                $guest,
+                $request->lead_status,
+                $request->input('product_ids', [])
+            );
             
             if ($request->expectsJson()) {
                 return response()->json([
@@ -400,6 +440,21 @@ class Guest extends Controller {
 
             $status = $this->checkKeysExists($data);
             if ((int) $status == 1) {
+                $importProductAssignment = Lead::resolveProductAssignment([
+                    'user_id' => Auth::id(),
+                    'product_ids' => request()->input('product_ids', []),
+                ]);
+
+                if (!$importProductAssignment['valid']) {
+                    $status = '<div class="alert alert-danger col-lg-12">Unable to import contacts: '
+                        . implode(' ', $importProductAssignment['errors'])
+                        . ' Please set an active campaign product first.</div>';
+
+                    return redirect()->back()->with('status', $status);
+                }
+
+                $importProductIds = $importProductAssignment['product_ids'];
+
                 // Check contact limit before processing
                 $user = Auth::user();
                 $limitCheck = BillingService::canAddContacts($user, count($data));
@@ -452,6 +507,19 @@ class Guest extends Controller {
                 if (empty($check_guests)) {
                     $contactsImported++;
                 }
+
+                try {
+                    $this->ensureGuestHasLeadProduct($event, $importProductIds);
+                } catch (\Exception $e) {
+                    Log::error('Failed to enforce lead product during Excel import', [
+                        'guest_id' => $event->id,
+                        'phone' => $phone,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    $status .= '<div class="alert alert-warning col-lg-12">User ' . $user->name
+                        . ' was imported, but product association failed. ' . e($e->getMessage()) . '</div><br/>';
+                }
                     
                 $with = '';
                 if (isset($user->contribution) && (int) $user->contribution > 0) {
@@ -468,6 +536,21 @@ class Guest extends Controller {
             // Use vcard-parser package: https://github.com/jeroendesloovere/vcardparser
             // Install via composer: composer require jeroendesloovere/vcard
             try {
+                $importProductAssignment = Lead::resolveProductAssignment([
+                    'user_id' => Auth::id(),
+                    'product_ids' => request()->input('product_ids', []),
+                ]);
+
+                if (!$importProductAssignment['valid']) {
+                    $status = '<div class="alert alert-danger col-lg-12">Unable to import contacts: '
+                        . implode(' ', $importProductAssignment['errors'])
+                        . ' Please set an active campaign product first.</div>';
+
+                    return redirect()->back()->with('status', $status);
+                }
+
+                $importProductIds = $importProductAssignment['product_ids'];
+
                 $vcfContent = file_get_contents($file->getRealPath());
                 $parser = new \JeroenDesloovere\VCard\VCardParser($vcfContent);
                 $contacts = $parser->getCards();
@@ -525,6 +608,21 @@ class Guest extends Controller {
                 $category_id = 1; // Default category
 
                 if (in_array($phone, $existingPhones)) {
+                    $existingGuest = EventsGuest::where('business_id', $business_id)
+                        ->where('guest_phone', $phone)
+                        ->first();
+
+                    if ($existingGuest) {
+                        try {
+                            $this->ensureGuestHasLeadProduct($existingGuest, $importProductIds);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to enforce lead product for existing VCF contact', [
+                                'guest_id' => $existingGuest->id,
+                                'phone' => $phone,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
                     continue;
                 }
 
@@ -570,6 +668,28 @@ class Guest extends Controller {
 
                     foreach ($chunks as $chunk) {
                         EventsGuest::insert($chunk->toArray());
+
+                        $insertedGuests = EventsGuest::where('business_id', $business_id)
+                            ->whereIn('guest_phone', array_column($chunk->toArray(), 'guest_phone'))
+                            ->get();
+
+                        foreach ($insertedGuests as $insertedGuest) {
+                            try {
+                                $this->ensureGuestHasLeadProduct($insertedGuest, $importProductIds);
+                            } catch (\Exception $e) {
+                                Log::error('Failed to enforce lead product for imported VCF contact', [
+                                    'guest_id' => $insertedGuest->id,
+                                    'phone' => $insertedGuest->guest_phone,
+                                    'error' => $e->getMessage(),
+                                ]);
+
+                                $status .= '<div class="alert alert-warning col-lg-12">Contact '
+                                    . e($insertedGuest->guest_name)
+                                    . ' was imported, but product association failed. '
+                                    . e($e->getMessage())
+                                    . '</div><br/>';
+                            }
+                        }
                     }
                 }
             }
@@ -616,85 +736,15 @@ class Guest extends Controller {
             // Handle lead status separately
             $leadStatus = request('lead_status');
             if ($leadStatus) {
-                // Get or create lead for this contact
-                $lead = $guest->lead;
-                if (!$lead) {
-                    // Get default AI sales agent for this business
-                    $defaultAgent = \App\Models\AiSalesAgent::where('business_id', $guest->business_id)
-                        ->where('is_active', true)
-                        ->first();
-                        
-                    if (!$defaultAgent) {
-                        // Create a default AI sales agent if none exists
-                        try {
-                            $defaultAgent = \App\Models\AiSalesAgent::create([
-                                'business_id' => $guest->business_id,
-                                'user_id' => Auth::id(),
-                                'name' => 'Default Sales Agent',
-                                'is_active' => true,
-                                'allow_outreach' => true,
-                                'personality_type' => 'professional'
-                            ]);
-                        } catch (\Exception $e) {
-                            Log::error('Failed to create default AI agent', [
-                                'business_id' => $guest->business_id,
-                                'error' => $e->getMessage()
-                            ]);
-                            // Continue without agent - will be created later
-                            $defaultAgent = null;
-                        }
-                    }
-                    
-                    // Use safeCreate method with proper validation
-                    $leadData = [
-                        'business_contact_id' => $guest->id,
-                        'business_id' => $guest->business_id,
-                        'user_id' => Auth::id(),
-                        'ai_sales_agent_id' => $defaultAgent ? $defaultAgent->id : null,
-                        'name' => $guest->guest_name,
-                        'phone_number' => $guest->guest_phone,
-                        'email' => $guest->guest_email,
-                        'status' => $leadStatus,
-                        'source' => 'manual_edit'
-                    ];
-                    
-                    $result = Lead::safeCreate($leadData);
-                    
-                    if (!$result['success']) {
-                        Log::error('Failed to create lead in Guest edit', [
-                            'guest_id' => $guest->id,
-                            'errors' => $result['errors']
-                        ]);
-                        
-                        if (request()->expectsJson()) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Failed to create lead: ' . implode(', ', $result['errors'])
-                            ], 500);
-                        }
-                        
-                        return redirect()->back()
-                            ->with('error', 'Contact updated but failed to create lead: ' . implode(', ', $result['errors']))
-                            ->withInput();
-                    }
-                    
-                    $lead = $result['lead'];
-                    
-                    // Log warnings if any
-                    if (!empty($result['warnings'])) {
-                       Log::warning('Lead created with warnings in Guest edit', [
-                            'lead_id' => $lead->id,
-                            'warnings' => $result['warnings']
-                        ]);
-                    }
-                } else {
-                    $lead->status = $leadStatus;
-                    $lead->save();
-                }
+                $this->createOrSyncLeadForGuest(
+                    $guest,
+                    $leadStatus,
+                    request()->input('product_ids', [])
+                );
             }
             
-            // Update guest data (excluding lead_status as it's handled above)
-            $guest->update(request()->except('id', '_token', 'lead_status'));
+            // Update guest data (excluding lead fields as they are handled above)
+            $guest->update(request()->except('id', '_token', 'lead_status', 'product_ids'));
             
             if (request()->expectsJson()) {
                 return response()->json([
@@ -763,7 +813,7 @@ class Guest extends Controller {
             }
 
             // Update guest data (validation should be done on frontend)
-            $updateData = $request->except('_token', 'id', 'lead_status');
+            $updateData = $request->except('_token', 'id', 'lead_status', 'product_ids');
             
             // Handle phone number formatting if provided
             if (isset($updateData['guest_phone'])) {
@@ -777,7 +827,11 @@ class Guest extends Controller {
             
             // Handle lead status update if provided
             if ($request->has('lead_status')) {
-                $this->updateLeadStatus($guest, $request->lead_status);
+                $this->createOrSyncLeadForGuest(
+                    $guest,
+                    $request->lead_status,
+                    $request->input('product_ids', [])
+                );
             }
             
             if ($request->expectsJson()) {
@@ -820,35 +874,10 @@ class Guest extends Controller {
             $lead = Lead::where('business_contact_id', $guest->id)->first();
             
             if (!$lead) {
-                // Ensure we have an AI sales agent for this business
-                $aiSalesAgent = AiSalesAgent::where('business_id', $guest->business_id)
-                    ->where('is_active', true)
+                // AI sales agents are owned by user_id, not business_id.
+                $aiSalesAgent = AiSalesAgent::where('user_id', Auth::id())
+                    ->where('status', 'active')
                     ->first();
-                
-                if (!$aiSalesAgent) {
-                    // Create a default AI sales agent if none exists
-                    try {
-                        $aiSalesAgent = AiSalesAgent::create([
-                            'business_id' => $guest->business_id,
-                            'user_id' => Auth::id(),
-                            'name' => 'Default Sales Agent',
-                            'personality_type' => 'professional',
-                            'is_active' => true,
-                            'allow_outreach' => true,
-                            'business_hours_start' => '09:00',
-                            'business_hours_end' => '17:00',
-                            'timezone' => 'UTC',
-                            'created_at' => now(),
-                            'updated_at' => now()
-                        ]);
-                    } catch (\Exception $e) {
-                       Log::error('Failed to create default AI agent for lead status update', [
-                            'business_id' => $guest->business_id,
-                            'error' => $e->getMessage()
-                        ]);
-                        $aiSalesAgent = null;
-                    }
-                }
                 
                 // Use safeCreate method with proper validation
                 $leadData = [
@@ -912,6 +941,114 @@ class Guest extends Controller {
                 'lead_status' => $leadStatus
             ]);
         }
+    }
+
+    private function createOrSyncLeadForGuest(EventsGuest $guest, string $leadStatus, array $productIds): Lead
+    {
+        $productIds = array_values(array_unique(array_map('intval', array_filter($productIds))));
+
+        if (empty($productIds)) {
+            throw new \InvalidArgumentException('At least one product must be selected.');
+        }
+
+        $validProductIds = Product::forUser(Auth::id())
+            ->whereIn('id', $productIds)
+            ->pluck('id')
+            ->map(static fn ($id) => (int) $id)
+            ->all();
+
+        if (count($validProductIds) !== count($productIds)) {
+            throw new \InvalidArgumentException('One or more selected products are invalid.');
+        }
+
+        $lead = $guest->lead;
+
+        if (!$lead) {
+            $defaultAgent = AiSalesAgent::where('user_id', Auth::id())
+                ->where('status', 'active')
+                ->first();
+
+            $result = Lead::safeCreate([
+                'business_contact_id' => $guest->id,
+                'business_id' => $guest->business_id,
+                'user_id' => Auth::id(),
+                'ai_sales_agent_id' => $defaultAgent ? $defaultAgent->id : null,
+                'name' => $guest->guest_name,
+                'phone_number' => $guest->guest_phone,
+                'email' => $guest->guest_email,
+                'status' => $leadStatus,
+                'source' => 'manual_edit',
+                'product_ids' => $productIds,
+                'primary_product_id' => $productIds[0],
+            ]);
+
+            if (!$result['success']) {
+                throw new \RuntimeException('Failed to create lead: ' . implode(', ', $result['errors']));
+            }
+
+            if (!empty($result['warnings'])) {
+                Log::warning('Lead created with warnings in Guest edit', [
+                    'guest_id' => $guest->id,
+                    'warnings' => $result['warnings']
+                ]);
+            }
+
+            return $result['lead'];
+        }
+
+        $lead->update([
+            'status' => $leadStatus,
+            'last_interaction_at' => now(),
+        ]);
+
+        $existingProductIds = $lead->leadProducts()->pluck('product_id')->map(static fn ($id) => (int) $id)->all();
+        $productIdsToAdd = array_values(array_diff($productIds, $existingProductIds));
+        $productIdsToRemove = array_values(array_diff($existingProductIds, $productIds));
+
+        if (!empty($productIdsToRemove)) {
+            $lead->leadProducts()->whereIn('product_id', $productIdsToRemove)->delete();
+        }
+
+        foreach ($productIdsToAdd as $productId) {
+            $lead->leadProducts()->create([
+                'product_id' => $productId,
+                'status' => 'INTERESTED',
+                'is_primary_product' => false,
+                'is_active' => true,
+            ]);
+        }
+
+        $lead->leadProducts()->update(['is_primary_product' => false]);
+        $lead->leadProducts()->where('product_id', $productIds[0])->update([
+            'is_primary_product' => true,
+            'is_active' => true,
+        ]);
+        $lead->leadProducts()->whereIn('product_id', $productIds)->update(['is_active' => true]);
+
+        return $lead->fresh('leadProducts');
+    }
+
+    private function ensureGuestHasLeadProduct(EventsGuest $guest, array $defaultProductIds): void
+    {
+        $defaultProductIds = array_values(array_unique(array_map('intval', array_filter($defaultProductIds))));
+
+        if (empty($defaultProductIds)) {
+            throw new \InvalidArgumentException('No default product available for imported contacts.');
+        }
+
+        $lead = $guest->lead;
+
+        if (!$lead) {
+            $this->createOrSyncLeadForGuest($guest, Lead::STATUS_NEW, $defaultProductIds);
+            return;
+        }
+
+        if ($lead->leadProducts()->exists()) {
+            return;
+        }
+
+        $currentStatus = $lead->status ?: Lead::STATUS_NEW;
+        $this->createOrSyncLeadForGuest($guest, $currentStatus, $defaultProductIds);
     }
 
     /**
@@ -1107,6 +1244,21 @@ class Guest extends Controller {
             // Get contacts from the request (sent from frontend after WASender API call)
             $contacts = $request->input('contacts', []);
             $instance_id = $request->input('instance_id');
+
+            $importProductAssignment = Lead::resolveProductAssignment([
+                'user_id' => Auth::id(),
+                'product_ids' => $request->input('product_ids', []),
+            ]);
+
+            if (!$importProductAssignment['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => implode(' ', $importProductAssignment['errors']) . ' Please set an active campaign product first.',
+                    'imported_count' => 0,
+                ], 422);
+            }
+
+            $importProductIds = $importProductAssignment['product_ids'];
             
             if (empty($contacts)) {
                 return response()->json([
@@ -1156,8 +1308,14 @@ class Guest extends Controller {
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
-                    if (!$existing) {
-                        EventsGuest::create($guest_data);
+                    if ($existing) {
+                        $this->ensureGuestHasLeadProduct($existing, $importProductIds);
+                        continue;
+                    }
+
+                    $createdGuest = EventsGuest::create($guest_data);
+                    if ($createdGuest) {
+                        $this->ensureGuestHasLeadProduct($createdGuest, $importProductIds);
                         $imported_count++;
                     }
 
@@ -1191,6 +1349,21 @@ class Guest extends Controller {
         try {
             // Get contacts from the request (sent from frontend after Google API call)
             $contacts = $request->input('contacts', []);
+
+            $importProductAssignment = Lead::resolveProductAssignment([
+                'user_id' => Auth::id(),
+                'product_ids' => $request->input('product_ids', []),
+            ]);
+
+            if (!$importProductAssignment['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => implode(' ', $importProductAssignment['errors']) . ' Please set an active campaign product first.',
+                    'imported_count' => 0,
+                ], 422);
+            }
+
+            $importProductIds = $importProductAssignment['product_ids'];
             
             if (empty($contacts)) {
                 return response()->json([
@@ -1280,8 +1453,14 @@ class Guest extends Controller {
                         ->where('guest_phone', $guest_data['guest_phone'])
                         ->first();
 
-                    if (!$existing) {
-                        EventsGuest::create($guest_data);
+                    if ($existing) {
+                        $this->ensureGuestHasLeadProduct($existing, $importProductIds);
+                        continue;
+                    }
+
+                    $createdGuest = EventsGuest::create($guest_data);
+                    if ($createdGuest) {
+                        $this->ensureGuestHasLeadProduct($createdGuest, $importProductIds);
                         $imported_count++;
                     }
 
@@ -1673,9 +1852,19 @@ class Guest extends Controller {
             $contactIds = $request->input('contact_ids', []);
             $message = $request->input('message');
             $scheduleDate = $request->input('schedule_date');
+            $productId = (int) $request->input('product_id');
 
             if (empty($contactIds) || !$message) {
                 return response()->json(['success' => false, 'message' => 'Missing required data']);
+            }
+
+            if (!$productId) {
+                return response()->json(['success' => false, 'message' => 'Product selection is required.']);
+            }
+
+            $isProductValid = Product::forUser($user->id)->where('id', $productId)->exists();
+            if (!$isProductValid) {
+                return response()->json(['success' => false, 'message' => 'Invalid product selected.']);
             }
 
             if ($this->isAdvisoryContent((string) $message)) {
@@ -1690,6 +1879,8 @@ class Guest extends Controller {
                 ]);
             }
 
+            /** @var \App\Models\User $user */
+
             // Get user's WhatsApp instance
             $whatsappInstance = $user->whatsappInstance();
             
@@ -1700,6 +1891,9 @@ class Guest extends Controller {
             // Get contacts
             $contacts = EventsGuest::whereIn('id', $contactIds)
                 ->where('business_id', $business_id)
+                ->whereHas('leads.leadProducts', function ($query) use ($productId) {
+                    $query->where('product_id', $productId);
+                })
                 ->get();
 
             if ($contacts->isEmpty()) {
@@ -1793,10 +1987,20 @@ class Guest extends Controller {
             
             $message = $request->input('message', '');
             $scheduleDate = $request->input('schedule_date');
+            $productId = (int) $request->input('product_id');
             $attachments = $request->file('attachments', []);
 
             if (empty($contactIds) || (empty($message) && empty($attachments))) {
                 return response()->json(['success' => false, 'message' => 'Missing required data']);
+            }
+
+            if (!$productId) {
+                return response()->json(['success' => false, 'message' => 'Product selection is required.']);
+            }
+
+            $isProductValid = Product::forUser($user->id)->where('id', $productId)->exists();
+            if (!$isProductValid) {
+                return response()->json(['success' => false, 'message' => 'Invalid product selected.']);
             }
 
             if ($this->isAdvisoryContent((string) $message)) {
@@ -1833,6 +2037,9 @@ class Guest extends Controller {
             // Get contacts
             $contacts = EventsGuest::whereIn('id', $contactIds)
                 ->where('business_id', $business_id)
+                ->whereHas('leads.leadProducts', function ($query) use ($productId) {
+                    $query->where('product_id', $productId);
+                })
                 ->get();
 
             if ($contacts->isEmpty()) {
