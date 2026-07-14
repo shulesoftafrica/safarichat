@@ -20,6 +20,7 @@ class AiWhatsAppService
 {
     private $openAiService;
     private $waSenderService;
+    private array $ignoredPhonesByUser = [];
 
     public function __construct(OpenAiService $openAiService, WaSenderService $waSenderService)
     {
@@ -1169,6 +1170,24 @@ class AiWhatsAppService
                 ];
             }
 
+            // Respect the business owner's ignored contacts list for all outbound campaigns.
+            if ($this->isPhoneIgnoredForUser((int) $agent->user_id, (string) $contact->guest_phone)) {
+                $lead->update(['status' => Lead::STATUS_DO_NOT_CONTACT]);
+
+                Log::info('Outreach skipped for ignored contact', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'phone' => $contact->guest_phone,
+                    'campaign' => $campaign,
+                ]);
+
+                return [
+                    'success' => true,
+                    'skipped' => true,
+                    'reason' => 'ignored_contact',
+                ];
+            }
+
             // Get user's WhatsApp instance
             $instance = \App\Models\WhatsappInstance::where('user_id', $agent->user_id)
                                                    ->where('status', 'connected')
@@ -1328,6 +1347,44 @@ class AiWhatsAppService
         }
 
         return false;
+    }
+
+    /**
+     * Check whether a phone is in any ignored-contacts list for this user.
+     */
+    private function isPhoneIgnoredForUser(int $userId, string $rawPhone): bool
+    {
+        $normalized = $this->normalizePhoneDigits($rawPhone);
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        if (!array_key_exists($userId, $this->ignoredPhonesByUser)) {
+            $ignoredSet = [];
+
+            $instances = \App\Models\WhatsappInstance::where('user_id', $userId)
+                ->whereNotNull('ignored_contacts')
+                ->get(['ignored_contacts']);
+
+            foreach ($instances as $instance) {
+                foreach (($instance->ignored_contacts ?? []) as $entry) {
+                    $phone = $this->normalizePhoneDigits((string) ($entry['phone'] ?? ''));
+                    if ($phone !== '') {
+                        $ignoredSet[$phone] = true;
+                    }
+                }
+            }
+
+            $this->ignoredPhonesByUser[$userId] = $ignoredSet;
+        }
+
+        return isset($this->ignoredPhonesByUser[$userId][$normalized]);
+    }
+
+    private function normalizePhoneDigits(string $rawPhone): string
+    {
+        return preg_replace('/[^0-9]/', '', $rawPhone) ?? '';
     }
 
     private function normalizeMessageForCompare(string $text): string

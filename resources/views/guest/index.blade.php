@@ -1539,6 +1539,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                 // Clear form fields
                                 $('#edit_guest_name').val('');
                                 $('#edit_guest_phone').val('');
+                                $('#edit_guest_email').val('');
                                 $('#edit_lead_status').val('');
                                 initializeProductSelect();
                                 $('#edit_product_ids').val(null).trigger('change');
@@ -2455,6 +2456,15 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     </div>
 
                     <div class="form-group">
+                        <label for="edit_guest_email" class="col-form-label text-right">Email (Optional)</label>
+                        <input type="email"
+                               name="guest_email"
+                               id="edit_guest_email"
+                               class="form-control"
+                               placeholder="Enter email address">
+                    </div>
+
+                    <div class="form-group">
                         <label for="edit_lead_status" class="col-form-label text-right">{{ __('customers.fields.lead_status') }}</label>
                         <select class="form-control" name="lead_status" id="edit_lead_status">
                             <option value="">{{ __('customers.placeholders.lead_status') }}</option>
@@ -2833,7 +2843,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
     // Initialize edit form validation
     function initializeEditFormValidation() {
         // Clear any existing event handlers to prevent duplicates
-        $('#edit_guest_name, #edit_guest_phone, #edit_pledge, #edit_lead_status, #edit_product_ids').off('input blur change');
+        $('#edit_guest_name, #edit_guest_phone, #edit_guest_email, #edit_pledge, #edit_lead_status, #edit_product_ids').off('input blur change');
         
         // Real-time validation as user types
         $('#edit_guest_name').on('input blur', function() {
@@ -2845,6 +2855,12 @@ body:not(.dark-mode) .modal-body .alert-danger {
         $('#edit_guest_phone').on('input blur', function() {
             if ($(this).val().trim()) {
                 validateEditField('edit_guest_phone');
+            }
+        });
+
+        $('#edit_guest_email').on('input blur', function() {
+            if ($(this).val().trim()) {
+                validateEditField('edit_guest_email');
             }
         });
         
@@ -2936,6 +2952,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             isValid = false;
                         }
                     }
+                }
+                break;
+
+            case 'edit_guest_email':
+                if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    errorMessage = 'Please enter a valid email address';
+                    isValid = false;
                 }
                 break;
                 
@@ -3815,6 +3838,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
         
         // Store phone number for later setting after intl input is initialized
         window.currentPhoneNumber = $('#guest_phone' + a).text();
+        $('#edit_guest_email').val($('#guest_email' + a).text().trim());
         
         $('#edit_pledge').val(parseInt($('#guest_pledge' + a).text()));
         
@@ -3872,6 +3896,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
             isValid = false;
         } else if (!/^[0-9+\-\s\(\)]*$/.test(phone)) {
             showEditValidationError('edit_guest_phone', '{{__('phone_number_can_only_contain_numbers_and_basic_formatting')}}');
+            isValid = false;
+        }
+
+        // Validate email (optional)
+        const email = $('#edit_guest_email').val().trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showEditValidationError('edit_guest_email', 'Please enter a valid email address');
             isValid = false;
         }
         
@@ -3932,6 +3963,7 @@ body:not(.dark-mode) .modal-body .alert-danger {
         const formData = {
             guest_name: $('#edit_guest_name').val().trim(),
             guest_phone: getFullPhoneNumber(),
+            guest_email: $('#edit_guest_email').val().trim(),
             lead_status: $('#edit_lead_status').val(),
             product_ids: $('#edit_product_ids').val(),
             _token: '{{ csrf_token() }}'

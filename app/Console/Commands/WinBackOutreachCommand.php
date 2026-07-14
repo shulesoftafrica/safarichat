@@ -177,12 +177,11 @@ class WinBackOutreachCommand extends Command
             $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent, 'win_back');
 
             if (!empty($result['skipped'])) {
-                Log::info('Win-back message skipped by duplicate guard', [
+                Log::info('Win-back outreach skipped', [
                     'lead_id' => $lead->id,
                     'agent_id' => $agent->id,
                     'reason' => $result['reason'] ?? 'unknown',
                 ]);
-
                 return true;
             }
 

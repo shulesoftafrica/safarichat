@@ -177,6 +177,15 @@ class DailyOutreachCommand extends Command
             // Send message via AI WhatsApp service
             $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent);
 
+            if (!empty($result['skipped'])) {
+                Log::info('Daily outreach skipped', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'reason' => $result['reason'] ?? 'unknown',
+                ]);
+                return true;
+            }
+
             if ($result['success']) {
                 // Update lead status
                 $lead->update([

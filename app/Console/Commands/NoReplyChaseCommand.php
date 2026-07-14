@@ -175,6 +175,15 @@ class NoReplyChaseCommand extends Command
             // Send chase message via the standard outreach channel
             $result = $this->aiWhatsAppService->sendOutreachMessage($lead, $message, $agent);
 
+            if (!empty($result['skipped'])) {
+                Log::info('No-reply chase skipped', [
+                    'lead_id' => $lead->id,
+                    'agent_id' => $agent->id,
+                    'reason' => $result['reason'] ?? 'unknown',
+                ]);
+                return true;
+            }
+
             if ($result['success']) {
                 // Update lead tracking
                 $lead->update([

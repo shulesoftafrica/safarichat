@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Lead;
 use App\Models\Conversation;
-use App\Models\BusinessContact;
 use App\Services\AiWhatsAppService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -13,6 +12,7 @@ use Carbon\Carbon;
 class SmartFollowupService
 {
     private $aiWhatsAppService;
+    private array $ignoredPhonesByUser = [];
     
     public function __construct(AiWhatsAppService $aiWhatsAppService)
     {
@@ -611,6 +611,21 @@ class SmartFollowupService
     private function sendSmartFollowup(Lead $lead, $message)
     {
         try {
+            $phone = $lead->contact->guest_phone ?? '';
+            $userId = $lead->aiSalesAgent->user_id ?? null;
+
+            if ($userId && $this->isPhoneIgnoredForUser((int) $userId, (string) $phone)) {
+                $lead->update(['status' => Lead::STATUS_DO_NOT_CONTACT]);
+
+                Log::info("Smart followup skipped for ignored contact (lead {$lead->id})", [
+                    'lead_id' => $lead->id,
+                    'user_id' => $userId,
+                    'phone' => $phone,
+                ]);
+
+                return true;
+            }
+
             // Create conversation record
             Conversation::create([
                 'lead_id' => $lead->id,
@@ -644,5 +659,35 @@ class SmartFollowupService
             Log::error("Error sending smart followup for lead {$lead->id}: " . $e->getMessage());
             return false;
         }
+    }
+
+    private function isPhoneIgnoredForUser(int $userId, string $rawPhone): bool
+    {
+        $normalized = preg_replace('/[^0-9]/', '', $rawPhone) ?? '';
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        if (!array_key_exists($userId, $this->ignoredPhonesByUser)) {
+            $ignoredSet = [];
+
+            $instances = \App\Models\WhatsappInstance::where('user_id', $userId)
+                ->whereNotNull('ignored_contacts')
+                ->get(['ignored_contacts']);
+
+            foreach ($instances as $instance) {
+                foreach (($instance->ignored_contacts ?? []) as $entry) {
+                    $phone = preg_replace('/[^0-9]/', '', (string) ($entry['phone'] ?? ''));
+                    if (!empty($phone)) {
+                        $ignoredSet[$phone] = true;
+                    }
+                }
+            }
+
+            $this->ignoredPhonesByUser[$userId] = $ignoredSet;
+        }
+
+        return isset($this->ignoredPhonesByUser[$userId][$normalized]);
     }
 }

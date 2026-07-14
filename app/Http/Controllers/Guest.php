@@ -249,6 +249,7 @@ class Guest extends Controller {
                 $rowNumber++,
                 '<span id="guest_name' . $id . '">' . e($guest->guest_name) . '</span>'
                     . '<span id="guest_lead_status' . $id . '" class="d-none">' . e($leadStatus) . '</span>'
+                    . '<span id="guest_email' . $id . '" class="d-none">' . e($guest->guest_email) . '</span>'
                     . '<span id="guest_product_ids' . $id . '" class="d-none">' . e($productIds) . '</span>',
                 '<span id="guest_phone' . $id . '">' . e($guest->guest_phone) . '</span>',
                 date('d M Y', strtotime($guest->created_at)),
@@ -305,6 +306,7 @@ class Guest extends Controller {
             $validated = $this->validate(request(), [
                 'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'], // name validation, only letters, spaces, hyphens, apostrophes, parentheses allowed
                 'guest_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s\(\)]*$/'], // phone number validation
+                'guest_email' => ['nullable', 'email', 'max:255'],
                 'lead_status' => ['required', 'string', 'in:NEW,OUTREACHED,REPLIED,ENGAGED,QUALIFIED,PITCHED,DEMO_SCHEDULED,PROPOSAL_SENT,NEGOTIATING,CLOSED,LOST,HANDED_OFF,DO_NOT_CONTACT,NEEDS_ATTENTION,CONVERTED,CHURNED'],
                 'product_ids' => ['required', 'array', 'min:1'],
                 'product_ids.*' => ['integer'],
@@ -346,7 +348,8 @@ class Guest extends Controller {
             
             $data = array_merge($request->all(), [
                 'business_id' => $business_id,
-                'guest_phone' => $phone
+                'guest_phone' => $phone,
+                'guest_email' => !empty($request->guest_email) ? strtolower(trim((string) $request->guest_email)) : null,
             ]);
           
             $guest = EventsGuest::create($data);
@@ -733,6 +736,15 @@ class Guest extends Controller {
                 return redirect()->back()->with('error', 'Contact not found or access denied');
             }
             
+            request()->validate([
+                'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'],
+                'guest_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s\(\)]*$/'],
+                'guest_email' => ['nullable', 'email', 'max:255'],
+                'lead_status' => ['required', 'string', 'in:NEW,OUTREACHED,REPLIED,ENGAGED,QUALIFIED,PITCHED,DEMO_SCHEDULED,PROPOSAL_SENT,NEGOTIATING,CLOSED,LOST,HANDED_OFF,DO_NOT_CONTACT,NEEDS_ATTENTION,CONVERTED,CHURNED'],
+                'product_ids' => ['required', 'array', 'min:1'],
+                'product_ids.*' => ['integer'],
+            ]);
+
             // Handle lead status separately
             $leadStatus = request('lead_status');
             if ($leadStatus) {
@@ -744,7 +756,13 @@ class Guest extends Controller {
             }
             
             // Update guest data (excluding lead fields as they are handled above)
-            $guest->update(request()->except('id', '_token', 'lead_status', 'product_ids'));
+            $updateData = request()->except('id', '_token', 'lead_status', 'product_ids');
+            $updateData['guest_phone'] = preg_replace('/[^0-9+]/', '', (string) ($updateData['guest_phone'] ?? ''));
+            $updateData['guest_email'] = !empty($updateData['guest_email'])
+                ? strtolower(trim((string) $updateData['guest_email']))
+                : null;
+
+            $guest->update($updateData);
             
             if (request()->expectsJson()) {
                 return response()->json([
@@ -812,6 +830,15 @@ class Guest extends Controller {
                 return redirect()->back()->with('error', 'Contact not found or access denied');
             }
 
+            $request->validate([
+                'guest_name' => ['required', 'string', 'max:100', 'regex:/^([a-zA-Z\s\-\'\(\)]*)$/'],
+                'guest_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s\(\)]*$/'],
+                'guest_email' => ['nullable', 'email', 'max:255'],
+                'lead_status' => ['required', 'string', 'in:NEW,OUTREACHED,REPLIED,ENGAGED,QUALIFIED,PITCHED,DEMO_SCHEDULED,PROPOSAL_SENT,NEGOTIATING,CLOSED,LOST,HANDED_OFF,DO_NOT_CONTACT,NEEDS_ATTENTION,CONVERTED,CHURNED'],
+                'product_ids' => ['required', 'array', 'min:1'],
+                'product_ids.*' => ['integer'],
+            ]);
+
             // Update guest data (validation should be done on frontend)
             $updateData = $request->except('_token', 'id', 'lead_status', 'product_ids');
             
@@ -821,6 +848,10 @@ class Guest extends Controller {
                 $phone = preg_replace('/[^0-9+]/', '', $updateData['guest_phone']);
                 $updateData['guest_phone'] = $phone;
             }
+
+            $updateData['guest_email'] = !empty($updateData['guest_email'])
+                ? strtolower(trim((string) $updateData['guest_email']))
+                : null;
 
             // Update the guest record
             $guest->update($updateData);
