@@ -158,6 +158,14 @@ class Business extends Model
     {
         return $this->businessContacts();
     }
+
+    /**
+     * Business-level communication channels.
+     */
+    public function channels()
+    {
+        return $this->hasMany('App\Models\Channel', 'business_id');
+    }
     
     /**
      * @deprecated EventGuestCategory model removed - use businessContactCategories() instead
@@ -165,6 +173,14 @@ class Business extends Model
     public function guestCategories()
     {
         throw new \Exception('EventGuestCategory model has been removed. Use businessContactCategories() relationship instead.');
+    }
+
+    /**
+     * Product-level channel routing policies for this business.
+     */
+    public function channelProductPolicies()
+    {
+        return $this->hasMany('App\Models\ChannelProductPolicy', 'business_id');
     }
     
     /**

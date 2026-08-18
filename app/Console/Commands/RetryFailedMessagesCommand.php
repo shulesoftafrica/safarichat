@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\SendWhatsAppMessage;
 use App\Models\OutgoingMessage;
 use App\Models\WhatsappInstance;
 use Illuminate\Console\Command;
@@ -118,24 +117,23 @@ class RetryFailedMessagesCommand extends Command
                 continue;
             }
 
-            // Dispatch a fresh job pointing back at the same OutgoingMessage record
-            // so status updates overwrite correctly
-            SendWhatsAppMessage::dispatch(
-                $message->message_body ?? $message->message,
-                $message->phone_number,
-                $message->source ?? 'whatsapp',
-                $message->user_id,
-                null, // files — not stored on the record, media retries not supported
-                $instance->instance_id ?? $instance->id, // Use validated instance
-                [
-                    'whatsapp_instance_id' => $instance->id, // Use validated instance ID
-                    'provider'             => $message->provider ?? 'unified_api',
-                    'priority'             => $message->priority ?? 'normal',
-                    'batch_id'             => $message->batch_id,
-                    'outgoing_message_id'  => $message->id,   // ← ties back to this record
-                    'message_type'         => $message->message_type,
-                ]
-            );
+            app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                ->dispatchDirect((int) $message->user_id, (string) ($message->message_body ?? $message->message), [
+                    'to' => (string) $message->phone_number,
+                    'channel' => (string) ($message->selected_channel ?? 'whatsapp'),
+                    'source' => $message->source ?? 'whatsapp',
+                    'provider' => $message->provider ?? 'unified_api',
+                    'priority' => $message->priority ?? 'normal',
+                    'instance_id' => $instance->instance_id ?? null,
+                    'whatsapp_instance_id' => $instance->id,
+                    'outgoing_message_id' => $message->id,
+                    'message_type' => $message->message_type,
+                    'metadata' => [
+                        'batch_id' => $message->batch_id,
+                        'retry_reason' => $message->failure_reason,
+                        'retry_via_command' => true,
+                    ],
+                ]);
 
             // Reset status to pending + stamp last_retry_at so the cooldown applies
             $message->update([

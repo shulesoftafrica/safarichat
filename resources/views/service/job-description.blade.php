@@ -350,6 +350,29 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="capability-section">
+                                    <h4>Enabled Channels</h4>
+                                    @if(!empty($channels) && count($channels) > 0)
+                                        <div class="row g-3">
+                                            @foreach($channels as $channel)
+                                                <div class="col-md-6">
+                                                    <label class="toggle-option w-100">
+                                                        <input type="checkbox" name="notification_methods[]" value="{{ $channel->channel_key }}" {{ in_array($channel->channel_key, old('notification_methods', $existingAgent->notification_methods ?? [])) ? 'checked' : '' }}>
+                                                        <span class="toggle-content">
+                                                            <h4>{{ $channel->display_name }}</h4>
+                                                            <p>{{ ucfirst($channel->channel_key) }} via {{ $channel->provider ?? 'unified_api' }}</p>
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="alert alert-info mb-0">
+                                            No channels have been created yet. Use the Channel Management panel from Sales Settings to add the channels you want this agent to use.
+                                        </div>
+                                    @endif
+                                </div>
                                 
                                 <div class="preview-capabilities">
                                     <h4>Capabilities:</h4>
@@ -1816,6 +1839,11 @@ function populateFormWithAgent(agent) {
                 field.value = fields[fieldName] || '';
             }
         }
+    });
+
+    const enabledChannels = Array.isArray(agent.notification_methods) ? agent.notification_methods : [];
+    document.querySelectorAll('input[name="notification_methods[]"]').forEach(input => {
+        input.checked = enabledChannels.includes(input.value);
     });
 }
 

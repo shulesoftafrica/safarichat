@@ -185,7 +185,7 @@ class OpenAiService
     /**
      * Generate response for conversation engine (compatible with ConversationEngineCommand)
      */
-    public function generateResponse(Lead $lead, ?string $customerMessage, array $context, string $currentState = 'INTRO'): array
+    public function generateResponse(Lead $lead, ?string $customerMessage, array $context, string $currentState = 'INTRO', ?\App\Models\Product $forcedOffer = null): array
     {
         try {
             // FEATURE GATE: Check AI credits before making API call
@@ -259,8 +259,11 @@ class OpenAiService
                 }
             }
             
-            // Get the primary product for this conversation
-            $product = $lead->leadProducts()->where('is_primary_product', true)->first()?->product;
+            // Get the product for this conversation. When the offer-rotation engine
+            // supplies a specific module to pitch, use it; otherwise fall back to the
+            // lead's primary product (legacy behavior).
+            $product = $forcedOffer
+                ?: $lead->leadProducts()->where('is_primary_product', true)->first()?->product;
             
             // Use the existing generateSalesResponse method
             $response = $this->generateSalesResponse($customerMessage, $agent, $lead, $conversationHistory, $product);

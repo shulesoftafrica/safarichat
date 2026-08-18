@@ -177,37 +177,28 @@ class ProcessNurtureMessageJob implements ShouldQueue
     private function sendRefinedMessage($queueEntry, $contact)
     {
         try {
-            // Get user's WhatsApp instance
-            $waSenderService = new \App\Services\WaSenderService();
-            $instance = $waSenderService->getUserInstance($queueEntry->user_id);
-            
-            if (!$instance) {
-                Log::error('No active WhatsApp instance found for user', [
-                    'user_id' => $queueEntry->user_id,
-                    'queue_entry_id' => $queueEntry->id,
+            $dispatchResult = app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                ->dispatchDirect((int) $queueEntry->user_id, (string) $queueEntry->refined_message, [
+                    'to' => $queueEntry->phone_number,
+                    'channel' => 'whatsapp',
+                    'provider' => 'unified_api',
+                    'priority' => 'normal',
+                    'delay_seconds' => 2,
+                    'business_contact_id' => $contact->id,
+                    'metadata' => [
+                        'is_nurture_message' => true,
+                        'message_queue_id' => $queueEntry->id,
+                    ],
                 ]);
+
+            if (!($dispatchResult['success'] ?? false)) {
                 $queueEntry->update([
                     'status' => 'failed',
-                    'error_message' => 'No active WhatsApp instance found',
+                    'error_message' => $dispatchResult['error'] ?? 'Failed to queue nurture message',
                 ]);
+
                 return;
             }
-
-            // Dispatch SendWhatsAppMessage job with refined message
-            \App\Jobs\SendWhatsAppMessage::dispatch(
-                $queueEntry->refined_message,    // Use refined message instead of original
-                $queueEntry->phone_number,
-                'whatsapp',
-                $queueEntry->user_id,
-                null,                            // No files for now
-                null,                            // Legacy instanceId
-                [
-                    'whatsapp_instance_id' => $instance->id,
-                    'provider' => 'unified_api',
-                    'is_nurture_message' => true, // Flag to identify nurture messages
-                    'message_queue_id' => $queueEntry->id, // Link back to queue entry
-                ]
-            )->delay(now()->addSeconds(2)); // Small delay to ensure job processing completes
 
             // Update status to sent
             $queueEntry->update(['status' => 'sent']);

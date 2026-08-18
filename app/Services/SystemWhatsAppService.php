@@ -6,8 +6,6 @@ use App\Models\WhatsappInstance;
 use App\Models\OutgoingMessage;
 use App\Models\SystemMessageLog;
 use App\Models\User;
-use App\Jobs\SendWhatsAppMessage;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -280,21 +278,22 @@ class SystemWhatsAppService
                 'queued'
             );
             
-            // Queue message using system instance
-            SendWhatsAppMessage::dispatch(
-                $message,                           // messageData
-                $phoneNumber,                       // phoneNumber  
-                'whatsapp',                         // source
-                $this->systemInstance->user_id,     // userId
-                null,                               // files
-                null,                               // instanceId (legacy)
-                [                                   // options array
-                    'whatsapp_instance_id' => $this->systemInstance->id,
+            app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                ->dispatchDirect((int) $this->systemInstance->user_id, $message, [
+                    'to' => $phoneNumber,
+                    'channel' => 'whatsapp',
+                    'source' => 'whatsapp',
                     'provider' => 'unified_api',
                     'priority' => 'high',
-                    'message_type' => $messageType  // Add message type to options
-                ]
-            );
+                    'instance_id' => $this->systemInstance->instance_id,
+                    'whatsapp_instance_id' => $this->systemInstance->id,
+                    'message_type' => $messageType,
+                    'channel_selection_reason' => 'system_message_routing',
+                    'metadata' => [
+                        'is_system_message' => true,
+                        'system_message_type' => $messageType,
+                    ],
+                ]);
             
             // Record outgoing message
             OutgoingMessage::create([

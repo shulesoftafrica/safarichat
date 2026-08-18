@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\WaSenderService;
-use App\Jobs\SendWhatsAppMessage;
 use App\Jobs\SendWhatsAppMediaMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Auth;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * WaSender API Controller
@@ -273,21 +273,34 @@ class WaSenderApiController extends Controller
         try {
             $delay = $request->delay_seconds ?? 0;
             
-            SendWhatsAppMessage::dispatch(
-                $request->message,
-                $request->phone,
-                'whatsapp',
-                Auth::id(),
-                null,
-                $request->instance_id
-            )->delay(now()->addSeconds($delay));
+            $dispatchResult = app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                ->dispatchDirect((int) Auth::id(), (string) $request->message, [
+                    'to' => (string) $request->phone,
+                    'channel' => 'whatsapp',
+                    'source' => 'whatsapp',
+                    'provider' => 'unified_api',
+                    'priority' => 'normal',
+                    'instance_id' => $request->instance_id,
+                    'delay_seconds' => $delay,
+                    'metadata' => [
+                        'api_endpoint' => 'queueTextMessage',
+                    ],
+                ]);
+
+            if (!($dispatchResult['success'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $dispatchResult['error'] ?? 'Failed to queue message'
+                ], 500);
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Message queued successfully',
                 'data' => [
                     'delay_seconds' => $delay,
-                    'scheduled_at' => now()->addSeconds($delay)->toISOString()
+                    'scheduled_at' => now()->addSeconds($delay)->toISOString(),
+                    'outgoing_message_id' => $dispatchResult['outgoing_message_id'] ?? null,
                 ]
             ]);
 
@@ -520,9 +533,9 @@ class WaSenderApiController extends Controller
         // Grouped breakdown — how many failed per reason / retryable flag
         $breakdown = \App\Models\OutgoingMessage::where('status', 'failed')
             ->select('failure_reason', 'retryable',
-                     \DB::raw('COUNT(*) as total'),
-                     \DB::raw('MAX(created_at) as latest'),
-                     \DB::raw('SUM(retry_count) as total_retries'))
+                     DB::raw('COUNT(*) as total'),
+                     DB::raw('MAX(created_at) as latest'),
+                     DB::raw('SUM(retry_count) as total_retries'))
             ->groupBy('failure_reason', 'retryable')
             ->orderByDesc('total')
             ->get();

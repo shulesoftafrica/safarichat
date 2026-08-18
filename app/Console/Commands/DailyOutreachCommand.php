@@ -166,11 +166,18 @@ class DailyOutreachCommand extends Command
                 return false;
             }
 
+            // Offer rotation: pick the next best module/angle to pitch (null when
+            // the feature is off — the message generator then uses legacy behavior).
+            $offer = app(\App\Services\Sales\NextBestOfferService::class)->resolveForLead($lead);
+
             // Generate personalized outreach message
-            $message = $this->generateOutreachMessage($lead, $agent, $contact);
-            
+            $message = $this->generateOutreachMessage($lead, $agent, $contact, $offer);
+
             if ($dryRun) {
                 $this->line("📝 Would send: " . substr($message, 0, 100) . '...');
+                if ($offer) {
+                    $this->line("   ↳ angle: {$offer->name}");
+                }
                 return true;
             }
 
@@ -194,6 +201,12 @@ class DailyOutreachCommand extends Command
                     'last_interaction_at' => now()
                 ]);
 
+                // Record which offer/angle we just pitched so the next touch rotates.
+                if ($offer) {
+                    app(\App\Services\Sales\NextBestOfferService::class)
+                        ->registerPitch($lead, $offer, 'whatsapp', 'daily_outreach');
+                }
+
                 return true;
             }
 
@@ -209,7 +222,7 @@ class DailyOutreachCommand extends Command
         }
     }
 
-    private function generateOutreachMessage(Lead $lead, AiSalesAgent $agent, $contact): string
+    private function generateOutreachMessage(Lead $lead, AiSalesAgent $agent, $contact, ?Product $offer = null): string
     {
         try {
             // Get products associated with this lead
@@ -222,13 +235,28 @@ class DailyOutreachCommand extends Command
                 'company_name' => $lead->company_name,
                 'industry' => $lead->industry,
                 'lead_score' => $lead->lead_score,
-                'primary_product' => $primaryProduct ? $primaryProduct->name : null,
+                'primary_product' => $offer ? $offer->name : ($primaryProduct ? $primaryProduct->name : null),
                 'agent_personality' => $agent->personality_type,
                 'business_context' => $contact->event ? $contact->event->name : null
             ];
 
+            // Feed the offer's angle (pain point + hook) into the prompt so the AI
+            // leads with a fresh reason to reply rather than a generic pitch.
+            if ($offer) {
+                $angle = "Pitch our '{$offer->name}' as this message's angle. ";
+                if (!empty($offer->campaign_pain_point)) {
+                    $angle .= "Lead with this pain point: {$offer->campaign_pain_point}. ";
+                }
+                if (!empty($offer->campaign_hook_text)) {
+                    $angle .= "Adapt this opening hook (do not copy verbatim): {$offer->campaign_hook_text}. ";
+                }
+                $angle .= "Keep it short and personal, reference the prospect naturally, and end with one soft question. "
+                        . "Do NOT repeat earlier generic pitches.";
+                $context['prompt'] = $angle;
+            }
+
             // Generate personalized message using AI
-            $response = $this->openAiService->generateResponse($lead, null, $context, 'INTRO');
+            $response = $this->openAiService->generateResponse($lead, null, $context, 'INTRO', $offer);
 
             return $response['message_text'] ?? $this->getFallbackMessage($lead, $agent);
 

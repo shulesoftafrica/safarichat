@@ -2,14 +2,12 @@
 
 namespace App\Jobs;
 
-use App\Models\Message;
-use App\Models\MessageSentby;
 use App\Models\OutgoingMessage;
-use App\Models\BusinessContact;
-use App\Models\User;
 use App\Services\WaSenderService;
 use App\Services\UnifiedNotificationService;
-use App\Services\SchemaMappingService;
+use App\Services\MultiChannel\ChannelPayloadBuilder;
+use App\Services\MultiChannel\NotificationsApiAdapter;
+use App\Services\MultiChannel\ChannelSelectionService;
 use App\Services\MessageStatusMapper;
 use App\Services\UserResolutionService;
 use Illuminate\Bus\Queueable;
@@ -18,7 +16,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Exception;
 
 class SendWhatsAppMessage implements ShouldQueue
@@ -81,7 +78,13 @@ class SendWhatsAppMessage implements ShouldQueue
      *
      * @return void
      */
-    public function handle(WaSenderService $waSenderService, UnifiedNotificationService $unifiedService)
+    public function handle(
+        WaSenderService $waSenderService,
+        UnifiedNotificationService $unifiedService,
+        ChannelPayloadBuilder $channelPayloadBuilder,
+        NotificationsApiAdapter $notificationsApiAdapter,
+        ChannelSelectionService $channelSelectionService
+    )
     {
         
         try {
@@ -113,11 +116,23 @@ class SendWhatsAppMessage implements ShouldQueue
                         'phone' => $this->phoneNumber,
                         'error' => $metaException->getMessage()
                     ]);
-                    $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
+                    $result = $this->sendViaUnifiedApi(
+                        $unifiedService,
+                        $outgoingMessage,
+                        $channelPayloadBuilder,
+                        $notificationsApiAdapter,
+                        $channelSelectionService
+                    );
                 }
             } else if ($this->provider === 'unified_api') {
                 // All system notifications + regular business messages via Unified API
-                $result = $this->sendViaUnifiedApi($unifiedService, $outgoingMessage);
+                    $result = $this->sendViaUnifiedApi(
+                        $unifiedService,
+                        $outgoingMessage,
+                        $channelPayloadBuilder,
+                        $notificationsApiAdapter,
+                        $channelSelectionService
+                    );
             } else {
                 // Legacy WaSender fallback
                 $result = $this->sendViaWaSender($waSenderService, $outgoingMessage);
@@ -400,7 +415,13 @@ class SendWhatsAppMessage implements ShouldQueue
     /**
      * Send message via unified notification API
      */
-    private function sendViaUnifiedApi(UnifiedNotificationService $service, OutgoingMessage $message)
+    private function sendViaUnifiedApi(
+        UnifiedNotificationService $service,
+        OutgoingMessage $message,
+        ChannelPayloadBuilder $channelPayloadBuilder,
+        NotificationsApiAdapter $notificationsApiAdapter,
+        ChannelSelectionService $channelSelectionService
+    )
     {
         // Determine if this is a system message that should always use system default instance
         $isSystemMessage = $this->isSystemMessage();
@@ -449,20 +470,11 @@ class SendWhatsAppMessage implements ShouldQueue
             $message->update(['whatsapp_instance_id' => $whatsappInstance->id]);
         }
 
-        $apiData = [
-            'schema_name' => $schemaName,
-            'channel' => 'whatsapp',
-            'to' => UserResolutionService::normalizePhoneNumber($this->phoneNumber),
-            'message' => is_array($this->messageData) ? ($this->messageData['message'] ?? json_encode($this->messageData)) : $this->messageData,
-            'priority' => $this->priority,
-            "type"=>"wasender"
-        ];
-    Log::info('Unified API data being sent', [
-        'phone' => $this->phoneNumber,
-        'api_data' => $apiData,
-        'schema_name' => $schemaName,
-        'provider' => $this->provider
-    ]);
+        $messageBody = is_array($this->messageData)
+            ? ($this->messageData['message'] ?? json_encode($this->messageData))
+            : $this->messageData;
+
+        $extras = [];
         // Add files if present — API supports one attachment per message
         if ($this->files && is_array($this->files)) {
             if (count($this->files) > 1) {
@@ -473,28 +485,90 @@ class SendWhatsAppMessage implements ShouldQueue
             }
             foreach ($this->files as $file) {
                 if (isset($file['content']) && isset($file['name'])) {
-                    $apiData['attachment']      = $file['content'];
-                    $apiData['attachment_name'] = $file['name'];
-                    $apiData['attachment_type'] = $file['type'] ?? 'application/octet-stream';
+                    $extras['attachment']      = $file['content'];
+                    $extras['attachment_name'] = $file['name'];
+                    $extras['attachment_type'] = $file['type'] ?? 'application/octet-stream';
                     break;
                 }
             }
         }
 
-        // Send via unified API
-        $response = $service->sendNotification($apiData);
+        $apiData = $channelPayloadBuilder->build('whatsapp', [
+            'schema_name' => $schemaName,
+            'to' => UserResolutionService::normalizePhoneNumber($this->phoneNumber),
+            'message' => $messageBody,
+            'priority' => $this->priority,
+            'provider' => $this->provider === 'unified_api' ? 'wa_sender' : $this->provider,
+            'extras' => $extras,
+        ]);
+
+        Log::info('Unified API data being sent', [
+            'phone' => $this->phoneNumber,
+            'api_data' => $apiData,
+            'schema_name' => $schemaName,
+            'provider' => $this->provider
+        ]);
+
+        $selection = [
+            'selected_channel' => 'whatsapp',
+            'channel_selection_reason' => 'phase2_unified_transport',
+            'fallback_chain' => ['whatsapp'],
+        ];
+
+        if ($message && $message->exists && $message->business_contact_id) {
+            $contact = $message->guest;
+            if ($contact) {
+                $agent = null;
+                if ($this->userId) {
+                    $agent = \App\Models\AiSalesAgent::where('user_id', $this->userId)
+                        ->where('is_active', true)
+                        ->first();
+                }
+
+                $selection = $channelSelectionService->select($contact, $agent, [
+                    'requires_formal' => $isSystemMessage,
+                ]);
+
+                if (($selection['selected_channel'] ?? 'whatsapp') !== 'whatsapp') {
+                    Log::info('Phase-3 selector chose non-whatsapp channel, forcing whatsapp for compatibility wrapper', [
+                        'selected' => $selection['selected_channel'] ?? null,
+                        'phone' => $this->phoneNumber,
+                    ]);
+                }
+            }
+        }
+
+        if ($message && $message->exists) {
+            $selectionReason = (string) ($selection['channel_selection_reason'] ?? 'phase2_unified_transport');
+            if (($selection['selected_channel'] ?? 'whatsapp') !== 'whatsapp') {
+                $selectionReason = 'forced_whatsapp_wrapper|' . $selectionReason;
+            }
+
+            $message->update([
+                'selected_channel' => 'whatsapp',
+                'channel_selection_reason' => $selectionReason,
+                'fallback_chain' => $selection['fallback_chain'] ?? ['whatsapp'],
+                'transport_endpoint' => rtrim((string) config('multi_channel.transport.base_url', config('notifications.unified_api.base_url', '')), '/') . '/notifications/send',
+                'transport_payload' => $apiData,
+            ]);
+        }
+
+        // Send via unified notifications endpoint.
+        // Keep the old service available for backwards compatibility paths,
+        // but phase-2 default transport is the shared adapter.
+        $response = $notificationsApiAdapter->send($apiData);
 
         // Accept both 'message_id' and 'id' keys — API response shape may vary
-        $messageId     = $response['message_id'] ?? $response['id'] ?? null;
+        $messageId      = $response['message_id'] ?? null;
         $responseStatus = $response['status'] ?? null;
 
-        if ($response && ($messageId || in_array($responseStatus, ['queued', 'sent', 'delivered']))) {
+        if (($response['success'] ?? false) && ($messageId || in_array($responseStatus, ['queued', 'sent', 'delivered']))) {
             return [
                 'success'     => true,
                 'message_id'  => $messageId,
                 'external_id' => $response['external_id'] ?? $messageId,
                 'status'      => $responseStatus ?? 'sent',
-                'api_response' => $response
+                'api_response' => $response['body'] ?? $response
             ];
         }
 
@@ -584,6 +658,8 @@ class SendWhatsAppMessage implements ShouldQueue
     {
         if (!$message) return;
 
+        $previousStatus = $message->status;
+
         $updateData = [
             'status' => MessageStatusMapper::mapToLocal($status),
             'sent_at' => now(),
@@ -608,6 +684,9 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         $message->update($updateData);
+
+        app(\App\Services\MultiChannel\ChannelMetricsService::class)
+            ->recordOutgoingTransition($message->fresh(), $previousStatus, $updateData['status'] ?? $previousStatus);
     }
 
     /**

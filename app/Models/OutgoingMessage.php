@@ -49,6 +49,13 @@ class OutgoingMessage extends Model
         'retryable',
         'last_retry_at',
         'max_retries',
+        // Multi-channel selection metadata
+        'selected_channel',
+        'channel_selection_reason',
+        'fallback_chain',
+        'channel_attempt',
+        'transport_endpoint',
+        'transport_payload',
     ];
 
     protected $casts = [
@@ -64,7 +71,10 @@ class OutgoingMessage extends Model
         'retryable' => 'boolean',
         'max_retries' => 'integer',
         'is_personalized' => 'boolean',
-        'personalization_metadata' => 'array'
+        'personalization_metadata' => 'array',
+        'fallback_chain' => 'array',
+        'channel_attempt' => 'integer',
+        'transport_payload' => 'array'
     ];
 
     /**

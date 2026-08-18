@@ -47,6 +47,13 @@ class MessageQueue extends Model
         'pre_nurture_message',
         'nurture_success',
         'nurture_reply_time',
+        // Multi-channel selection metadata
+        'selected_channel',
+        'channel_selection_reason',
+        'fallback_chain',
+        'dispatch_attempt',
+        'transport_endpoint',
+        'transport_payload',
     ];
 
     protected $casts = [
@@ -65,6 +72,9 @@ class MessageQueue extends Model
         'nurture_library_id' => 'integer',
         'nurture_success' => 'boolean',
         'nurture_reply_time' => 'integer',
+        'fallback_chain' => 'array',
+        'dispatch_attempt' => 'integer',
+        'transport_payload' => 'array',
     ];
 
     // Status constants

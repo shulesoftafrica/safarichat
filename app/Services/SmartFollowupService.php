@@ -12,11 +12,16 @@ use Carbon\Carbon;
 class SmartFollowupService
 {
     private $aiWhatsAppService;
+    private $outboundOrchestrator;
     private array $ignoredPhonesByUser = [];
     
-    public function __construct(AiWhatsAppService $aiWhatsAppService)
+    public function __construct(
+        AiWhatsAppService $aiWhatsAppService,
+        \App\Services\MultiChannel\OutboundOrchestratorService $outboundOrchestrator
+    )
     {
         $this->aiWhatsAppService = $aiWhatsAppService;
+        $this->outboundOrchestrator = $outboundOrchestrator;
     }
 
     /**
@@ -101,9 +106,13 @@ class SmartFollowupService
                         continue;
                     }
 
+                    // Offer rotation: choose the next module/angle to pitch this touch
+                    // (null when the feature is off — legacy template ladder is used).
+                    $offer = app(\App\Services\Sales\NextBestOfferService::class)->resolveForLead($lead);
+
                     // Generate personalized followup message
-                    $followupMessage = $this->generatePersonalizedFollowup($lead);
-                    
+                    $followupMessage = $this->generatePersonalizedFollowup($lead, $offer);
+
                     if (!$followupMessage) {
                         // Stamp follow_up_sent_at so this lead exits the 7-day window and
                         // doesn't keep reappearing on every cron tick.
@@ -115,19 +124,25 @@ class SmartFollowupService
 
                     // Send the followup
                     $sent = $this->sendSmartFollowup($lead, $followupMessage);
-                    
+
                     if ($sent) {
                         $lead->update(['follow_up_sent_at' => now()]);
-                        
+
                         // Cache the send to prevent duplicate sends today
                         Cache::put($cacheKey, true, now()->endOfDay());
+
+                        // Record which offer/angle was pitched so the next touch rotates.
+                        if ($offer) {
+                            app(\App\Services\Sales\NextBestOfferService::class)
+                                ->registerPitch($lead, $offer, 'smart_followup', 'smart_followup');
+                        }
 
                         // WAITING_FOR_USER: after a reminder the system must again
                         // wait for the user to reply before sending another message.
                         $lead->markAiReplied();
-                        
+
                         $successCount++;
-                        Log::info("Smart followup sent to lead {$lead->id}");
+                        Log::info("Smart followup sent to lead {$lead->id}" . ($offer ? " (angle: {$offer->name})" : ''));
                     } else {
                         $errorCount++;
                         Log::warning("Failed to send followup to lead {$lead->id}");
@@ -149,7 +164,7 @@ class SmartFollowupService
     /**
      * Generate truly personalized followup message based on conversation history and customer language
      */
-    private function generatePersonalizedFollowup(Lead $lead)
+    private function generatePersonalizedFollowup(Lead $lead, ?\App\Models\Product $offer = null)
     {
         try {
             // Get conversation history
@@ -160,10 +175,17 @@ class SmartFollowupService
 
             // Detect customer's language from conversation history
             $customerLanguage = $this->detectCustomerLanguage($conversations);
-            
+
             // Analyze conversation context
             $conversationContext = $this->analyzeConversationContext($conversations);
-            
+
+            // When the rotation engine supplies a fresh module/angle, anchor the
+            // message on THAT offer instead of the generic template ladder. This is
+            // what breaks the "same pitch every time" loop.
+            if ($offer) {
+                return $this->buildOfferAnchoredMessage($lead, $offer, $customerLanguage);
+            }
+
             // Generate contextual message based on lead status and history
             $followupMessage = $this->createContextualMessage($lead, $conversationContext, $customerLanguage);
 
@@ -173,6 +195,54 @@ class SmartFollowupService
             Log::error("Error generating personalized followup for lead {$lead->id}: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Build a fresh, module-specific follow-up message anchored on a rotated offer.
+     *
+     * Uses the business's authored hook when present (their voice); otherwise
+     * composes a value-first message from the module name + pain point. Deterministic
+     * (no extra AI credit spend) and localized for the detected language.
+     */
+    private function buildOfferAnchoredMessage(Lead $lead, \App\Models\Product $offer, string $language): string
+    {
+        $name = $lead->getContactName() ?: 'there';
+        $module = $offer->name ?: 'our solution';
+        $hook = trim((string) ($offer->campaign_hook_text ?? ''));
+        $pain = trim((string) ($offer->campaign_pain_point ?? ''));
+
+        // Prefer the business-authored hook — personalize the placeholders.
+        if ($hook !== '') {
+            $msg = str_replace(
+                ['{name}', '{module}', '{product}'],
+                [$name, $module, $module],
+                $hook
+            );
+
+            if (stripos($msg, (string) $name) === false) {
+                $greeting = $language === 'swahili' ? "Habari {$name}! " : "Hi {$name}! ";
+                $msg = $greeting . $msg;
+            }
+
+            return $msg;
+        }
+
+        // No authored hook — compose a value-first angle from the module + pain point.
+        if ($language === 'swahili') {
+            $msg = "Habari {$name}! ";
+            if ($pain !== '') {
+                $msg .= "Wateja wengi wanakumbana na changamoto ya: {$pain}. ";
+            }
+            $msg .= "Moduli yetu ya {$module} imetengenezwa kutatua hili hasa. Ungependa nikuonyeshe kwa dakika 2?";
+            return $msg;
+        }
+
+        $msg = "Hi {$name}! ";
+        if ($pain !== '') {
+            $msg .= "A lot of teams struggle with {$pain}. ";
+        }
+        $msg .= "Our {$module} is built to fix exactly that. Worth a quick 2-minute look?";
+        return $msg;
     }
 
     /**
@@ -635,25 +705,19 @@ class SmartFollowupService
                 'created_at' => now()
             ]);
 
-            // Get WhatsApp instance and send
-            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $lead->aiSalesAgent->user_id)
-                                                           ->where('status', 'connected')
-                                                           ->first();
-
-            if ($whatsappInstance && $lead->contact && $lead->contact->guest_phone) {
-                \App\Jobs\SendWhatsAppMessage::dispatch(
-                    $message,
-                    $lead->contact->guest_phone,
-                    'whatsapp',
-                    $lead->aiSalesAgent->user_id,
-                    null,
-                    $whatsappInstance->instance_id
-                );
-
-                return true;
+            if (!$lead->contact) {
+                return false;
             }
 
-            return false;
+            $result = $this->outboundOrchestrator->dispatchForLead($lead, $message, [
+                'agent' => $lead->aiSalesAgent,
+                'campaign' => 'smart_followup',
+                'priority' => 'normal',
+                'requires_formal' => false,
+                'product_id' => $lead->getPrimaryProduct()?->id,
+            ]);
+
+            return (bool) ($result['success'] ?? false);
 
         } catch (\Exception $e) {
             Log::error("Error sending smart followup for lead {$lead->id}: " . $e->getMessage());

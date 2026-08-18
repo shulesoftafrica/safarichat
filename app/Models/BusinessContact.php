@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Services\UserResolutionService;
 
 /**
  * @property int $id
@@ -216,6 +215,22 @@ class BusinessContact extends Model
     public function messageQueue()
     {
         return $this->hasMany('App\Models\MessageQueue', 'contact_id');
+    }
+
+    /**
+     * Per-channel preference and eligibility controls for this contact.
+     */
+    public function channelPreferences()
+    {
+        return $this->hasMany('App\Models\ContactChannelPreference', 'business_contact_id');
+    }
+
+    /**
+     * Per-channel engagement metrics for this contact.
+     */
+    public function channelMetrics()
+    {
+        return $this->hasMany('App\Models\ContactChannelMetric', 'business_contact_id');
     }
 
     /**

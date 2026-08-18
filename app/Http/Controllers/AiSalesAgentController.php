@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiSalesAgent;
+use App\Models\Channel;
+use App\Models\Business;
 use App\Models\UserType;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -76,8 +79,15 @@ class AiSalesAgentController extends Controller
                 $realTimeStatus = $whatsappInstance->connect_status;
             }
         }
+
+        $channels = $this->getBusinessChannelsForUser();
+        $agentChannelMatrix = $agents->mapWithKeys(function (AiSalesAgent $agent) {
+            return [
+                $agent->id => $this->normalizeEnabledChannels($agent->notification_methods ?? []),
+            ];
+        })->all();
             
-        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus'));
+        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus', 'channels', 'agentChannelMatrix'));
     }
 
     /**
@@ -88,8 +98,9 @@ class AiSalesAgentController extends Controller
         $userTypes = UserType::active()->orderBy('name')->get();
         $existingAgent = AiSalesAgent::forUser(Auth::id())->latest()->first();
         $ignoredContactsLine = $this->getIgnoredContactsLineForUser();
+        $channels = $this->getBusinessChannelsForUser();
         
-        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine'));
+        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine', 'channels'));
     }
 
     /**
@@ -108,6 +119,7 @@ class AiSalesAgentController extends Controller
         }
         
         $validatedData = $this->validateAgentData($request);
+        $this->assertNotificationMethodsPresent($validatedData);
         
         try {
             DB::beginTransaction();
@@ -157,8 +169,9 @@ class AiSalesAgentController extends Controller
         $userTypes = UserType::active()->orderBy('name')->get();
         $existingAgent = $aiSalesAgent;
         $ignoredContactsLine = $this->getIgnoredContactsLineForUser();
+        $channels = $this->getBusinessChannelsForUser();
         
-        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine'));
+        return view('service.job-description', compact('userTypes', 'existingAgent', 'ignoredContactsLine', 'channels'));
     }
 
     /**
@@ -197,6 +210,7 @@ class AiSalesAgentController extends Controller
             ]);
 
             $validatedData = $this->validateAgentData($request);
+            $this->assertNotificationMethodsPresent($validatedData);
 
             Log::info('Agent found and data validated', [
                 'agent_id' => $aiSalesAgent->id,
@@ -412,6 +426,199 @@ class AiSalesAgentController extends Controller
                 'success' => false,
                 'message' => 'Failed to load user types.'
             ], 500);
+        }
+    }
+
+    public function getChannels()
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'channels' => $this->getBusinessChannelsForUser(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load channels.'
+            ], 500);
+        }
+    }
+
+    public function storeChannel(Request $request)
+    {
+        $business = $this->resolveCurrentBusiness();
+        if (! $business) {
+            return response()->json(['success' => false, 'message' => 'No business found for current user.'], 422);
+        }
+
+        $validated = $request->validate([
+            'channel_key' => [
+                'required',
+                'string',
+                'max:30',
+                Rule::unique('channels', 'channel_key')->where(function ($query) use ($business) {
+                    return $query->where('business_id', $business->id);
+                }),
+            ],
+            'display_name' => 'required|string|max:100',
+            'provider' => 'nullable|string|max:50',
+            'is_active' => 'nullable|boolean',
+            'priority_rank' => 'nullable|integer|min:1|max:10',
+        ]);
+
+        $channel = Channel::create([
+            'business_id' => $business->id,
+            'channel_key' => strtolower(trim($validated['channel_key'])),
+            'display_name' => $validated['display_name'],
+            'provider' => $validated['provider'] ?? 'unified_api',
+            'is_active' => (bool) ($validated['is_active'] ?? true),
+            'priority_rank' => (int) ($validated['priority_rank'] ?? 5),
+        ]);
+
+        return response()->json(['success' => true, 'channel' => $channel]);
+    }
+
+    public function updateChannel(Request $request, Channel $channel)
+    {
+        $business = $this->resolveCurrentBusiness();
+        if (! $business || $channel->business_id !== $business->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized channel access.'], 403);
+        }
+
+        $validated = $request->validate([
+            'channel_key' => [
+                'required',
+                'string',
+                'max:30',
+                Rule::unique('channels', 'channel_key')
+                    ->where(function ($query) use ($business) {
+                        return $query->where('business_id', $business->id);
+                    })
+                    ->ignore($channel->id),
+            ],
+            'display_name' => 'required|string|max:100',
+            'provider' => 'nullable|string|max:50',
+            'is_active' => 'nullable|boolean',
+            'priority_rank' => 'nullable|integer|min:1|max:10',
+        ]);
+
+        $channel->update([
+            'channel_key' => strtolower(trim($validated['channel_key'])),
+            'display_name' => $validated['display_name'],
+            'provider' => $validated['provider'] ?? $channel->provider,
+            'is_active' => (bool) ($validated['is_active'] ?? $channel->is_active),
+            'priority_rank' => (int) ($validated['priority_rank'] ?? $channel->priority_rank),
+        ]);
+
+        return response()->json(['success' => true, 'channel' => $channel->fresh()]);
+    }
+
+    public function destroyChannel(Channel $channel)
+    {
+        $business = $this->resolveCurrentBusiness();
+        if (!$business || $channel->business_id !== $business->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized channel access.'], 403);
+        }
+
+        $isInUse = AiSalesAgent::forUser(Auth::id())
+            ->whereJsonContains('notification_methods', $channel->channel_key)
+            ->exists();
+
+        if ($isInUse) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Channel is currently enabled for one or more agents and cannot be deleted.'
+            ], 422);
+        }
+
+        $channel->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function updateAgentChannels(Request $request, AiSalesAgent $aiSalesAgent)
+    {
+        if ($aiSalesAgent->user_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access to this AI sales agent.'], 403);
+        }
+
+        $validated = $request->validate([
+            'enabled_channels' => 'nullable|array',
+            'enabled_channels.*' => 'string|max:30',
+        ]);
+
+        $enabledChannels = $this->normalizeEnabledChannels($validated['enabled_channels'] ?? []);
+        $availableChannels = collect($this->getBusinessChannelsForUser())->pluck('channel_key')->all();
+
+        $filteredChannels = array_values(array_intersect($enabledChannels, $availableChannels));
+        if (empty($filteredChannels)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'At least one enabled channel is required.'
+            ], 422);
+        }
+
+        $aiSalesAgent->update([
+            'notification_methods' => $filteredChannels,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'enabled_channels' => $filteredChannels,
+        ]);
+    }
+
+    private function resolveCurrentBusiness(): ?Business
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return null;
+        }
+
+        if ($user->business) {
+            return $user->business;
+        }
+
+        return $user->business ?: Business::where('user_id', $user->id)->first();
+    }
+
+    private function getBusinessChannelsForUser()
+    {
+        $business = $this->resolveCurrentBusiness();
+
+        if (! $business) {
+            return collect();
+        }
+
+        return $business->channels()
+            ->orderBy('priority_rank')
+            ->orderBy('display_name')
+            ->get();
+    }
+
+    private function normalizeEnabledChannels($channels): array
+    {
+        return collect($channels)
+            ->map(function ($channel) {
+                return strtolower(trim((string) $channel));
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function assertNotificationMethodsPresent(array $validatedData): void
+    {
+        if ($this->getBusinessChannelsForUser()->isNotEmpty() && empty($validatedData['notification_methods'] ?? [])) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Select at least one enabled channel before saving the agent.',
+                'errors' => [
+                    'notification_methods' => ['Please select at least one enabled channel.'],
+                ],
+            ], 422));
         }
     }
 

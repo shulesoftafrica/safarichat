@@ -12,6 +12,7 @@ use App\Models\OutgoingMessage;
 use App\Models\Handoff;
 use App\Services\WaSenderService;
 use App\Services\BillingService;
+use App\Services\MultiChannel\OutboundOrchestratorService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -20,12 +21,18 @@ class AiWhatsAppService
 {
     private $openAiService;
     private $waSenderService;
+    private $outboundOrchestrator;
     private array $ignoredPhonesByUser = [];
 
-    public function __construct(OpenAiService $openAiService, WaSenderService $waSenderService)
+    public function __construct(
+        OpenAiService $openAiService,
+        WaSenderService $waSenderService,
+        OutboundOrchestratorService $outboundOrchestrator
+    )
     {
         $this->openAiService = $openAiService;
         $this->waSenderService = $waSenderService;
+        $this->outboundOrchestrator = $outboundOrchestrator;
     }
 
     /**
@@ -62,6 +69,11 @@ class AiWhatsAppService
             // User just messaged us — clear the WAITING_FOR_USER state so
             // the next AI reply will be allowed.
             $lead->markUserReplied();
+
+            // Offer rotation: the prospect engaged — mark the in-flight offer as
+            // engaged so the engine keeps the conversation on that module instead
+            // of rotating away from a working angle. (No-op when feature is off.)
+            app(\App\Services\Sales\NextBestOfferService::class)->recordEngagement($lead);
 
             // Find appropriate AI sales agent for this lead
             $agent = $this->findBestAgent($message, $lead);
@@ -1188,18 +1200,6 @@ class AiWhatsAppService
                 ];
             }
 
-            // Get user's WhatsApp instance
-            $instance = \App\Models\WhatsappInstance::where('user_id', $agent->user_id)
-                                                   ->where('status', 'connected')
-                                                   ->first();
-
-            if (!$instance) {
-                return [
-                    'success' => false,
-                    'error' => 'No active WhatsApp instance found'
-                ];
-            }
-
             if ($this->shouldSkipDuplicateOutbound($agent->user_id, $contact->guest_phone, $message)) {
                 Log::info('Outreach message skipped to prevent duplicate outbound message', [
                     'lead_id' => $lead->id,
@@ -1215,36 +1215,16 @@ class AiWhatsAppService
                 ];
             }
 
-            // Create outgoing message record
-            $outgoingMessage = OutgoingMessage::create([
-                'user_id' => $agent->user_id,
-                'phone_number' => $contact->guest_phone,
-                'message_body' => $message,
-                'message_type' => 'text',
-                'status' => 'pending',
-                'is_ai_generated' => true,
-                'metadata' => [
-                    'lead_id' => $lead->id,
-                    'agent_id' => $agent->id,
-                    'campaign' => $campaign
-                ]
+            $dispatchResult = $this->outboundOrchestrator->dispatchForLead($lead, $message, [
+                'agent' => $agent,
+                'campaign' => $campaign,
+                'priority' => 'normal',
+                'requires_formal' => false,
+                'product_id' => $lead->getPrimaryProduct()?->id,
             ]);
 
-            // Send via WaSender
-            $result = $this->waSenderService->sendMessage(
-                $contact->guest_phone,
-                $message,
-                ['type' => 'text'],
-                $instance,
-                $agent->user_id
-            );
-
-            if ($result['success']) {
-                $outgoingMessage->update([
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                    'external_message_id' => $result['message_id'] ?? null
-                ]);
+            if ($dispatchResult['success']) {
+                $outgoingMessageId = $dispatchResult['outgoing_message_id'] ?? null;
 
                 // Create conversation record
                 Conversation::create([
@@ -1257,7 +1237,8 @@ class AiWhatsAppService
                     'is_active' => true,
                     'metadata' => [
                         'campaign' => $campaign,
-                        'outgoing_message_id' => $outgoingMessage->id
+                        'selected_channel' => $dispatchResult['selected_channel'] ?? 'whatsapp',
+                        'outgoing_message_id' => $outgoingMessageId
                     ]
                 ]);
 
@@ -1269,18 +1250,14 @@ class AiWhatsAppService
 
                 return [
                     'success' => true,
-                    'message_id' => $result['message_id'] ?? null,
-                    'outgoing_message_id' => $outgoingMessage->id
+                    'queued' => true,
+                    'selected_channel' => $dispatchResult['selected_channel'] ?? 'whatsapp',
+                    'outgoing_message_id' => $outgoingMessageId
                 ];
             } else {
-                $outgoingMessage->update([
-                    'status' => 'failed',
-                    'error_message' => $result['error'] ?? 'Unknown error'
-                ]);
-
                 return [
                     'success' => false,
-                    'error' => $result['error'] ?? 'Failed to send message'
+                    'error' => $dispatchResult['error'] ?? 'Failed to queue outbound message'
                 ];
             }
 

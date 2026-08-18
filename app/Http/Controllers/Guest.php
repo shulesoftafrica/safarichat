@@ -1958,23 +1958,28 @@ class Guest extends Controller {
                         'retry_count' => 0
                     ]);
 
-                    // Dispatch to job queue
-                    \App\Jobs\SendWhatsAppMessage::dispatch(
-                        $message,
-                        $phone,
-                        'whatsapp',
-                        $user->id,
-                        null, // no files
-                        $whatsappInstance->instance_id,
-                        [
-                            'whatsapp_instance_id' => $whatsappInstance->id,
+                    $delaySeconds = 0;
+                    if ($scheduleDate) {
+                        $scheduledAt = \Carbon\Carbon::parse($scheduleDate);
+                        $delaySeconds = max(0, $scheduledAt->timestamp - now()->timestamp);
+                    }
+
+                    app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                        ->dispatchDirect((int) $user->id, (string) $message, [
+                            'to' => (string) $phone,
+                            'channel' => 'whatsapp',
+                            'source' => 'whatsapp',
                             'provider' => 'waapi',
                             'priority' => 'normal',
-                            'batch_id' => $batchId,
+                            'instance_id' => $whatsappInstance->instance_id,
+                            'whatsapp_instance_id' => $whatsappInstance->id,
                             'outgoing_message_id' => $outgoingMessage->id,
-                            'scheduled_at' => $scheduleDate
-                        ]
-                    );
+                            'delay_seconds' => $delaySeconds,
+                            'metadata' => [
+                                'batch_id' => $batchId,
+                                'scheduled_at' => $scheduleDate,
+                            ],
+                        ]);
 
                     $queuedCount++;
                 } catch (\Exception $e) {
@@ -2132,22 +2137,28 @@ class Guest extends Controller {
                         'caption' => $message
                     ]);
 
-                    // Dispatch to job queue
-                    \App\Jobs\SendWhatsAppMessage::dispatch(
-                        $message,
-                        $phone,
-                        'whatsapp',
-                        $user->id,
-                        $uploadedFiles, // Pass uploaded files
-                        $whatsappInstance->instance_id,
-                        [
-                            'whatsapp_instance_id' => $whatsappInstance->id,
+                    $delaySeconds = 0;
+                    if ($scheduleDate) {
+                        $scheduledAt = \Carbon\Carbon::parse($scheduleDate);
+                        $delaySeconds = max(0, $scheduledAt->timestamp - now()->timestamp);
+                    }
+
+                    app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                        ->dispatchDirect((int) $user->id, (string) $message, [
+                            'to' => (string) $phone,
+                            'channel' => 'whatsapp',
+                            'source' => 'whatsapp',
                             'provider' => 'waapi',
                             'priority' => 'normal',
+                            'instance_id' => $whatsappInstance->instance_id,
+                            'whatsapp_instance_id' => $whatsappInstance->id,
                             'outgoing_message_id' => $outgoingMessage->id,
-                            'scheduled_at' => $scheduleDate
-                        ]
-                    );
+                            'files' => $uploadedFiles,
+                            'delay_seconds' => $delaySeconds,
+                            'metadata' => [
+                                'scheduled_at' => $scheduleDate,
+                            ],
+                        ]);
 
                     $successCount++;
                 } catch (\Exception $e) {

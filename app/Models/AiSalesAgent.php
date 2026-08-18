@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class AiSalesAgent extends Model
 {
@@ -136,6 +137,14 @@ class AiSalesAgent extends Model
     }
 
     /**
+     * Contact-level channel preferences linked to this agent.
+     */
+    public function contactChannelPreferences()
+    {
+        return $this->hasMany(ContactChannelPreference::class);
+    }
+
+    /**
      * Get the target user types for this agent
      * Note: target_user_types is stored as JSON field, not a separate table
      */
@@ -207,7 +216,7 @@ class AiSalesAgent extends Model
         try {
             return UserType::whereIn('id', $this->target_user_types)->pluck('name')->toArray();
         } catch (\Exception $e) {
-            \Log::error('Error getting target user type names: ' . $e->getMessage(), [
+            Log::error('Error getting target user type names: ' . $e->getMessage(), [
                 'agent_id' => $this->id,
                 'target_user_types' => $this->target_user_types
             ]);

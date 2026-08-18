@@ -2286,12 +2286,7 @@ class Message extends Controller
             // Generate personalized sales message using AI agent configuration
             $message = $this->generatePersonalizedSalesMessage($lead, $aiAgent, $products, $guest);
             
-            // Get user's WhatsApp instance
-            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', $aiAgent->user_id)
-                                                           ->where('status', 'active')
-                                                           ->first();
-            
-            if ($whatsappInstance && $message) {
+            if ($message) {
                 // Create conversation record for tracking
                 $conversation = \App\Models\Conversation::create([
                     'lead_id' => $lead->id,
@@ -2301,16 +2296,20 @@ class Message extends Controller
                     'sender_type' => 'ai_agent',
                     'created_at' => now()
                 ]);
-                
-                // Queue the message for sending
-                \App\Jobs\SendWhatsAppMessage::dispatch(
-                    $message,
-                    $lead->phone_number,
-                    'whatsapp',
-                    $aiAgent->user_id,
-                    null, // no files
-                    $whatsappInstance->instance_id
-                );
+
+                // Queue via phase-4 orchestrator single entrypoint.
+                $dispatchResult = app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                    ->dispatchForLead($lead, $message, [
+                        'agent' => $aiAgent,
+                        'campaign' => 'initial_sales',
+                        'priority' => 'normal',
+                        'requires_formal' => false,
+                        'product_id' => $lead->getPrimaryProduct()?->id,
+                    ]);
+
+                if (!($dispatchResult['success'] ?? false)) {
+                    return false;
+                }
                 
                 // Update lead status
                 $lead->update([

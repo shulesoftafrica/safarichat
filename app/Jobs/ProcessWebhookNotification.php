@@ -190,7 +190,11 @@ class ProcessWebhookNotification implements ShouldQueue
         ));
 
         if (!empty($updateData)) {
+            $previousStatus = $outgoingMessage->status;
             $outgoingMessage->update($updateData);
+
+            app(\App\Services\MultiChannel\ChannelMetricsService::class)
+                ->recordOutgoingTransition($outgoingMessage->fresh(), $previousStatus, $updateData['status'] ?? $previousStatus);
             
             Log::info('Message status updated via webhook', [
                 'message_id' => $outgoingMessage->id,
@@ -267,6 +271,9 @@ class ProcessWebhookNotification implements ShouldQueue
             'contact_id' => $contact->id,
             'instance_id' => $sessionId
         ]);
+
+        app(\App\Services\MultiChannel\ChannelMetricsService::class)
+            ->recordIncomingReply($incomingMessage);
 
         // Trigger any auto-response logic if needed
         $this->triggerAutoResponse($incomingMessage, $instance);
@@ -411,18 +418,21 @@ class ProcessWebhookNotification implements ShouldQueue
         foreach ($autoReplyRules as $keyword => $reply) {
             if (str_contains($messageText, $keyword)) {
                 // Dispatch auto-reply job
-                SendWhatsAppMessage::dispatch(
-                    $reply,
-                    $message->phone_number,
-                    'auto_reply',
-                    $instance->user_id,
-                    null,
-                    $instance->instance_id,
-                    [
+                app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                    ->dispatchDirect((int) $instance->user_id, $reply, [
+                        'to' => $message->phone_number,
+                        'channel' => 'whatsapp',
+                        'source' => 'auto_reply',
                         'provider' => 'unified_api',
-                        'priority' => 'normal'
-                    ]
-                );
+                        'priority' => 'normal',
+                        'instance_id' => $instance->instance_id,
+                        'whatsapp_instance_id' => $instance->id,
+                        'business_contact_id' => $message->business_contact_id ?? null,
+                        'metadata' => [
+                            'auto_reply_keyword' => $keyword,
+                            'incoming_message_id' => $message->id,
+                        ],
+                    ]);
 
                 Log::info('Auto-reply triggered', [
                     'incoming_message_id' => $message->id,

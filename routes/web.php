@@ -193,6 +193,11 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
         Route::get('/', [App\Http\Controllers\AiSalesAgentController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\AiSalesAgentController::class, 'store'])->name('store');
         Route::get('/create', [App\Http\Controllers\AiSalesAgentController::class, 'create'])->name('create');
+        Route::get('/channels', [App\Http\Controllers\AiSalesAgentController::class, 'getChannels'])->name('channels.index');
+        Route::post('/channels', [App\Http\Controllers\AiSalesAgentController::class, 'storeChannel'])->name('channels.store');
+        Route::put('/channels/{channel}', [App\Http\Controllers\AiSalesAgentController::class, 'updateChannel'])->name('channels.update');
+        Route::delete('/channels/{channel}', [App\Http\Controllers\AiSalesAgentController::class, 'destroyChannel'])->name('channels.destroy');
+        Route::patch('/{aiSalesAgent}/channels', [App\Http\Controllers\AiSalesAgentController::class, 'updateAgentChannels'])->name('channels.update-agent');
         Route::get('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'show'])->name('show');
         Route::get('/{aiSalesAgent}/edit', [App\Http\Controllers\AiSalesAgentController::class, 'edit'])->name('edit');
         Route::put('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'update'])->name('update');

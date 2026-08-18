@@ -52,6 +52,9 @@
 
                         <!-- Action Buttons -->
                         <div class="action-buttons-group">
+                            <button class="btn-action success" onclick="openChannelManager()" title="Manage Channels" aria-label="Manage Channels">
+                                <i class="fas fa-layer-group"></i>
+                            </button>
                             <button class="btn-action primary" onclick="viewAgent('{{ optional($agents->first())->uuid }}')" title="View Sales Settings" aria-label="View Sales Settings" @if($agents->count() === 0) disabled @endif>
                                 <i class="fas fa-eye"></i>
                             </button>
@@ -526,7 +529,109 @@
                                         </div>
                                     </div>
                                 </div>
-<style>
+            <div class="modal fade" id="channelManagerModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title mb-1"><i class="fas fa-layer-group me-2"></i>Channel Management</h5>
+                                <small class="text-muted">Create, edit, or remove channels and set per-agent enablement.</small>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-4">
+                                <div class="col-lg-5">
+                                    <div class="channel-panel">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0">Channels</h6>
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="startChannelCreate()"><i class="fas fa-plus me-1"></i>New</button>
+                                        </div>
+                                        <div id="channelList" class="channel-list"></div>
+                                        <div id="channelFormCard" class="channel-form-card mt-3" style="display:none;">
+                                            <h6 id="channelFormTitle" class="mb-3">Add Channel</h6>
+                                            <form id="channelForm" onsubmit="saveChannel(event)">
+                                                <input type="hidden" id="channelId" value="">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Channel Key</label>
+                                                    <input type="text" class="form-control" id="channelKey" placeholder="whatsapp, email, sms" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Display Name</label>
+                                                    <input type="text" class="form-control" id="channelDisplayName" required>
+                                                </div>
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <label class="form-label">Provider</label>
+                                                        <input type="text" class="form-control" id="channelProvider" placeholder="unified_api">
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label">Priority</label>
+                                                        <input type="number" class="form-control" id="channelPriorityRank" min="1" max="10" value="5">
+                                                    </div>
+                                                </div>
+                                                <div class="form-check form-switch mt-3">
+                                                    <input class="form-check-input" type="checkbox" id="channelIsActive" checked>
+                                                    <label class="form-check-label" for="channelIsActive">Active</label>
+                                                </div>
+                                                <div class="d-flex gap-2 mt-3">
+                                                    <button type="submit" class="btn btn-primary btn-sm">Save Channel</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetChannelForm()">Cancel</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-7">
+                                    <div class="channel-panel">
+                                        <h6 class="mb-3">Enabled Channels Per Agent</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle channel-matrix-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Agent</th>
+                                                        @forelse($channels as $channel)
+                                                            <th class="text-center">{{ $channel->display_name }}</th>
+                                                        @empty
+                                                            <th class="text-center">No channels yet</th>
+                                                        @endforelse
+                                                        <th class="text-end">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($agents as $agent)
+                                                        <tr>
+                                                            <td>
+                                                                <strong>{{ $agent->assistant_name }}</strong><br>
+                                                                <small class="text-muted">{{ $agent->uuid }}</small>
+                                                            </td>
+                                                            @forelse($channels as $channel)
+                                                                <td class="text-center">
+                                                                    <input type="checkbox" class="form-check-input channel-toggle" data-agent-id="{{ $agent->uuid }}" data-channel-key="{{ $channel->channel_key }}" @checked(in_array($channel->channel_key, $agentChannelMatrix[$agent->id] ?? []))>
+                                                                </td>
+                                                            @empty
+                                                                <td class="text-center text-muted">Create a channel to enable it here.</td>
+                                                            @endforelse
+                                                            <td class="text-end">
+                                                                <button type="button" class="btn btn-sm btn-primary" onclick="saveAgentChannels('{{ $agent->uuid }}')">Save</button>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="{{ max(2, count($channels) + 2) }}" class="text-center text-muted py-4">No agents available yet.</td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <style>
 /* Modern AI Agents Management Styles */
 .ai-agents-management {
     background: var(--gray-50);
@@ -1063,6 +1168,51 @@
     display: flex;
     gap: 0.4rem;
     margin-left: 0.5rem;
+}
+
+.channel-panel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+.channel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.channel-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+}
+
+.channel-item.active {
+    border-color: #c7f0d6;
+    background: #f0fff4;
+}
+
+.channel-item.inactive {
+    opacity: 0.85;
+}
+
+.channel-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.channel-matrix-table th,
+.channel-matrix-table td {
+    vertical-align: middle;
 }
 
 /* Responsive Design */
@@ -1891,6 +2041,9 @@
 </style>
 
 <script>
+const channelCatalog = @json($channels ?? []);
+const agentChannelMatrix = @json($agentChannelMatrix ?? []);
+
 function viewAgent(uuid) {
     fetch(`{{ url('/ai-agents') }}/${uuid}`)
         .then(response => response.json())
@@ -2128,9 +2281,179 @@ function purchaseCredits(amount) {
     }
 }
 
+function openChannelManager() {
+    renderChannelManager();
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('channelManagerModal'));
+    modal.show();
+}
+
+function renderChannelManager() {
+    const channelList = document.getElementById('channelList');
+    if (!channelList) {
+        return;
+    }
+
+    if (!channelCatalog.length) {
+        channelList.innerHTML = '<div class="alert alert-info mb-0">No channels exist yet. Create the first channel to start managing channel enablement.</div>';
+        return;
+    }
+
+    channelList.innerHTML = channelCatalog.map(channel => `
+        <div class="channel-item ${channel.is_active ? 'active' : 'inactive'}">
+            <div>
+                <div class="fw-bold">${escapeHtml(channel.display_name)}</div>
+                <small class="text-muted">${escapeHtml(channel.channel_key)} · ${escapeHtml(channel.provider || 'unified_api')} · Priority ${channel.priority_rank ?? 5}</small>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" onclick="startChannelEdit(${channel.id})">Edit</button>
+                <button type="button" class="btn btn-outline-danger" onclick='deleteChannel(${channel.id}, ${JSON.stringify(channel.display_name || '')})'>Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function startChannelCreate() {
+    document.getElementById('channelFormTitle').textContent = 'Add Channel';
+    document.getElementById('channelId').value = '';
+    document.getElementById('channelKey').value = '';
+    document.getElementById('channelDisplayName').value = '';
+    document.getElementById('channelProvider').value = 'unified_api';
+    document.getElementById('channelPriorityRank').value = 5;
+    document.getElementById('channelIsActive').checked = true;
+    document.getElementById('channelFormCard').style.display = 'block';
+}
+
+function startChannelEdit(channelId) {
+    const channel = channelCatalog.find(item => Number(item.id) === Number(channelId));
+    if (!channel) {
+        alert('Channel not found');
+        return;
+    }
+
+    document.getElementById('channelFormTitle').textContent = 'Edit Channel';
+    document.getElementById('channelId').value = channel.id;
+    document.getElementById('channelKey').value = channel.channel_key || '';
+    document.getElementById('channelDisplayName').value = channel.display_name || '';
+    document.getElementById('channelProvider').value = channel.provider || 'unified_api';
+    document.getElementById('channelPriorityRank').value = channel.priority_rank ?? 5;
+    document.getElementById('channelIsActive').checked = !!channel.is_active;
+    document.getElementById('channelFormCard').style.display = 'block';
+}
+
+function resetChannelForm() {
+    const formCard = document.getElementById('channelFormCard');
+    if (formCard) {
+        formCard.style.display = 'none';
+    }
+}
+
+function saveChannel(event) {
+    event.preventDefault();
+
+    const channelId = document.getElementById('channelId').value;
+    const payload = {
+        channel_key: document.getElementById('channelKey').value,
+        display_name: document.getElementById('channelDisplayName').value,
+        provider: document.getElementById('channelProvider').value,
+        priority_rank: document.getElementById('channelPriorityRank').value,
+        is_active: document.getElementById('channelIsActive').checked ? 1 : 0,
+    };
+
+    const url = channelId ? `{{ url('/ai-agents/channels') }}/${channelId}` : `{{ url('/ai-agents/channels') }}`;
+    const method = channelId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method,
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to save channel');
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert('Failed to save channel');
+    });
+}
+
+function deleteChannel(channelId, channelName) {
+    if (!confirm(`Delete ${channelName}?`)) {
+        return;
+    }
+
+    fetch(`{{ url('/ai-agents/channels') }}/${channelId}`, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to delete channel');
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert('Failed to delete channel');
+    });
+}
+
+function saveAgentChannels(agentUuid) {
+    const enabledChannels = Array.from(document.querySelectorAll(`.channel-toggle[data-agent-id="${agentUuid}"]`))
+        .filter(input => input.checked)
+        .map(input => input.dataset.channelKey);
+
+    fetch(`{{ url('/ai-agents') }}/${agentUuid}/channels`, {
+        method: 'PATCH',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ enabled_channels: enabledChannels })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Agent channels updated successfully');
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to update agent channels');
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert('Failed to update agent channels');
+    });
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Auto-hide warning banner when connection is successful
 document.addEventListener('DOMContentLoaded', function() {
     const warningBanner = document.querySelector('.whatsapp-warning-banner');
+    renderChannelManager();
     if (warningBanner) {
         // When status polling detects a connection, hide the banner
         const observer = new MutationObserver(function(mutations) {

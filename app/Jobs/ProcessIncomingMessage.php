@@ -46,7 +46,7 @@ class ProcessIncomingMessage implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle()
+    public function handle(\App\Services\MultiChannel\OutboundOrchestratorService $outboundOrchestrator)
     {
         try {
             Log::info('Processing incoming message via queue', [
@@ -163,16 +163,24 @@ class ProcessIncomingMessage implements ShouldQueue
             $aiResponse = $this->generateAIResponse($context);
 
             if ($aiResponse) {
-                // Queue the AI response with instance tracking
-                SendWhatsAppMessage::dispatch(
-                    $aiResponse,
-                    $phoneNumber,
-                    'whatsapp',
-                    $this->whatsappInstance->user_id,
-                    null,
-                    $this->instanceId,
-                    ['whatsapp_instance_id' => $this->whatsappInstance->id] // Pass instance ID
-                )->delay(now()->addSeconds(2)); // Small delay to feel natural
+                // Queue AI response through the phase-4 orchestrator entrypoint.
+                app(\App\Services\MultiChannel\OutboundOrchestratorService::class)
+                    ->dispatchDirect((int) $this->whatsappInstance->user_id, $aiResponse, [
+                    'to' => $phoneNumber,
+                    'channel' => 'whatsapp',
+                    'priority' => 'normal',
+                    'provider' => 'wa_sender',
+                    'source' => 'whatsapp',
+                    'instance_id' => $this->instanceId,
+                    'whatsapp_instance_id' => $this->whatsappInstance->id,
+                    'delay_seconds' => 2,
+                    'message_type' => 'text',
+                    'business_contact_id' => $lead?->business_contact_id,
+                    'metadata' => [
+                        'auto_reply' => true,
+                        'process_incoming_message_job' => true,
+                    ],
+                ]);
 
                 // WAITING_FOR_USER: mark lead as waiting after queuing the AI reply.
                 if ($lead) {

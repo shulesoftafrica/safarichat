@@ -92,6 +92,14 @@ class Product extends Model
     }
 
     /**
+     * Channel-level routing policies for this product.
+     */
+    public function channelPolicies()
+    {
+        return $this->hasMany(ChannelProductPolicy::class);
+    }
+
+    /**
      * Get conversations about this product
      */
     public function conversations()

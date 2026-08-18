@@ -2,20 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Jobs\SendWhatsAppMessage;
-use App\Models\OutgoingMessage;
-use App\Models\User;
-use App\Services\UnifiedNotificationService;
+use App\Services\MultiChannel\OutboundOrchestratorService;
 use App\Services\UserResolutionService;
-use App\Services\MessageStatusMapper;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Bus\Batch;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
 
 class ProcessBulkMessages implements ShouldQueue
@@ -72,7 +66,7 @@ class ProcessBulkMessages implements ShouldQueue
      *
      * @return void
      */
-    public function handle(UnifiedNotificationService $unifiedService)
+    public function handle(OutboundOrchestratorService $outboundOrchestrator)
     {
         try {
             Log::info('Processing bulk message job', [
@@ -83,11 +77,7 @@ class ProcessBulkMessages implements ShouldQueue
                 'rate_limit' => $this->rateLimit
             ]);
 
-            if ($this->useUnifiedApi && $this->provider === 'unified_api') {
-                return $this->handleViaUnifiedApi($unifiedService);
-            } else {
-                return $this->handleViaLegacyMethod();
-            }
+            return $this->handleViaOrchestrator($outboundOrchestrator);
 
         } catch (\Exception $e) {
             Log::error('Bulk message job failed', [
@@ -101,198 +91,75 @@ class ProcessBulkMessages implements ShouldQueue
     }
 
     /**
-     * Handle bulk messages via unified notification API
+     * Handle bulk messages via phase-4 orchestrator single entrypoint.
      */
-    private function handleViaUnifiedApi(UnifiedNotificationService $service)
+    private function handleViaOrchestrator(OutboundOrchestratorService $outboundOrchestrator): array
     {
-        $user = User::find($this->userId);
-        $schemaName = $user ? ($user->uuid ?? $user->id) : 'default';
         $batchId = Str::uuid();
-
-        // Prepare messages for bulk API
-        $messages = [];
-        $outgoingMessageIds = [];
+        $queuedCount = 0;
+        $failedCount = 0;
+        $delaySeconds = 0.0;
+        $delayIncrement = 60 / max(1, (int) $this->rateLimit);
+        $channel = $this->resolveChannel();
 
         foreach ($this->recipients as $recipient) {
             $phoneNumber = $this->extractPhoneNumber($recipient);
-            if (!$phoneNumber) continue;
+            if (!$phoneNumber) {
+                $failedCount++;
+                continue;
+            }
 
             $personalizedMessage = $this->personalizeMessage($recipient);
-            
-            // Create OutgoingMessage record for tracking
-            $outgoingMessage = $this->createOutgoingMessageRecord($recipient, $personalizedMessage, $batchId);
-            $outgoingMessageIds[] = $outgoingMessage->id;
+            $normalizedPhone = UserResolutionService::normalizePhoneNumber($phoneNumber);
+            $contactName = $this->extractName($recipient) ?? 'Bulk recipient';
 
-            $messages[] = [
-                'to' => UserResolutionService::normalizePhoneNumber($phoneNumber),
-                'message' => $personalizedMessage,
+            $dispatchResult = $outboundOrchestrator->dispatchDirect((int) $this->userId, $personalizedMessage, [
+                'to' => $normalizedPhone,
+                'channel' => $channel,
+                'source' => $this->source,
+                'provider' => $this->provider,
+                'priority' => $this->priority,
+                'delay_seconds' => (int) ceil($delaySeconds),
                 'metadata' => [
-                    'outgoing_message_id' => $outgoingMessage->id,
-                    'recipient_data' => is_array($recipient) ? $recipient : ['phone' => $phoneNumber]
-                ]
-            ];
-        }
-
-        Log::info('Prepared bulk messages for unified API', [
-            'message_count' => count($messages),
-            'batch_id' => $batchId
-        ]);
-
-        // Send via unified API bulk endpoint
-        $bulkData = [
-            'schema_name' => $schemaName,
-            'channel' => 'whatsapp',
-            'priority' => $this->priority,
-            'rate_limit' => $this->rateLimit,
-            'batch_size' => $this->batchSize,
-            'messages' => $messages
-        ];
-
-        $response = $service->sendBulkNotifications($bulkData);
-
-        if ($response && $response['success']) {
-            // Update all OutgoingMessage records with batch response
-            OutgoingMessage::whereIn('id', $outgoingMessageIds)->update([
-                'status' => 'queued',
-                'sent_at' => now(),
-                'waapi_response' => json_encode($response)
+                    'bulk_job' => true,
+                    'batch_id' => (string) $batchId,
+                    'recipient_name' => $contactName,
+                    'recipient_data' => is_array($recipient) ? $recipient : ['phone' => $phoneNumber],
+                    'bulk_mode' => $this->useUnifiedApi ? 'unified' : 'legacy',
+                ],
             ]);
 
-            Log::info('Bulk messages sent via unified API', [
-                'batch_id' => $response['batch_id'] ?? $batchId,
-                'queued_messages' => $response['queued_messages'] ?? count($messages),
-                'failed_messages' => $response['failed_messages'] ?? 0
-            ]);
-
-            return $response;
-        }
-
-        throw new \Exception('Unified API bulk send failed: ' . json_encode($response));
-    }
-
-    /**
-     * Handle bulk messages via legacy individual job dispatch
-     */
-    private function handleViaLegacyMethod()
-    {
-        $batchId = Str::uuid();
-        $jobs = [];
-
-        foreach ($this->recipients as $recipient) {
-            $phoneNumber = $this->extractPhoneNumber($recipient);
-            if (!$phoneNumber) continue;
-
-            $personalizedMessage = $this->personalizeMessage($recipient);
-            
-            // Create OutgoingMessage record for tracking
-            $outgoingMessage = $this->createOutgoingMessageRecord($recipient, $personalizedMessage, $batchId);
-
-            $jobs[] = new SendWhatsAppMessage(
-                $personalizedMessage,
-                $phoneNumber,
-                $this->source,
-                $this->userId,
-                null, // no files
-                null, // no specific instance
-                [
-                    'provider' => $this->provider,
-                    'priority' => $this->priority,
+            if ($dispatchResult['success'] ?? false) {
+                $queuedCount++;
+            } else {
+                $failedCount++;
+                Log::warning('Bulk message recipient failed to queue', [
+                    'user_id' => $this->userId,
+                    'phone' => $normalizedPhone,
                     'batch_id' => $batchId,
-                    'outgoing_message_id' => $outgoingMessage->id
-                ]
-            );
+                    'error' => $dispatchResult['error'] ?? 'unknown',
+                ]);
+            }
+
+            $delaySeconds += $delayIncrement;
         }
 
-        // Dispatch jobs with rate limiting
-        $this->dispatchJobsWithRateLimit($jobs, $batchId);
+        Log::info('Bulk messages routed via outbound orchestrator', [
+            'user_id' => $this->userId,
+            'batch_id' => $batchId,
+            'channel' => $channel,
+            'queued_messages' => $queuedCount,
+            'failed_messages' => $failedCount,
+            'rate_limit' => $this->rateLimit,
+        ]);
 
         return [
-            'success' => true,
-            'batch_id' => $batchId,
-            'queued_messages' => count($jobs),
-            'method' => 'legacy_jobs'
+            'success' => $failedCount === 0,
+            'batch_id' => (string) $batchId,
+            'queued_messages' => $queuedCount,
+            'failed_messages' => $failedCount,
+            'method' => 'outbound_orchestrator',
         ];
-    }
-
-    /**
-     * Create OutgoingMessage record for tracking
-     */
-    private function createOutgoingMessageRecord($recipient, $personalizedMessage, $batchId)
-    {
-        $phoneNumber = $this->extractPhoneNumber($recipient);
-        
-        // Resolve or create contact
-        $businessContact = null;
-        if ($this->userId && $phoneNumber) {
-            $contactData = [
-                'phone' => $phoneNumber,
-                'name' => $this->extractName($recipient) ?? 'Bulk recipient',
-                'user_id' => $this->userId
-            ];
-            
-            $businessContact = UserResolutionService::resolveOrCreateContact($contactData);
-        }
-
-        return OutgoingMessage::create([
-            'user_id' => $this->userId,
-            'business_contact_id' => $businessContact ? $businessContact->id : null,
-            'phone_number' => $phoneNumber,
-            'message' => $personalizedMessage,
-            'message_body' => $personalizedMessage,
-            'message_type' => 'text',
-            'status' => 'pending',
-            'provider' => $this->provider,
-            'priority' => $this->priority,
-            'batch_id' => $batchId,
-            'queued_at' => now(),
-            'retry_count' => 0,
-            'metadata' => json_encode([
-                'bulk_job' => true,
-                'recipient_data' => is_array($recipient) ? $recipient : null
-            ])
-        ]);
-    }
-
-    /**
-     * Dispatch jobs with rate limiting
-     */
-    private function dispatchJobsWithRateLimit(array $jobs, string $batchId)
-    {
-        $batchJobs = array_chunk($jobs, $this->batchSize);
-        $delay = 0;
-        $delayIncrement = 60 / $this->rateLimit; // Seconds per message based on rate limit
-
-        foreach ($batchJobs as $batchIndex => $batchJob) {
-            $delay += $delayIncrement * count($batchJob);
-            
-            Bus::batch($batchJob)
-                ->name("Bulk Messages Batch {$batchIndex} - User {$this->userId}")
-                ->allowFailures()
-                ->onConnection('redis')
-                ->onQueue($this->determineJobQueue())
-                ->delay(now()->addSeconds($delay))
-                ->then(function (Batch $batch) use ($batchIndex, $batchId) {
-                    Log::info("Bulk message batch {$batchIndex} completed", ['batch_id' => $batchId]);
-                })
-                ->catch(function (Batch $batch, \Throwable $e) use ($batchIndex, $batchId) {
-                    Log::error("Bulk message batch {$batchIndex} failed", [
-                        'batch_id' => $batchId,
-                        'error' => $e->getMessage()
-                    ]);
-                })
-                ->finally(function (Batch $batch) use ($batchIndex, $batchId) {
-                    Log::info("Bulk message batch {$batchIndex} finished", ['batch_id' => $batchId]);
-                })
-                ->dispatch();
-        }
-
-        Log::info('Bulk message job dispatched with rate limiting', [
-            'user_id' => $this->userId,
-            'total_jobs' => count($jobs),
-            'total_batches' => count($batchJobs),
-            'batch_id' => $batchId,
-            'rate_limit' => $this->rateLimit
-        ]);
     }
 
     /**
@@ -311,16 +178,16 @@ class ProcessBulkMessages implements ShouldQueue
         }
     }
 
-    /**
-     * Determine queue for individual jobs
-     */
-    private function determineJobQueue()
+    private function resolveChannel(): string
     {
-        return match($this->priority) {
-            'urgent', 'high' => 'urgent_messages',
-            'low' => 'low_priority',
-            default => 'messages'
-        };
+        $allowed = ['whatsapp', 'email', 'phone_sms', 'bulk_sms'];
+        $source = strtolower((string) $this->source);
+
+        if (in_array($source, $allowed, true)) {
+            return $source;
+        }
+
+        return 'whatsapp';
     }
 
     /**
