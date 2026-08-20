@@ -28,7 +28,7 @@ class ChannelPayloadBuilder
             'channel' => $channel,
             'to' => $context['to'] ?? null,
             'message' => $context['message'] ?? null,
-            'provider' => $context['provider'] ?? $this->defaultProviderFor($channel),
+            'provider' => $this->normalizeProvider($channel, $context['provider'] ?? null),
             'priority' => $context['priority'] ?? 'normal',
         ];
 
@@ -76,12 +76,27 @@ class ChannelPayloadBuilder
         }
     }
 
-    private function defaultProviderFor(string $channel): string
+    /**
+     * Resolve the `provider` field to a value the notifications API accepts.
+     *
+     * The API validates provider against a fixed set: twilio, whatsapp, sendgrid,
+     * mailgun. Internal names like 'wa_sender' or 'internal_sms_api' are rejected
+     * with a 422, so any non-conforming value is mapped to the correct provider
+     * for the channel. A caller-supplied value is honored only if it is already valid.
+     */
+    private function normalizeProvider(string $channel, ?string $requested): string
     {
+        $allowed = ['twilio', 'whatsapp', 'sendgrid', 'mailgun'];
+
+        $requested = $requested !== null ? strtolower(trim($requested)) : null;
+        if ($requested !== null && in_array($requested, $allowed, true)) {
+            return $requested;
+        }
+
         return match ($channel) {
             'email' => 'sendgrid',
-            'phone_sms', 'bulk_sms' => 'internal_sms_api',
-            default => 'wa_sender',
+            'phone_sms', 'bulk_sms' => 'twilio',
+            default => 'whatsapp',
         };
     }
 }
