@@ -1700,9 +1700,38 @@ class WaSenderController extends Controller
                 return response()->json(['success' => true, 'message' => 'Contact ignored']);
             }
 
-            // Create IncomingMessage record
-            $incomingMessage = IncomingMessage::create($messageData);
-            
+            // Idempotency by provider message id: a duplicate webhook delivery — or a
+            // second event type for the SAME WhatsApp message — carries the same
+            // message_id. Without this, each delivery creates its own incoming_messages
+            // row and generates its own AI reply, so the customer receives two (different)
+            // answers to one message. firstOrCreate + wasRecentlyCreated skips the duplicate.
+            $providerMessageId = $messageData['message_id'] ?? null;
+
+            if (!empty($providerMessageId)) {
+                $incomingMessage = IncomingMessage::firstOrCreate(
+                    [
+                        'message_id'           => $providerMessageId,
+                        'whatsapp_instance_id' => $instance->id,
+                    ],
+                    $messageData
+                );
+
+                if (!$incomingMessage->wasRecentlyCreated) {
+                    Log::info('Duplicate inbound webhook ignored (message_id already recorded)', [
+                        'message_id'  => $providerMessageId,
+                        'instance_id' => $instance->instance_id,
+                        'existing_row'=> $incomingMessage->id,
+                    ]);
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Duplicate message ignored (idempotency)',
+                    ], 200);
+                }
+            } else {
+                // No provider id to dedupe on — fall back to a plain insert.
+                $incomingMessage = IncomingMessage::create($messageData);
+            }
+
             Log::info('Created incoming message record', [
                 'message_id' => $incomingMessage->id,
                 'phone_number' => $incomingMessage->phone_number,
