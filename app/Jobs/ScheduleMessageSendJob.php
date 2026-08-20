@@ -154,26 +154,54 @@ class ScheduleMessageSendJob implements ShouldQueue
                 ]
             ];
 
-            // Send via WaSender (campaigns always use WaSender, never Meta)
-            $result = $waSenderService->sendTextMessage(
-                $this->messageQueue->phone_number,
-                $message,
-                null, // Use default instance
-                $this->messageQueue->user_id,
-                $options
-            );
+            // If the campaign has attachments, send the FIRST document through the
+            // unified notifications API with the message text as its caption — the
+            // same backend/endpoint the text send uses. (The legacy sendDocument()
+            // hits a different host and silently fails, which dropped attachments.)
+            $attachments = $this->collectValidAttachments();
+            $attachmentCount = count($attachments);
+
+            if (!empty($attachments)) {
+                $first = array_shift($attachments);
+
+                $attachmentOptions = array_merge($options, [
+                    'attachment_path' => $first['path'],
+                    'attachment_type' => $first['mime_type'] ?: 'document',
+                    'attachment_name' => $first['name'],
+                ]);
+
+                // Unified API: `message` becomes the media caption (max 4096 chars,
+                // per the notifications API docs — attachment = base64, ≤10MB).
+                $result = $waSenderService->sendMessage(
+                    $this->messageQueue->phone_number,
+                    $message,
+                    $attachmentOptions,
+                    null, // default instance
+                    $this->messageQueue->user_id
+                );
+
+                // Any remaining attachments go as follow-up document messages.
+                if (($result['success'] ?? false)) {
+                    foreach ($attachments as $extra) {
+                        $this->sendExtraAttachment($waSenderService, $extra);
+                    }
+                }
+            } else {
+                // No attachments — plain text send (unchanged behavior).
+                $result = $waSenderService->sendTextMessage(
+                    $this->messageQueue->phone_number,
+                    $message,
+                    null, // Use default instance
+                    $this->messageQueue->user_id
+                );
+            }
 
             Log::info('WaSender API response', [
                 'message_queue_id' => $this->messageQueue->id,
                 'success' => $result['success'] ?? false,
-                'external_id' => $result['id'] ?? null
+                'external_id' => $result['id'] ?? $result['message_id'] ?? null,
+                'attachments' => $attachmentCount,
             ]);
-
-            // Deliver any campaign attachments (PDF/doc) after the text send.
-            // A failed attachment must NOT fail the whole send — the text already went.
-            if (($result['success'] ?? false)) {
-                $this->sendCampaignAttachments($waSenderService);
-            }
 
             return $result;
 
@@ -191,61 +219,86 @@ class ScheduleMessageSendJob implements ShouldQueue
     }
 
     /**
-     * Deliver campaign attachments (documents/PDF) via WaSender after the text send.
+     * Resolve the campaign's persisted attachments into a clean list of files that
+     * actually exist on disk: [ ['path' => ..., 'mime_type' => ..., 'name' => ...], ... ]
      *
-     * Files were uploaded on the campaign and persisted on campaigns.attachments.
-     * Each is uploaded to WaSender and sent as a document to the recipient.
-     * Any failure is logged and swallowed so it never fails the (already sent) text.
-     *
-     * @param WaSenderService $waSenderService
-     * @return void
+     * @return array<int, array{path:string, mime_type:?string, name:?string}>
      */
-    protected function sendCampaignAttachments(WaSenderService $waSenderService): void
+    protected function collectValidAttachments(): array
+    {
+        $campaign = $this->messageQueue->campaign;
+        $raw = $campaign?->attachments;
+
+        if (empty($raw) || !is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $attachment) {
+            $path = is_array($attachment)
+                ? ($attachment['path'] ?? null)
+                : (is_string($attachment) ? $attachment : null);
+
+            if (empty($path)) {
+                continue;
+            }
+
+            // Only include files that still exist on the public disk.
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                Log::warning('Campaign attachment missing on disk — skipping', [
+                    'message_queue_id' => $this->messageQueue->id,
+                    'path'             => $path,
+                ]);
+                continue;
+            }
+
+            $out[] = [
+                'path'      => $path,
+                'mime_type' => is_array($attachment) ? ($attachment['mime_type'] ?? null) : null,
+                'name'      => is_array($attachment)
+                    ? ($attachment['original_name'] ?? $attachment['filename'] ?? basename($path))
+                    : basename($path),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Send a single extra attachment as its own document message via the unified API.
+     * Uses the filename as a short caption (the API requires a non-empty message).
+     * Fail-open: a bad extra attachment never fails the primary send.
+     */
+    protected function sendExtraAttachment(WaSenderService $waSenderService, array $attachment): void
     {
         try {
-            $campaign = $this->messageQueue->campaign;
-            $attachments = $campaign?->attachments;
-
-            if (empty($attachments) || !is_array($attachments)) {
-                return;
-            }
-
-            foreach ($attachments as $attachment) {
-                $path = is_array($attachment) ? ($attachment['path'] ?? null) : (is_string($attachment) ? $attachment : null);
-                if (empty($path)) {
-                    continue;
-                }
-
-                $filename = is_array($attachment) ? ($attachment['original_name'] ?? $attachment['filename'] ?? null) : null;
-
-                try {
-                    $docResult = $waSenderService->sendDocument(
-                        $this->messageQueue->phone_number,
-                        $path,                       // storage path — WaSenderService resolves + uploads it
-                        $filename,
-                        null,                        // no caption; text was already sent as its own message
-                        null,                        // default instance
-                        $this->messageQueue->user_id
-                    );
-
-                    Log::info('Campaign attachment sent', [
+            $result = $waSenderService->sendMessage(
+                $this->messageQueue->phone_number,
+                (string) ($attachment['name'] ?? 'Attachment'),
+                [
+                    'priority'        => 'normal',
+                    'attachment_path' => $attachment['path'],
+                    'attachment_type' => $attachment['mime_type'] ?: 'document',
+                    'attachment_name' => $attachment['name'],
+                    'metadata'        => [
+                        'campaign_id'      => $this->messageQueue->campaign_id,
                         'message_queue_id' => $this->messageQueue->id,
-                        'campaign_id'      => $campaign->id,
-                        'file'             => $filename ?? $path,
-                        'success'          => $docResult['success'] ?? false,
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::error('Failed to send campaign attachment', [
-                        'message_queue_id' => $this->messageQueue->id,
-                        'file'             => $filename ?? $path,
-                        'error'            => $e->getMessage(),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            // Never let attachment handling break the send pipeline.
-            Log::error('sendCampaignAttachments failed', [
+                        'is_attachment'    => true,
+                    ],
+                ],
+                null,
+                $this->messageQueue->user_id
+            );
+
+            Log::info('Campaign extra attachment sent', [
                 'message_queue_id' => $this->messageQueue->id,
+                'file'             => $attachment['name'] ?? $attachment['path'],
+                'success'          => $result['success'] ?? false,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to send extra campaign attachment', [
+                'message_queue_id' => $this->messageQueue->id,
+                'file'             => $attachment['name'] ?? $attachment['path'],
                 'error'            => $e->getMessage(),
             ]);
         }
