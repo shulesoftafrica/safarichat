@@ -1343,28 +1343,20 @@ class AiWhatsAppService
      */
     private function shouldSkipDuplicateOutbound(int $userId, string $phoneNumber, string $message): bool
     {
-        $recentWindowStart = now()->subSeconds(90);
         $duplicateWindowStart = now()->subHours(24);
         $normalizedMessage = $this->normalizeMessageForCompare($message);
         $hasAiGeneratedColumn = Schema::hasColumn('outgoing_messages', 'is_ai_generated');
 
-        // Burst guard: avoid sending multiple AI messages too close together.
-        $hasRecentAiMessageQuery = OutgoingMessage::where('user_id', $userId)
-            ->where('phone_number', $phoneNumber)
-            ->whereIn('status', ['pending', 'sent'])
-            ->where('created_at', '>=', $recentWindowStart);
-
-        if ($hasAiGeneratedColumn) {
-            $hasRecentAiMessageQuery->where('is_ai_generated', true);
+        if ($normalizedMessage === '') {
+            return false;
         }
 
-        $hasRecentAiMessage = $hasRecentAiMessageQuery->exists();
-
-        if ($hasRecentAiMessage) {
-            return true;
-        }
-
-        // Content guard: avoid repeating the exact same message body.
+        // Content guard ONLY: skip when the EXACT same body was already sent to this
+        // contact recently (a genuine duplicate — duplicate webhook delivery or job
+        // retry). There is deliberately NO content-agnostic time-burst block: it was
+        // silently dropping legitimate distinct answers to follow-up questions that
+        // arrived within the window (and reporting them as "sent"). Reprocessing the
+        // same inbound message is already prevented by the received->processing claim.
         $candidatesQuery = OutgoingMessage::where('user_id', $userId)
             ->where('phone_number', $phoneNumber)
             ->whereIn('status', ['pending', 'sent'])
