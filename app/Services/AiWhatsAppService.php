@@ -103,8 +103,16 @@ class AiWhatsAppService
             // Analyze message sentiment
             $sentiment = $this->openAiService->analyzeSentiment($message->message_body);
 
-            // Determine if this is product-specific conversation
+            // Determine if this is product-specific conversation.
+            // When the reply doesn't name a product (e.g. "tell me more", "what is this?"),
+            // focus on the LAST campaign/offer sent to this contact: first try to detect
+            // the product from the last outbound campaign message, then fall back to the
+            // lead's primary product. This keeps follow-up answers on-topic.
             $product = $this->identifyProduct($message, $lead);
+            if (!$product) {
+                $product = $this->matchProductInText($this->lastCampaignMessage($lead), $message->user_id)
+                    ?? $lead->getPrimaryProduct();
+            }
 
             // Route to vision or standard RAG path based on message type + plan + agent flag
             $aiResult = $this->resolveAiResponse($message, $agent, $lead, $conversationHistory, $product, $instance);
@@ -401,11 +409,14 @@ class AiWhatsAppService
         $leadProducts = $lead->leadProducts()->with('product')->get();
         
         foreach ($leadProducts as $leadProduct) {
-            $productName = strtolower($leadProduct->product->name);
-            $productSku = strtolower($leadProduct->product->sku);
-            
-            if (strpos($messageBody, $productName) !== false || 
-                strpos($messageBody, $productSku) !== false) {
+            if (!$leadProduct->product) {
+                continue;
+            }
+            $productName = strtolower((string) $leadProduct->product->name);
+            $productSku = strtolower((string) ($leadProduct->product->sku ?? ''));
+
+            if (($productName !== '' && strpos($messageBody, $productName) !== false) ||
+                ($productSku !== '' && strpos($messageBody, $productSku) !== false)) {
                 return $leadProduct->product;
             }
         }
@@ -414,12 +425,12 @@ class AiWhatsAppService
         $products = Product::active()->forUser($message->user_id)->get();
         
         foreach ($products as $product) {
-            $productName = strtolower($product->name);
-            $productSku = strtolower($product->sku);
-            
+            $productName = strtolower((string) $product->name);
+            $productSku = strtolower((string) ($product->sku ?? ''));
+
             // Check for product name or SKU mentions
-            if (strpos($messageBody, $productName) !== false || 
-                strpos($messageBody, $productSku) !== false) {
+            if (($productName !== '' && strpos($messageBody, $productName) !== false) ||
+                ($productSku !== '' && strpos($messageBody, $productSku) !== false)) {
                 
                 // Create lead-product relationship if not exists
                 $lead->leadProducts()->firstOrCreate(
@@ -450,6 +461,57 @@ class AiWhatsAppService
                         
                         return $product;
                     }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the text of the last outbound campaign / AI message sent to this lead.
+     * Used to keep follow-up replies focused on the last campaign that was sent.
+     */
+    private function lastCampaignMessage(Lead $lead): ?string
+    {
+        $conversation = $lead->conversations()
+            ->whereNotNull('ai_response')
+            ->latest()
+            ->first();
+
+        if (!$conversation) {
+            return null;
+        }
+
+        return $conversation->ai_response ?? $conversation->message_content ?? null;
+    }
+
+    /**
+     * Match an active product for the user by scanning free text (name / sku / tags).
+     * Read-only — no lead-product side effects (unlike identifyProduct).
+     */
+    private function matchProductInText(?string $text, int $userId): ?Product
+    {
+        $text = strtolower(trim((string) $text));
+        if ($text === '') {
+            return null;
+        }
+
+        foreach (Product::active()->forUser($userId)->get() as $product) {
+            $name = strtolower((string) $product->name);
+            if ($name !== '' && strpos($text, $name) !== false) {
+                return $product;
+            }
+
+            $sku = strtolower((string) ($product->sku ?? ''));
+            if ($sku !== '' && strpos($text, $sku) !== false) {
+                return $product;
+            }
+
+            foreach (($product->tags ?? []) as $tag) {
+                $tag = strtolower((string) $tag);
+                if ($tag !== '' && strpos($text, $tag) !== false) {
+                    return $product;
                 }
             }
         }
