@@ -14,7 +14,17 @@ class NotificationsApiAdapter
 
     public function __construct()
     {
-        $this->baseUrl = rtrim((string) config('multi_channel.transport.base_url', config('notifications.unified_api.base_url', 'https://notifications.shulesoft.africa/api')), '/');
+        $base = rtrim((string) config('multi_channel.transport.base_url', config('notifications.unified_api.base_url', 'https://notifications.shulesoft.africa/api')), '/');
+
+        // The notifications service serves under /api. Guarantee the prefix is present
+        // so a base URL configured without it (e.g. "https://host/") does not 404 on
+        // {base}/notifications/send. This is the exact misconfiguration that broke
+        // outbound system/orchestrator sends in production.
+        if (!preg_match('#/api($|/)#', $base)) {
+            $base .= '/api';
+        }
+
+        $this->baseUrl = $base;
         $this->token = (string) config('notifications.unified_api.bearer_token', '');
         $this->timeoutSeconds = (int) config('multi_channel.transport.timeout_seconds', config('notifications.unified_api.timeout', 30));
     }

@@ -14,8 +14,11 @@ return [
     ],
 
     // Unified outbound transport endpoint.
+    // NOTE: the notifications service serves under /api — the base URL MUST include it,
+    // otherwise POSTs to {base}/notifications/send 404. (NotificationsApiAdapter also
+    // enforces the /api prefix defensively in case this env is set without it.)
     'transport' => [
-        'base_url' => env('MULTI_CHANNEL_TRANSPORT_URL', 'https://notifications.shulesoft.africa/'),
+        'base_url' => env('MULTI_CHANNEL_TRANSPORT_URL', 'https://notifications.shulesoft.africa/api'),
         'timeout_seconds' => (int) env('MULTI_CHANNEL_TRANSPORT_TIMEOUT', 15),
     ],
 
