@@ -1453,11 +1453,55 @@ class WaSenderController extends Controller
     /**
      * Handle incoming webhook from WaSender API
      */
+    /**
+     * Decide whether a webhook payload represents an INBOUND message, regardless of
+     * the exact event name the provider used.
+     *
+     * Guards against silent inbound loss when a provider renames its message event
+     * (e.g. 'messages.received' -> 'messages.upsert'): known non-message events are
+     * excluded, known message events are matched, and anything else that actually
+     * carries message content is treated as a message. Self/status/receipt payloads
+     * are still filtered downstream (fromMe check + extractMessageData).
+     */
+    private function isIncomingMessageEvent($eventType, array $webhookData): bool
+    {
+        $eventType = strtolower(trim((string) $eventType));
+
+        // Explicit non-message events must NOT be treated as inbound messages.
+        $nonMessageEvents = [
+            'status', 'status.update', 'message.ack', 'ack', 'messages.update',
+            'messages.delete', 'message.revoke', 'qr', 'qr.update', 'ready',
+            'connection.ready', 'connection.update', 'disconnected', 'connection.lost',
+            'presence.update', 'chats.upsert', 'chats.update', 'contacts.update',
+            'groups.update', 'call',
+        ];
+        if (in_array($eventType, $nonMessageEvents, true)) {
+            return false;
+        }
+
+        // Known inbound-message event names across providers.
+        $messageEvents = [
+            'message', 'messages', 'messages.received', 'messages.upsert',
+            'message.received', 'message.any', 'message.create', 'onmessage',
+        ];
+        if (in_array($eventType, $messageEvents, true)) {
+            return true;
+        }
+
+        // Unknown event name — treat as a message only if the payload actually
+        // carries message content.
+        return isset($webhookData['data']['messages'])
+            || isset($webhookData['messages'])
+            || isset($webhookData['message'])
+            || isset($webhookData['messageBody'])
+            || isset($webhookData['data']['message']);
+    }
+
     public function handleWebhook(Request $request, $instanceId)
     {
         try {
             $webhookData = $request->all();
-            
+
             Log::info('Received WaSender webhook', [
                 'instance_id' => $instanceId,
                 'event_type' => $webhookData['event'] ?? 'unknown',
@@ -1476,7 +1520,17 @@ class WaSenderController extends Controller
 
             // Handle different webhook events
             $eventType = $webhookData['event'] ?? $webhookData['type'] ?? 'message';
-            
+
+            // Normalize provider event-name variants. Different WhatsApp providers
+            // (Baileys-based ones especially) emit inbound messages under different
+            // event names — 'messages.upsert', 'message', 'message.received', etc. —
+            // or carry the message in the payload without a recognized event name.
+            // Route any message-bearing payload to the incoming handler so a
+            // provider-side rename can never silently drop inbound messages.
+            if ($this->isIncomingMessageEvent($eventType, $webhookData)) {
+                $eventType = 'message';
+            }
+
             switch ($eventType) {
                 case 'message':
                 case 'messages.received':
@@ -1549,7 +1603,12 @@ class WaSenderController extends Controller
 
             // Handle different webhook events (reuse existing logic)
             $eventType = $webhookData['event'] ?? $webhookData['type'] ?? 'message';
-            
+
+            // Normalize inbound-message event-name variants (see handleWebhook).
+            if ($this->isIncomingMessageEvent($eventType, $webhookData)) {
+                $eventType = 'message';
+            }
+
             switch ($eventType) {
                 case 'message':
                 case 'messages.received':
