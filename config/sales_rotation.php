@@ -60,4 +60,14 @@ return [
     // Guardrail: never rotate/pitch when the lead already engaged an offer and
     // is actively in conversation. Engagement is recorded on inbound replies.
     'pause_rotation_while_engaged' => true,
+
+    // Owner resolution for ShuleSoftModuleCatalogSeeder (portable across envs).
+    // Set these in .env on the LIVE server (its ShuleSoft IDs differ from local).
+    // Read via config() so it keeps working when `php artisan config:cache` is on.
+    // Leave user_id null to let the seeder auto-resolve the business named "ShuleSoft".
+    'shulesoft_owner' => [
+        'user_id'     => env('SHULESOFT_OWNER_USER_ID'),
+        'business_id' => env('SHULESOFT_OWNER_BUSINESS_ID'),
+        'email'       => env('SHULESOFT_OWNER_EMAIL'),
+    ],
 ];

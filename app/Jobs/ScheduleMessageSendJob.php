@@ -169,6 +169,12 @@ class ScheduleMessageSendJob implements ShouldQueue
                 'external_id' => $result['id'] ?? null
             ]);
 
+            // Deliver any campaign attachments (PDF/doc) after the text send.
+            // A failed attachment must NOT fail the whole send — the text already went.
+            if (($result['success'] ?? false)) {
+                $this->sendCampaignAttachments($waSenderService);
+            }
+
             return $result;
 
         } catch (Exception $e) {
@@ -181,6 +187,143 @@ class ScheduleMessageSendJob implements ShouldQueue
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Deliver campaign attachments (documents/PDF) via WaSender after the text send.
+     *
+     * Files were uploaded on the campaign and persisted on campaigns.attachments.
+     * Each is uploaded to WaSender and sent as a document to the recipient.
+     * Any failure is logged and swallowed so it never fails the (already sent) text.
+     *
+     * @param WaSenderService $waSenderService
+     * @return void
+     */
+    protected function sendCampaignAttachments(WaSenderService $waSenderService): void
+    {
+        try {
+            $campaign = $this->messageQueue->campaign;
+            $attachments = $campaign?->attachments;
+
+            if (empty($attachments) || !is_array($attachments)) {
+                return;
+            }
+
+            foreach ($attachments as $attachment) {
+                $path = is_array($attachment) ? ($attachment['path'] ?? null) : (is_string($attachment) ? $attachment : null);
+                if (empty($path)) {
+                    continue;
+                }
+
+                $filename = is_array($attachment) ? ($attachment['original_name'] ?? $attachment['filename'] ?? null) : null;
+
+                try {
+                    $docResult = $waSenderService->sendDocument(
+                        $this->messageQueue->phone_number,
+                        $path,                       // storage path — WaSenderService resolves + uploads it
+                        $filename,
+                        null,                        // no caption; text was already sent as its own message
+                        null,                        // default instance
+                        $this->messageQueue->user_id
+                    );
+
+                    Log::info('Campaign attachment sent', [
+                        'message_queue_id' => $this->messageQueue->id,
+                        'campaign_id'      => $campaign->id,
+                        'file'             => $filename ?? $path,
+                        'success'          => $docResult['success'] ?? false,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('Failed to send campaign attachment', [
+                        'message_queue_id' => $this->messageQueue->id,
+                        'file'             => $filename ?? $path,
+                        'error'            => $e->getMessage(),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Never let attachment handling break the send pipeline.
+            Log::error('sendCampaignAttachments failed', [
+                'message_queue_id' => $this->messageQueue->id,
+                'error'            => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Record the sent campaign message as a Conversation on the recipient's Lead,
+     * so that when the recipient replies the AI has context on what it sent and can
+     * answer "what is this?" instead of starting cold.
+     *
+     * Creates a lightweight Lead for the contact when none exists yet (campaign
+     * contacts often have no Lead). Fail-open: never breaks the send.
+     *
+     * @param string $sentText
+     * @return void
+     */
+    protected function recordCampaignConversation(string $sentText): void
+    {
+        try {
+            $contactId = $this->messageQueue->contact_id;
+            if (!$contactId) {
+                return;
+            }
+
+            $contact = \App\Models\BusinessContact::find($contactId);
+            if (!$contact) {
+                return;
+            }
+
+            $userId = $this->messageQueue->user_id;
+            $agentId = \App\Models\AiSalesAgent::where('user_id', $userId)->value('id');
+
+            // Reuse the same lead the inbound handler will resolve on reply
+            // (it looks up by business_contact_id + user_id).
+            $lead = \App\Models\Lead::firstOrCreate(
+                [
+                    'business_contact_id' => $contact->id,
+                    'user_id'             => $userId,
+                ],
+                [
+                    'business_id'         => $contact->business_id,
+                    'ai_sales_agent_id'   => $agentId,
+                    'name'                => $contact->guest_name,
+                    'phone_number'        => $contact->guest_phone,
+                    'source'              => 'campaign',
+                    'status'              => \App\Models\Lead::STATUS_OUTREACHED,
+                    'last_contact_at'     => now(),
+                    'last_interaction_at' => now(),
+                    'lead_score'          => 10,
+                ]
+            );
+
+            // Attach an agent if the lead had none, so inbound findBestAgent has a preference.
+            if (!$lead->ai_sales_agent_id && $agentId) {
+                $lead->update(['ai_sales_agent_id' => $agentId]);
+            }
+
+            // Record the outbound campaign message in the format getConversationHistory reads
+            // (ai_response = what we sent). This gives the reply its context.
+            // message_type/sender_type must satisfy the conversations CHECK constraints:
+            //   message_type ∈ {CUSTOMER, AI_AGENT, HUMAN_AGENT}
+            //   sender_type  ∈ {customer, ai_agent, user_manual, ai_agent_followup}
+            \App\Models\Conversation::create([
+                'lead_id'           => $lead->id,
+                'ai_sales_agent_id' => $lead->ai_sales_agent_id,
+                'message_type'      => \App\Models\Conversation::TYPE_AI_AGENT,
+                'sender_type'       => 'ai_agent',
+                'message_content'   => $sentText,
+                'ai_response'       => $sentText,
+                'state'             => 'active',
+                'is_active'         => true,
+                'created_at'        => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('recordCampaignConversation failed', [
+                'message_queue_id' => $this->messageQueue->id,
+                'error'            => $e->getMessage(),
+            ]);
         }
     }
 
@@ -241,6 +384,13 @@ class ScheduleMessageSendJob implements ShouldQueue
                 'external_id' => $outgoingMessage->external_id
             ]);
         });
+
+        // Record the sent message as a Conversation so a reply has context
+        // ("what is this?" can be answered by the AI). Done AFTER the tracking
+        // transaction commits so a hiccup here can never roll back the send record.
+        $this->recordCampaignConversation(
+            $this->messageQueue->refined_message ?? $this->messageQueue->original_message
+        );
     }
 
     /**

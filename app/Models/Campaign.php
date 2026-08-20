@@ -27,6 +27,7 @@ class Campaign extends Model
         'human_review_count',
         'status',
         'has_attachments',
+        'attachments',
         'started_at',
         'completed_at',
     ];
@@ -34,6 +35,7 @@ class Campaign extends Model
     protected $casts = [
         'recipient_criteria' => 'array',
         'has_attachments' => 'boolean',
+        'attachments' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'total_recipients' => 'integer',

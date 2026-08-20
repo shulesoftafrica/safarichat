@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Business;
 use App\Models\Product;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
@@ -18,17 +19,34 @@ use Illuminate\Support\Facades\Log;
  * rather than duplicating. The two pre-existing generic rows
  * ("shulesoft", "universal control number") are repurposed, not duplicated.
  *
- * Tenant: ShuleSoft = user_id 45 / business_id 4.
+ * OWNER RESOLUTION (portable across local / staging / live) — in order:
+ *   1. env SHULESOFT_OWNER_USER_ID (+ optional SHULESOFT_OWNER_BUSINESS_ID)
+ *   2. Business row matched by name "ShuleSoft" or SHULESOFT_OWNER_EMAIL
+ * If neither resolves, the seeder ABORTS (it never guesses an owner) so it can
+ * be run safely on the live database without hardcoded IDs.
  *
- * Run:  php artisan db:seed --class=Database\\Seeders\\ShuleSoftModuleCatalogSeeder
+ * Run:  php artisan db:seed --class="Database\\Seeders\\ShuleSoftModuleCatalogSeeder"
  */
 class ShuleSoftModuleCatalogSeeder extends Seeder
 {
-    private const OWNER_USER_ID = 45;
-    private const OWNER_BUSINESS_ID = 4;
+    private int $ownerUserId = 0;
+    private ?int $ownerBusinessId = null;
 
     public function run(): void
     {
+        [$this->ownerUserId, $this->ownerBusinessId] = $this->resolveOwner();
+
+        if ($this->ownerUserId <= 0) {
+            $msg = 'ShuleSoftModuleCatalogSeeder: could not resolve the ShuleSoft owner. '
+                 . 'Set SHULESOFT_OWNER_USER_ID (and optionally SHULESOFT_OWNER_BUSINESS_ID) in .env, '
+                 . 'or ensure a Business named "ShuleSoft" exists. Aborting — nothing was written.';
+            $this->command?->error($msg);
+            Log::warning($msg);
+            return;
+        }
+
+        $this->command?->info("ShuleSoft owner resolved: user_id={$this->ownerUserId}, business_id=" . ($this->ownerBusinessId ?? 'null'));
+
         $modules = $this->modules();
 
         $idByKey = [];
@@ -36,8 +54,8 @@ class ShuleSoftModuleCatalogSeeder extends Seeder
         // Pass 1 — upsert every module (without upsell chains yet).
         foreach ($modules as $key => $m) {
             $product = $this->upsertByNames($m['name_aliases'], [
-                'user_id'            => self::OWNER_USER_ID,
-                'business_id'        => self::OWNER_BUSINESS_ID,
+                'user_id'            => $this->ownerUserId,
+                'business_id'        => $this->ownerBusinessId,
                 'name'               => $m['name'],
                 'category'           => $m['category'],
                 'target_industry'    => 'education',
@@ -71,8 +89,37 @@ class ShuleSoftModuleCatalogSeeder extends Seeder
             ]);
         }
 
-        $this->command?->info('Seeded ' . count($modules) . ' ShuleSoft modules for user_id=' . self::OWNER_USER_ID . '.');
+        $this->command?->info('Seeded ' . count($modules) . ' ShuleSoft modules for user_id=' . $this->ownerUserId . '.');
         Log::info('ShuleSoftModuleCatalogSeeder completed', ['modules' => count($modules), 'ids' => $idByKey]);
+    }
+
+    /**
+     * Resolve the ShuleSoft owner (user_id, business_id) without hardcoding.
+     *
+     * @return array{0:int,1:?int}
+     */
+    private function resolveOwner(): array
+    {
+        // 1. Explicit override via config (recommended for production runs).
+        //    Read through config() so it survives `php artisan config:cache`.
+        $cfgUserId = (int) config('sales_rotation.shulesoft_owner.user_id', 0);
+        if ($cfgUserId > 0) {
+            $cfgBusinessId = (int) config('sales_rotation.shulesoft_owner.business_id', 0);
+            return [$cfgUserId, $cfgBusinessId > 0 ? $cfgBusinessId : null];
+        }
+
+        // 2. Look up the business by name "ShuleSoft" (or a configured email).
+        $email = config('sales_rotation.shulesoft_owner.email');
+        $business = Business::query()
+            ->when($email, fn ($q) => $q->orWhere('email', $email))
+            ->whereRaw('LOWER(name) = ?', ['shulesoft'])
+            ->first();
+
+        if ($business && $business->user_id) {
+            return [(int) $business->user_id, (int) $business->id];
+        }
+
+        return [0, null];
     }
 
     /**
@@ -81,7 +128,7 @@ class ShuleSoftModuleCatalogSeeder extends Seeder
      */
     private function upsertByNames(array $nameAliases, array $attributes): Product
     {
-        $existing = Product::where('user_id', self::OWNER_USER_ID)
+        $existing = Product::where('user_id', $this->ownerUserId)
             ->where(function ($q) use ($nameAliases) {
                 foreach ($nameAliases as $alias) {
                     $q->orWhereRaw('LOWER(name) = ?', [mb_strtolower($alias)]);

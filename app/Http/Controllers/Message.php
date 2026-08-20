@@ -850,6 +850,9 @@ class Message extends Controller
             'queued_count' => 0, // Will be incremented as we create queue entries
             'status' => \App\Models\Campaign::STATUS_STAGING,
             'has_attachments' => !empty($attachments),
+            // Persist the actual uploaded files so the delivery job can attach them.
+            // Without this the paths were lost and documents were never sent.
+            'attachments' => !empty($attachments) ? array_values($attachments) : null,
             'started_at' => now()
         ]);
 
