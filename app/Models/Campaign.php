@@ -13,6 +13,7 @@ class Campaign extends Model
     protected $fillable = [
         'user_id',
         'business_id',
+        'product_id',
         'campaign_name',
         'campaign_type',
         'original_message',
@@ -77,6 +78,14 @@ class Campaign extends Model
     public function business()
     {
         return $this->belongsTo(Business::class);
+    }
+
+    /**
+     * The product this campaign promotes (used to keep personalization on-brand).
+     */
+    public function product()
+    {
+        return $this->belongsTo(\App\Models\Product::class);
     }
 
     /**

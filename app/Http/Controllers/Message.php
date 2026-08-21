@@ -842,6 +842,9 @@ class Message extends Controller
         $campaign = \App\Models\Campaign::create([
             'user_id' => Auth::id(),
             'business_id' => Auth::user()->business->id ?? null,
+            // Persist the selected product so personalization stays on-brand
+            // (otherwise the AI defaults to a generic brand name).
+            'product_id' => !empty($productId) ? (int) $productId : null,
             'campaign_name' => 'Campaign ' . now()->format('M d, Y H:i'),
             'campaign_type' => \App\Models\Campaign::TYPE_BROADCAST,
             'original_message' => $message,
@@ -874,6 +877,7 @@ class Message extends Controller
         // STEP 2: Create MessageQueue entries for each recipient
         $queuedCount = 0;
         $nurtureCount = 0;
+        $skippedNoReply = 0;
 
         foreach ($users as $user) {
             $user = (object) $user;
@@ -882,7 +886,25 @@ class Message extends Controller
            
             if (is_array($phoneNumber)) {
                 $cleanPhone = $phoneNumber[1];
-               
+
+                // SAFETY (WaSender ban avoidance): only message contacts who have
+                // replied to us before. Cold-messaging brand-new numbers is what most
+                // often triggers a WhatsApp restriction. Toggle via CAMPAIGN_REPLY_REQUIRED.
+                if (config('campaign.reply_required', true)) {
+                    $hasReplied = \App\Models\IncomingMessage::where('user_id', Auth::id())
+                        ->where('phone_number', $cleanPhone)
+                        ->exists();
+
+                    if (!$hasReplied) {
+                        $skippedNoReply++;
+                        Log::info('Campaign recipient skipped — no prior reply (safe mode)', [
+                            'phone' => $cleanPhone,
+                            'campaign_id' => $campaign->id,
+                        ]);
+                        continue;
+                    }
+                }
+
                 // Check if nurture mode should be applied (for ghosting contacts)
                 // Nurture mode has its own AI processing, so we skip adding to campaign queue
                 $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $message);
@@ -950,6 +972,7 @@ class Message extends Controller
             'campaign_id' => $campaign->id,
             'queued_for_ai' => $queuedCount,
             'nurture_mode' => $nurtureCount,
+            'skipped_no_reply' => $skippedNoReply,
             'total_recipients' => $userCount
         ]);
 

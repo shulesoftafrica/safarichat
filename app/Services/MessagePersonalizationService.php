@@ -87,13 +87,18 @@ class MessagePersonalizationService
             // Get contact preferences
             $preferences = $this->getContactPreferences($contact);
             
+            // Resolve the product this campaign promotes so the AI keeps the message
+            // on the right product instead of inventing a brand.
+            $productName = $message->campaign?->product?->name;
+
             // Build AI prompt
             $prompt = $this->buildPersonalizationPrompt(
                 $message->original_message,
                 $contact,
                 $conversationHistory,
                 $preferences,
-                $message->attachment_context
+                $message->attachment_context,
+                $productName
             );
 
             // Call OpenAI API
@@ -161,9 +166,36 @@ class MessagePersonalizationService
         BusinessContact $contact,
         array $conversationHistory,
         array $preferences,
-        ?string $attachmentContext = null
+        ?string $attachmentContext = null,
+        ?string $productName = null
     ): string {
         $contactName = $contact->guest_name ?? 'Customer';
+
+        // Branding block: force the message to promote the SELECTED product and
+        // forbid inventing/substituting any other brand (the old prompt hardcoded
+        // "SafariChat", so campaigns for other products named the wrong brand).
+        $product = trim((string) $productName);
+        if ($product !== '') {
+            $brandingBlock = <<<BRAND
+
+### PRODUCT BEING PROMOTED (CRITICAL):
+This message promotes: "{$product}".
+- The refined message MUST promote "{$product}" and ONLY this product.
+- NEVER introduce, rename to, or mention any other product, company, or platform
+  (for example, do NOT write "SafariChat" or any other brand).
+- If the original message already names a product, keep that exact name — do not swap it.
+
+BRAND;
+        } else {
+            $brandingBlock = <<<BRAND
+
+### BRANDING (CRITICAL):
+- Preserve any product/company name that appears in the original message exactly.
+- Do NOT invent, add, or substitute a brand/product/platform name that is not in
+  the original message (for example, do NOT write "SafariChat").
+
+BRAND;
+        }
         $preferredLanguage = $preferences['preferred_language'] ?? 'auto-detect';
         $preferredTone = $preferences['preferred_tone'] ?? 'friendly';
         $relationshipStage = $preferences['relationship_stage'] ?? 'new';
@@ -185,10 +217,10 @@ class MessagePersonalizationService
         }
 
         $prompt = <<<PROMPT
-You are an expert WhatsApp marketing message personalizer for SafariChat, a Kenyan business communication platform.
-
+You are an expert WhatsApp marketing message personalizer for businesses in East Africa.
+{$brandingBlock}
 ### Task:
-Personalize the following marketing message for a specific contact based on their profile, conversation history, and preferences.
+Personalize the following marketing message for a specific contact based on their profile, conversation history, and preferences. Keep the product/brand exactly as instructed above.
 
 ### Original Message:
 {$originalMessage}

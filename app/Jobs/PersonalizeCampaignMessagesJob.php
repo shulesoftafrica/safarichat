@@ -324,9 +324,26 @@ class PersonalizeCampaignMessagesJob implements ShouldQueue
     protected function scheduleMessage(MessageQueue $message)
     {
         // Determine send time
-        $sendTime = $message->optimal_send_time 
-            ? \Carbon\Carbon::parse($message->optimal_send_time) 
+        $sendTime = $message->optimal_send_time
+            ? \Carbon\Carbon::parse($message->optimal_send_time)
             : now()->addMinutes(5); // Default to 5 minutes if no optimal time
+
+        // THROTTLE (WaSender ban avoidance): space each campaign's sends at least
+        // N seconds apart so WhatsApp sees a human-like drip, not a burst. We chain
+        // off the latest already-scheduled send for this campaign.
+        $interval = (int) config('campaign.send_interval_seconds', 10);
+        if ($message->campaign_id && $interval > 0) {
+            $lastScheduled = MessageQueue::where('campaign_id', $message->campaign_id)
+                ->whereNotNull('scheduled_send_at')
+                ->max('scheduled_send_at');
+
+            if ($lastScheduled) {
+                $earliest = \Carbon\Carbon::parse($lastScheduled)->addSeconds($interval);
+                if ($earliest->greaterThan($sendTime)) {
+                    $sendTime = $earliest;
+                }
+            }
+        }
 
         // Update status to scheduled
         $message->update([
