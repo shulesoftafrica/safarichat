@@ -28,6 +28,14 @@ class NoReplyChaseCommand extends Command
 
     public function handle()
     {
+        // This command chases contacts who have NOT replied — the definition of the
+        // spam we are stopping. It no-ops under either safety setting.
+        if (!config('outreach.enabled', true) || config('outreach.reply_required', true)) {
+            $this->warn('No-reply chase skipped — outreach disabled or reply-required mode is on.');
+            \Illuminate\Support\Facades\Log::info('No-reply chase skipped (anti-spam settings)');
+            return 0;
+        }
+
         $this->info('📞 Starting No-Reply Chase Campaign');
         $this->newLine();
 

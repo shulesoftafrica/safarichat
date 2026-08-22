@@ -30,6 +30,12 @@ class SmartFollowupService
     public function processSmartFollowups()
     {
         try {
+            // Master kill switch for automated outreach/follow-ups.
+            if (!config('outreach.enabled', true)) {
+                Log::info('Smart followup: skipped — automated outreach disabled (outreach.enabled=false)');
+                return;
+            }
+
             // Check if followups should only be sent during business hours
             $enforceBusinessHours = env('AI_FOLLOWUP_BUSINESS_HOURS', false);
             $now = Carbon::now();
@@ -59,6 +65,11 @@ class SmartFollowupService
                                         // Either never sent followup OR last followup > 7 days ago
                                         $query->whereNull('follow_up_sent_at')
                                               ->orWhere('follow_up_sent_at', '<', now()->subDays(7));
+                                    })
+                                    // ANTI-SPAM: only follow up leads that have replied to us at
+                                    // least once. Silent contacts are never messaged again.
+                                    ->when(config('outreach.reply_required', true), function($query) {
+                                        $query->whereNotNull('last_reply_at');
                                     })
                                     ->with(['contact', 'conversations', 'aiSalesAgent'])
                                     ->limit(20)

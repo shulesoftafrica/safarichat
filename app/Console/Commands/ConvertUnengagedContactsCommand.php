@@ -17,6 +17,15 @@ class ConvertUnengagedContactsCommand extends Command
 
     public function handle()
     {
+        // This command exists purely to seed cold outreach (it converts contacts who
+        // have NOT engaged into leads for follow-up). That is the opposite of only
+        // messaging people who replied, so it no-ops under either safety setting.
+        if (!config('outreach.enabled', true) || config('outreach.reply_required', true)) {
+            $this->warn('contacts:convert-unengaged skipped — outreach disabled or reply-required mode is on.');
+            \Illuminate\Support\Facades\Log::info('contacts:convert-unengaged skipped (anti-spam settings)');
+            return 0;
+        }
+
         $this->info('🔄 Converting Unengaged Business Contacts to Leads');
         $this->newLine();
 

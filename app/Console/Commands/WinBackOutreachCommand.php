@@ -28,6 +28,14 @@ class WinBackOutreachCommand extends Command
 
     public function handle()
     {
+        // Win-back re-messages inactive leads. Only run it for leads that engaged
+        // (replied) before; never cold-message silent contacts.
+        if (!config('outreach.enabled', true) || config('outreach.reply_required', true)) {
+            $this->warn('Win-back skipped — outreach disabled or reply-required mode is on.');
+            \Illuminate\Support\Facades\Log::info('Win-back skipped (anti-spam settings)');
+            return 0;
+        }
+
         $this->info('🔄 Starting Win-Back Campaign');
         $this->newLine();
 

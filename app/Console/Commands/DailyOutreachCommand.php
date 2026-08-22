@@ -29,6 +29,15 @@ class DailyOutreachCommand extends Command
 
     public function handle()
     {
+        // Cold first-touch outreach. Fully gated by the outreach safety settings —
+        // with reply-required on, only leads that already replied are messaged
+        // (so this stops cold-messaging new numbers).
+        if (!config('outreach.enabled', true)) {
+            $this->warn('Daily outreach skipped — automated outreach disabled (outreach.enabled=false).');
+            \Illuminate\Support\Facades\Log::info('Daily outreach skipped (outreach.enabled=false)');
+            return 0;
+        }
+
         $this->info('🚀 Starting Daily Outreach Campaign');
         $this->newLine();
 
@@ -138,6 +147,10 @@ class DailyOutreachCommand extends Command
         return Lead::where('ai_sales_agent_id', $agent->id)
             ->whereIn('status', [Lead::STATUS_NEW, Lead::STATUS_OUTREACHED])
             ->whereNotIn('status', [Lead::STATUS_DO_NOT_CONTACT, Lead::STATUS_CLOSED])
+            // ANTI-SPAM: only reach leads that have replied at least once.
+            ->when(config('outreach.reply_required', true), function($query) {
+                $query->whereNotNull('last_reply_at');
+            })
             ->where(function($query) {
                 // Include NEW contacts (NULL last_contact_at) OR contacts not contacted recently
                 $query->whereNull('last_contact_at')
