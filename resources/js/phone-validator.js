@@ -40,6 +40,13 @@ const PhoneValidator = {
      * @param {HTMLElement} input - The phone input element
      */
     attachValidation: function(input) {
+        // Guard against double-binding — init() may run more than once (e.g. modal
+        // re-render), which otherwise stacks duplicate "Valid phone number" messages.
+        if (input.dataset.phoneValidatorBound === '1') {
+            return;
+        }
+        input.dataset.phoneValidatorBound = '1';
+
         // Real-time validation on input
         input.addEventListener('input', (e) => {
             this.sanitizeInput(e.target);
@@ -206,14 +213,22 @@ const PhoneValidator = {
      * @returns {HTMLElement}
      */
     getFeedbackElement: function(input) {
-        let feedback = input.parentElement.querySelector('.phone-validation-feedback');
-        
+        const parent = input.parentElement;
+        const existing = parent.querySelectorAll('.phone-validation-feedback');
+
+        // Keep exactly one feedback node — remove any duplicates that accumulated
+        // so validation messages never stack.
+        for (let i = 1; i < existing.length; i++) {
+            existing[i].remove();
+        }
+
+        let feedback = existing[0];
         if (!feedback) {
             feedback = document.createElement('div');
             feedback.className = 'phone-validation-feedback form-text';
-            input.parentElement.appendChild(feedback);
+            parent.appendChild(feedback);
         }
-        
+
         return feedback;
     },
     

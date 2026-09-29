@@ -602,6 +602,7 @@ class Home extends Controller
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email',
             'phone' => 'required|string|max:20',
+            'role' => 'nullable|in:member,manager,admin',
         ]);
 
         $phone = function_exists('sanitize_phone_number')
@@ -616,7 +617,7 @@ class Home extends Controller
             'phone' => $phone,
             'password' => \Hash::make(\Str::random(40)),
             'parent_business_id' => $userBusiness->id,
-            'role' => 'member',
+            'role' => $validated['role'] ?? 'member',
             'uuid' => (string) \Str::uuid(),
         ]);
 
@@ -641,8 +642,10 @@ class Home extends Controller
             $businessName = $business->name ?? 'our business';
             $inviterName  = Auth::user()->name ?? 'the account owner';
 
+            $roleLabel = ucfirst($user->role ?? 'member');
+
             $message = "Hello {$user->name}! 👋\n\n"
-                . "You've been added to *{$businessName}* on SafariChat by {$inviterName}.\n\n"
+                . "You've been added to *{$businessName}* on SafariChat by {$inviterName} as a *{$roleLabel}*.\n\n"
                 . "To log in:\n"
                 . "1️⃣ Open {$loginUrl}\n"
                 . "2️⃣ Enter your phone number *{$user->phone}*\n"

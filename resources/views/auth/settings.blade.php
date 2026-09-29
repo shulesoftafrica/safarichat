@@ -1475,6 +1475,15 @@ body:not(.dark-mode) .billing-card-header {
                                placeholder="+255XXXXXXXXX" required="">
                         <small class="text-muted">The member logs in with this number and a one-time WhatsApp code. An invitation is sent here.</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="new_user_role" class="col-form-label">Role <span class="text-danger">*</span></label>
+                        <select id="new_user_role" name="role" class="form-control" required="">
+                            <option value="member" selected>Member — day-to-day access</option>
+                            <option value="manager">Manager — manage team &amp; campaigns</option>
+                            <option value="admin">Admin — full account access</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="modal-footer text-center">

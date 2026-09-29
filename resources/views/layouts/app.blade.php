@@ -260,7 +260,7 @@ $(document).ready(ajax_setup);
                 <script src="{{ asset(ROOT.'assets/js/app.js')}}?v=2"></script>
                 
                 <!-- Phone Validation Module -->
-                <script src="{{ asset(ROOT.'js/phone-validator.js')}}?v=1"></script>
+                <script src="{{ asset(ROOT.'js/phone-validator.js')}}?v=2"></script>
                 
                 <!-- Lead Error Handler Module -->
                 <script src="{{ asset(ROOT.'js/lead-error-handler.js')}}?v=1"></script>
