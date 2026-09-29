@@ -66,21 +66,35 @@ class SendDailySummaries extends Command
             return ['has_activity' => false, 'has_issues' => false];
         }
         
-        // Get message stats (messages table uses user_id, not business_id)
-        $totalMessages = \App\Models\Message::where('user_id', $user->id)
+        // Message stats come from outgoing_messages (the legacy `messages` table this
+        // used before is unused/empty, so has_activity was ALWAYS false and every
+        // owner got skipped every day — i.e. no daily report was ever sent).
+        $totalMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
             ->count();
-            
-        $successfulMessages = \App\Models\Message::where('user_id', $user->id)
+
+        $successfulMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
-            ->where('status', 1) // Assuming status 1 = sent
+            ->where('status', 'sent')
             ->count();
-            
-        $failedMessages = \App\Models\Message::where('user_id', $user->id)
+
+        $failedMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
-            ->where('status', 0) // Assuming status 0 = failed
+            ->where('status', 'failed')
             ->count();
-        
+
+        // Inbound replies received from customers
+        $repliesReceived = \App\Models\IncomingMessage::where('user_id', $user->id)
+            ->whereDate('created_at', $date)
+            ->count();
+
+        // AI conversations/engagements logged for this business
+        $aiConversations = \App\Models\Conversation::whereHas('lead', function($q) use ($businessId) {
+                $q->where('business_id', $businessId);
+            })
+            ->whereDate('created_at', $date)
+            ->count();
+
         // Get handoff stats
         $newHandoffs = \App\Models\Handoff::whereHas('lead.contact', function($q) use ($businessId) {
                 $q->where('business_id', $businessId);
@@ -95,19 +109,19 @@ class SendDailySummaries extends Command
             ->where('sla_deadline', '<', now())
             ->count();
         
-        // Get new leads
-        $newLeads = \App\Models\Lead::whereHas('contact', function($q) use ($businessId) {
-                $q->where('business_id', $businessId);
-            })
+        // Get new leads (leads has business_id directly)
+        $newLeads = \App\Models\Lead::where('business_id', $businessId)
             ->whereDate('created_at', $date)
             ->count();
-        
+
         return [
-            'has_activity' => ($totalMessages > 0 || $newHandoffs > 0 || $newLeads > 0),
+            'has_activity' => ($totalMessages > 0 || $repliesReceived > 0 || $aiConversations > 0 || $newHandoffs > 0 || $newLeads > 0),
             'has_issues' => ($failedMessages > 5 || $overdueHandoffs > 0),
             'total_messages' => $totalMessages,
             'successful_messages' => $successfulMessages,
             'failed_messages' => $failedMessages,
+            'replies_received' => $repliesReceived,
+            'ai_conversations' => $aiConversations,
             'new_handoffs' => $newHandoffs,
             'overdue_handoffs' => $overdueHandoffs,
             'new_leads' => $newLeads,
