@@ -596,26 +596,67 @@ class Home extends Controller
             return redirect()->back()->with('error', 'User limit reached for your current plan. Please upgrade to add more users.');
         }
         
-        // Validate request
+        // Validate request. Email is optional (we don't use it), and there is NO
+        // password — team members log in with their phone + a one-time WhatsApp code.
         $validated = request()->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'nullable|email|unique:users,email',
             'phone' => 'required|string|max:20',
-            'password' => 'required|min:6'
         ]);
-        
-        // Create new team member
+
+        $phone = function_exists('sanitize_phone_number')
+            ? sanitize_phone_number($validated['phone'])
+            : $validated['phone'];
+
+        // Create new team member. password is NOT NULL in the schema but is never used
+        // for login (OTP only) — set a random, unknowable value.
         $user = \App\Models\User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'password' => \Hash::make($validated['password']),
+            'email' => $validated['email'] ?? null,
+            'phone' => $phone,
+            'password' => \Hash::make(\Str::random(40)),
             'parent_business_id' => $userBusiness->id,
             'role' => 'member',
             'uuid' => (string) \Str::uuid(),
         ]);
-        
-        return redirect()->back()->with('success', 'Team member added successfully!');
+
+        // Send a WhatsApp invitation so the new member knows how to log in.
+        $this->sendTeamInvite($user, $userBusiness);
+
+        return redirect()->back()->with('success', 'Team member added! An invitation has been sent to their WhatsApp.');
+    }
+
+    /**
+     * Notify a newly added team member on WhatsApp with login instructions.
+     * Fail-open: a delivery failure must not fail the member creation.
+     */
+    private function sendTeamInvite(\App\Models\User $user, $business): void
+    {
+        try {
+            if (empty($user->phone)) {
+                return;
+            }
+
+            $loginUrl    = rtrim(config('app.url', 'https://safarichat.ai'), '/') . '/login';
+            $businessName = $business->name ?? 'our business';
+            $inviterName  = Auth::user()->name ?? 'the account owner';
+
+            $message = "Hello {$user->name}! 👋\n\n"
+                . "You've been added to *{$businessName}* on SafariChat by {$inviterName}.\n\n"
+                . "To log in:\n"
+                . "1️⃣ Open {$loginUrl}\n"
+                . "2️⃣ Enter your phone number *{$user->phone}*\n"
+                . "3️⃣ You'll get a one-time code here on WhatsApp — enter it to sign in.\n\n"
+                . "No password needed. Welcome aboard! 🎉";
+
+            app(\App\Services\SystemWhatsAppService::class)
+                ->sendGenericMessage($user->phone, $message, 'system_notification');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send team member invitation', [
+                'user_id' => $user->id ?? null,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
     
     public function deleteTeamMember()

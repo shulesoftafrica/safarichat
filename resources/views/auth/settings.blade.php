@@ -1462,23 +1462,18 @@ body:not(.dark-mode) .billing-card-header {
                     </div>
 
                     <div class="form-group">
-                        <label for="new_user_email" class="col-form-label">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" id="new_user_email" name="email" class="form-control" placeholder="email@example.com" required="">
+                        <label for="new_user_email" class="col-form-label">Email Address <small class="text-muted">(optional)</small></label>
+                        <input type="email" id="new_user_email" name="email" class="form-control" placeholder="email@example.com (optional)">
                     </div>
 
                     <div class="form-group">
                         <label for="new_user_phone" class="col-form-label">Phone Number <span class="text-danger">*</span></label>
-                        <input type="tel" id="new_user_phone" name="phone" 
-                               class="form-control phone-validation" 
+                        <input type="tel" id="new_user_phone" name="phone"
+                               class="form-control phone-validation"
                                pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
                                title="Phone format: +1234567890 or (123) 456-7890"
                                placeholder="+255XXXXXXXXX" required="">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="new_user_password" class="col-form-label">Password <span class="text-danger">*</span></label>
-                        <input type="password" id="new_user_password" name="password" class="form-control" placeholder="Minimum 6 characters" required="" minlength="6">
-                        <small class="text-muted">User will use this password to login</small>
+                        <small class="text-muted">The member logs in with this number and a one-time WhatsApp code. An invitation is sent here.</small>
                     </div>
                 </div>
 
