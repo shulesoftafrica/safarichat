@@ -2096,7 +2096,6 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                     <th>Products</th>
                                     <th>{{ __('customers.table.handoff_status') }}</th>
                                     <th>{{ __('customers.table.priority') }}</th>
-                                    <th>{{ __('customers.table.assigned_agent') }}</th>
                                     <th name="buttons">{{ __('customers.table.actions') }}</th>
                                 </tr>
                             </thead>
@@ -2110,7 +2109,6 @@ body:not(.dark-mode) .modal-body .alert-danger {
                                     <th></th>
                                     <th></th>
                                     <!--<th>Email </th>-->
-                                    <th></th>
                                     <th></th>
                                     <th></th>
                                     <th></th>
@@ -4525,8 +4523,7 @@ $(document).ready(function() {
             { orderable: false },   // 6 Products
             { orderable: true  },   // 7 Handoff
             { orderable: true  },   // 8 Priority
-            { orderable: false },   // 9 Assigned Agent
-            { orderable: false },   // 10 Actions
+            { orderable: false },   // 9 Actions
         ],
         order       : [[1, 'desc']],
         pageLength  : 25,

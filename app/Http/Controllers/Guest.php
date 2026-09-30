@@ -148,13 +148,15 @@ class Guest extends Controller {
         $guests = $query->skip($start)->take($length)->get();
 
         // Badge / label maps
+        // Solid hex colors + white text so the status is clearly legible on BOTH
+        // light and dark themes (the old Bootstrap badge classes rendered pale).
         $leadStatusColors = [
-            'NEW' => 'secondary', 'OUTREACHED' => 'info', 'REPLIED' => 'primary',
-            'ENGAGED' => 'success', 'QUALIFIED' => 'warning', 'PITCHED' => 'orange',
-            'DEMO_SCHEDULED' => 'purple', 'PROPOSAL_SENT' => 'teal',
-            'NEGOTIATING' => 'indigo', 'CLOSED' => 'success', 'LOST' => 'danger',
-            'HANDED_OFF' => 'info', 'DO_NOT_CONTACT' => 'dark',
-            'NEEDS_ATTENTION' => 'warning', 'CONVERTED' => 'success', 'CHURNED' => 'danger',
+            'NEW' => '#2563eb', 'OUTREACHED' => '#7c3aed', 'REPLIED' => '#0891b2',
+            'ENGAGED' => '#16a34a', 'QUALIFIED' => '#d97706', 'PITCHED' => '#ea580c',
+            'DEMO_SCHEDULED' => '#9333ea', 'PROPOSAL_SENT' => '#0d9488',
+            'NEGOTIATING' => '#4f46e5', 'CLOSED' => '#15803d', 'LOST' => '#dc2626',
+            'HANDED_OFF' => '#0284c7', 'DO_NOT_CONTACT' => '#374151',
+            'NEEDS_ATTENTION' => '#ca8a04', 'CONVERTED' => '#059669', 'CHURNED' => '#b91c1c',
         ];
         $leadStatusIcons = [
             'NEW' => 'account-plus', 'OUTREACHED' => 'send', 'REPLIED' => 'reply',
@@ -197,20 +199,25 @@ class Guest extends Controller {
             $handoff     = $guest->handoff_status ?? 'ai';
             $priority    = $guest->priority_level ?? 3;
 
-            $sColor = $leadStatusColors[$leadStatus] ?? 'secondary';
+            $sHex   = $leadStatusColors[$leadStatus] ?? '#6c757d';
             $sIcon  = $leadStatusIcons[$leadStatus]  ?? 'help';
             $sLabel = $leadStatusLabels[$leadStatus] ?? $leadStatus;
 
-            $hColor = $handoffColors[$handoff] ?? 'secondary';
-            $hIcon  = $handoffIcons[$handoff]  ?? 'help';
-            $hLabel = ucfirst(str_replace('_', ' ', $handoff));
+            // Handoff column now says who owns this sales cycle: AI, or a sales
+            // person (with their name once handed off). Replaces the separate
+            // "Assigned Agent" column.
+            $agentName = $guest->assignedAgent->name ?? null;
+            if ($handoff === 'pending_handoff') {
+                $hHex = '#d97706'; $hIcon = 'clock-outline'; $hLabel = 'Pending handoff';
+            } elseif (in_array($handoff, ['handed_off', 'completed'], true)) {
+                $hHex = '#0d9488'; $hIcon = 'account-tie';
+                $hLabel = $agentName ? ('Sales: ' . $agentName) : 'Sales person';
+            } else { // 'ai' or unknown → AI is handling
+                $hHex = '#2563eb'; $hIcon = 'robot'; $hLabel = 'AI';
+            }
 
             $pColor = $priorityColors[$priority] ?? 'secondary';
             $pLabel = $priorityLabels[$priority] ?? 'Unknown';
-
-            $agentHtml = $guest->assignedAgent
-                ? '<span class="text-success"><i class="mdi mdi-account-check mr-1"></i>' . e($guest->assignedAgent->name) . '</span>'
-                : '<span class="text-muted"><i class="mdi mdi-account-off mr-1"></i>Unassigned</span>';
 
             $productIds = $guest->lead
                 ? $guest->lead->leadProducts->pluck('product_id')->implode(',')
@@ -230,15 +237,15 @@ class Guest extends Controller {
                 . '<label class="custom-control-label" for="checkbox-' . $id . '"></label>'
                 . '</div>';
 
-            $leadBadge = '<span class="badge badge-' . $sColor . '" style="font-size:0.8em;padding:5px 8px;min-width:90px;text-align:center;">'
+            $leadBadge = '<span class="badge" style="background:' . $sHex . ';color:#fff;font-size:0.8em;padding:5px 10px;min-width:90px;text-align:center;">'
                 . '<i class="mdi mdi-' . $sIcon . ' mr-1"></i>' . e($sLabel) . '</span>';
 
-            $handoffBadge = '<span class="badge badge-' . $hColor . '" style="font-size:0.85em;padding:6px 10px;">'
+            $handoffBadge = '<span class="badge" style="background:' . $hHex . ';color:#fff;font-size:0.85em;padding:6px 10px;">'
                 . '<i class="mdi mdi-' . $hIcon . ' mr-1"></i>' . e($hLabel) . '</span>';
 
             $priorityBadge = '<span class="badge badge-' . $pColor . '" style="font-size:0.75em;">' . e($pLabel) . '</span>';
 
-            $actionsHtml = '<a onclick="viewContact(\'' . $id . '\')" class="btn btn-info btn-sm" title="View Contact"><i class="las la-eye"></i></a> '
+            $actionsHtml = '<a href="' . url('crm/customer/' . $id) . '" class="btn btn-info btn-sm" title="View CRM Profile"><i class="las la-eye"></i></a> '
                 . '<a onclick="sendMessageToContact(\'' . $id . '\')" class="btn btn-success btn-sm" title="Send Message"><i class="las la-comment"></i></a> '
                 . '<button onclick="openHandoffModal(\'' . $id . '\')" class="btn btn-primary btn-sm" title="Manage Handoff"><i class="mdi mdi-account-supervisor"></i></button> '
                 . '<a onclick="editGuest(\'' . $id . '\')" data-toggle="modal" href="#myModal" class="btn btn-warning btn-sm" title="Edit"><i class="las la-pen"></i></a> '
@@ -257,7 +264,6 @@ class Guest extends Controller {
                 $productNames,
                 $handoffBadge,
                 $priorityBadge,
-                $agentHtml,
                 $actionsHtml,
             ];
         })->toArray();
@@ -280,6 +286,114 @@ class Guest extends Controller {
     {
         // Redirect to index page as guest details are shown via modals
         return redirect()->route('guest.index');
+    }
+
+    /**
+     * Full-page CRM profile for a customer/lead: details, the complete WhatsApp
+     * engagement history, and actions to convert them along the pipeline.
+     */
+    public function crm($id)
+    {
+        $business = Auth::user()->business;
+        $businessId = $business->id ?? null;
+        $ownerId = $business->user_id ?? Auth::id();
+
+        $contact = EventsGuest::where('id', $id)
+            ->where('business_id', $businessId)
+            ->first();
+
+        if (!$contact) {
+            return redirect()->route('guest.index')->with('error', 'Customer not found.');
+        }
+
+        $lead = $contact->lead;
+
+        // Build the engagement timeline from the conversations log (the canonical
+        // per-lead record of every AI outreach, follow-up, campaign send and reply).
+        $timeline = collect();
+        if ($lead) {
+            $conversations = \App\Models\Conversation::where('lead_id', $lead->id)
+                ->orderBy('created_at', 'asc')->orderBy('id', 'asc')->get();
+
+            foreach ($conversations as $c) {
+                if (!empty($c->customer_message)) {
+                    $timeline->push(['direction' => 'in', 'text' => $c->customer_message, 'at' => $c->created_at]);
+                }
+                if (!empty($c->ai_response)) {
+                    $timeline->push(['direction' => 'out', 'text' => $c->ai_response, 'at' => $c->created_at]);
+                }
+                if (empty($c->customer_message) && empty($c->ai_response) && !empty($c->message_content)) {
+                    $timeline->push([
+                        'direction' => ($c->sender_type === 'customer') ? 'in' : 'out',
+                        'text' => $c->message_content,
+                        'at' => $c->created_at,
+                    ]);
+                }
+            }
+        }
+
+        $products = $lead
+            ? $lead->leadProducts()->with('product')->get()->pluck('product')->filter()->values()
+            : collect();
+
+        $phone = $contact->guest_phone;
+        $stats = [
+            'engagements' => $timeline->count(),
+            'sent'        => \App\Models\OutgoingMessage::where('user_id', $ownerId)->where('phone_number', $phone)->count(),
+            'received'    => \App\Models\IncomingMessage::where('user_id', $ownerId)->where('phone_number', $phone)->count(),
+            'last_at'     => $timeline->count() ? $timeline->last()['at'] : null,
+        ];
+
+        // Pipeline statuses offered as convert actions.
+        $statuses = [
+            'NEW' => 'New Lead', 'OUTREACHED' => 'Outreached', 'REPLIED' => 'Replied',
+            'ENGAGED' => 'Engaged', 'QUALIFIED' => 'Qualified', 'PITCHED' => 'Pitched',
+            'DEMO_SCHEDULED' => 'Demo Scheduled', 'PROPOSAL_SENT' => 'Proposal Sent',
+            'NEGOTIATING' => 'Negotiating', 'CONVERTED' => 'Converted (Customer)',
+            'CLOSED' => 'Closed Won', 'LOST' => 'Closed Lost', 'DO_NOT_CONTACT' => 'Do Not Contact',
+        ];
+
+        return view('crm.customer', compact('contact', 'lead', 'timeline', 'products', 'stats', 'statuses'));
+    }
+
+    /**
+     * Convert / move a customer along the sales pipeline from the CRM page.
+     */
+    public function updateCrmStatus($id)
+    {
+        $business = Auth::user()->business;
+        $businessId = $business->id ?? null;
+
+        $contact = EventsGuest::where('id', $id)
+            ->where('business_id', $businessId)
+            ->first();
+
+        if (!$contact) {
+            return redirect()->route('guest.index')->with('error', 'Customer not found.');
+        }
+
+        $allowed = [
+            'NEW', 'OUTREACHED', 'REPLIED', 'ENGAGED', 'QUALIFIED', 'PITCHED',
+            'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'NEGOTIATING', 'CONVERTED',
+            'CLOSED', 'LOST', 'DO_NOT_CONTACT',
+        ];
+        $status = request('status');
+        if (!in_array($status, $allowed, true)) {
+            return redirect()->back()->with('error', 'Invalid status selected.');
+        }
+
+        $lead = $contact->lead;
+        if (!$lead) {
+            $lead = \App\Models\Lead::firstOrCreate(
+                ['business_contact_id' => $contact->id, 'user_id' => $business->user_id ?? Auth::id()],
+                ['business_id' => $businessId, 'status' => $status, 'lead_score' => 10, 'source' => 'crm']
+            );
+        }
+
+        $lead->update(['status' => $status, 'last_interaction_at' => now()]);
+
+        return redirect()->route('crm.customer', $id)
+            ->with('success', 'Customer moved to "' . ($status) . '".');
     }
 
     /**

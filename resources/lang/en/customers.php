@@ -151,6 +151,7 @@ return [
         'status' => 'Status',
         'lead_status' => 'Lead Status',
         'handoff_status' => 'Handoff',
+        'priority' => 'Priority',
         'last_message' => 'Last Message',
         'created_at' => 'Added On',
         'actions' => 'Actions',

@@ -161,6 +161,9 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/guest', [App\Http\Controllers\Guest::class, 'index'])->name('guest.index');
     Route::get('/guest/data', [App\Http\Controllers\Guest::class, 'getData'])->name('guest.getData');
     Route::get('/guest/view/{id}', [App\Http\Controllers\Guest::class, 'show'])->name('guest.view');
+    // CRM customer profile — full page: details, WhatsApp engagement history, convert actions
+    Route::get('/crm/customer/{id}', [App\Http\Controllers\Guest::class, 'crm'])->name('crm.customer');
+    Route::post('/crm/customer/{id}/status', [App\Http\Controllers\Guest::class, 'updateCrmStatus'])->name('crm.customer.status');
     Route::get('/guest/{id}', [App\Http\Controllers\Guest::class, 'show'])->name('guest.show');
     Route::post('/guest/store/{id?}', [App\Http\Controllers\Guest::class, 'store'])->name('guest.store');
     Route::post('/guest/edit/{id?}', [App\Http\Controllers\Guest::class, 'update'])->name('guest.update');
