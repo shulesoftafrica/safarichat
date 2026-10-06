@@ -121,6 +121,24 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
+     * The business this user operates under: their own if they own one, otherwise
+     * the parent business they were added to as a team member (parent_business_id).
+     */
+    public function effectiveBusiness() {
+        return $this->business ?: $this->parentBusiness;
+    }
+
+    /**
+     * The billing account that governs this user. Team members have no business of
+     * their own, so they inherit the owner's subscription via the parent business.
+     * @return \App\Models\BillingAccount|null
+     */
+    public function effectiveBillingAccount() {
+        $business = $this->effectiveBusiness();
+        return $business ? $business->billingAccount : null;
+    }
+
+    /**
      * Get or create billing account for this user (through business)
      * @return \App\Models\BillingAccount
      */
@@ -160,6 +178,13 @@ class User extends Authenticatable implements MustVerifyEmail{
         // Eager-load miss: try via the business relation directly
         if (!$billing && $this->relationLoaded('business') && $this->business) {
             $billing = $this->business->billingAccount;
+        }
+
+        // Team members own no business — inherit the owner's subscription via
+        // the parent business (parent_business_id).
+        if (!$billing) {
+            $effective = $this->effectiveBusiness();
+            $billing = $effective ? $effective->billingAccount : null;
         }
 
         if ($billing) {

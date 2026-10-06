@@ -1,15 +1,15 @@
 @php
 // ─── BILLING GATE: load subscription data ────────────────────────────────────
 $user = Auth::user();
-$businessId = $user && $user->business ? $user->business->id : ($user ? $user->id : null);
 
-// Load billing account (business-level, then user-level as fallback)
-$billingAccount = null;
-if ($user) {
-    $billingAccount = $user->business
-        ? $user->business->billingAccount
-        : $user->billingAccount;
-}
+// Resolve the business this user operates under. Team members own no business of
+// their own, so they inherit the owner's subscription via the parent business
+// (parent_business_id) — otherwise they would wrongly be shown the paywall.
+$effectiveBusiness = $user ? $user->effectiveBusiness() : null;
+$businessId = $effectiveBusiness ? $effectiveBusiness->id : ($user ? $user->id : null);
+
+// Load billing account from the effective (owner) business.
+$billingAccount = $effectiveBusiness ? $effectiveBusiness->billingAccount : null;
 
 // ── Primary source: BillingAccount ──────────────────────────────────────────
 $subscriptionStatus = $billingAccount ? ($billingAccount->subscription_status ?? 'inactive') : 'inactive';
