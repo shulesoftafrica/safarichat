@@ -513,7 +513,9 @@ class Guest extends Controller {
 
     private function checkKeysExists(array $value, $keys_array = null) {
 
-        $required = $keys_array == null ? array('name', 'category', 'phone', 'pledge') : $keys_array;
+        // Only the phone column is required for a contact import. Name/category/
+        // pledge/email are optional, so we no longer force users to include them.
+        $required = $keys_array == null ? array('phone') : $keys_array;
 
         $data = array_change_key_case(array_shift($value), CASE_LOWER);
         $keys = str_replace(' ', '_', array_keys($data));
@@ -538,6 +540,62 @@ class Guest extends Controller {
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Normalize parsed spreadsheet rows to canonical contact fields.
+     *
+     * Lowercases headers and maps common spellings to our fields (only `phone` is
+     * needed; name/category/email/pledge are optional). Extra columns the system
+     * doesn't use (e.g. "address", "pledgemiss") are ignored. Empty rows are dropped.
+     *
+     * @param  array  $raw  Rows keyed by original header (from uploadExcel()).
+     * @return array        Rows keyed by: phone, name, category, email, pledge.
+     */
+    private function normalizeContactRows(array $raw): array
+    {
+        $map = [
+            // phone variants
+            'phone' => 'phone', 'phone_number' => 'phone', 'phonenumber' => 'phone',
+            'mobile' => 'phone', 'mobile_number' => 'phone', 'mobile_no' => 'phone',
+            'contact' => 'phone', 'contact_number' => 'phone', 'contact_no' => 'phone',
+            'number' => 'phone', 'tel' => 'phone', 'telephone' => 'phone', 'whatsapp' => 'phone', 'msisdn' => 'phone',
+            // name variants
+            'name' => 'name', 'full_name' => 'name', 'fullname' => 'name', 'contact_name' => 'name',
+            'customer_name' => 'name', 'client' => 'name', 'client_name' => 'name',
+            'company' => 'name', 'company_name' => 'name', 'business_name' => 'name',
+            // optional extras
+            'category' => 'category', 'type' => 'category', 'group' => 'category',
+            'email' => 'email', 'e_mail' => 'email', 'email_address' => 'email',
+            'pledge' => 'pledge',
+        ];
+
+        $out = [];
+        foreach ($raw as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $norm = [];
+            foreach ($row as $k => $v) {
+                $key = strtolower(trim(str_replace([' ', '-', '.'], '_', (string) $k)));
+                $canonical = $map[$key] ?? null;
+                if ($canonical === null) {
+                    continue; // column we don't use
+                }
+                $value = is_string($v) ? trim($v) : $v;
+                // first non-empty value wins for each canonical field
+                if (($norm[$canonical] ?? '') === '' && $value !== null && $value !== '') {
+                    $norm[$canonical] = $value;
+                }
+            }
+
+            if (!empty($norm['phone']) || !empty($norm['name'])) {
+                $out[] = $norm;
+            }
+        }
+
+        return $out;
+    }
+
     public function uploadGuest() {
         //
 
@@ -554,6 +612,15 @@ class Guest extends Controller {
             if (in_array($extension, ['xls', 'xlsx', 'csv'])) {
             // Handle Excel file
             $data = $this->uploadExcel();
+
+            // Normalize headers (lowercase + map common spellings like Mobile/Contact
+            // -> phone, Full Name/Company -> name) and drop columns we don't need, so
+            // the user isn't forced to match an exact template.
+            $data = $this->normalizeContactRows(is_array($data) ? $data : []);
+
+            if (empty($data)) {
+                return redirect()->back()->with('status', '<div class="alert alert-danger col-lg-12">No contacts found in the file. Make sure it has a <b>Phone</b> column with values.</div>');
+            }
 
             $status = $this->checkKeysExists($data);
             if ((int) $status == 1) {
@@ -597,27 +664,46 @@ class Guest extends Controller {
                         }
                         
                         $user = (object) $user_info;
-                if (strlen($user->name) < 2) {
-                    continue;
-                }
-                if (strlen($user->phone) < 4) {
-                    $status .= '<div class="alert alert-info col-lg-12">This Person ' . $user->name . ' have an Invalid No :' . $user->phone . '. Kindly update and upload again</div><br/>';
-                    continue;
-                }
-                $phone = validate_phone_number($user->phone)[1];
-                $category = EventGuestCategory::where('name', 'ilike', strtolower($user->category))->where('business_id', $business_id)->first();
-                $category_id = !empty($category) ? $category->id : EventGuestCategory::firstOrCreate(['name' => ucfirst($user->category), 'business_id' => $business_id])->id;
 
-                //check available event guests
-                $check_guests = EventsGuest::where('guest_phone', $phone)->first();
+                $name     = trim((string) ($user->name ?? ''));
+                $phoneRaw = trim((string) ($user->phone ?? ''));
+                $digits   = preg_replace('/\D/', '', $phoneRaw);
+
+                if ($digits === '' || strlen($digits) < 7) {
+                    $status .= '<div class="alert alert-info col-lg-12">Skipped a row with an invalid phone number: ' . e($phoneRaw ?: '(empty)') . '</div><br/>';
+                    continue;
+                }
+
+                // Name is optional — fall back to a placeholder when the file has none.
+                if ($name === '') {
+                    $name = 'Contact';
+                }
+
+                $validatedPhone = validate_phone_number($phoneRaw);
+                $phone = (is_array($validatedPhone) && !empty($validatedPhone[1])) ? $validatedPhone[1] : $digits;
+
+                // Category is optional — only create/assign one when the file provides it.
+                $categoryName = trim((string) ($user->category ?? ''));
+                $category_id = null;
+                if ($categoryName !== '') {
+                    $category = EventGuestCategory::where('name', 'ilike', strtolower($categoryName))
+                        ->where('business_id', $business_id)->first();
+                    $category_id = $category
+                        ? $category->id
+                        : EventGuestCategory::firstOrCreate(['name' => ucfirst($categoryName), 'business_id' => $business_id])->id;
+                }
+
+                // Dedup within this business.
+                $check_guests = EventsGuest::where('guest_phone', $phone)
+                    ->where('business_id', $business_id)->first();
 
                 $event = empty($check_guests) ? EventsGuest::create([
                         'business_id' => $business_id,
-                        'guest_name' => $user->name,
-                        'guest_email' => isset($user->email) ? $user->email : '',
+                        'guest_name' => $name,
+                        'guest_email' => (string) ($user->email ?? ''),
                         'guest_phone' => $phone,
-                        'event_guest_category_id' => $category_id,
-                        'guest_pledge' => $user->pledge
+                        'contact_category_id' => $category_id,
+                        'guest_pledge' => (string) ($user->pledge ?? ''),
                     ]) : $check_guests;
                     
                 // Increment counter only if new contact was created
@@ -644,7 +730,7 @@ class Guest extends Controller {
                     // Focus on guest/contact management instead of event payments
                     $with = '';
                 }
-                $status .= '<div class="alert alert-success col-lg-12">User ' . $user->name . ' has been uploaded successfully' . $with . '</div><br/>';
+                $status .= '<div class="alert alert-success col-lg-12">User ' . e($name) . ' has been uploaded successfully' . $with . '</div><br/>';
                     }
                 }
             }
