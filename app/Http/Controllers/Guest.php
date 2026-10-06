@@ -596,6 +596,33 @@ class Guest extends Controller {
         return $out;
     }
 
+    /**
+     * Stream a CSV template showing the exact columns the contact importer expects.
+     * CSV opens directly in Excel and keeps the download dependency-free.
+     */
+    public function downloadTemplate()
+    {
+        $headers = ['name', 'phone', 'email', 'category'];
+        $sample = [
+            ['Arwa Pharmacy', '+255685219595', 'info@arwa.co.tz', 'Retail Pharmacy'],
+            ['John Doe',       '0713000000',    '',                 ''],
+        ];
+
+        $callback = function () use ($headers, $sample) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            foreach ($sample as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        };
+
+        return response()->streamDownload($callback, 'contacts_template.csv', [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="contacts_template.csv"',
+        ]);
+    }
+
     public function uploadGuest() {
         //
 

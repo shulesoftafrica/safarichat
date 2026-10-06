@@ -180,7 +180,7 @@ return [
         'subtitle' => 'Import customers from Excel or CSV file',
         'download_sample' => 'Download Sample File',
         'sample_excel' => 'Sample Excel File',
-        'sample_file_info' => 'Only a Phone column is required. Name, Email and Category are optional; any other columns are ignored.',
+        'sample_file_info' => 'Use our template so your columns match:',
         'select_file' => 'Click here to upload Excel or VCF file',
         'click_to_upload' => 'Click here to upload excel file',
         'drag_drop' => 'Drag and drop your file here or click to browse',

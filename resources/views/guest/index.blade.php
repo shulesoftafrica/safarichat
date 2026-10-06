@@ -2530,12 +2530,36 @@ body:not(.dark-mode) .modal-body .alert-danger {
                 </div>
 
                 <div class="modal-body">
-                    <div class="alert alert-info d-flex align-items-center">
-                        <span class="mr-2">{{ __('customers.upload.sample_file_info') }}</span>
-                        <a href="<?= url('storage/uploads/sample.xlsx') ?>" class="btn btn-primary btn-sm font-weight-bold" style="margin-left:10px;">
-                            <i class="mdi mdi-download" style="margin-right:5px;"></i>{{ __('customers.upload.download_sample') }}
-                        </a>
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="mr-2">{{ __('customers.upload.sample_file_info') }}</span>
+                            <a href="{{ route('guest.uploadTemplate') }}" class="btn btn-primary btn-sm font-weight-bold" style="margin-left:auto;">
+                                <i class="mdi mdi-download" style="margin-right:5px;"></i>{{ __('customers.upload.download_sample') }}
+                            </a>
+                        </div>
+                        <div style="font-size:0.85rem;">
+                            <strong>Expected columns (first row = headers):</strong>
+                            <ul class="mb-1 pl-3">
+                                <li><code>phone</code> — <strong>required</strong> (e.g. <em>+255685219595</em> or <em>0713000000</em>)</li>
+                                <li><code>name</code> — optional (contact or company name)</li>
+                                <li><code>email</code> — optional</li>
+                                <li><code>category</code> — optional (e.g. Retail Pharmacy)</li>
+                            </ul>
+                            <small class="text-muted">Column order doesn't matter, and any extra columns are ignored.</small>
+                        </div>
                     </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">Assign product <span class="text-danger">*</span></label>
+                        <select name="product_ids[]" class="form-control" required>
+                            <option value="">— Select a product —</option>
+                            @foreach(($products ?? []) as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">Imported contacts become leads for this product.</small>
+                    </div>
+
                     <div class="form-group">
                         <label for="quantity" class="col-form-label text-right">{{ __('customers.upload.select_file') }}</label>
                         <input type="file" name="file" id="edit_guest_name" class="form-control" accept=".xls,.csv,.xlsx,.vcf" placeholder="File Upload" required="">

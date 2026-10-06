@@ -178,6 +178,7 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/guest/syncWhatsappContacts', [App\Http\Controllers\Guest::class, 'syncWhatsappContacts'])->name('guest.syncWhatsappContacts');
     Route::post('/guest/importWhatsappContacts', [App\Http\Controllers\Guest::class, 'importWhatsappContacts'])->name('guest.importWhatsappContacts');
     Route::post('/guest/uploadGuest', [App\Http\Controllers\Guest::class, 'uploadGuest'])->name('guest.uploadGuest');
+    Route::get('/guest/uploadTemplate', [App\Http\Controllers\Guest::class, 'downloadTemplate'])->name('guest.uploadTemplate');
     
     // Handoff Management routes
     Route::post('/guest/request-handoff', [App\Http\Controllers\Guest::class, 'requestHandoff'])->name('guest.requestHandoff');
