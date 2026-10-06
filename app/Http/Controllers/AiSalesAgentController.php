@@ -86,8 +86,11 @@ class AiSalesAgentController extends Controller
                 $agent->id => $this->normalizeEnabledChannels($agent->notification_methods ?? []),
             ];
         })->all();
-            
-        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus', 'channels', 'agentChannelMatrix'));
+
+        // Guided outreach-channel config (Email / Phone-SMS / Bulk-SMS).
+        $channelConfigs = $this->loadChannelConfigs();
+
+        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus', 'channels', 'agentChannelMatrix', 'channelConfigs'));
     }
 
     /**
@@ -566,6 +569,143 @@ class AiSalesAgentController extends Controller
             'success' => true,
             'enabled_channels' => $filteredChannels,
         ]);
+    }
+
+    /**
+     * Load the Email / Phone-SMS / Bulk-SMS channel config for the current business.
+     * Phone-SMS exposes a connector code sourced from admin.school_keys.
+     */
+    private function loadChannelConfigs(): array
+    {
+        $business = $this->resolveCurrentBusiness();
+        $out = [
+            'email'     => ['is_active' => false, 'settings' => []],
+            'phone_sms' => ['is_active' => false, 'settings' => [], 'code' => null],
+            'bulk_sms'  => ['is_active' => false, 'settings' => []],
+        ];
+
+        if (! $business) {
+            return $out;
+        }
+
+        foreach (['email', 'phone_sms', 'bulk_sms'] as $key) {
+            $ch = Channel::where('business_id', $business->id)->where('channel_key', $key)->first();
+            if ($ch) {
+                $out[$key]['is_active'] = (bool) $ch->is_active;
+                $out[$key]['settings']  = $ch->settings ?? [];
+            }
+        }
+
+        // Phone-SMS connector code (read-only; created lazily on enable).
+        $out['phone_sms']['code'] = $out['phone_sms']['is_active']
+            ? $this->getOrCreatePhoneSmsCode($business)
+            : ($out['phone_sms']['settings']['code'] ?? null);
+
+        return $out;
+    }
+
+    /**
+     * Save a guided outreach-channel config (Email / Phone-SMS / Bulk-SMS).
+     */
+    public function saveChannelConfig(Request $request)
+    {
+        $business = $this->resolveCurrentBusiness();
+        if (! $business) {
+            return back()->with('channel_success', null)->withErrors(['channel' => 'No business found for current user.']);
+        }
+
+        $key = $request->input('channel_key');
+        if (! in_array($key, ['email', 'phone_sms', 'bulk_sms'], true)) {
+            return back()->withErrors(['channel' => 'Invalid channel.']);
+        }
+
+        $enable = $request->boolean('is_active');
+        $existing = Channel::where('business_id', $business->id)->where('channel_key', $key)->first();
+        $settings = $existing ? ($existing->settings ?? []) : [];
+        $meta = [
+            'email'     => ['name' => 'Email',     'provider' => 'sendgrid', 'rank' => 4],
+            'phone_sms' => ['name' => 'Phone SMS', 'provider' => 'twilio',   'rank' => 2],
+            'bulk_sms'  => ['name' => 'Bulk SMS',  'provider' => 'bulk_sms', 'rank' => 3],
+        ][$key];
+
+        if ($key === 'email' && $enable) {
+            $request->validate(['reply_to' => 'required|email']);
+            $settings = ['reply_to' => trim($request->input('reply_to'))];
+        } elseif ($key === 'bulk_sms' && $enable) {
+            $request->validate([
+                'url'      => 'required|url',
+                'username' => 'required|string|max:191',
+                'password' => 'required|string|max:191',
+            ]);
+            $settings = [
+                'url'      => trim($request->input('url')),
+                'username' => trim($request->input('username')),
+                'password' => $request->input('password'),
+            ];
+        } elseif ($key === 'phone_sms') {
+            // Code is managed via admin.school_keys; ensure it exists when enabling.
+            $code = $enable ? $this->getOrCreatePhoneSmsCode($business) : ($settings['code'] ?? null);
+            $settings = array_merge($settings, [
+                'code'        => $code,
+                'schema_name' => $this->resolveBusinessSchemaName($business),
+            ]);
+        }
+
+        Channel::updateOrCreate(
+            ['business_id' => $business->id, 'channel_key' => $key],
+            [
+                'display_name'  => $meta['name'],
+                'provider'      => $meta['provider'],
+                'is_active'     => $enable,
+                'priority_rank' => $meta['rank'],
+                'settings'      => $settings,
+            ]
+        );
+
+        return back()->with('channel_success', $meta['name'] . ' channel ' . ($enable ? 'enabled' : 'saved') . '.');
+    }
+
+    /**
+     * The business's unified schema name = owner user's uuid.
+     */
+    private function resolveBusinessSchemaName(Business $business): string
+    {
+        $owner = \App\Models\User::find($business->user_id);
+        return ($owner && $owner->uuid)
+            ? $owner->uuid
+            : (string) (config('notifications.unified_api.schema_name') ?? $business->id);
+    }
+
+    /**
+     * Get the phone-SMS connector code from admin.school_keys for this business's
+     * schema, creating it if missing. Guarded so a missing table (e.g. local) is safe.
+     */
+    private function getOrCreatePhoneSmsCode(Business $business): ?string
+    {
+        try {
+            // Avoid touching the table at all when it isn't present (e.g. local),
+            // so a missing-table error can never abort a surrounding transaction.
+            $tableExists = \DB::selectOne("select 1 as ok from information_schema.tables where table_schema = 'admin' and table_name = 'school_keys' limit 1");
+            if (! $tableExists) {
+                return null;
+            }
+
+            $schema = $this->resolveBusinessSchemaName($business);
+            $code = \DB::table('admin.school_keys')->where('schema_name', $schema)->value('api_key');
+
+            if (empty($code)) {
+                $code = (string) \Illuminate\Support\Str::uuid();
+                \DB::table('admin.school_keys')->insert([
+                    'schema_name' => $schema,
+                    'api_key'     => $code,
+                ]);
+            }
+
+            return $code;
+        } catch (\Throwable $e) {
+            Log::warning('Phone-SMS school_keys access failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     private function resolveCurrentBusiness(): ?Business

@@ -78,10 +78,14 @@
             <div class="mb-4">
                 <h2 class="mb-2" style="font-weight:700; color:#4b3fa7;">Configure and Manage New Sales Agents</h2>
                 <p class="mb-3" style="color:#6c757d;">This section allows you to add, configure, and manage your WhatsApp sales agents. Each agent can automate and personalize your customer conversations.</p>
+                {{-- Only one sales agent is needed, so the create button is shown
+                     only until the first agent exists. --}}
+                @if($agents->count() === 0)
                 <button id="createAgentBtn" class="btn-primary" onclick="handleCreateAgent()">
                     <i class="fas fa-plus-circle me-2"></i>
                     Create New Sales Agent
                 </button>
+                @endif
             </div>
             @if($agents->count() > 0)
                 <!-- Agents Grid View -->
@@ -450,6 +454,95 @@
                         <div class="stat-info">
                             <h3>{{ $agents->where('allow_negotiation', true)->count() }}</h3>
                             <p>Negotiation Enabled</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ===================== OUTREACH CHANNELS ===================== --}}
+                @php
+                    $emailCfg = $channelConfigs['email']     ?? ['is_active'=>false,'settings'=>[]];
+                    $phoneCfg = $channelConfigs['phone_sms']  ?? ['is_active'=>false,'settings'=>[],'code'=>null];
+                    $bulkCfg  = $channelConfigs['bulk_sms']   ?? ['is_active'=>false,'settings'=>[]];
+                @endphp
+                <div class="mt-4">
+                    <h3 style="font-weight:700;color:#4b3fa7;">Outreach Channels</h3>
+                    <p style="color:#6c757d;">Beyond WhatsApp, enable the channels a campaign may use. Only channels marked <span class="badge bg-success">ACTIVE</span> are offered when sending.</p>
+
+                    @if(session('channel_success'))<div class="alert alert-success">{{ session('channel_success') }}</div>@endif
+                    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+
+                    {{-- Row A: Email --}}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0"><i class="fas fa-envelope me-2 text-primary"></i>Email</h5>
+                                @if($emailCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
+                            </div>
+                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
+                                @csrf
+                                <input type="hidden" name="channel_key" value="email">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="emailEnable" name="is_active" value="1" {{ $emailCfg['is_active']?'checked':'' }} onchange="document.getElementById('emailFields').style.display=this.checked?'block':'none'">
+                                    <label class="form-check-label" for="emailEnable">Enable Email channel</label>
+                                </div>
+                                <div id="emailFields" style="display:{{ $emailCfg['is_active']?'block':'none' }}">
+                                    <label class="form-label small text-muted">Reply-to email</label>
+                                    <div class="input-group">
+                                        <input type="email" name="reply_to" class="form-control" placeholder="reply-to@yourbusiness.com" value="{{ $emailCfg['settings']['reply_to'] ?? '' }}">
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                    </div>
+                                </div>
+                                @if(!$emailCfg['is_active'])<button type="submit" class="btn btn-sm btn-outline-primary mt-1">Save</button>@endif
+                            </form>
+                        </div>
+                    </div>
+
+                    {{-- Row B: Phone-SMS --}}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0"><i class="fas fa-sms me-2 text-primary"></i>Phone-SMS Connector</h5>
+                                @if($phoneCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
+                            </div>
+                            <p class="small text-muted mb-2">Sends via the platform SMS gateway. Your connector code is managed automatically.</p>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">Connector code</label>
+                                <input type="text" class="form-control" value="{{ $phoneCfg['code'] ?? 'Will be generated when you enable' }}" readonly>
+                            </div>
+                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
+                                @csrf
+                                <input type="hidden" name="channel_key" value="phone_sms">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="phoneEnable" name="is_active" value="1" {{ $phoneCfg['is_active']?'checked':'' }}>
+                                    <label class="form-check-label" for="phoneEnable">Enable Phone-SMS channel</label>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Save</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {{-- Row C: Bulk-SMS --}}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0"><i class="fas fa-paper-plane me-2 text-primary"></i>Bulk-SMS</h5>
+                                @if($bulkCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
+                            </div>
+                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
+                                @csrf
+                                <input type="hidden" name="channel_key" value="bulk_sms">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="bulkEnable" name="is_active" value="1" {{ $bulkCfg['is_active']?'checked':'' }} onchange="document.getElementById('bulkFields').style.display=this.checked?'block':'none'">
+                                    <label class="form-check-label" for="bulkEnable">Enable Bulk-SMS channel</label>
+                                </div>
+                                <div id="bulkFields" class="row g-2" style="display:{{ $bulkCfg['is_active']?'flex':'none' }}">
+                                    <div class="col-md-4"><input type="url" name="url" class="form-control" placeholder="Gateway URL" value="{{ $bulkCfg['settings']['url'] ?? '' }}"></div>
+                                    <div class="col-md-3"><input type="text" name="username" class="form-control" placeholder="Username" value="{{ $bulkCfg['settings']['username'] ?? '' }}"></div>
+                                    <div class="col-md-3"><input type="text" name="password" class="form-control" placeholder="Password" value="{{ $bulkCfg['settings']['password'] ?? '' }}"></div>
+                                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Save</button></div>
+                                </div>
+                                @if(!$bulkCfg['is_active'])<button type="submit" class="btn btn-sm btn-outline-primary mt-1">Save</button>@endif
+                            </form>
                         </div>
                     </div>
                 </div>
