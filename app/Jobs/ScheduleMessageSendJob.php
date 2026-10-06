@@ -140,6 +140,13 @@ class ScheduleMessageSendJob implements ShouldQueue
      */
     protected function sendMessage(WaSenderService $waSenderService)
     {
+        // Intelligent routing chose one channel per recipient at queue time.
+        // Non-WhatsApp channels go through the unified notifications transport.
+        $channel = $this->messageQueue->selected_channel ?: 'whatsapp';
+        if ($channel !== 'whatsapp') {
+            return $this->sendViaChannel($channel);
+        }
+
         try {
             // Use refined message if available, fallback to original
             $message = $this->messageQueue->refined_message ?? $this->messageQueue->original_message;
@@ -215,6 +222,92 @@ class ScheduleMessageSendJob implements ShouldQueue
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Send a campaign message via a non-WhatsApp channel (Email / Phone-SMS /
+     * Bulk-SMS) through the unified notifications transport, using the channel
+     * settings the business configured on the Sales Agent page.
+     */
+    protected function sendViaChannel(string $channel): array
+    {
+        try {
+            $mq = $this->messageQueue;
+            $message = $mq->refined_message ?? $mq->original_message;
+
+            $user = \App\Models\User::find($mq->user_id);
+            $business = $user ? ($user->business ?: \App\Models\Business::where('user_id', $user->id)->first()) : null;
+            if (!$business) {
+                return ['success' => false, 'error' => 'No business resolved for channel send'];
+            }
+
+            $owner = \App\Models\User::find($business->user_id);
+            $schemaName = ($owner && $owner->uuid) ? $owner->uuid : (string) ($user->uuid ?? $mq->user_id);
+
+            $channelRow = \App\Models\Channel::where('business_id', $business->id)
+                ->where('channel_key', $channel)->first();
+            $settings = ($channelRow && is_array($channelRow->settings)) ? $channelRow->settings : [];
+
+            // Recipient address
+            if ($channel === 'email') {
+                $to = optional($mq->contact)->guest_email;
+                if (empty($to)) {
+                    return ['success' => false, 'error' => 'No email address for contact'];
+                }
+            } else {
+                $to = $mq->phone_number;
+            }
+
+            // Channel-specific extras from the business's saved settings.
+            $extras = [];
+            $subject = null;
+            if ($channel === 'email') {
+                $subject = optional($mq->campaign)->campaign_name ?: ('Message from ' . $business->name);
+                if (!empty($settings['reply_to'])) {
+                    $extras['reply_to'] = $settings['reply_to'];
+                }
+            } elseif ($channel === 'bulk_sms') {
+                foreach (['url', 'username', 'password'] as $k) {
+                    if (!empty($settings[$k])) {
+                        $extras['bulk_sms_' . $k] = $settings[$k];
+                    }
+                }
+            } elseif ($channel === 'phone_sms') {
+                if (!empty($settings['code'])) {
+                    $extras['connector_code'] = $settings['code'];
+                }
+            }
+
+            $context = [
+                'schema_name' => $schemaName,
+                'to' => $to,
+                'message' => $message,
+                'priority' => $mq->priority >= 8 ? 'high' : 'normal',
+                'subject' => $subject,
+                'campaign_id' => $mq->campaign_id,
+                'extras' => $extras,
+            ];
+
+            $payload = app(\App\Services\MultiChannel\ChannelPayloadBuilder::class)->build($channel, $context);
+            $result = app(\App\Services\MultiChannel\NotificationsApiAdapter::class)->send($payload);
+
+            Log::info('Campaign channel send', [
+                'message_queue_id' => $mq->id,
+                'channel'          => $channel,
+                'to'               => $to,
+                'success'          => $result['success'] ?? false,
+                'status_code'      => $result['status_code'] ?? null,
+            ]);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('sendViaChannel failed', [
+                'message_queue_id' => $this->messageQueue->id,
+                'channel'          => $channel,
+                'error'            => $e->getMessage(),
+            ]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 

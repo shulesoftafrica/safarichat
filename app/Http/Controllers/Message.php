@@ -98,7 +98,23 @@ class Message extends Controller
         $this->data['products'] = Product::forUser(Auth::id())
             ->orderBy('name')
             ->get(['id', 'name']);
-      
+
+        // Active outreach channels configured on the Sales Agent page (channels table).
+        // WhatsApp is always available as the default channel; the rest appear only
+        // when the business has enabled them.
+        $business = Auth::user()->business ?: \App\Models\Business::where('user_id', Auth::id())->first();
+        $activeChannels = ['whatsapp' => true, 'email' => false, 'phone_sms' => false, 'bulk_sms' => false];
+        if ($business) {
+            $enabled = \App\Models\Channel::where('business_id', $business->id)
+                ->whereIn('channel_key', ['email', 'phone_sms', 'bulk_sms'])
+                ->where('is_active', true)
+                ->pluck('channel_key')->all();
+            foreach (['email', 'phone_sms', 'bulk_sms'] as $k) {
+                $activeChannels[$k] = in_array($k, $enabled, true);
+            }
+        }
+        $this->data['activeChannels'] = $activeChannels;
+
         return view('message.index', $this->data);
     }
 
@@ -798,13 +814,71 @@ class Message extends Controller
      * 5. Messages scheduled for optimal send time
      * 6. ScheduleMessageSendJob delivers refined messages
      */
+    /**
+     * Pick the single channel to use for a contact (intelligent routing):
+     *   1. WhatsApp — if selected AND the contact has ever messaged us (incoming).
+     *   2. Otherwise the first selected alternative: Bulk-SMS → Phone-SMS → Email
+     *      (Email requires the contact to have an email address).
+     *   3. Last resort: WhatsApp (e.g. first contact, only WhatsApp selected).
+     *
+     * @return string|null  'whatsapp'|'bulk_sms'|'phone_sms'|'email', or null if undeliverable.
+     */
+    private function resolveRecipientChannel($contact, array $selectedChannels, int $ownerUserId): ?string
+    {
+        $phone  = (string) ($contact->guest_phone ?? '');
+        $digits = preg_replace('/\D/', '', $phone);
+
+        // 1. WhatsApp when the contact has engaged us on WhatsApp before.
+        if (in_array('whatsapp', $selectedChannels, true) && $digits !== '') {
+            $hasWhatsapp = \App\Models\IncomingMessage::where('user_id', $ownerUserId)
+                ->where(function ($q) use ($phone, $digits) {
+                    $q->where('phone_number', $phone)->orWhere('phone_number', $digits);
+                })
+                ->exists();
+            if ($hasWhatsapp) {
+                return 'whatsapp';
+            }
+        }
+
+        // 2. No WhatsApp engagement → first selected alternative, in priority order.
+        foreach (['bulk_sms', 'phone_sms', 'email'] as $c) {
+            if (in_array($c, $selectedChannels, true)) {
+                if ($c === 'email' && empty($contact->guest_email)) {
+                    continue; // can't email without an address
+                }
+                return $c;
+            }
+        }
+
+        // 3. Last resort: WhatsApp if it was selected.
+        if (in_array('whatsapp', $selectedChannels, true)) {
+            return 'whatsapp';
+        }
+
+        return null;
+    }
+
     private function queueMessages($users, $message, $sources, $attachments = [], $productId = null)
     {
-        // Only handle WhatsApp now, ignore other sources
-        if (!in_array('whatsapp', $sources)) {
-            Log::info('No WhatsApp source specified, skipping message queuing');
-            return;
+        // Resolve which channels this campaign may use: selected ∩ active.
+        // WhatsApp is always allowed; Email/Phone-SMS/Bulk-SMS only when enabled on
+        // the Sales Agent page (channels table).
+        $businessId = Auth::user()->business->id ?? \App\Models\Business::where('user_id', Auth::id())->value('id');
+        $activeAlt = $businessId
+            ? \App\Models\Channel::where('business_id', $businessId)
+                ->whereIn('channel_key', ['email', 'phone_sms', 'bulk_sms'])
+                ->where('is_active', true)->pluck('channel_key')->all()
+            : [];
+        $selectedChannels = [];
+        foreach (['whatsapp', 'bulk_sms', 'phone_sms', 'email'] as $c) {
+            if (in_array($c, (array) $sources, true) && ($c === 'whatsapp' || in_array($c, $activeAlt, true))) {
+                $selectedChannels[] = $c;
+            }
         }
+        if (empty($selectedChannels)) {
+            $selectedChannels = ['whatsapp'];
+        }
+        Log::info('Campaign channel selection', ['selected' => $selectedChannels, 'sources' => $sources]);
 
         // Debug logging
         Log::info('queueMessages called with data', [
@@ -878,6 +952,7 @@ class Message extends Controller
         $queuedCount = 0;
         $nurtureCount = 0;
         $skippedNoReply = 0;
+        $skippedUndeliverable = 0;
 
         foreach ($users as $user) {
             $user = (object) $user;
@@ -887,37 +962,6 @@ class Message extends Controller
             if (is_array($phoneNumber)) {
                 $cleanPhone = $phoneNumber[1];
 
-                // SAFETY (WaSender ban avoidance): only message contacts who have
-                // replied to us before. Cold-messaging brand-new numbers is what most
-                // often triggers a WhatsApp restriction. Toggle via CAMPAIGN_REPLY_REQUIRED.
-                if (config('campaign.reply_required', true)) {
-                    $hasReplied = \App\Models\IncomingMessage::where('user_id', Auth::id())
-                        ->where('phone_number', $cleanPhone)
-                        ->exists();
-
-                    if (!$hasReplied) {
-                        $skippedNoReply++;
-                        Log::info('Campaign recipient skipped — no prior reply (safe mode)', [
-                            'phone' => $cleanPhone,
-                            'campaign_id' => $campaign->id,
-                        ]);
-                        continue;
-                    }
-                }
-
-                // Check if nurture mode should be applied (for ghosting contacts)
-                // Nurture mode has its own AI processing, so we skip adding to campaign queue
-                $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $message);
-                
-                if ($nurtureApplied) {
-                    Log::info("Nurture mode applied, using separate nurture pipeline", [
-                        'phone' => $cleanPhone,
-                        'user_id' => Auth::id()
-                    ]);
-                    $nurtureCount++;
-                    continue; // Skip adding to campaign queue
-                }
-                
                 // Find or create contact record for relationship tracking
                 $contact = \App\Models\BusinessContact::firstOrCreate(
                     [
@@ -926,10 +970,39 @@ class Message extends Controller
                     ],
                     [
                         'guest_name' => $user->guest_name ?? 'Contact',
+                        'guest_email' => $user->guest_email ?? null,
                         'user_id' => Auth::id(),
                         'engagement_score' => 50 // Default score
                     ]
                 );
+
+                // INTELLIGENT ROUTING: each contact gets exactly ONE channel.
+                $channel = $this->resolveRecipientChannel($contact, $selectedChannels, (int) Auth::id());
+                if (!$channel) {
+                    // e.g. Email selected but the contact has no email address.
+                    $skippedUndeliverable++;
+                    continue;
+                }
+
+                // Ban-avoidance applies to WhatsApp only: never cold-message a new
+                // number on WhatsApp. SMS/Email to non-repliers is allowed.
+                if ($channel === 'whatsapp' && config('campaign.reply_required', true)) {
+                    $hasReplied = \App\Models\IncomingMessage::where('user_id', Auth::id())
+                        ->where('phone_number', $cleanPhone)->exists();
+                    if (!$hasReplied) {
+                        $skippedNoReply++;
+                        continue;
+                    }
+                }
+
+                // Nurture mode (ghosting reframing) only applies to WhatsApp.
+                if ($channel === 'whatsapp') {
+                    $nurtureApplied = $this->applyNurtureModeIfNeeded($user, $message);
+                    if ($nurtureApplied) {
+                        $nurtureCount++;
+                        continue; // handled by the separate nurture pipeline
+                    }
+                }
 
                 if (!empty($productId)) {
                     $this->ensureLeadProductAssociation($contact, (int) $productId);
@@ -947,7 +1020,8 @@ class Message extends Controller
                     'attachment_context' => $attachmentContext,
                     'status' => \App\Models\MessageQueue::STATUS_STAGED, // Pending AI analysis
                     'priority' => 5, // Default priority (1-10 scale)
-                    'provider' => \App\Models\MessageQueue::PROVIDER_WASENDER,
+                    'provider' => $channel === 'whatsapp' ? \App\Models\MessageQueue::PROVIDER_WASENDER : 'unified_api',
+                    'selected_channel' => $channel,
                     'created_at' => now()
                 ]);
 
