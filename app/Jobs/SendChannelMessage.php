@@ -42,6 +42,24 @@ class SendChannelMessage implements ShouldQueue
             'queued_at' => $message->queued_at ?? now(),
         ]);
 
+        // Phone-SMS is written straight into notifications.messages (the platform
+        // SMS pipeline consumes it there) rather than sent over the unified HTTP API.
+        $channel = strtolower((string) ($this->options['channel'] ?? $this->payload['channel'] ?? 'whatsapp'));
+        if ($channel === 'phone_sms') {
+            $externalId = $this->insertPhoneSms();
+            $message->update([
+                'status' => 'sent',
+                'external_id' => (string) $externalId,
+                'sent_at' => now(),
+                'error_message' => null,
+            ]);
+
+            app(\App\Services\MultiChannel\ChannelMetricsService::class)
+                ->recordOutgoingTransition($message->fresh(), $previousStatus, 'sent');
+
+            return;
+        }
+
         $response = $adapter->send($this->payload);
 
         $status = $response['status'] ?? null;
@@ -94,6 +112,44 @@ class SendChannelMessage implements ShouldQueue
         Log::error('SendChannelMessage failed permanently', [
             'outgoing_message_id' => $this->outgoingMessageId,
             'error' => $exception->getMessage(),
+        ]);
+    }
+
+    /**
+     * Insert a phone-SMS row directly into notifications.messages on the dedicated
+     * "notification" connection, keyed by the business's schema_name.
+     */
+    private function insertPhoneSms(): int
+    {
+        $to = $this->payload['to'] ?? null;
+        $message = $this->payload['message'] ?? null;
+        $schemaName = $this->payload['schema_name'] ?? null;
+
+        if (empty($to) || empty($schemaName)) {
+            throw new Exception('Phone-SMS payload missing recipient or schema_name');
+        }
+
+        $priority = in_array(($this->payload['priority'] ?? 'normal'), ['low', 'normal', 'high', 'urgent'], true)
+            ? $this->payload['priority']
+            : 'normal';
+
+        $metadata = array_filter([
+            'outgoing_message_id' => $this->outgoingMessageId,
+            'connector_code'      => $this->payload['connector_code'] ?? null,
+            'source'              => 'safarichat',
+        ], fn ($v) => $v !== null && $v !== '');
+
+        return (int) \Illuminate\Support\Facades\DB::connection('notification')->table('messages')->insertGetId([
+            'channel'     => 'phone-sms',
+            'recipient'   => $to,
+            'message'     => $message,
+            'status'      => 'pending',
+            'priority'    => $priority,
+            'schema_name' => $schemaName,
+            'ip_address'  => request()->ip() ?: '127.0.0.1',
+            'metadata'    => json_encode($metadata),
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
     }
 

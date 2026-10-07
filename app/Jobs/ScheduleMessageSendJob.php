@@ -249,6 +249,13 @@ class ScheduleMessageSendJob implements ShouldQueue
                 ->where('channel_key', $channel)->first();
             $settings = ($channelRow && is_array($channelRow->settings)) ? $channelRow->settings : [];
 
+            // Phone-SMS no longer rides the unified HTTP API: we write the row
+            // straight into notifications.messages (the platform SMS pipeline
+            // picks it up from there), keyed by this business's schema_name.
+            if ($channel === 'phone_sms') {
+                return $this->sendViaPhoneSms($mq, $schemaName, $settings);
+            }
+
             // Recipient address
             if ($channel === 'email') {
                 $to = optional($mq->contact)->guest_email;
@@ -272,10 +279,6 @@ class ScheduleMessageSendJob implements ShouldQueue
                     if (!empty($settings[$k])) {
                         $extras['bulk_sms_' . $k] = $settings[$k];
                     }
-                }
-            } elseif ($channel === 'phone_sms') {
-                if (!empty($settings['code'])) {
-                    $extras['connector_code'] = $settings['code'];
                 }
             }
 
@@ -309,6 +312,54 @@ class ScheduleMessageSendJob implements ShouldQueue
             ]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Phone-SMS delivery: insert a row directly into notifications.messages on the
+     * dedicated "notification" connection (schema = notifications), using the
+     * business's schema_name exactly as the WaSender/unified channels do. A missing
+     * recipient is treated as a hard failure; everything else is let through to the
+     * downstream SMS pipeline.
+     *
+     * @return array{success:bool, error?:string, external_id?:int}
+     */
+    protected function sendViaPhoneSms(\App\Models\MessageQueue $mq, string $schemaName, array $settings): array
+    {
+        $to = $mq->phone_number;
+        if (empty($to)) {
+            return ['success' => false, 'error' => 'No phone number for phone-SMS recipient'];
+        }
+
+        $message = $mq->refined_message ?? $mq->original_message;
+
+        $metadata = array_filter([
+            'campaign_id'      => $mq->campaign_id,
+            'message_queue_id' => $mq->id,
+            'connector_code'   => $settings['code'] ?? null,
+            'source'           => 'safarichat',
+        ], fn ($v) => $v !== null && $v !== '');
+
+        $id = \DB::connection('notification')->table('messages')->insertGetId([
+            'channel'     => 'phone-sms',
+            'recipient'   => $to,
+            'message'     => $message,
+            'status'      => 'pending',
+            'priority'    => $mq->priority >= 8 ? 'high' : 'normal',
+            'schema_name' => $schemaName,
+            'ip_address'  => request()->ip() ?: '127.0.0.1',
+            'metadata'    => json_encode($metadata),
+            'created_at'  => now(),
+            'updated_at'  => now(),
+        ]);
+
+        Log::info('Phone-SMS queued into notifications.messages', [
+            'message_queue_id'  => $mq->id,
+            'notifications_id'  => $id,
+            'to'                => $to,
+            'schema_name'       => $schemaName,
+        ]);
+
+        return ['success' => true, 'external_id' => $id];
     }
 
     /**
