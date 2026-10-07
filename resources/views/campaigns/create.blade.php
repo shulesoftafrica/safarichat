@@ -1353,10 +1353,37 @@
 
             <form class="compose-form" method="POST" action="{{ route('campaigns.store') }}" enctype="multipart/form-data" id="messageForm">
                 @csrf
-                
-                <!-- Hidden input to force WhatsApp only -->
-                <input type="hidden" name="source[]" value="whatsapp">
-                
+
+                <!-- Channel selection: each contact receives via ONE channel (see note) -->
+                <div class="form-section">
+                    <label class="form-label"><i class="fas fa-random"></i> Send via channel(s)</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:6px;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" name="source[]" value="whatsapp" checked>
+                            <i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp
+                        </label>
+                        @if($activeChannels['phone_sms'] ?? false)
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" name="source[]" value="phone_sms"> <i class="fas fa-sms"></i> Phone-SMS
+                        </label>
+                        @endif
+                        @if($activeChannels['bulk_sms'] ?? false)
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" name="source[]" value="bulk_sms"> <i class="fas fa-paper-plane"></i> Bulk-SMS
+                        </label>
+                        @endif
+                        @if($activeChannels['email'] ?? false)
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" name="source[]" value="email"> <i class="fas fa-envelope"></i> Email
+                        </label>
+                        @endif
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        Each contact receives via <strong>one</strong> channel: WhatsApp if they've messaged you before, otherwise the first selected alternative (Bulk-SMS &rarr; Phone-SMS &rarr; Email).
+                        Enable more channels on the Sales Agent page.
+                    </small>
+                </div>
+
                 <!-- Recipients Selection -->
                 <div class="form-section">
                     <label class="form-label">

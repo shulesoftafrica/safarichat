@@ -101,7 +101,22 @@ class CampaignController extends Controller
         $data['products'] = Product::forUser(Auth::id())
             ->orderBy('name')
             ->get(['id', 'name']);
-        
+
+        // Active outreach channels (channels table) — WhatsApp always; the rest
+        // appear only when enabled on the Sales Agent page.
+        $business = Auth::user()->business ?: \App\Models\Business::where('user_id', Auth::id())->first();
+        $activeChannels = ['whatsapp' => true, 'email' => false, 'phone_sms' => false, 'bulk_sms' => false];
+        if ($business) {
+            $enabled = \App\Models\Channel::where('business_id', $business->id)
+                ->whereIn('channel_key', ['email', 'phone_sms', 'bulk_sms'])
+                ->where('is_active', true)
+                ->pluck('channel_key')->all();
+            foreach (['email', 'phone_sms', 'bulk_sms'] as $k) {
+                $activeChannels[$k] = in_array($k, $enabled, true);
+            }
+        }
+        $data['activeChannels'] = $activeChannels;
+
         return view('campaigns.create', $data);
     }
 
