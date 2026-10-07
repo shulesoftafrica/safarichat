@@ -464,86 +464,127 @@
                     $phoneCfg = $channelConfigs['phone_sms']  ?? ['is_active'=>false,'settings'=>[],'code'=>null];
                     $bulkCfg  = $channelConfigs['bulk_sms']   ?? ['is_active'=>false,'settings'=>[]];
                 @endphp
-                <div class="mt-4">
-                    <h3 style="font-weight:700;color:#4b3fa7;">Outreach Channels</h3>
-                    <p style="color:#6c757d;">Beyond WhatsApp, enable the channels a campaign may use. Only channels marked <span class="badge bg-success">ACTIVE</span> are offered when sending.</p>
-
-                    @if(session('channel_success'))<div class="alert alert-success">{{ session('channel_success') }}</div>@endif
-                    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-
-                    {{-- Row A: Email --}}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0"><i class="fas fa-envelope me-2 text-primary"></i>Email</h5>
-                                @if($emailCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
-                            </div>
-                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
-                                @csrf
-                                <input type="hidden" name="channel_key" value="email">
-                                <div class="form-check form-switch mb-2">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="emailEnable" name="is_active" value="1" {{ $emailCfg['is_active']?'checked':'' }} onchange="document.getElementById('emailFields').style.display=this.checked?'block':'none'">
-                                    <label class="form-check-label" for="emailEnable">Enable Email channel</label>
-                                </div>
-                                <div id="emailFields" style="display:{{ $emailCfg['is_active']?'block':'none' }}">
-                                    <label class="form-label small text-muted">Reply-to email</label>
-                                    <div class="input-group">
-                                        <input type="email" name="reply_to" class="form-control" placeholder="reply-to@yourbusiness.com" value="{{ $emailCfg['settings']['reply_to'] ?? '' }}">
-                                        <button type="submit" class="btn btn-primary">Save</button>
-                                    </div>
-                                </div>
-                                @if(!$emailCfg['is_active'])<button type="submit" class="btn btn-sm btn-outline-primary mt-1">Save</button>@endif
-                            </form>
-                        </div>
+                <style>
+                    .oc-wrap{margin-top:2rem}
+                    .oc-head h3{font-weight:800;color:#4b3fa7;margin:0}
+                    .oc-head p{color:#7a7f94;margin:.25rem 0 1.25rem;font-size:.92rem}
+                    .oc-grid{display:grid;grid-template-columns:1fr;gap:16px}
+                    .oc-card{background:#fff;border:1px solid #ecedf5;border-radius:16px;padding:20px 22px;
+                             box-shadow:0 4px 18px rgba(75,63,167,.05);transition:.2s ease;position:relative;overflow:hidden}
+                    .oc-card:hover{box-shadow:0 10px 28px rgba(75,63,167,.12);transform:translateY(-2px)}
+                    .oc-card.is-active{border-color:#bfe9cf}
+                    .oc-card.is-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#22c55e,#16a34a)}
+                    .oc-top{display:flex;align-items:center;gap:14px}
+                    .oc-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.15rem;flex:0 0 auto}
+                    .oc-ic.email{background:linear-gradient(135deg,#6366f1,#4338ca)}
+                    .oc-ic.phone{background:linear-gradient(135deg,#0ea5e9,#0369a1)}
+                    .oc-ic.bulk{background:linear-gradient(135deg,#14b8a6,#0d9488)}
+                    .oc-tt{flex:1;min-width:0}
+                    .oc-tt .nm{font-weight:700;color:#2b2f45;font-size:1.02rem;display:flex;align-items:center;gap:10px}
+                    .oc-tt .ds{color:#8b90a5;font-size:.84rem;margin-top:2px}
+                    .oc-pill{font-size:.68rem;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:999px;text-transform:uppercase}
+                    .oc-pill.on{background:#dcfce7;color:#15803d}
+                    .oc-pill.off{background:#eef0f6;color:#9196ab}
+                    /* toggle */
+                    .oc-sw{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
+                    .oc-sw input{opacity:0;width:0;height:0}
+                    .oc-sw .sl{position:absolute;inset:0;background:#d7dae6;border-radius:999px;transition:.25s;cursor:pointer}
+                    .oc-sw .sl:before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+                    .oc-sw input:checked + .sl{background:linear-gradient(135deg,#6c5ce7,#4b3fa7)}
+                    .oc-sw input:checked + .sl:before{transform:translateX(20px)}
+                    .oc-body{margin-top:16px;padding-top:16px;border-top:1px dashed #eceef6}
+                    .oc-lbl{font-size:.78rem;font-weight:600;color:#8b90a5;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block}
+                    .oc-inp{width:100%;border:1px solid #e3e5f0;border-radius:10px;padding:11px 14px;font-size:.92rem;background:#fbfbfe;transition:.15s}
+                    .oc-inp:focus{outline:none;border-color:#6c5ce7;background:#fff;box-shadow:0 0 0 3px rgba(108,92,231,.12)}
+                    .oc-inp[readonly]{background:#f4f4f9;color:#5b607a;font-family:monospace;letter-spacing:.02em}
+                    .oc-save{background:linear-gradient(135deg,#6c5ce7,#4b3fa7);color:#fff;border:0;border-radius:10px;padding:11px 22px;font-weight:600;font-size:.9rem;cursor:pointer;transition:.15s}
+                    .oc-save:hover{filter:brightness(1.07);box-shadow:0 6px 16px rgba(75,63,167,.3)}
+                    .oc-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+                    @media(max-width:768px){.oc-row{grid-template-columns:1fr}}
+                    .oc-alert{border-radius:12px;padding:12px 16px;font-size:.9rem;margin-bottom:14px}
+                    .oc-alert.ok{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+                    .oc-alert.err{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+                    .dark-mode .oc-card{background:#232a3d;border-color:#323b52}
+                    .dark-mode .oc-tt .nm{color:#e8eaf3}
+                    .dark-mode .oc-inp{background:#1b2133;border-color:#394363;color:#e8eaf3}
+                    .dark-mode .oc-inp[readonly]{background:#171c2b}
+                    .dark-mode .oc-body{border-color:#323b52}
+                </style>
+                <div class="oc-wrap">
+                    <div class="oc-head">
+                        <h3><i class="fas fa-random me-2"></i>Outreach Channels</h3>
+                        <p>Beyond WhatsApp, enable the channels a campaign may use. Only channels marked <span class="oc-pill on">Active</span> are offered when sending.</p>
                     </div>
 
-                    {{-- Row B: Phone-SMS --}}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0"><i class="fas fa-sms me-2 text-primary"></i>Phone-SMS Connector</h5>
-                                @if($phoneCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
-                            </div>
-                            <p class="small text-muted mb-2">Sends via the platform SMS gateway. Your connector code is managed automatically.</p>
-                            <div class="mb-2">
-                                <label class="form-label small text-muted">Connector code</label>
-                                <input type="text" class="form-control" value="{{ $phoneCfg['code'] ?? 'Will be generated when you enable' }}" readonly>
-                            </div>
-                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
-                                @csrf
-                                <input type="hidden" name="channel_key" value="phone_sms">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="phoneEnable" name="is_active" value="1" {{ $phoneCfg['is_active']?'checked':'' }}>
-                                    <label class="form-check-label" for="phoneEnable">Enable Phone-SMS channel</label>
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Save</button>
-                            </form>
-                        </div>
-                    </div>
+                    @if(session('channel_success'))<div class="oc-alert ok"><i class="fas fa-check-circle me-1"></i>{{ session('channel_success') }}</div>@endif
+                    @if($errors->any())<div class="oc-alert err"><i class="fas fa-exclamation-circle me-1"></i>{{ $errors->first() }}</div>@endif
 
-                    {{-- Row C: Bulk-SMS --}}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0"><i class="fas fa-paper-plane me-2 text-primary"></i>Bulk-SMS</h5>
-                                @if($bulkCfg['is_active'])<span class="badge bg-success">ACTIVE</span>@else<span class="badge bg-secondary">Disabled</span>@endif
+                    <div class="oc-grid">
+                        {{-- Email --}}
+                        <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-card {{ $emailCfg['is_active']?'is-active':'' }}">
+                            @csrf
+                            <input type="hidden" name="channel_key" value="email">
+                            <div class="oc-top">
+                                <div class="oc-ic email"><i class="fas fa-envelope"></i></div>
+                                <div class="oc-tt">
+                                    <div class="nm">Email <span class="oc-pill {{ $emailCfg['is_active']?'on':'off' }}">{{ $emailCfg['is_active']?'Active':'Off' }}</span></div>
+                                    <div class="ds">Send campaigns by email using your own reply-to address.</div>
+                                </div>
+                                <label class="oc-sw"><input type="checkbox" name="is_active" value="1" {{ $emailCfg['is_active']?'checked':'' }} onchange="document.getElementById('ocEmail').style.display=this.checked?'block':'none'"><span class="sl"></span></label>
                             </div>
-                            <form method="post" action="{{ route('ai-agents.channel-config') }}">
-                                @csrf
-                                <input type="hidden" name="channel_key" value="bulk_sms">
-                                <div class="form-check form-switch mb-2">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="bulkEnable" name="is_active" value="1" {{ $bulkCfg['is_active']?'checked':'' }} onchange="document.getElementById('bulkFields').style.display=this.checked?'block':'none'">
-                                    <label class="form-check-label" for="bulkEnable">Enable Bulk-SMS channel</label>
+                            <div class="oc-body" id="ocEmail" style="display:{{ $emailCfg['is_active']?'block':'none' }}">
+                                <label class="oc-lbl">Reply-to email</label>
+                                <div class="oc-row" style="grid-template-columns:1fr auto;">
+                                    <input type="email" name="reply_to" class="oc-inp" placeholder="reply-to@yourbusiness.com" value="{{ $emailCfg['settings']['reply_to'] ?? '' }}">
+                                    <button type="submit" class="oc-save">Save</button>
                                 </div>
-                                <div id="bulkFields" class="row g-2" style="display:{{ $bulkCfg['is_active']?'flex':'none' }}">
-                                    <div class="col-md-4"><input type="url" name="url" class="form-control" placeholder="Gateway URL" value="{{ $bulkCfg['settings']['url'] ?? '' }}"></div>
-                                    <div class="col-md-3"><input type="text" name="username" class="form-control" placeholder="Username" value="{{ $bulkCfg['settings']['username'] ?? '' }}"></div>
-                                    <div class="col-md-3"><input type="text" name="password" class="form-control" placeholder="Password" value="{{ $bulkCfg['settings']['password'] ?? '' }}"></div>
-                                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Save</button></div>
+                            </div>
+                            @if(!$emailCfg['is_active'])<div class="oc-body"><button type="submit" class="oc-save">Save</button></div>@endif
+                        </form>
+
+                        {{-- Phone-SMS --}}
+                        <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-card {{ $phoneCfg['is_active']?'is-active':'' }}">
+                            @csrf
+                            <input type="hidden" name="channel_key" value="phone_sms">
+                            <div class="oc-top">
+                                <div class="oc-ic phone"><i class="fas fa-sms"></i></div>
+                                <div class="oc-tt">
+                                    <div class="nm">Phone-SMS <span class="oc-pill {{ $phoneCfg['is_active']?'on':'off' }}">{{ $phoneCfg['is_active']?'Active':'Off' }}</span></div>
+                                    <div class="ds">Platform SMS gateway. Connector code is managed automatically.</div>
                                 </div>
-                                @if(!$bulkCfg['is_active'])<button type="submit" class="btn btn-sm btn-outline-primary mt-1">Save</button>@endif
-                            </form>
-                        </div>
+                                <label class="oc-sw"><input type="checkbox" name="is_active" value="1" {{ $phoneCfg['is_active']?'checked':'' }}><span class="sl"></span></label>
+                            </div>
+                            <div class="oc-body">
+                                <label class="oc-lbl">Connector code</label>
+                                <div class="oc-row" style="grid-template-columns:1fr auto;">
+                                    <input type="text" class="oc-inp" value="{{ $phoneCfg['code'] ?? 'Will be generated when you enable' }}" readonly>
+                                    <button type="submit" class="oc-save">Save</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        {{-- Bulk-SMS --}}
+                        <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-card {{ $bulkCfg['is_active']?'is-active':'' }}">
+                            @csrf
+                            <input type="hidden" name="channel_key" value="bulk_sms">
+                            <div class="oc-top">
+                                <div class="oc-ic bulk"><i class="fas fa-paper-plane"></i></div>
+                                <div class="oc-tt">
+                                    <div class="nm">Bulk-SMS <span class="oc-pill {{ $bulkCfg['is_active']?'on':'off' }}">{{ $bulkCfg['is_active']?'Active':'Off' }}</span></div>
+                                    <div class="ds">Send through your own bulk-SMS gateway credentials.</div>
+                                </div>
+                                <label class="oc-sw"><input type="checkbox" name="is_active" value="1" {{ $bulkCfg['is_active']?'checked':'' }} onchange="document.getElementById('ocBulk').style.display=this.checked?'block':'none'"><span class="sl"></span></label>
+                            </div>
+                            <div class="oc-body" id="ocBulk" style="display:{{ $bulkCfg['is_active']?'block':'none' }}">
+                                <div class="oc-row">
+                                    <div><label class="oc-lbl">Gateway URL</label><input type="url" name="url" class="oc-inp" placeholder="https://sms-gateway.com/send" value="{{ $bulkCfg['settings']['url'] ?? '' }}"></div>
+                                    <div><label class="oc-lbl">Username</label><input type="text" name="username" class="oc-inp" placeholder="Username" value="{{ $bulkCfg['settings']['username'] ?? '' }}"></div>
+                                    <div><label class="oc-lbl">Password</label><input type="text" name="password" class="oc-inp" placeholder="Password" value="{{ $bulkCfg['settings']['password'] ?? '' }}"></div>
+                                    <div><button type="submit" class="oc-save">Save</button></div>
+                                </div>
+                            </div>
+                            @if(!$bulkCfg['is_active'])<div class="oc-body"><button type="submit" class="oc-save">Save</button></div>@endif
+                        </form>
                     </div>
                 </div>
             @else
