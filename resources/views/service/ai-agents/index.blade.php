@@ -501,6 +501,14 @@
                     .oc-save:hover{filter:brightness(1.07);box-shadow:0 6px 16px rgba(75,63,167,.3)}
                     .oc-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
                     @media(max-width:768px){.oc-row{grid-template-columns:1fr}}
+                    .oc-hint{font-size:.8rem;color:#9196ab;margin-top:8px}
+                    .oc-try{background:linear-gradient(135deg,#0ea5e9,#0369a1)}
+                    .oc-try:hover{box-shadow:0 6px 16px rgba(14,165,233,.3)}
+                    .oc-try[disabled]{opacity:.6;cursor:default}
+                    .oc-test-result{margin-top:12px;font-size:.85rem;border-radius:10px;padding:10px 12px;display:none}
+                    .oc-test-result.ok{background:#dcfce7;color:#15803d;display:block}
+                    .oc-test-result.err{background:#fee2e2;color:#b91c1c;display:block}
+                    .oc-test-result.pending{background:#eef0f6;color:#5b607a;display:block}
                     .oc-alert{border-radius:12px;padding:12px 16px;font-size:.9rem;margin-bottom:14px}
                     .oc-alert.ok{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
                     .oc-alert.err{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
@@ -543,25 +551,40 @@
                         </form>
 
                         {{-- Phone-SMS --}}
-                        <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-card {{ $phoneCfg['is_active']?'is-active':'' }}">
-                            @csrf
-                            <input type="hidden" name="channel_key" value="phone_sms">
-                            <div class="oc-top">
+                        <div class="oc-card {{ $phoneCfg['is_active']?'is-active':'' }}">
+                            {{-- Toggling the switch saves immediately and generates the code. --}}
+                            <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-top">
+                                @csrf
+                                <input type="hidden" name="channel_key" value="phone_sms">
                                 <div class="oc-ic phone"><i class="fas fa-sms"></i></div>
                                 <div class="oc-tt">
                                     <div class="nm">Phone-SMS <span class="oc-pill {{ $phoneCfg['is_active']?'on':'off' }}">{{ $phoneCfg['is_active']?'Active':'Off' }}</span></div>
-                                    <div class="ds">Platform SMS gateway. Connector code is managed automatically.</div>
+                                    <div class="ds">Platform SMS gateway. Connector code is generated automatically.</div>
                                 </div>
-                                <label class="oc-sw"><input type="checkbox" name="is_active" value="1" {{ $phoneCfg['is_active']?'checked':'' }}><span class="sl"></span></label>
-                            </div>
-                            <div class="oc-body">
-                                <label class="oc-lbl">Connector code</label>
-                                <div class="oc-row" style="grid-template-columns:1fr auto;">
-                                    <input type="text" class="oc-inp" value="{{ $phoneCfg['code'] ?? 'Will be generated when you enable' }}" readonly>
-                                    <button type="submit" class="oc-save">Save</button>
+                                <label class="oc-sw"><input type="checkbox" name="is_active" value="1" {{ $phoneCfg['is_active']?'checked':'' }} onchange="this.form.submit()"><span class="sl"></span></label>
+                            </form>
+
+                            @if($phoneCfg['is_active'])
+                                <div class="oc-body">
+                                    <label class="oc-lbl">Connector code</label>
+                                    <input type="text" class="oc-inp" value="{{ $phoneCfg['code'] }}" readonly style="margin-bottom:16px;">
+
+                                    <label class="oc-lbl">Send a test SMS</label>
+                                    <form method="post" action="{{ route('ai-agents.channel-test') }}" class="oc-row js-phone-test" style="grid-template-columns:1fr auto;">
+                                        @csrf
+                                        <input type="hidden" name="channel_key" value="phone_sms">
+                                        <input type="tel" name="phone" class="oc-inp" placeholder="Test phone e.g. 2557XXXXXXXX" required>
+                                        <button type="submit" class="oc-save oc-try"><i class="fas fa-paper-plane me-1"></i>Try</button>
+                                    </form>
+                                    <div class="oc-hint">We'll send a short test message to that number so you can confirm it arrives.</div>
+                                    <div class="oc-test-result" aria-live="polite"></div>
                                 </div>
-                            </div>
-                        </form>
+                            @else
+                                <div class="oc-body">
+                                    <div class="oc-hint"><i class="fas fa-info-circle me-1"></i>Turn on the switch to generate your connector code and send a test SMS.</div>
+                                </div>
+                            @endif
+                        </div>
 
                         {{-- Bulk-SMS --}}
                         <form method="post" action="{{ route('ai-agents.channel-config') }}" class="oc-card {{ $bulkCfg['is_active']?'is-active':'' }}">
@@ -587,6 +610,44 @@
                         </form>
                     </div>
                 </div>
+
+                <script>
+                (function () {
+                    document.querySelectorAll('form.js-phone-test').forEach(function (form) {
+                        form.addEventListener('submit', function (e) {
+                            e.preventDefault();
+                            var box = form.parentElement.querySelector('.oc-test-result');
+                            var btn = form.querySelector('button[type=submit]');
+                            var phone = (form.querySelector('input[name=phone]').value || '').trim();
+                            if (!phone) { return; }
+
+                            if (box) { box.className = 'oc-test-result pending'; box.textContent = 'Sending test SMS…'; }
+                            if (btn) { btn.disabled = true; }
+
+                            fetch(form.action, {
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': form.querySelector('input[name=_token]').value,
+                                    'Accept': 'application/json'
+                                },
+                                body: new FormData(form)
+                            })
+                            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+                            .then(function (res) {
+                                if (box) {
+                                    box.className = 'oc-test-result ' + (res.ok && res.d.success ? 'ok' : 'err');
+                                    box.textContent = res.d.message || (res.ok ? 'Test sent.' : 'Could not send the test message.');
+                                }
+                            })
+                            .catch(function () {
+                                if (box) { box.className = 'oc-test-result err'; box.textContent = 'Network error — please try again.'; }
+                            })
+                            .finally(function () { if (btn) { btn.disabled = false; } });
+                        });
+                    });
+                })();
+                </script>
             @else
                 <!-- Empty State -->
                 <div class="empty-state">

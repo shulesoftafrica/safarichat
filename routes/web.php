@@ -204,6 +204,8 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
         Route::patch('/{aiSalesAgent}/channels', [App\Http\Controllers\AiSalesAgentController::class, 'updateAgentChannels'])->name('channels.update-agent');
         // Guided outreach-channel config (Email / Phone-SMS / Bulk-SMS) from the agent page
         Route::post('/channel-config', [App\Http\Controllers\AiSalesAgentController::class, 'saveChannelConfig'])->name('channel-config');
+        // Send a test message on a channel (e.g. Phone-SMS "Try")
+        Route::post('/channel-test', [App\Http\Controllers\AiSalesAgentController::class, 'testChannel'])->name('channel-test');
         Route::get('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'show'])->name('show');
         Route::get('/{aiSalesAgent}/edit', [App\Http\Controllers\AiSalesAgentController::class, 'edit'])->name('edit');
         Route::put('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'update'])->name('update');

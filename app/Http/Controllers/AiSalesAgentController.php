@@ -670,6 +670,86 @@ class AiSalesAgentController extends Controller
     }
 
     /**
+     * Send a test message on a channel so the user can confirm delivery.
+     * Currently supports Phone-SMS: inserts a one-off row into notifications.messages
+     * (same pipeline as live sends), keyed by this business's schema_name.
+     */
+    public function testChannel(Request $request)
+    {
+        $business = $this->resolveCurrentBusiness();
+        if (! $business) {
+            return $this->testResponse($request, false, 'No business found for current user.');
+        }
+
+        if ($request->input('channel_key') !== 'phone_sms') {
+            return $this->testResponse($request, false, 'Test is only available for Phone-SMS.');
+        }
+
+        $request->validate(['phone' => 'required|string|max:30']);
+
+        // Normalize the phone number using the app helper when available.
+        $phone = trim($request->input('phone'));
+        if (function_exists('validate_phone_number')) {
+            $v = validate_phone_number($phone);
+            if (is_array($v) && !empty($v[1])) {
+                $phone = $v[1];
+            } elseif ($v === false) {
+                return $this->testResponse($request, false, 'That phone number looks invalid. Use the full international format, e.g. 2557XXXXXXXX.');
+            }
+        }
+
+        $schema = $this->resolveBusinessSchemaName($business);
+
+        // Ensure a connector code exists (and persist it on the channel).
+        $channel  = Channel::where('business_id', $business->id)->where('channel_key', 'phone_sms')->first();
+        $settings = ($channel && is_array($channel->settings)) ? $channel->settings : [];
+        $code     = $this->getOrCreatePhoneSmsCode($business, $settings['code'] ?? null);
+        if ($channel && ($settings['code'] ?? null) !== $code) {
+            $channel->update(['settings' => array_merge($settings, ['code' => $code, 'schema_name' => $schema])]);
+        }
+
+        $text = 'Test message from ' . ($business->name ?: 'SafariChat') . ': your Phone-SMS channel is working.';
+
+        try {
+            $id = \DB::connection('notification')->table('messages')->insertGetId([
+                'channel'     => 'phone-sms',
+                'recipient'   => $phone,
+                'message'     => $text,
+                'status'      => 'pending',
+                'priority'    => 'high',
+                'schema_name' => $schema,
+                'ip_address'  => $request->ip() ?: '127.0.0.1',
+                'metadata'    => json_encode(array_filter([
+                    'test'           => true,
+                    'connector_code' => $code,
+                    'source'         => 'safarichat',
+                ], fn ($v) => $v !== null && $v !== '')),
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+
+            return $this->testResponse($request, true, 'Test SMS queued to ' . $phone . '. It should arrive on that phone shortly.', ['id' => $id]);
+        } catch (\Throwable $e) {
+            Log::error('Phone-SMS test send failed', ['error' => $e->getMessage()]);
+            return $this->testResponse($request, false, 'Could not queue the test message: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Normalize a channel-test result into JSON (AJAX) or a redirect-back flash.
+     */
+    private function testResponse(Request $request, bool $ok, string $message, array $extra = [])
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(array_merge(['success' => $ok, 'message' => $message], $extra), $ok ? 200 : 422);
+        }
+
+        return $ok
+            ? back()->with('channel_success', $message)
+            : back()->withErrors(['channel' => $message]);
+    }
+
+    /**
      * The business's unified schema name = owner user's uuid.
      */
     private function resolveBusinessSchemaName(Business $business): string
