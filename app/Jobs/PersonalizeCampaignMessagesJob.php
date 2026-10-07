@@ -33,6 +33,14 @@ class PersonalizeCampaignMessagesJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * Phone-SMS send rate: at most ONE message every 4 minutes (240 seconds).
+     * This is the default; override at runtime via
+     * config('campaign.phone_sms_send_interval_seconds')
+     * (env CAMPAIGN_PHONE_SMS_SEND_INTERVAL_SECONDS).
+     */
+    const PHONE_SMS_SEND_INTERVAL_SECONDS = 240;
+
+    /**
      * Campaign ID to process
      *
      * @var int|null
@@ -328,12 +336,21 @@ class PersonalizeCampaignMessagesJob implements ShouldQueue
             ? \Carbon\Carbon::parse($message->optimal_send_time)
             : now()->addMinutes(5); // Default to 5 minutes if no optimal time
 
-        // THROTTLE (WaSender ban avoidance): space each campaign's sends at least
-        // N seconds apart so WhatsApp sees a human-like drip, not a burst. We chain
-        // off the latest already-scheduled send for this campaign.
-        $interval = (int) config('campaign.send_interval_seconds', 10);
+        // THROTTLE: space each campaign's sends so we send a human-like drip, not a
+        // burst. The interval is PER CHANNEL and chaining is PER CHANNEL, so the slow
+        // phone-SMS drip never holds up WhatsApp/Email (and vice versa):
+        //   - phone_sms : 1 message every 4 minutes (ban/cost safety)  [configurable]
+        //   - all others: config('campaign.send_interval_seconds')     (WaSender drip)
+        $channel = $message->selected_channel ?: 'whatsapp';
+        if ($channel === 'phone_sms') {
+            $interval = (int) config('campaign.phone_sms_send_interval_seconds', self::PHONE_SMS_SEND_INTERVAL_SECONDS);
+        } else {
+            $interval = (int) config('campaign.send_interval_seconds', 10);
+        }
+
         if ($message->campaign_id && $interval > 0) {
             $lastScheduled = MessageQueue::where('campaign_id', $message->campaign_id)
+                ->where('selected_channel', $channel)
                 ->whereNotNull('scheduled_send_at')
                 ->max('scheduled_send_at');
 

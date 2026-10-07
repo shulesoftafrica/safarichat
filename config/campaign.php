@@ -16,6 +16,12 @@ return [
     // via scheduled_send_at so WhatsApp sees a human-like drip, not a burst.
     'send_interval_seconds' => (int) env('CAMPAIGN_SEND_INTERVAL_SECONDS', 10),
 
+    // Phone-SMS is intentionally throttled much harder: only ONE message every
+    // 4 minutes (240s). Phone-SMS sends are chained independently of the other
+    // channels, so this slow drip does not hold up WhatsApp/Email delivery.
+    // Adjust via CAMPAIGN_PHONE_SMS_SEND_INTERVAL_SECONDS when needed.
+    'phone_sms_send_interval_seconds' => (int) env('CAMPAIGN_PHONE_SMS_SEND_INTERVAL_SECONDS', 240),
+
     // Safety: only send a campaign to contacts who have replied to us before
     // (an existing conversation). Cold-messaging brand-new numbers is what most
     // often triggers a WhatsApp restriction. Set false to allow cold outreach.
