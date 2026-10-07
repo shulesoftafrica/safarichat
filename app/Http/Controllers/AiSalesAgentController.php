@@ -596,10 +596,12 @@ class AiSalesAgentController extends Controller
             }
         }
 
-        // Phone-SMS connector code (read-only; created lazily on enable).
+        // Phone-SMS connector code (read-only; created lazily on enable). Prefer the
+        // code already stored on the channel, else resolve/generate one.
+        $storedPhoneCode = $out['phone_sms']['settings']['code'] ?? null;
         $out['phone_sms']['code'] = $out['phone_sms']['is_active']
-            ? $this->getOrCreatePhoneSmsCode($business)
-            : ($out['phone_sms']['settings']['code'] ?? null);
+            ? $this->getOrCreatePhoneSmsCode($business, $storedPhoneCode)
+            : $storedPhoneCode;
 
         return $out;
     }
@@ -644,7 +646,9 @@ class AiSalesAgentController extends Controller
             ];
         } elseif ($key === 'phone_sms') {
             // Code is managed via admin.school_keys; ensure it exists when enabling.
-            $code = $enable ? $this->getOrCreatePhoneSmsCode($business) : ($settings['code'] ?? null);
+            // Always end up with a usable code so the UI can display it.
+            $existingCode = $settings['code'] ?? null;
+            $code = $enable ? $this->getOrCreatePhoneSmsCode($business, $existingCode) : $existingCode;
             $settings = array_merge($settings, [
                 'code'        => $code,
                 'schema_name' => $this->resolveBusinessSchemaName($business),
@@ -677,35 +681,45 @@ class AiSalesAgentController extends Controller
     }
 
     /**
-     * Get the phone-SMS connector code from admin.school_keys for this business's
-     * schema, creating it if missing. Guarded so a missing table (e.g. local) is safe.
+     * Resolve the phone-SMS connector code for this business's schema.
+     *
+     * Source of truth is admin.school_keys (a unique api_key keyed by schema_name);
+     * it is created there if missing. When that table isn't reachable (e.g. local, or
+     * a transient error), we still return a stable code — the previously stored one if
+     * any, otherwise a freshly generated UUID — so a code is ALWAYS produced and the
+     * caller persists it in the channel settings. This guarantees the UI shows a code.
      */
-    private function getOrCreatePhoneSmsCode(Business $business): ?string
+    private function getOrCreatePhoneSmsCode(Business $business, ?string $existing = null): string
     {
+        $schema = $this->resolveBusinessSchemaName($business);
+
         try {
             // Avoid touching the table at all when it isn't present (e.g. local),
             // so a missing-table error can never abort a surrounding transaction.
             $tableExists = \DB::selectOne("select 1 as ok from information_schema.tables where table_schema = 'admin' and table_name = 'school_keys' limit 1");
-            if (! $tableExists) {
-                return null;
-            }
 
-            $schema = $this->resolveBusinessSchemaName($business);
-            $code = \DB::table('admin.school_keys')->where('schema_name', $schema)->value('api_key');
+            if ($tableExists) {
+                $stored = \DB::table('admin.school_keys')->where('schema_name', $schema)->value('api_key');
+                if (! empty($stored)) {
+                    return (string) $stored;
+                }
 
-            if (empty($code)) {
-                $code = (string) \Illuminate\Support\Str::uuid();
+                // Nothing stored yet: reuse an existing channel code if we have one,
+                // otherwise mint a new unique code, then persist it.
+                $code = ! empty($existing) ? $existing : (string) \Illuminate\Support\Str::uuid();
                 \DB::table('admin.school_keys')->insert([
                     'schema_name' => $schema,
                     'api_key'     => $code,
                 ]);
-            }
 
-            return $code;
+                return $code;
+            }
         } catch (\Throwable $e) {
             Log::warning('Phone-SMS school_keys access failed', ['error' => $e->getMessage()]);
-            return null;
         }
+
+        // Table unreachable: still hand back a usable, stable code for display.
+        return ! empty($existing) ? $existing : (string) \Illuminate\Support\Str::uuid();
     }
 
     private function resolveCurrentBusiness(): ?Business
