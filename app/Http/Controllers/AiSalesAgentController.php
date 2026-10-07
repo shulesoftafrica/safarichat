@@ -15,6 +15,13 @@ use Illuminate\Validation\Rule;
 
 class AiSalesAgentController extends Controller
 {
+    /**
+     * Connection that hosts the admin.school_keys table (the Phone-SMS connector
+     * codes). It lives in the admin database, NOT the default other_app database,
+     * so it must be reached through this connection.
+     */
+    const SCHOOL_KEYS_CONNECTION = 'admin_crm';
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -763,43 +770,62 @@ class AiSalesAgentController extends Controller
     /**
      * Resolve the phone-SMS connector code for this business's schema.
      *
-     * Source of truth is admin.school_keys (a unique api_key keyed by schema_name);
-     * it is created there if missing. When that table isn't reachable (e.g. local, or
-     * a transient error), we still return a stable code — the previously stored one if
-     * any, otherwise a freshly generated UUID — so a code is ALWAYS produced and the
-     * caller persists it in the channel settings. This guarantees the UI shows a code.
+     * The connector code is the admin.school_keys.api_key for this business's
+     * schema_name. IMPORTANT: that table lives in the admin database, reachable
+     * ONLY via the "admin_crm" connection — not the default (other_app) connection —
+     * so all reads/writes here go through that connection. The row is created if
+     * missing: schema_name = this instance's uuid (e.g. 78b38e51-…, derived from
+     * users.uuid) and api_key = a freshly minted unique numeric code, matching the
+     * numeric format of the existing keys. The returned value is the api_key (the
+     * login code), never the schema_name.
      */
-    private function getOrCreatePhoneSmsCode(Business $business, ?string $existing = null): string
+    private function getOrCreatePhoneSmsCode(Business $business, ?string $existing = null): ?string
     {
         $schema = $this->resolveBusinessSchemaName($business);
+        $conn   = self::SCHOOL_KEYS_CONNECTION;
 
         try {
-            // Avoid touching the table at all when it isn't present (e.g. local),
-            // so a missing-table error can never abort a surrounding transaction.
-            $tableExists = \DB::selectOne("select 1 as ok from information_schema.tables where table_schema = 'admin' and table_name = 'school_keys' limit 1");
+            $db = \DB::connection($conn);
 
-            if ($tableExists) {
-                $stored = \DB::table('admin.school_keys')->where('schema_name', $schema)->value('api_key');
-                if (! empty($stored)) {
-                    return (string) $stored;
-                }
-
-                // Nothing stored yet: reuse an existing channel code if we have one,
-                // otherwise mint a new unique code, then persist it.
-                $code = ! empty($existing) ? $existing : (string) \Illuminate\Support\Str::uuid();
-                \DB::table('admin.school_keys')->insert([
-                    'schema_name' => $schema,
-                    'api_key'     => $code,
-                ]);
-
-                return $code;
+            // Return the existing api_key for this schema if one is already stored.
+            $stored = $db->table('admin.school_keys')->where('schema_name', $schema)->value('api_key');
+            if (! empty($stored)) {
+                return (string) $stored;
             }
+
+            // None yet: mint a unique numeric code (same shape as existing keys),
+            // insert the row (schema_name = instance uuid), and return the api_key.
+            $apiKey = $this->generateUniqueSchoolKey($db);
+            $db->table('admin.school_keys')->insert([
+                'schema_name' => $schema,
+                'api_key'     => $apiKey,
+                'created_at'  => now(),
+            ]);
+
+            return $apiKey;
         } catch (\Throwable $e) {
-            Log::warning('Phone-SMS school_keys access failed', ['error' => $e->getMessage()]);
+            Log::warning('Phone-SMS school_keys access failed', [
+                'connection' => $conn,
+                'schema'     => $schema,
+                'error'      => $e->getMessage(),
+            ]);
         }
 
-        // Table unreachable: still hand back a usable, stable code for display.
-        return ! empty($existing) ? $existing : (string) \Illuminate\Support\Str::uuid();
+        // Only fall back to a previously stored channel code; never invent one that
+        // isn't persisted in admin.school_keys (that would be an invalid login code).
+        return ! empty($existing) ? $existing : null;
+    }
+
+    /**
+     * Mint a unique numeric connector code not already present in admin.school_keys.
+     */
+    private function generateUniqueSchoolKey(\Illuminate\Database\ConnectionInterface $db): string
+    {
+        do {
+            $candidate = (string) random_int(100000000, 999999999); // 9-digit numeric
+        } while ($db->table('admin.school_keys')->where('api_key', $candidate)->exists());
+
+        return $candidate;
     }
 
     private function resolveCurrentBusiness(): ?Business
