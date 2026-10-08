@@ -122,6 +122,15 @@ class AiWhatsAppService
                 return $aiResult;
             }
 
+            // The booking action is keyword-triggered and carries no time. Read the time the customer actually
+            // asked for (and the AI confirmed) so a booking or reschedule uses it instead of a default.
+            $aiResult['actions'] = $this->applyRequestedAppointmentTime(
+                $aiResult['actions'] ?? [],
+                $lead,
+                (string) ($message->message_body ?? ''),
+                (string) ($aiResult['response'] ?? '')
+            );
+
             // Process any actions from the AI response
             $actionResults = $this->processAiActions($aiResult['actions'], $agent, $lead, $product);
 
@@ -686,6 +695,35 @@ class AiWhatsAppService
     }
     
     /**
+     * Put the time the customer asked for into the appointment action.
+     *
+     * - A booking keyword already produced a `schedule_appointment` action (without a time): add the time.
+     * - The lead already has a live appointment and the message reads like a change ("can we do it at
+     *   11:00am", "sorry, reschedule"), or the AI just confirmed a change: create the action even though no
+     *   booking keyword matched, so the existing appointment is moved in place.
+     *
+     * Never throws: a parsing problem must not stop the reply from being sent.
+     */
+    private function applyRequestedAppointmentTime(array $actions, Lead $lead, string $customerMessage, string $aiReply): array
+    {
+        try {
+            $existing = \App\Models\Appointment::where('lead_id', $lead->id)
+                ->whereIn('status', [\App\Models\Appointment::STATUS_PENDING, \App\Models\Appointment::STATUS_CONFIRMED])
+                ->orderBy('scheduled_at', 'desc')
+                ->first();
+
+            return AppointmentTimeResolver::applyToActions($actions, $customerMessage, $aiReply, $existing?->scheduled_at);
+        } catch (\Throwable $e) {
+            Log::warning('Could not read the requested appointment time', [
+                'lead_id' => $lead->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        return $actions;
+    }
+
+    /**
      * Schedule appointment for lead
      */
     private function scheduleAppointment(AiSalesAgent $agent, Lead $lead, array $data): array
@@ -699,6 +737,8 @@ class AiWhatsAppService
                     try { $requestedDateTime = \Carbon\Carbon::parse($data[$k]); break; } catch (\Throwable $e) {}
                 }
             }
+            // Only a time that was really asked for may change an existing booking.
+            $hasExplicitTime = $requestedDateTime !== null;
             if (!$requestedDateTime) {
                 $requestedDateTime = now()->addDay()->setTime(10, 0);
             }
@@ -718,6 +758,20 @@ class AiWhatsAppService
                 ->first();
 
             $isReschedule = false;
+
+            // A keyword-only mention ("demo", "call", "available"...) with no time, or the same time
+            // again, must leave the booking alone. Previously it reset the time to the 10:00 default
+            // and re-sent reminders and team alerts.
+            if ($existing && (!$hasExplicitTime || ($existing->scheduled_at && $existing->scheduled_at->equalTo($requestedDateTime)))) {
+                return [
+                    'scheduled'      => true,
+                    'rescheduled'    => false,
+                    'unchanged'      => true,
+                    'appointment_id' => $existing->id,
+                    'scheduled_at'   => $existing->scheduled_at->toISOString(),
+                    'type'           => $existing->appointment_type,
+                ];
+            }
 
             if ($existing) {
                 $isReschedule = true;
