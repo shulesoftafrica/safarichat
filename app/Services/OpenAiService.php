@@ -1221,6 +1221,91 @@ class OpenAiService
     /**
      * Analyze customer sentiment from message
      */
+    /**
+     * Parse a free-text follow-up time ("tomorrow 10am", "call me this evening at
+     * 16:00", "mid October", "end of this month") into a concrete datetime.
+     *
+     * Returns ['datetime' => 'Y-m-d H:i:s', 'interpretation' => human text] or null
+     * when no sensible time can be derived. Falls back to PHP's strtotime if the AI
+     * call fails, so a reasonable result is produced even offline.
+     *
+     * @param string      $text  the natural-language follow-up phrase
+     * @param string|null $tz    IANA timezone for resolving relative phrases
+     */
+    public function parseFollowUpDateTime(string $text, ?string $tz = null): ?array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+
+        $tz = $tz ?: config('app.timezone', 'Africa/Nairobi');
+        $nowLocal = \Carbon\Carbon::now($tz);
+
+        try {
+            $system = 'You convert a sales rep\'s free-text follow-up time into a concrete future datetime. '
+                . 'The current local datetime is ' . $nowLocal->format('Y-m-d H:i (l)') . " in timezone {$tz}. "
+                . 'Resolve relative and vague phrases sensibly: "tomorrow 10am" => tomorrow 10:00; '
+                . '"this evening" => today 18:00 (or 16:00 if a time is stated); "mid October" => the 15th of that October at 10:00; '
+                . '"end of this month" => the last weekday of the month at 10:00; "next week" => next Monday 10:00. '
+                . 'Always pick a FUTURE time. If no time of day is given, default to 10:00. '
+                . 'Respond ONLY with a JSON object: {"datetime":"YYYY-MM-DD HH:MM","interpretation":"short human phrase","confident":true|false}. '
+                . 'If you truly cannot infer a date, set datetime to null.';
+
+            $response = $this->client->chat()->create([
+                'model' => 'gpt-4o',
+                'messages' => [
+                    ['role' => 'system', 'content' => $system],
+                    ['role' => 'user', 'content' => "Follow-up phrase: \"{$text}\""],
+                ],
+                'max_tokens' => 120,
+                'temperature' => 0.1,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            $result = json_decode($response->choices[0]->message->content, true);
+
+            if (!empty($result['datetime'])) {
+                $dt = \Carbon\Carbon::parse($result['datetime'], $tz);
+                // Never schedule a follow-up in the past.
+                if ($dt->isPast()) {
+                    $dt = $dt->addDay();
+                }
+                return [
+                    'datetime'       => $dt->format('Y-m-d H:i:s'),
+                    'interpretation' => $result['interpretation'] ?? $dt->format('l, M j \a\t g:i A'),
+                ];
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('parseFollowUpDateTime AI failed, using fallback', [
+                'text' => $text, 'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback: PHP natural-language parsing.
+        try {
+            $ts = strtotime($text, $nowLocal->timestamp);
+            if ($ts !== false) {
+                $dt = \Carbon\Carbon::createFromTimestamp($ts, $tz);
+                if ($dt->isPast()) {
+                    $dt = $dt->addDay();
+                }
+                // If no explicit time landed (midnight), default to 10:00.
+                if ($dt->format('H:i') === '00:00') {
+                    $dt->setTime(10, 0);
+                }
+                return [
+                    'datetime'       => $dt->format('Y-m-d H:i:s'),
+                    'interpretation' => $dt->format('l, M j \a\t g:i A'),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // give up
+        }
+
+        return null;
+    }
+
     public function analyzeSentiment(string $message): array
     {
         try {

@@ -187,6 +187,8 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::post('/guest/return-to-ai', [App\Http\Controllers\Guest::class, 'returnToAI'])->name('guest.returnToAI');
     Route::post('/guest/update-priority', [App\Http\Controllers\Guest::class, 'updatePriority'])->name('guest.updatePriority');
     Route::post('/guest/add-handoff-notes', [App\Http\Controllers\Guest::class, 'addHandoffNotes'])->name('guest.addHandoffNotes');
+    Route::post('/guest/log-activity', [App\Http\Controllers\Guest::class, 'logActivity'])->name('guest.logActivity');
+    Route::get('/guest/activities/{guest}', [App\Http\Controllers\Guest::class, 'getActivities'])->name('guest.activities');
     Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');
     Route::get('/guest/available-agents', [App\Http\Controllers\Guest::class, 'getAvailableAgents'])->name('guest.availableAgents');
     

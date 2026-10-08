@@ -20,6 +20,7 @@ class Appointment extends Model
         'meeting_link',
         'status',
         'appointment_type',
+        'is_internal',
         'notes',
         'reminder_sent',
         'reminder_sent_at',
@@ -38,6 +39,7 @@ class Appointment extends Model
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'is_internal' => 'boolean',
         'reminder_sent' => 'boolean',
         'reminder_sent_at' => 'datetime',
         'confirmed_at' => 'datetime',

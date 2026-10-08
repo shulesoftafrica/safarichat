@@ -4164,6 +4164,11 @@ body:not(.dark-mode) .modal-body .alert-danger {
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" id="activity-tab" data-toggle="tab" href="#log-activity" role="tab">
+                            <i class="mdi mdi-phone-log mr-1"></i>Log Activity
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" id="notes-tab" data-toggle="tab" href="#handoff-notes" role="tab">
                             <i class="mdi mdi-note-text mr-1"></i>{{__('notes')}}
                         </a>
@@ -4222,6 +4227,68 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             </div>
                             <button type="submit" class="btn btn-info">
                                 <i class="mdi mdi-account-check mr-1"></i>{{__('assign_agent')}}
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Log Activity Tab -->
+                    <div class="tab-pane fade" id="log-activity" role="tabpanel">
+                        <style>
+                            .act-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+                            @media(max-width:575px){.act-type-grid{grid-template-columns:repeat(2,1fr)}}
+                            .act-type{border:1px solid #e3e5f0;border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;background:#fbfbfe;transition:.15s;font-size:.85rem;color:#5b607a}
+                            .act-type i{display:block;font-size:1.3rem;margin-bottom:3px;color:#6c5ce7}
+                            .act-type:hover{border-color:#6c5ce7;background:#fff}
+                            .act-type.active{border-color:#6c5ce7;background:#efecff;color:#4b3fa7;font-weight:600;box-shadow:0 0 0 3px rgba(108,92,231,.12)}
+                            .act-followup{background:#f6f9ff;border:1px solid #e0e8fb;border-radius:12px;padding:14px;margin-top:4px}
+                            .act-followup .hint{font-size:.78rem;color:#7a8099;margin-top:6px}
+                            .act-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+                            .act-chip{font-size:.75rem;background:#fff;border:1px solid #d9e2fb;color:#4b61b0;border-radius:999px;padding:3px 10px;cursor:pointer}
+                            .act-chip:hover{background:#eef3ff}
+                            #activity-result{display:none;margin-top:12px;border-radius:10px;padding:12px 14px;font-size:.9rem}
+                            #activity-result.ok{display:block;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+                            #activity-result.err{display:block;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+                        </style>
+                        <form id="logActivityForm">
+                            <input type="hidden" id="activity-guest-id" name="guest_id">
+                            <input type="hidden" id="activity-type" name="type" value="call">
+
+                            <label class="font-weight-bold mb-2">What happened?</label>
+                            <div class="act-type-grid" id="activityTypeGrid">
+                                <div class="act-type active" data-type="call"><i class="mdi mdi-phone"></i>Call</div>
+                                <div class="act-type" data-type="visit"><i class="mdi mdi-map-marker"></i>Visit</div>
+                                <div class="act-type" data-type="whatsapp"><i class="mdi mdi-whatsapp"></i>WhatsApp</div>
+                                <div class="act-type" data-type="email"><i class="mdi mdi-email"></i>Email</div>
+                                <div class="act-type" data-type="meeting"><i class="mdi mdi-account-group"></i>Meeting</div>
+                                <div class="act-type" data-type="other"><i class="mdi mdi-dots-horizontal"></i>Other</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="activity-notes">Notes / outcome</label>
+                                <textarea class="form-control" id="activity-notes" name="notes" rows="3"
+                                          placeholder="e.g. Spoke with the headmaster, interested but wants to see pricing. Asked to call back."></textarea>
+                            </div>
+
+                            <div class="act-followup">
+                                <label for="activity-followup" class="font-weight-bold mb-1">
+                                    <i class="mdi mdi-bell-ring-outline mr-1"></i>Schedule a follow-up (optional)
+                                </label>
+                                <input type="text" class="form-control" id="activity-followup" name="follow_up_text"
+                                       placeholder="e.g. tomorrow at 10am, this evening at 16:00, mid October, end of this month">
+                                <div class="act-chips">
+                                    <span class="act-chip">this evening at 16:00</span>
+                                    <span class="act-chip">tomorrow at 10am</span>
+                                    <span class="act-chip">next week</span>
+                                    <span class="act-chip">mid October</span>
+                                    <span class="act-chip">end of this month</span>
+                                </div>
+                                <div class="hint">Just type it in plain words — I'll work out the exact time and remind you (and the owner) to follow up.</div>
+                            </div>
+
+                            <div id="activity-result"></div>
+
+                            <button type="submit" class="btn btn-primary mt-3" id="logActivityBtn">
+                                <i class="mdi mdi-check mr-1"></i>Log Activity
                             </button>
                         </form>
                     </div>
@@ -4321,7 +4388,14 @@ function openHandoffModal(guestId) {
     document.getElementById('notes-guest-id').value = guestId;
     document.getElementById('actions-guest-id').value = guestId;
     document.getElementById('priority-guest-id').value = guestId;
-    
+    var actGuest = document.getElementById('activity-guest-id');
+    if (actGuest) { actGuest.value = guestId; }
+    // Reset the activity form each time the modal opens.
+    var actRes = document.getElementById('activity-result');
+    if (actRes) { actRes.className = ''; actRes.style.display = 'none'; actRes.textContent = ''; }
+    var actNotes = document.getElementById('activity-notes'); if (actNotes) { actNotes.value = ''; }
+    var actFu = document.getElementById('activity-followup'); if (actFu) { actFu.value = ''; }
+
     // Load guest information
     loadGuestInfo(guestId);
     
@@ -4432,6 +4506,67 @@ document.getElementById('addNotesForm').addEventListener('submit', function(e) {
         error: function(xhr, status, error) {
             alert('{{__("error")}}: ' + error);
         }
+    });
+});
+
+// ---- Log Activity tab ----------------------------------------------------
+// Activity-type picker
+document.querySelectorAll('#activityTypeGrid .act-type').forEach(function (el) {
+    el.addEventListener('click', function () {
+        document.querySelectorAll('#activityTypeGrid .act-type').forEach(function (n) { n.classList.remove('active'); });
+        el.classList.add('active');
+        document.getElementById('activity-type').value = el.getAttribute('data-type');
+    });
+});
+// Quick follow-up chips
+document.querySelectorAll('#log-activity .act-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+        document.getElementById('activity-followup').value = chip.textContent.trim();
+    });
+});
+// Submit
+document.getElementById('logActivityForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var box = document.getElementById('activity-result');
+    var btn = document.getElementById('logActivityBtn');
+    var notes = (document.getElementById('activity-notes').value || '').trim();
+    var fu = (document.getElementById('activity-followup').value || '').trim();
+    if (!notes && !fu) {
+        box.className = 'err'; box.textContent = 'Add a note about what happened, or a follow-up time.';
+        return;
+    }
+    box.className = ''; box.style.display = 'none';
+    btn.disabled = true;
+    var original = btn.innerHTML;
+    btn.innerHTML = '<i class="mdi mdi-loading mdi-spin mr-1"></i>Saving...';
+
+    $.ajax({
+        url: '{{ route("guest.logActivity") }}',
+        method: 'POST',
+        data: new FormData(this),
+        processData: false,
+        contentType: false,
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+        success: function (response) {
+            if (response.success) {
+                var msg = '<i class="mdi mdi-check-circle mr-1"></i>' + (response.message || 'Activity logged.');
+                if (response.follow_up && response.follow_up.interpretation) {
+                    msg += '<br><strong>Follow-up set:</strong> ' + response.follow_up.interpretation
+                         + ' — you and the owner will be reminded.';
+                }
+                box.className = 'ok'; box.innerHTML = msg;
+                document.getElementById('activity-notes').value = '';
+                document.getElementById('activity-followup').value = '';
+            } else {
+                box.className = 'err'; box.textContent = (response.message || 'Could not log activity.');
+            }
+        },
+        error: function (xhr) {
+            var m = 'Could not log activity.';
+            try { m = JSON.parse(xhr.responseText).message || m; } catch (e) {}
+            box.className = 'err'; box.textContent = m;
+        },
+        complete: function () { btn.disabled = false; btn.innerHTML = original; }
     });
 });
 

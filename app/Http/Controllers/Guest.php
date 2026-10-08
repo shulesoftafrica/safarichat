@@ -342,6 +342,30 @@ class Guest extends Controller {
             }
         }
 
+        // Merge logged sales activities (calls, visits, ...) into the timeline so
+        // everything the team did with this customer is visible in one place.
+        $salesActivities = \App\Models\SalesActivity::with(['user:id,name', 'appointment:id,scheduled_at'])
+            ->where('business_contact_id', $contact->id)
+            ->get();
+        foreach ($salesActivities as $a) {
+            $label = \App\Models\SalesActivity::types()[$a->type] ?? ucfirst($a->type);
+            $text = $label . ($a->notes ? ': ' . $a->notes : '');
+            if ($a->appointment && $a->appointment->scheduled_at) {
+                $text .= ' • Follow-up ' . \Carbon\Carbon::parse($a->appointment->scheduled_at)->format('M j, g:i A');
+            }
+            $timeline->push([
+                'direction' => 'activity',
+                'text'      => $text,
+                'at'        => $a->activity_at ?? $a->created_at,
+                'by'        => $a->user->name ?? null,
+            ]);
+        }
+
+        // Keep the merged timeline in chronological order.
+        $timeline = $timeline->sortBy(function ($e) {
+            return $e['at'] ? \Carbon\Carbon::parse($e['at'])->timestamp : 0;
+        })->values();
+
         $products = $lead
             ? $lead->leadProducts()->with('product')->get()->pluck('product')->filter()->values()
             : collect();
@@ -2613,6 +2637,156 @@ class Guest extends Controller {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Log a sales activity (call / visit / email / ...) against a customer, and
+     * — when a follow-up time is given — intelligently schedule a follow-up
+     * appointment so the sales person AND the owner are reminded to act on it.
+     */
+    public function logActivity(Request $request)
+    {
+        try {
+            $request->validate([
+                'guest_id'       => 'required|exists:business_contacts,id',
+                'type'           => 'required|string|max:30',
+                'notes'          => 'nullable|string|max:2000',
+                'follow_up_text' => 'nullable|string|max:500',
+                'follow_up_at'   => 'nullable|date', // optional explicit picker, overrides text
+            ]);
+
+            $contact = EventsGuest::findOrFail($request->guest_id);
+
+            $business = Auth::user()->effectiveBusiness();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'No business found for current user']);
+            }
+            if ($contact->business_id !== $business->id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            $type = in_array($request->type, array_keys(\App\Models\SalesActivity::types()), true)
+                ? $request->type
+                : \App\Models\SalesActivity::TYPE_OTHER;
+
+            // Resolve (or create) the lead for this contact so a follow-up appointment
+            // can be attached. leads.ai_sales_agent_id is NOT NULL, so supply it.
+            $lead = $contact->lead;
+            if (!$lead) {
+                try {
+                    $ownerId = $business->user_id ?? Auth::id();
+                    $agentId = \App\Models\AiSalesAgent::where('user_id', $ownerId)->value('id');
+                    $defaults = ['business_id' => $business->id, 'status' => \App\Models\Lead::STATUS_NEW, 'lead_score' => 10, 'source' => 'activity_log'];
+                    if ($agentId) {
+                        $defaults['ai_sales_agent_id'] = $agentId;
+                    }
+                    $lead = \App\Models\Lead::firstOrCreate(
+                        ['business_contact_id' => $contact->id, 'user_id' => $ownerId],
+                        $defaults
+                    );
+                } catch (\Throwable $e) {
+                    // Couldn't create a lead (e.g. no AI agent configured). Log the
+                    // activity anyway; the follow-up appointment just won't be created.
+                    \Illuminate\Support\Facades\Log::warning('logActivity: lead resolve failed', [
+                        'contact_id' => $contact->id, 'error' => $e->getMessage(),
+                    ]);
+                    $lead = null;
+                }
+            }
+
+            // Log the activity on the customer's record.
+            $activity = \App\Models\SalesActivity::create([
+                'business_id'         => $business->id,
+                'business_contact_id' => $contact->id,
+                'lead_id'             => $lead?->id,
+                'user_id'             => Auth::id(),
+                'type'                => $type,
+                'notes'               => $request->notes,
+                'activity_at'         => now(),
+                'follow_up_text'      => $request->follow_up_text,
+            ]);
+
+            // --- Follow-up scheduling -------------------------------------------------
+            $followUp = null;    // ['datetime' => ..., 'interpretation' => ...]
+            $appointment = null;
+
+            if ($request->filled('follow_up_at')) {
+                // Explicit picker always wins and is unambiguous.
+                $dt = \Carbon\Carbon::parse($request->follow_up_at);
+                if ($dt->isFuture()) {
+                    $followUp = ['datetime' => $dt->format('Y-m-d H:i:s'), 'interpretation' => $dt->format('l, M j \a\t g:i A')];
+                }
+            } elseif ($request->filled('follow_up_text')) {
+                $followUp = app(\App\Services\OpenAiService::class)
+                    ->parseFollowUpDateTime($request->follow_up_text);
+            }
+
+            if ($followUp && $lead) {
+                $customerName = $contact->guest_name ?: ($lead->name ?: 'customer');
+                $appointment = \App\Models\Appointment::create([
+                    'lead_id'          => $lead->id,
+                    'title'            => 'Follow-up ' . ($type === 'visit' ? 'visit' : 'call') . ' with ' . $customerName,
+                    'description'      => 'Follow-up from a logged ' . \App\Models\SalesActivity::types()[$type] . '.'
+                                        . ($request->follow_up_text ? ' Requested: "' . $request->follow_up_text . '".' : ''),
+                    'scheduled_at'     => $followUp['datetime'],
+                    'duration_minutes' => 30,
+                    'appointment_type' => \App\Models\Appointment::TYPE_CALL,
+                    'is_internal'      => true, // remind the TEAM, never text the customer
+                    'status'           => \App\Models\Appointment::STATUS_CONFIRMED,
+                    'confirmed_at'     => now(),
+                    'created_by'       => Auth::id(),
+                    'notes'            => $request->notes,
+                ]);
+
+                $activity->update(['appointment_id' => $appointment->id]);
+            }
+
+            return response()->json([
+                'success'        => true,
+                'message'        => 'Activity logged'
+                                    . ($appointment ? ' and follow-up scheduled.' : '.'),
+                'activity_id'    => $activity->id,
+                'follow_up'      => $followUp ? [
+                    'interpretation' => $followUp['interpretation'],
+                    'datetime'       => $followUp['datetime'],
+                    'appointment_id' => $appointment?->id,
+                ] : null,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Return recent logged activities for a contact (for the modal's activity feed).
+     */
+    public function getActivities($guest)
+    {
+        $contact = EventsGuest::findOrFail($guest);
+        $business = Auth::user()->effectiveBusiness();
+        if (!$business || $contact->business_id !== $business->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $activities = \App\Models\SalesActivity::with(['user:id,name', 'appointment:id,scheduled_at'])
+            ->where('business_contact_id', $contact->id)
+            ->orderByDesc('activity_at')
+            ->limit(20)
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'type'        => $a->type,
+                    'type_label'  => \App\Models\SalesActivity::types()[$a->type] ?? ucfirst($a->type),
+                    'notes'       => $a->notes,
+                    'by'          => $a->user->name ?? 'Someone',
+                    'at'          => optional($a->activity_at)->format('M j, Y g:i A'),
+                    'follow_up'   => $a->appointment ? optional($a->appointment->scheduled_at)->format('M j, Y g:i A') : null,
+                ];
+            });
+
+        return response()->json(['success' => true, 'activities' => $activities]);
     }
 
     /**

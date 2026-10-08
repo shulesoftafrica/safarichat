@@ -112,6 +112,20 @@
                     <h5 class="mt-0 mb-3"><i class="mdi mdi-whatsapp mr-1"></i> WhatsApp Engagement History</h5>
                     <div style="max-height:640px;overflow-y:auto;padding:4px;">
                         @forelse($timeline as $msg)
+                            @if(($msg['direction'] ?? '') === 'activity')
+                                {{-- Logged sales activity (call / visit / ...) --}}
+                                <div class="d-flex mb-2 justify-content-center">
+                                    <div style="max-width:92%;padding:8px 14px;border-radius:10px;
+                                                background:#fff7e6;color:#8a6d1b;border:1px solid #ffe0a3;">
+                                        <div style="white-space:pre-wrap;word-break:break-word;">
+                                            <i class="mdi mdi-clipboard-text-outline mr-1"></i>{{ $msg['text'] }}
+                                        </div>
+                                        <div class="text-right" style="font-size:0.7rem;color:#b08a2e;margin-top:2px;">
+                                            {{ $msg['by'] ?? 'Sales' }} · {{ \Carbon\Carbon::parse($msg['at'])->format('d M, H:i') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
                             @php $out = $msg['direction'] === 'out'; @endphp
                             <div class="d-flex mb-2 {{ $out ? 'justify-content-end' : 'justify-content-start' }}">
                                 <div style="max-width:78%;padding:8px 12px;border-radius:10px;
@@ -123,6 +137,7 @@
                                     </div>
                                 </div>
                             </div>
+                            @endif
                         @empty
                             <p class="text-muted text-center py-4">No WhatsApp engagements recorded yet for this customer.</p>
                         @endforelse

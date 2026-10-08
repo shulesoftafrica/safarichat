@@ -247,10 +247,12 @@ class ProcessAppointmentRemindersCommand extends Command
         $anySent = false;
 
         // 1) Customer reminder --------------------------------------------------
+        // Internal follow-ups (e.g. "call the customer back") remind the TEAM only;
+        // we never text the customer a reminder for those.
         $contact = $lead->businessContact ?? $lead->contact ?? null;
         $customerPhone = $contact->guest_phone ?? $lead->phone_number ?? null;
 
-        if ($customerPhone) {
+        if (!$appointment->is_internal && $customerPhone) {
             try {
                 $message = $this->generateIntelligentReminderMessage($appointment);
                 if ($stage === '1h') {
@@ -339,6 +341,15 @@ class ProcessAppointmentRemindersCommand extends Command
         $customer = $contact->guest_name ?? $lead->name ?? 'A customer';
         $phone = $contact->guest_phone ?? $lead->phone_number ?? '';
         $when = Carbon::parse($appointment->scheduled_at)->format('l, M j \a\t g:i A');
+
+        // Internal follow-ups are a prompt to reach out to the customer.
+        if ($appointment->is_internal) {
+            $head = $stage === '1h' ? "⏰ *Follow-up due (~1 hour)*" : "🗓️ *Follow-up reminder*";
+            $msg  = "{$head}\n\nReach out to {$customer} — {$appointment->title}\n{$when}\n";
+            if ($phone !== '') { $msg .= "📞 {$phone}\n"; }
+            $msg .= "\nDon't let this one slip.";
+            return $msg;
+        }
 
         $head = $stage === '1h' ? "⏰ *Meeting in ~1 hour*" : "🗓️ *Meeting reminder (tomorrow)*";
         $msg  = "{$head}\n\n{$customer} — {$appointment->title}\n{$when}\n";
