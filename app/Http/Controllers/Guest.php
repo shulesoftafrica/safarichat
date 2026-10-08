@@ -75,11 +75,21 @@ class Guest extends Controller {
             $this->data['lead_status_stats'][$s] = $leadStatusCounts[$s] ?? 0;
         }
 
-        // Get available agents for assignment
-        $this->data['available_agents'] = \App\Models\User::select('id', 'name', 'email')
-            ->where('id', '!=', Auth::id())
-            ->orderBy('name')
-            ->get();
+        // Get available agents for assignment — ONLY users belonging to this business
+        // (the owner + team members added under it), never users from other businesses.
+        $handoffBusiness = Auth::user()->effectiveBusiness();
+        $agentsQuery = \App\Models\User::select('id', 'name', 'email')
+            ->where('id', '!=', Auth::id());
+        if ($handoffBusiness) {
+            $agentsQuery->where(function ($q) use ($handoffBusiness) {
+                $q->where('parent_business_id', $handoffBusiness->id)
+                  ->orWhere('id', $handoffBusiness->user_id);
+            });
+        } else {
+            // No resolvable business → show no one rather than every user.
+            $agentsQuery->whereRaw('1 = 0');
+        }
+        $this->data['available_agents'] = $agentsQuery->orderBy('name')->get();
 
         $this->data['products'] = Product::forUser(Auth::id())
             ->orderBy('name')
@@ -2570,12 +2580,28 @@ class Guest extends Controller {
             ]);
 
             $guest = EventsGuest::findOrFail($request->guest_id);
-            
-            // Ensure guest belongs to user's business
-            $business_id = Auth::user()->business->id;
-            
+
+            // Ensure guest belongs to the current user's business (owner or team member).
+            $business = Auth::user()->effectiveBusiness();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'No business found for current user']);
+            }
+            $business_id = $business->id;
+
             if ($guest->business_id !== $business_id) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized access']);
+            }
+
+            // The agent must belong to THIS business (owner or a team member of it),
+            // never a user from another business.
+            $agentBelongs = \App\Models\User::where('id', $request->agent_id)
+                ->where(function ($q) use ($business) {
+                    $q->where('parent_business_id', $business->id)
+                      ->orWhere('id', $business->user_id);
+                })
+                ->exists();
+            if (!$agentBelongs) {
+                return response()->json(['success' => false, 'message' => 'Selected agent does not belong to your business']);
             }
 
             $result = $guest->assignToAgent($request->agent_id, $request->notes);
