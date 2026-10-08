@@ -60,12 +60,15 @@ class Home extends Controller
     public function index()
     {
 
+          // A team member sees the business owner's WhatsApp connection and numbers, not their own (empty) ones.
+            $dataOwnerId = Auth::user()->ownerUserId();
+
           //Check if user has no active whatsapp instance
-            $hasWhatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+            $hasWhatsappInstance = \App\Models\WhatsappInstance::where('user_id', $dataOwnerId)
                 ->where('status', 'connected')
                 ->exists();
 
-            $hasDisconnectedInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
+            $hasDisconnectedInstance = \App\Models\WhatsappInstance::where('user_id', $dataOwnerId)
                 ->where('status', 'disconnected')
                 ->exists();
 
@@ -97,7 +100,7 @@ class Home extends Controller
         $business_id = $userBusiness->id;
 
         // WhatsApp-based metrics using the new tables with instance filtering
-        $user_id = Auth::id();
+        $user_id = $dataOwnerId;
         $activeInstanceId = session('active_whatsapp_instance');
         
         // Base query with optional instance filtering
@@ -439,15 +442,20 @@ class Home extends Controller
         })->all();
         
         $this->data['current_user_count'] = $businessUsers->count();
-        if ($_POST) {
+        if (request()->isMethod('post')) {
             $table = request('table');
             switch ($table) {
                 case 'user':
-                    \App\Models\User::findOrFail(Auth::user()->id)->update(request()->all());
-                    break;
+                    return $this->updateUserProfile($userBusiness);
                 case 'add_user':
+                    if (!Auth::user()->canManageTeam()) {
+                        return $this->teamPermissionDenied();
+                    }
                     return $this->storeTeamMember();
                 case 'delete_user':
+                    if (!Auth::user()->canManageTeam()) {
+                        return $this->teamPermissionDenied();
+                    }
                     return $this->deleteTeamMember();
                 case 'event_guest_category':
                     if ((int) request('edit') > 0) {
@@ -462,10 +470,16 @@ class Home extends Controller
                     }
                     break;
                 case 'business':
+                    // Business details are for the owner and admins; team members (now that they resolve to the
+                    // owner's business) must not be able to rewrite them.
+                    if (!Auth::user()->isBusinessOwner() && Auth::user()->role !== 'admin') {
+                        return $this->teamPermissionDenied();
+                    }
                     // Exclude 'email' — it is the stable billing identifier auto-generated
                     // by getBillingEmail() and must never be overwritten by the user.
+                    // Also exclude the ownership key so a posted user_id cannot hand the business to someone else.
                     \App\Models\Business::findOrFail($userBusiness->id)->update(
-                        request()->except(['_token', '_method', 'table', 'email'])
+                        request()->except(['_token', '_method', 'table', 'email', 'user_id', 'id'])
                     );
                     break;
                 default:
@@ -577,8 +591,13 @@ class Home extends Controller
 
     public function storeTeamMember()
     {
+        // (also enforced where this is called from settings; kept here because addUser() reaches it directly)
+        if (!Auth::user()->canManageTeam()) {
+            return $this->teamPermissionDenied();
+        }
+
         $userBusiness = Auth::user()->business;
-        
+
         // Get current plan limits
         $billingAccount = $userBusiness->billingAccount;
         $currentPlan = $billingAccount->subscription_plan ?? 'trial';
@@ -608,6 +627,12 @@ class Home extends Controller
         $phone = function_exists('sanitize_phone_number')
             ? sanitize_phone_number($validated['phone'])
             : $validated['phone'];
+
+        // The phone number IS the login. A second user on the same number made the OTP login pick one of
+        // them arbitrarily (this is how "AMOSI" and an older orphan account ended up sharing a phone).
+        if (\App\Models\User::where('phone', $phone)->exists()) {
+            return redirect()->back()->withInput()->with('error', 'A user with this phone number already exists, so a second account cannot be created for it.');
+        }
 
         // Create new team member. password is NOT NULL in the schema but is never used
         // for login (OTP only) — set a random, unknowable value.
@@ -664,6 +689,10 @@ class Home extends Controller
     
     public function deleteTeamMember()
     {
+        if (!Auth::user()->canManageTeam()) {
+            return $this->teamPermissionDenied();
+        }
+
         $userId = request('user_id');
         $userBusiness = Auth::user()->business;
         
@@ -684,6 +713,75 @@ class Home extends Controller
         $user->delete();
         
         return redirect()->back()->with('success', 'Team member deleted successfully.');
+    }
+
+    private function teamPermissionDenied()
+    {
+        return redirect()->back()->with('error', 'You do not have permission to do that. Ask the account owner.');
+    }
+
+    /**
+     * Edit a user's own profile, or (for the owner, admins and managers) a team member's details.
+     *
+     * Before: the edit form always loaded the logged-in user and the handler ran
+     * `update(request()->all())` on them, which (a) made it impossible to edit anyone else, so a user you
+     * had just added could never be corrected, and (b) let any posted field be written to the user,
+     * including role, parent_business_id and subscription fields. Now only name, email and phone are
+     * written (plus role, only when a manager edits someone else), after validation.
+     */
+    private function updateUserProfile($business)
+    {
+        $actor = Auth::user();
+        $targetId = (int) request('edit');
+        $isSelf = $targetId <= 0 || $targetId === (int) $actor->id;
+        $target = $isSelf ? $actor : \App\Models\User::find($targetId);
+
+        if (!$target) {
+            return redirect()->back()->with('error', 'User not found.');
+        }
+
+        if (!$isSelf) {
+            // Only team managers, only for members of this business, and never the owner.
+            $mayEdit = $actor->canManageTeam()
+                && (int) $target->parent_business_id === (int) $business->id
+                && (int) $target->id !== (int) $business->user_id;
+
+            if (!$mayEdit) {
+                return $this->teamPermissionDenied();
+            }
+        }
+
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($target->id)],
+            'phone' => 'required|string|max:20',
+        ];
+        if (!$isSelf) {
+            $rules['role'] = 'nullable|in:member,manager,admin';
+        }
+        $validated = request()->validate($rules);
+
+        $phone = function_exists('sanitize_phone_number')
+            ? sanitize_phone_number($validated['phone'])
+            : $validated['phone'];
+
+        // The phone is the login. Two users on one number made the OTP login pick one of them arbitrarily.
+        if (\App\Models\User::where('phone', $phone)->where('id', '!=', $target->id)->exists()) {
+            return redirect()->back()->withInput()->with('error', 'Another user already uses this phone number.');
+        }
+
+        $changes = [
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $phone,
+        ];
+        if (!$isSelf && !empty($validated['role'])) {
+            $changes['role'] = $validated['role'];
+        }
+
+        $target->update($changes);
+
+        return redirect()->back()->with('success', $isSelf ? 'Your details were updated.' : "{$target->name}'s details were updated.");
     }
 
     public function addUser()

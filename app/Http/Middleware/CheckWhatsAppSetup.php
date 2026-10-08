@@ -42,7 +42,12 @@ class CheckWhatsAppSetup
         // Check if user has a connected WhatsApp instance.
         // Accept both 'connected' and 'active' — seeder seeds with 'active',
         // and some older rows use 'active' before going through the WaSender flow.
-        $hasConnectedWhatsApp = $user->whatsappInstances()
+        // A team member works with the owner's WhatsApp connection and products (they have none of their
+        // own), so check the owner's. Otherwise every member was sent to the "connect your WhatsApp" page
+        // and then to "add a product" right after logging in.
+        $ownerId = $user->ownerUserId();
+
+        $hasConnectedWhatsApp = \App\Models\WhatsappInstance::where('user_id', $ownerId)
             ->whereIn('status', ['connected', 'active'])
             ->exists();
 
@@ -52,8 +57,8 @@ class CheckWhatsAppSetup
                 ->with('message', 'Please connect your WhatsApp account first to continue.');
         }
 
-        // Check if user has defined at least one product
-        $hasProducts = $user->products()->exists();
+        // Check if the business has defined at least one product
+        $hasProducts = \App\Models\Product::where('user_id', $ownerId)->exists();
 
         if (!$hasProducts) {
             // Skip product check for the products pages themselves

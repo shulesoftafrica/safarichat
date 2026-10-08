@@ -805,7 +805,8 @@ body:not(.dark-mode) .billing-card-header {
                                                 <p class="text-muted mb-0">{{ __("settings.user_accounts.description") }}</p>
                                                 <small class="text-muted">Users: {{ $current_user_count }} / {{ $max_users }}</small>
                                             </div>
-                                            @if($current_user_count < $max_users)
+                                            @if(!Auth::user()->canManageTeam())
+                                            @elseif($current_user_count < $max_users)
                                                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addUserModal">
                                                     <i class="las la-plus"></i> Add New User
                                                 </button>
@@ -838,22 +839,26 @@ body:not(.dark-mode) .billing-card-header {
                                                     <tr>
                                                         <th><?= $i ?></th>
                                                         <th>
-                                                            <?= $account->user->name ?>
+                                                            {{ $account->user->name }}
                                                             @if($isOwner)
                                                                 <span class="badge badge-success ml-1">Owner</span>
                                                             @endif
                                                         </th>
-                                                        <th><?= $account->user->email ?></th>
-                                                        <th><?= $account->user->phone ?></th>
+                                                        <th>{{ $account->user->email }}</th>
+                                                        <th>{{ $account->user->phone }}</th>
                                                         <th><?= $userRole ?></th>
                                                         <th><?= date('d M Y', strtotime($account->user->created_at)) ?></th>
                                                         <th>
-                                                            @if($isCurrentUser)
-                                                                <a onclick="editGuest('<?= $account->user->id ?>')" data-toggle="modal" href="#user_accounts">
+                                                            <?php $mayManageTeam = Auth::user()->canManageTeam(); ?>
+                                                            @if($isCurrentUser || ($mayManageTeam && !$isOwner))
+                                                                <a href="javascript:void(0)" class="mr-2" onclick="editUser(this)"
+                                                                   data-id="{{ $account->user->id }}" data-name="{{ $account->user->name }}" data-email="{{ $account->user->email }}"
+                                                                   data-phone="{{ $account->user->phone }}" data-role="{{ $account->user->role ?? 'member' }}" data-self="{{ $isCurrentUser ? 1 : 0 }}">
                                                                     <i class="las la-pen text-info font-18"></i> {{ __("settings.user_accounts.action.edit") }}
                                                                 </a>
-                                                            @elseif(!$isOwner)
-                                                                <a href="javascript:void(0)" onclick="deleteUser(<?= $account->user->id ?>, '<?= $account->user->name ?>')">
+                                                            @endif
+                                                            @if($mayManageTeam && !$isOwner && !$isCurrentUser)
+                                                                <a href="javascript:void(0)" onclick="deleteUser(this)" data-id="{{ $account->user->id }}" data-name="{{ $account->user->name }}">
                                                                     <i class="las la-trash-alt text-danger font-18"></i> Delete
                                                                 </a>
                                                             @endif
@@ -1387,7 +1392,7 @@ body:not(.dark-mode) .billing-card-header {
                     <div class="form-group">
                         <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.name_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group1" value="<?= Auth::user()->name ?>" name="name" class="form-control" placeholder="{{ __("settings.modal.user.name_placeholder") }}">
+                            <input type="text" id="user_edit_name" value="" name="name" class="form-control" placeholder="{{ __("settings.modal.user.name_placeholder") }}">
 
                         </div>                                                    
                     </div>
@@ -1395,14 +1400,14 @@ body:not(.dark-mode) .billing-card-header {
                     <div class="form-group">
                         <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.email_label") }}</label>
                         <div class="input-group">
-                            <input type="text" id="example-input2-group2" value="<?= Auth::user()->email ?>" name="email" class="form-control" placeholder="{{ __("settings.modal.user.email_placeholder") }}">
+                            <input type="text" id="user_edit_email" value="" name="email" class="form-control" placeholder="{{ __("settings.modal.user.email_placeholder") }}">
                         </div>                                                    
                     </div>
 
                     <div class="form-group">
                         <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.phone_label") }}</label>
                         <div class="input-group">
-                            <input type="tel" id="example-input2-group2" value="<?= Auth::user()->phone ?>" name="phone" 
+                            <input type="tel" id="user_edit_phone" value="" name="phone" 
                                    class="form-control phone-validation" 
                                    pattern="^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$"
                                    title="Phone format: +1234567890 or (123) 456-7890"
@@ -1411,7 +1416,18 @@ body:not(.dark-mode) .billing-card-header {
                         </div>                                                    
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="user_role_group" style="display:none;">
+                        <label for="user_edit_role" class=" col-form-label text-right">Role</label>
+                        <div class="input-group">
+                            <select id="user_edit_role" name="role" class="form-control" disabled>
+                                <option value="member">Member — day-to-day access</option>
+                                <option value="manager">Manager — manage team &amp; campaigns</option>
+                                <option value="admin">Admin — full account access</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="user_uuid_group">
                         <label for="quantity" class=" col-form-label text-right">{{ __("settings.modal.user.uuid_label") }}</label>
                         <div class="input-group">
                             <input type="text" id="user-uuid" value="<?= Auth::user()->uuid ?>" class="form-control" readonly>
@@ -1429,7 +1445,7 @@ body:not(.dark-mode) .billing-card-header {
             </div>
             <div class="modal-footer text-center">
                 <?= csrf_field() ?>
-                <input type="hidden" id="edit_id" value="" name="edit"/>
+                <input type="hidden" id="user_edit_id" value="" name="edit"/>
                 <input type="hidden" id="edit_guest" value="user" name="table"/>
                 <button type="button" class="btn-secondary" data-dismiss="modal">Close</button>
                 <button type="submit" class="btn-primary" data-toggle="tooltip" data-placement="top">Save</button>
@@ -1507,7 +1523,29 @@ body:not(.dark-mode) .billing-card-header {
         $('#edit_id').val(a);
     }
     
-    function deleteUser(userId, userName) {
+    // Open the edit form for the user whose Edit link was clicked (yourself, or a team member you manage).
+    function editUser(el) {
+        var d = el.dataset;
+        var isSelf = d.self === '1';
+
+        $('#user_edit_id').val(d.id);
+        $('#user_edit_name').val(d.name);
+        $('#user_edit_email').val(d.email);
+        $('#user_edit_phone').val(d.phone);
+
+        // The role is only changed when editing someone else; it is disabled (so not posted) for yourself.
+        $('#user_edit_role').val(d.role || 'member').prop('disabled', isSelf);
+        $('#user_role_group').toggle(!isSelf);
+        // The API user id shown in this form is yours, so show it only when you edit yourself.
+        $('#user_uuid_group').toggle(isSelf);
+
+        $('#user_accounts').modal('show');
+    }
+
+    // Reads the id and name from the link's data attributes (a name with a quote broke the old inline call).
+    function deleteUser(el) {
+        var userId = el.dataset.id;
+        var userName = el.dataset.name;
         if (confirm('Are you sure you want to delete ' + userName + '? This action cannot be undone.')) {
             // Create form and submit
             var form = document.createElement('form');

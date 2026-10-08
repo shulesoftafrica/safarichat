@@ -146,7 +146,13 @@ class Setup extends Controller {
             // Optionally, you can clear the OTP from session or database
 
             //lets check if user already registered, so send him to dashboard
-            $user = DB::table('users')->where('phone', $phone)->first();
+            // If a phone number is (wrongly) on more than one account, prefer the one that belongs to a business
+            // (an owner, or a team member with a parent business) over an orphan, then the newest. Without an
+            // ORDER BY the database returned an arbitrary one, so a team member could land on a stale empty account.
+            $user = DB::table('users')->where('phone', $phone)
+                ->orderByRaw('CASE WHEN parent_business_id IS NOT NULL OR EXISTS (SELECT 1 FROM businesses b WHERE b.user_id = users.id) THEN 0 ELSE 1 END')
+                ->orderByDesc('id')
+                ->first();
             if ($user) {
                 // Update password with new OTP code
                 DB::table('users')->where('id', $user->id)->update([
@@ -154,8 +160,9 @@ class Setup extends Controller {
                     'verified' => 1,
                     'updated_at' => now(),
                 ]);
-                // Attempt login
-                if ($this->loginUser($phone, $input_code)) {
+                // Log in the exact account chosen above (the OTP was already verified). Going back through
+                // auth()->attempt() looked the account up by phone again and could pick a different duplicate.
+                if ($this->loginUserById($user->id)) {
                     //register whatsapp instance as default
 
                     return redirect('/home');
@@ -466,6 +473,17 @@ class Setup extends Controller {
     //     //     ]
     //     // ]);
     // }
+
+    /** Log in a user whose identity was already proven (OTP verified). */
+    public function loginUserById($userId) {
+        $user = \App\Models\User::find($userId);
+        if (!$user) {
+            return false;
+        }
+        auth()->login($user);
+        session(['user_id' => $user->id]);
+        return true;
+    }
 
     public function loginUser($phone, $password) {
         $credentials = ['phone' => $phone, 'password' => $password];

@@ -98,6 +98,57 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
+     * `$user->business` for a team member.
+     *
+     * The relation above finds the business a user OWNS, so it is null for every team member (they are
+     * linked through parent_business_id). The app reads `Auth::user()->business->...` in 140+ places, and each
+     * one crashed for a member right after login ("Attempt to read property ... on null" -> HTTP 500, and
+     * "No business found for user_id" for their WhatsApp messages). Resolving to the business the member
+     * belongs to fixes all of them at the source. Owners are unaffected. The relation method
+     * (`$user->business()`, `whereHas('business')`) still means "owns a business".
+     */
+    public function getBusinessAttribute()
+    {
+        $own = $this->getRelationValue('business');
+        if ($own) {
+            return $own;
+        }
+
+        return $this->parent_business_id ? $this->parentBusiness : null;
+    }
+
+    /** True for a user who was added to someone else's business and owns none. */
+    public function isTeamMember(): bool
+    {
+        return !empty($this->parent_business_id) && !$this->getRelationValue('business');
+    }
+
+    /** True for the user who owns the business they work in. */
+    public function isBusinessOwner(): bool
+    {
+        $business = $this->business;
+
+        return $business && (int) $business->user_id === (int) $this->id;
+    }
+
+    /**
+     * The user id that owns this account's data (WhatsApp connections, products, conversations).
+     * A team member works with the owner's data, not their own (which is empty).
+     */
+    public function ownerUserId(): int
+    {
+        $business = $this->business;
+
+        return (int) ($business->user_id ?? $this->id);
+    }
+
+    /** Who may add, edit and remove team members: the owner, and users with the admin or manager role. */
+    public function canManageTeam(): bool
+    {
+        return $this->isBusinessOwner() || in_array($this->role, ['admin', 'manager'], true);
+    }
+
+    /**
      * Get the business this user is a member of (for team members)
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
