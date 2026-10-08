@@ -11,7 +11,9 @@ class SendDailySummaries extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'summaries:send-daily';
+    protected $signature = 'summaries:send-daily
+                            {--user= : Only this user id}
+                            {--dry-run : Show the WhatsApp summary that would be sent, send nothing}';
 
     /**
      * The console command description.
@@ -27,32 +29,65 @@ class SendDailySummaries extends Command
         $this->info('Sending daily summaries to business owners/admins...');
         
         $yesterday = now()->subDay();
-        $sentCount = 0;
-        
+        $dryRun = (bool) $this->option('dry-run');
+        $delivered = 0;
+        $viaWhatsApp = 0;
+        $viaEmail = 0;
+        $failed = 0;
+
         // Get all business owners/admins (users with businesses)
         $businessOwners = User::whereHas('business')
+            ->when($this->option('user'), fn ($q, $id) => $q->where('id', (int) $id))
             ->get();
-        
+
         foreach ($businessOwners as $user) {
+            // Name the person by what we actually have: most owners have no email address, which is why
+            // this used to print "to:  (Business)" with a blank.
+            $who = trim(($user->name ?: 'user #' . $user->id) . ' <' . ($user->email ?: ($user->whatsapp_number ?: $user->phone ?: 'no contact')) . '>');
+            $business = $user->business->name ?? '-';
+
             try {
                 // Check if user has any activity to report
                 $stats = $this->getDailySummaryStats($user, $yesterday);
-                
-                if ($stats['has_activity'] || $stats['has_issues']) {
-                    $notificationService->sendDailySummary($user, $stats);
-                    $sentCount++;
-                    
-                    $this->info("✅ Sent daily summary to: {$user->email} ({$user->business->name})");
+
+                if (!($stats['has_activity'] || $stats['has_issues'])) {
+                    $this->line("⏭️ No activity for: {$who} ({$business}) - skipping");
+                    continue;
+                }
+
+                if ($dryRun) {
+                    $this->info("🧪 Dry run - would send to {$who} ({$business}):");
+                    $this->line($notificationService->buildDailySummaryWhatsAppMessage($user, $stats, $business, $yesterday));
+                    $this->newLine();
+                    continue;
+                }
+
+                // Only count what was really delivered (this used to count every user as "sent" even when
+                // the service returned early because the user had no email).
+                $result = $notificationService->sendDailySummary($user, $stats);
+
+                if ($result['delivered']) {
+                    $delivered++;
+                    $viaWhatsApp += $result['whatsapp'] ? 1 : 0;
+                    $viaEmail += $result['email'] ? 1 : 0;
+                    $channels = implode(' + ', array_filter([$result['whatsapp'] ? 'WhatsApp' : null, $result['email'] ? 'email' : null]));
+                    $this->info("✅ Sent daily summary to: {$who} ({$business}) via {$channels}");
                 } else {
-                    $this->line("⏭️ No activity for: {$user->email} - skipping");
+                    $failed++;
+                    $this->warn("⚠️ NOT delivered to: {$who} ({$business}) - " . ($result['reason'] ?? 'no email and no WhatsApp number'));
                 }
             } catch (\Exception $e) {
-                $this->error("❌ Failed to send summary to {$user->email}: {$e->getMessage()}");
+                $failed++;
+                $this->error("❌ Failed to send summary to {$who}: {$e->getMessage()}");
             }
         }
-        
-        $this->info("📊 Daily summaries sent to {$sentCount} business owners");
-        
+
+        if ($dryRun) {
+            $this->info('🧪 Dry run finished - nothing was sent.');
+        } else {
+            $this->info("📊 Daily summaries delivered to {$delivered} business owners ({$viaWhatsApp} WhatsApp, {$viaEmail} email); {$failed} not delivered");
+        }
+
         return Command::SUCCESS;
     }
     

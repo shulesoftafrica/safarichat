@@ -20,6 +20,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Daily Summary
+    |--------------------------------------------------------------------------
+    |
+    | The daily business summary (summaries:send-daily, 07:00) is sent to the
+    | owner on WhatsApp, from the platform's system WhatsApp line. Email is sent
+    | in addition when the owner has an email address. Set DAILY_SUMMARY_WHATSAPP=false
+    | to turn the WhatsApp copy off.
+    |
+    */
+
+    'daily_summary' => [
+        'whatsapp' => env('DAILY_SUMMARY_WHATSAPP', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Notification Settings
     |--------------------------------------------------------------------------
     */
