@@ -150,15 +150,20 @@
                     <tr>
                         <td>
                             <div>
-                                <strong>{{ \Carbon\Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time)->format('M d, Y') }}</strong>
+                                <strong>{{ optional($appointment->scheduled_at)->format('M d, Y') ?? '—' }}</strong>
                             </div>
                             <small class="text-muted">
-                                <i class="far fa-clock mr-1"></i>{{ \Carbon\Carbon::parse($appointment->appointment_time)->format('g:i A') }}
+                                <i class="far fa-clock mr-1"></i>{{ optional($appointment->scheduled_at)->format('g:i A') ?? '' }}
                             </small>
                         </td>
                         <td>
-                            <div>{{ $appointment->lead->name ?? 'N/A' }}</div>
-                            <small class="text-muted">{{ $appointment->lead->phone ?? '' }}</small>
+                            @php
+                                $apptContact = $appointment->lead->contact ?? null;
+                                $apptCustomer = $apptContact->guest_name ?? $appointment->lead->name ?? 'N/A';
+                                $apptPhone = $appointment->lead->phone_number ?? ($apptContact->guest_phone ?? '');
+                            @endphp
+                            <div>{{ $apptCustomer }}</div>
+                            <small class="text-muted">{{ $apptPhone }}</small>
                         </td>
                         <td>
                             <span class="badge badge-soft-primary">{{ ucfirst(str_replace('_', ' ', $appointment->appointment_type)) }}</span>
@@ -182,8 +187,8 @@
                                 <i class="fas fa-check-circle text-success" title="{{ __("appointments.slot.reserved") }}"></i>
                                 <small class="text-muted">{{ ucfirst($appointment->bookingSlot->status) }}</small>
                             @else
-                                <i class="fas fa-exclamation-triangle text-warning" title="{{ __("appointments.slot.no_slot") }}"></i>
-                                <small class="text-muted">{{ __("appointments.slot.legacy") }}</small>
+                                <i class="fab fa-whatsapp text-success"></i>
+                                <small class="text-muted">Booked via AI</small>
                             @endif
                         </td>
                         <td class="text-center">

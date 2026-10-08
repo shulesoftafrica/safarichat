@@ -43,10 +43,12 @@ class AppointmentController extends Controller
         
         // Calculate statistics
         $stats = [
+            // Upcoming = any future meeting that is still live (pending OR confirmed),
+            // so AI-booked meetings show here immediately instead of reading as 0.
             'upcoming' => Appointment::whereHas('lead', function($q) use ($business_id) {
                 $q->where('business_id', $business_id);
             })
-            ->where('status', 'confirmed')
+            ->whereIn('status', ['pending', 'confirmed'])
             ->where('scheduled_at', '>', now())
             ->count(),
             

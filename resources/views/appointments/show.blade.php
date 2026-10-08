@@ -300,10 +300,10 @@
                 </div>
             </div>
             @else
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                <strong>Legacy Appointment</strong>
-                <p class="mb-0 small">This appointment was created before the booking calendar system was implemented.</p>
+            <div class="alert alert-info">
+                <i class="fab fa-whatsapp mr-2"></i>
+                <strong>Booked via AI assistant</strong>
+                <p class="mb-0 small">This meeting was arranged directly with the customer over WhatsApp.</p>
             </div>
             @endif
 

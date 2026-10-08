@@ -6,7 +6,9 @@ use Illuminate\Console\Command;
 use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\Conversation;
-use App\Services\WhatsAppService;
+use App\Models\User;
+use App\Models\WhatsappInstance;
+use App\Services\WaSenderService;
 use App\Services\OpenAiService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -53,35 +55,35 @@ class ProcessAppointmentRemindersCommand extends Command
             
             foreach ($appointments as $appointment) {
                 $remindersProcessed++;
-                
+
                 try {
-                    // Check if we already sent a reminder for this appointment today
-                    if ($this->reminderSentToday($appointment)) {
-                        $remindersSkipped++;
-                        $this->line("⏭️ Skipped (already sent today): {$appointment->title}");
-                        continue;
-                    }
-                    
-                    // Check if reminder is still relevant
+                    // Respect cancellation / reschedule intents in recent chat.
                     if (!$this->isReminderRelevant($appointment)) {
                         $remindersSkipped++;
                         $this->line("⏭️ Skipped (not relevant): {$appointment->title}");
-                        $appointment->update(['reminder_sent' => true]);
                         continue;
                     }
-                    
+
+                    // Which stage(s) are due now? 24h-before and ~1h-before (near time).
+                    $stage = $this->dueReminderStage($appointment, $now);
+                    if (!$stage) {
+                        $remindersSkipped++;
+                        continue;
+                    }
+
                     if ($isDryRun) {
-                        $this->line("📅 Would send reminder for: {$appointment->title} to {$appointment->lead->name}");
+                        $this->line("📅 [{$stage}] Would remind customer + team for: {$appointment->title}");
                         $remindersSent++;
+                        continue;
+                    }
+
+                    $sent = $this->sendAppointmentReminder($appointment, $stage);
+                    if ($sent) {
+                        $remindersSent++;
+                        $this->line("✅ [{$stage}] Reminder sent: {$appointment->title}");
                     } else {
-                        $sent = $this->sendAppointmentReminder($appointment);
-                        if ($sent) {
-                            $remindersSent++;
-                            $this->line("✅ Reminder sent: {$appointment->title} to {$appointment->lead->name}");
-                        } else {
-                            $errorsCount++;
-                            $this->error("❌ Failed to send reminder for appointment #{$appointment->id}");
-                        }
+                        $errorsCount++;
+                        $this->error("❌ [{$stage}] Failed reminder for appointment #{$appointment->id}");
                     }
                 } catch (\Exception $e) {
                     $errorsCount++;
@@ -122,16 +124,41 @@ class ProcessAppointmentRemindersCommand extends Command
         // - Reminder hasn't been sent yet
         // - Appointment is in the future
         
-        return Appointment::with(['lead.businessContact'])
+        // Any live meeting within the next 24h that still has at least one reminder
+        // stage (24h or near-time) pending. A small negative margin lets the near-time
+        // stage still fire if the cron runs a few minutes after the hour mark.
+        return Appointment::with(['lead.businessContact', 'lead.business', 'createdBy'])
             ->whereIn('status', ['confirmed', 'pending'])
-            ->where('scheduled_at', '>', $now)
+            ->where('scheduled_at', '>', $now->copy()->subMinutes(15))
             ->where('scheduled_at', '<=', $now->copy()->addHours(24))
-            ->where(function($query) {
-                $query->where('reminder_sent', false)
-                      ->orWhereNull('reminder_sent');
+            ->where(function ($query) {
+                $query->whereNull('reminder_24h_sent_at')
+                      ->orWhereNull('reminder_1h_sent_at');
             })
             ->orderBy('scheduled_at')
             ->get();
+    }
+
+    /**
+     * Decide which reminder stage (if any) is due for this appointment right now.
+     * Returns '24h', '1h', or null. Near-time wins when both are technically due.
+     */
+    private function dueReminderStage(Appointment $appointment, Carbon $now): ?string
+    {
+        $scheduledAt = Carbon::parse($appointment->scheduled_at);
+        $minutesAway = $now->diffInMinutes($scheduledAt, false); // negative if already started
+
+        // Near-time: from ~90 min before up to ~15 min after start, once.
+        if ($minutesAway <= 90 && $minutesAway >= -15 && empty($appointment->reminder_1h_sent_at)) {
+            return '1h';
+        }
+
+        // Day-before: anytime from now up to 24h before, once.
+        if ($minutesAway > 90 && $minutesAway <= (24 * 60) && empty($appointment->reminder_24h_sent_at)) {
+            return '24h';
+        }
+
+        return null;
     }
     
     /**
@@ -202,64 +229,122 @@ class ProcessAppointmentRemindersCommand extends Command
     /**
      * Send appointment reminder
      */
-    private function sendAppointmentReminder(Appointment $appointment): bool
+    private function sendAppointmentReminder(Appointment $appointment, string $stage): bool
     {
-        try {
-            $whatsappService = app(WhatsAppService::class);
-            $lead = $appointment->lead;
-            $businessContact = $lead->businessContact;
-            
-            if (!$businessContact || !$businessContact->guest_phone) {
-                Log::warning('No phone number for appointment reminder', [
-                    'appointment_id' => $appointment->id,
-                    'lead_id' => $lead->id
-                ]);
-                return false;
-            }
-            
-            // Generate INTELLIGENT, context-aware reminder message
-            $message = $this->generateIntelligentReminderMessage($appointment);
-            
-            // Send WhatsApp message
-            $result = $whatsappService->sendMessage(
-                $businessContact->guest_phone,
-                $message,
-                $businessContact->business_id
-            );
-            
-            if ($result['success']) {
-                // Mark reminder as sent with timestamp
-                $appointment->update([
-                    'reminder_sent' => true,
-                    'reminder_sent_at' => now()
-                ]);
-                
-                // Cache that we sent a reminder today
-                $cacheKey = "reminder_sent_today_{$appointment->id}";
-                Cache::put($cacheKey, true, now()->endOfDay());
-                
-                Log::info('Intelligent appointment reminder sent', [
-                    'appointment_id' => $appointment->id,
-                    'lead_id' => $lead->id,
-                    'phone' => $businessContact->guest_phone
-                ]);
-                
-                return true;
-            } else {
-                Log::error('Failed to send appointment reminder', [
-                    'appointment_id' => $appointment->id,
-                    'error' => $result['error'] ?? 'Unknown error'
-                ]);
-                return false;
-            }
-            
-        } catch (\Exception $e) {
-            Log::error('Appointment reminder send error', [
+        $lead = $appointment->lead;
+        $ownerUserId = $appointment->created_by ?? ($lead->business->user_id ?? $lead->user_id ?? null);
+        $instance = $this->resolveInstance($ownerUserId);
+
+        if (!$instance) {
+            Log::warning('No WhatsApp instance to send appointment reminder', [
                 'appointment_id' => $appointment->id,
-                'error' => $e->getMessage()
+                'owner_user_id'  => $ownerUserId,
             ]);
             return false;
         }
+
+        $waSender = app(WaSenderService::class);
+        $anySent = false;
+
+        // 1) Customer reminder --------------------------------------------------
+        $contact = $lead->businessContact ?? $lead->contact ?? null;
+        $customerPhone = $contact->guest_phone ?? $lead->phone_number ?? null;
+
+        if ($customerPhone) {
+            try {
+                $message = $this->generateIntelligentReminderMessage($appointment);
+                if ($stage === '1h') {
+                    $message = "⏰ Starting soon!\n\n" . $message;
+                }
+                $res = $waSender->sendMessage($customerPhone, $message, [], $instance, $ownerUserId);
+                $anySent = $anySent || (bool) ($res['success'] ?? false);
+            } catch (\Throwable $e) {
+                Log::warning('Customer appointment reminder failed', [
+                    'appointment_id' => $appointment->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // 2) Team reminder (owner + sales person) -------------------------------
+        $teamMessage = $this->buildTeamReminderMessage($appointment, $stage);
+        foreach ($this->teamPhones($appointment) as $uid => $phone) {
+            try {
+                $inst = $this->resolveInstance($uid) ?: $instance;
+                $res = $waSender->sendMessage($phone, $teamMessage, [], $inst, $uid);
+                $anySent = $anySent || (bool) ($res['success'] ?? false);
+            } catch (\Throwable $e) {
+                Log::warning('Team appointment reminder failed', [
+                    'appointment_id' => $appointment->id, 'user_id' => $uid, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Mark the stage done so it fires at most once.
+        $appointment->forceFill([
+            'reminder_sent'    => true,
+            'reminder_sent_at' => now(),
+            ($stage === '1h' ? 'reminder_1h_sent_at' : 'reminder_24h_sent_at') => now(),
+        ])->save();
+
+        return $anySent;
+    }
+
+    /**
+     * Resolve a usable WhatsApp instance for a user (prefer a connected one).
+     */
+    private function resolveInstance(?int $userId): ?WhatsappInstance
+    {
+        if (!$userId) { return null; }
+
+        return WhatsappInstance::where('user_id', $userId)
+                ->whereIn('status', ['connected', 'ready'])
+                ->latest()->first()
+            ?: WhatsappInstance::where('user_id', $userId)->latest()->first();
+    }
+
+    /**
+     * Owner + sales-person phones to alert, de-duplicated by normalized number.
+     */
+    private function teamPhones(Appointment $appointment): array
+    {
+        $lead = $appointment->lead;
+        $ids = array_filter([
+            $appointment->created_by ?? null,
+            $lead->business->user_id ?? null,
+            $lead->user_id ?? null,
+        ]);
+
+        $out = [];
+        $seen = [];
+        foreach ($ids as $uid) {
+            $u = User::find($uid);
+            if ($u && !empty($u->phone)) {
+                $norm = preg_replace('/\D+/', '', $u->phone);
+                if ($norm && !isset($seen[$norm])) {
+                    $seen[$norm] = true;
+                    $out[$u->id] = $u->phone;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Concise internal reminder for the owner / sales person.
+     */
+    private function buildTeamReminderMessage(Appointment $appointment, string $stage): string
+    {
+        $lead = $appointment->lead;
+        $contact = $lead->businessContact ?? $lead->contact ?? null;
+        $customer = $contact->guest_name ?? $lead->name ?? 'A customer';
+        $phone = $contact->guest_phone ?? $lead->phone_number ?? '';
+        $when = Carbon::parse($appointment->scheduled_at)->format('l, M j \a\t g:i A');
+
+        $head = $stage === '1h' ? "⏰ *Meeting in ~1 hour*" : "🗓️ *Meeting reminder (tomorrow)*";
+        $msg  = "{$head}\n\n{$customer} — {$appointment->title}\n{$when}\n";
+        if ($phone !== '') { $msg .= "📞 {$phone}\n"; }
+        $msg .= "\nPlease be ready.";
+        return $msg;
     }
     
     

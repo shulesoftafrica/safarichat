@@ -600,10 +600,11 @@ class Kernel extends ConsoleKernel {
                 $this->logCronActivity(null, 'Credit synchronization failed', 'error');
             });
 
-        // Process appointment reminders - every hour during business hours
+        // Process appointment reminders - every 15 min during the day so the
+        // near-time ("1h before") reminder lands close to the actual meeting time.
         $schedule->command('appointments:process-reminders')
-            ->hourly()
-            ->between('07:00', '20:00')
+            ->everyFifteenMinutes()
+            ->between('06:00', '21:00')
             ->withoutOverlapping()
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/appointment-reminders.log'))

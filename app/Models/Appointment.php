@@ -70,6 +70,16 @@ class Appointment extends Model
         return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
+    /**
+     * The booking slot (if any) reserved for this appointment. Optional — AI/WhatsApp
+     * bookings that don't go through a booking calendar simply have no slot; that does
+     * NOT make them "legacy".
+     */
+    public function bookingSlot()
+    {
+        return $this->hasOne(\App\Models\BookingSlot::class, 'appointment_id');
+    }
+
     // Scopes
     public function scopeUpcoming($query)
     {
@@ -211,18 +221,25 @@ class Appointment extends Model
      */
     public static function createFromAiRequest(Lead $lead, array $data)
     {
-        // Parse natural language date/time
-        $scheduledAt = self::parseScheduleDate($data['date'] ?? $data['time'] ?? null);
-        
+        // Parse the requested time. Prefer an explicit datetime (what the AI sends),
+        // then fall back to separate date/time fields.
+        $scheduledAt = self::parseScheduleDate(
+            $data['datetime'] ?? $data['date'] ?? $data['time'] ?? null
+        );
+
         return self::create([
             'lead_id' => $lead->id,
             'title' => $data['title'] ?? 'Demo/Consultation',
             'description' => $data['description'] ?? 'Appointment scheduled via AI assistant',
             'scheduled_at' => $scheduledAt,
-            'duration_minutes' => $data['duration'] ?? 60,
+            'duration_minutes' => $data['duration_minutes'] ?? $data['duration'] ?? 60,
             'appointment_type' => $data['type'] ?? self::TYPE_DEMO,
-            'status' => self::STATUS_PENDING,
-            'notes' => $data['notes'] ?? null
+            'status' => $data['status'] ?? self::STATUS_PENDING,
+            'location' => $data['location'] ?? null,
+            'meeting_link' => $data['meeting_link'] ?? null,
+            'created_by' => $data['created_by'] ?? null,
+            'confirmed_at' => ($data['status'] ?? null) === self::STATUS_CONFIRMED ? now() : null,
+            'notes' => $data['notes'] ?? null,
         ]);
     }
 

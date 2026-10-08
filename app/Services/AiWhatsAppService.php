@@ -577,6 +577,11 @@ class AiWhatsAppService
                 case 'book_demo':
                 case 'schedule_meeting':
                 case 'book_consultation':
+                case 'reschedule_appointment':
+                case 'reschedule_meeting':
+                case 'change_appointment':
+                    // scheduleAppointment auto-detects an existing appointment and
+                    // reschedules it in place, so all of these route to one handler.
                     $results['appointment'] = $this->scheduleAppointment($agent, $lead, $data);
                     break;
             }
@@ -686,192 +691,196 @@ class AiWhatsAppService
     private function scheduleAppointment(AiSalesAgent $agent, Lead $lead, array $data): array
     {
         try {
-            // Extract appointment details
-            $appointmentType = $data['type'] ?? 'consultation';
-            $requestedDateTime = isset($data['datetime']) ? \Carbon\Carbon::parse($data['datetime']) : now()->addDays(1);
-            $duration = $data['duration_minutes'] ?? 60;
-            
-            // Find an active booking calendar for this type
-            $calendar = \App\Models\BookingCalendar::where('business_id', $lead->business_id)
-                ->where('calendar_type', $appointmentType)
-                ->where('is_active', true)
-                ->where('allow_ai_booking', true)
-                ->first();
-            
-            // If no specific calendar found, try to find a general one
-            if (!$calendar) {
-                $calendar = \App\Models\BookingCalendar::where('business_id', $lead->business_id)
-                    ->where('is_active', true)
-                    ->where('allow_ai_booking', true)
-                    ->first();
-            }
-            
-            // If no calendar exists, create appointment without slot reservation (backward compatibility)
-            if (!$calendar) {
-                \Illuminate\Support\Facades\Log::warning('No booking calendar found for AI appointment', [
-                    'business_id' => $lead->business_id,
-                    'appointment_type' => $appointmentType
-                ]);
-                
-                $appointment = \App\Models\Appointment::createFromAiRequest($lead, $data);
-                
-                return [
-                    'scheduled' => true,
-                    'appointment_id' => $appointment->id,
-                    'scheduled_at' => $appointment->scheduled_at->toISOString(),
-                    'confirmation_message' => $this->generateAppointmentConfirmation($appointment),
-                    'type' => $appointment->appointment_type,
-                    'calendar_check' => false,
-                    'warning' => 'Scheduled without calendar validation - potential conflicts'
-                ];
-            }
-            
-            // Check if requested time slot is available
-            $requestedDate = $requestedDateTime->format('Y-m-d');
-            $requestedTime = $requestedDateTime->format('H:i:s');
-            
-            if (!$calendar->isTimeSlotAvailable($requestedDateTime, $duration)) {
-                // Try to find the next available slot
-                $availableSlots = $calendar->getAvailableSlots($requestedDateTime, $duration);
-                
-                if (empty($availableSlots)) {
-                    // No slots available on requested date, check next 7 days
-                    $foundSlot = false;
-                    for ($i = 1; $i <= 7; $i++) {
-                        $nextDate = $requestedDateTime->copy()->addDays($i);
-                        $availableSlots = $calendar->getAvailableSlots($nextDate, $duration);
-                        
-                        if (!empty($availableSlots)) {
-                            $requestedDateTime = \Carbon\Carbon::parse($availableSlots[0]['start']);
-                            $foundSlot = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!$foundSlot) {
-                        return [
-                            'scheduled' => false,
-                            'error' => 'No available slots found',
-                            'reason' => 'Calendar is fully booked for the next 7 days'
-                        ];
-                    }
-                } else {
-                    // Use first available slot on requested date
-                    $requestedDateTime = \Carbon\Carbon::parse($availableSlots[0]['start']);
+            // Resolve the requested time. The AI passes 'datetime'; default to tomorrow
+            // 10:00 only as a last resort.
+            $requestedDateTime = null;
+            foreach (['datetime', 'date', 'time'] as $k) {
+                if (!empty($data[$k])) {
+                    try { $requestedDateTime = \Carbon\Carbon::parse($data[$k]); break; } catch (\Throwable $e) {}
                 }
             }
-            
-            // Reserve booking slot
-            $endTime = $requestedDateTime->copy()->addMinutes($duration);
-            
-            // Get or create business contact
-            $businessContact = \App\Models\BusinessContact::where('business_id', $lead->business_id)
-                ->where('phone', $lead->phone)
+            if (!$requestedDateTime) {
+                $requestedDateTime = now()->addDay()->setTime(10, 0);
+            }
+
+            $duration = (int) ($data['duration_minutes'] ?? $data['duration'] ?? 60);
+
+            // Owner/business so the appointment carries a creator and the team can be alerted.
+            $business = $lead->business;
+            $ownerUserId = $business->user_id ?? $lead->user_id ?? $agent->user_id ?? null;
+
+            // ONE active appointment per lead: if the lead already has a live (pending or
+            // confirmed) appointment, this request is a RESCHEDULE — update it in place
+            // instead of creating a duplicate row.
+            $existing = \App\Models\Appointment::where('lead_id', $lead->id)
+                ->whereIn('status', [\App\Models\Appointment::STATUS_PENDING, \App\Models\Appointment::STATUS_CONFIRMED])
+                ->orderBy('scheduled_at', 'desc')
                 ->first();
-            
-            if (!$businessContact) {
-                $businessContact = \App\Models\BusinessContact::create([
-                    'business_id' => $lead->business_id,
-                    'name' => $lead->name,
-                    'phone' => $lead->phone,
-                    'email' => $lead->email,
+
+            $isReschedule = false;
+
+            if ($existing) {
+                $isReschedule = true;
+                $existing->update([
+                    'scheduled_at'        => $requestedDateTime,
+                    'duration_minutes'    => $duration,
+                    'status'              => \App\Models\Appointment::STATUS_CONFIRMED,
+                    'confirmed_at'        => now(),
+                    // reset reminders so the new time gets fresh reminders
+                    'reminder_sent'       => false,
+                    'reminder_sent_at'    => null,
+                    'reminder_24h_sent_at'=> null,
+                    'reminder_1h_sent_at' => null,
+                    'team_notified_at'    => null,
+                    'notes'               => trim(($existing->notes ? $existing->notes . "\n" : '') . 'Rescheduled via AI assistant on ' . now()->format('M j, Y H:i')),
+                ]);
+                $appointment = $existing->fresh();
+            } else {
+                $appointment = \App\Models\Appointment::createFromAiRequest($lead, array_merge($data, [
+                    'datetime'     => $requestedDateTime->toISOString(),
+                    'duration_minutes' => $duration,
+                    // The AI already told the customer it's booked, so it is a real,
+                    // confirmed upcoming meeting (shows under "Upcoming", not stuck in limbo).
+                    'status'       => \App\Models\Appointment::STATUS_CONFIRMED,
+                    'created_by'   => $ownerUserId,
+                ]));
+            }
+
+            // Alert the business owner / sales person (never breaks the booking).
+            try {
+                $this->notifyTeamAboutAppointment($agent, $lead, $appointment, $isReschedule);
+                $appointment->forceFill(['team_notified_at' => now()])->save();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Appointment team alert failed', [
+                    'appointment_id' => $appointment->id,
+                    'error'          => $e->getMessage(),
                 ]);
             }
-            
-            // Reserve the slot
-            $bookingSlot = \App\Models\BookingSlot::reserve(
-                $calendar->id,
-                $requestedDateTime,
-                $endTime,
-                $businessContact->id,
-                [
-                    'booking_source' => 'ai_agent',
-                    'ai_agent_id' => $agent->id,
-                    'lead_id' => $lead->id,
-                    'notes' => $data['notes'] ?? 'AI-scheduled appointment'
-                ]
-            );
-            
-            // Create appointment with updated data
-            $appointmentData = array_merge($data, [
-                'datetime' => $requestedDateTime->toISOString(),
-                'duration_minutes' => $duration,
-            ]);
-            
-            $appointment = \App\Models\Appointment::createFromAiRequest($lead, $appointmentData);
-            
-            // Link booking slot to appointment
-            $bookingSlot->linkToAppointment($appointment->id);
-            
-            // Auto-confirm if calendar doesn't require confirmation
-            if (!$calendar->require_confirmation) {
-                $bookingSlot->confirm();
-            }
-            
-            // Send confirmation message
-            $confirmationMessage = $this->generateAppointmentConfirmation($appointment, $bookingSlot);
-            
-            return [
-                'scheduled' => true,
+
+            \Illuminate\Support\Facades\Log::info($isReschedule ? 'AI appointment rescheduled' : 'AI appointment created', [
                 'appointment_id' => $appointment->id,
-                'booking_slot_id' => $bookingSlot->id,
-                'scheduled_at' => $appointment->scheduled_at->toISOString(),
-                'confirmation_message' => $confirmationMessage,
-                'type' => $appointment->appointment_type,
-                'calendar_check' => true,
-                'auto_confirmed' => !$calendar->require_confirmation,
-                'calendar_name' => $calendar->name
+                'lead_id'        => $lead->id,
+                'scheduled_at'   => $appointment->scheduled_at->toDateTimeString(),
+            ]);
+
+            return [
+                'scheduled'            => true,
+                'rescheduled'          => $isReschedule,
+                'appointment_id'       => $appointment->id,
+                'scheduled_at'         => $appointment->scheduled_at->toISOString(),
+                'confirmation_message' => $this->generateAppointmentConfirmation($appointment, null, $isReschedule),
+                'type'                 => $appointment->appointment_type,
             ];
-            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to schedule appointment', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'error'   => $e->getMessage(),
                 'lead_id' => $lead->id,
-                'data' => $data
+                'data'    => $data,
             ]);
-            
+
             return [
                 'scheduled' => false,
-                'error' => 'Failed to schedule appointment',
-                'reason' => $e->getMessage()
+                'error'     => 'Failed to schedule appointment',
+                'reason'    => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Alert the business owner (and the sales person, if different) on WhatsApp that a
+     * meeting was booked or rescheduled, with the customer's details so they can prepare.
+     */
+    private function notifyTeamAboutAppointment(AiSalesAgent $agent, Lead $lead, \App\Models\Appointment $appointment, bool $isReschedule): void
+    {
+        $business = $lead->business;
+
+        // Customer identity (name/phone) resolved from the contact, then the lead.
+        $contact      = $lead->contact ?? $lead->businessContact ?? null;
+        $customerName = $contact->guest_name ?? $lead->name ?? 'A customer';
+        $customerPhone= $contact->guest_phone ?? $lead->phone_number ?? '';
+
+        $when = $appointment->scheduled_at->format('l, M j, Y \a\t g:i A');
+        $verb = $isReschedule ? 'rescheduled' : 'booked';
+
+        $text  = "📅 *Meeting {$verb}*\n\n";
+        $text .= "{$customerName} has {$verb} a {$appointment->title}.\n\n";
+        $text .= "🗓️ {$when}\n";
+        if ($customerPhone !== '') {
+            $text .= "📞 {$customerPhone}\n";
+        }
+        if ($business && $business->name) {
+            // nothing extra; kept concise
+        }
+        $text .= "\nPlease be ready. Open your dashboard → Appointments to manage it.";
+
+        // Recipients: owner + the agent's user (sales person), de-duplicated by phone.
+        $recipients = [];
+        foreach ([$business->user_id ?? null, $agent->user_id ?? null, $appointment->created_by] as $uid) {
+            if (!$uid) { continue; }
+            $u = \App\Models\User::find($uid);
+            if ($u && !empty($u->phone)) {
+                $recipients[preg_replace('/\D+/', '', $u->phone)] = ['phone' => $u->phone, 'user_id' => $u->id];
+            }
+        }
+
+        if (empty($recipients)) {
+            \Illuminate\Support\Facades\Log::info('No team phone to alert about appointment', ['appointment_id' => $appointment->id]);
+            return;
+        }
+
+        foreach ($recipients as $r) {
+            $instance = $this->resolveBusinessInstance($r['user_id']);
+            if (!$instance) { continue; }
+            $this->waSenderService->sendMessage($r['phone'], $text, [], $instance, $r['user_id']);
+        }
+    }
+
+    /**
+     * Resolve a usable WhatsApp instance for a user (prefer a connected one).
+     */
+    private function resolveBusinessInstance(?int $userId): ?\App\Models\WhatsappInstance
+    {
+        if (!$userId) { return null; }
+
+        return \App\Models\WhatsappInstance::where('user_id', $userId)
+                ->whereIn('status', ['connected', 'ready'])
+                ->latest()->first()
+            ?: \App\Models\WhatsappInstance::where('user_id', $userId)->latest()->first();
     }
     
     /**
      * Generate appointment confirmation message
      */
-    private function generateAppointmentConfirmation(\App\Models\Appointment $appointment, $bookingSlot = null): string
+    private function generateAppointmentConfirmation(\App\Models\Appointment $appointment, $bookingSlot = null, bool $isReschedule = false): string
     {
         $lead = $appointment->lead;
+        $contact = $lead->contact ?? $lead->businessContact ?? null;
+        $name = $contact->guest_name ?? $lead->name ?? null;
         $scheduledDate = $appointment->scheduled_at->format('l, M j, Y');
         $scheduledTime = $appointment->scheduled_at->format('g:i A');
-        
-        $message = "🗓️ *Appointment Confirmed!*\n\n";
-        $message .= "Hi {$lead->name}! 👋\n\n";
-        $message .= "Great news! I've scheduled your {$appointment->title} for:\n\n";
+
+        $header = $isReschedule ? "🔄 *Updated — your meeting is moved!*" : "✅ *You're all set!*";
+        $lead_line = $name ? "Hi {$name}! " : "";
+
+        $message  = "{$header}\n\n";
+        $message .= $lead_line . ($isReschedule
+            ? "I've moved your {$appointment->title} to:\n\n"
+            : "I've booked your {$appointment->title} for:\n\n");
         $message .= "📅 {$scheduledDate}\n";
         $message .= "⏰ {$scheduledTime}\n";
-        $message .= "⏱️ Duration: {$appointment->formatted_duration}\n\n";
-        
+
         if ($appointment->location) {
-            $message .= "📍 Location: {$appointment->location}\n\n";
+            $message .= "📍 {$appointment->location}\n";
         }
-        
         if ($appointment->meeting_link) {
-            $message .= "🔗 Meeting Link: {$appointment->meeting_link}\n\n";
+            $message .= "🔗 {$appointment->meeting_link}\n";
         }
-        
-        // Add booking slot confirmation number if available
         if ($bookingSlot) {
-            $message .= "🎫 Confirmation #: " . strtoupper(substr(md5($bookingSlot->id), 0, 8)) . "\n\n";
+            $message .= "🎫 Ref: " . strtoupper(substr(md5($bookingSlot->id), 0, 8)) . "\n";
         }
-        
-        $message .= "I'll send you a reminder 24 hours before the appointment.\n\n";
-        $message .= "If you need to reschedule, just let me know! 😊\n\n";
-        $message .= "Looking forward to our meeting!";
-        
+
+        $message .= "\nI'll remind you before we meet. Need a different time? Just tell me. 😊";
+
         return $message;
     }
 
