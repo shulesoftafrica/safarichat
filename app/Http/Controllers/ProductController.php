@@ -104,7 +104,9 @@ class ProductController extends Controller
         $categories = Product::forUser(auth()->id())->distinct()->pluck('category');
        
         // Get subscription plan and product limits
-        $billingAccount = Auth::user()->business->billingAccount;
+        // A user can exist without a business yet (incomplete onboarding): treat that as the trial plan
+        // instead of crashing with "Attempt to read property billingAccount on null".
+        $billingAccount = Auth::user()->business?->billingAccount;
         $currentPlan = $billingAccount ? ($billingAccount->subscription_plan ?? 'trial') : 'trial';
         $planLimits = config('safarichat_billing.plans.' . $currentPlan . '.limits', []);
         $subscription_plan = $currentPlan;

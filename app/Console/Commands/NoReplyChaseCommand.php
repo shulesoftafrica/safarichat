@@ -81,7 +81,7 @@ class NoReplyChaseCommand extends Command
                             $totalSent++;
                             $this->line("  ✅ Chase sent to: {$lead->name} ({$lead->phone_number})");
                         } else {
-                            $this->error("  ❌ Failed to send chase to: {$lead->name}");
+                            $this->error("  ❌ Failed to send chase to lead #{$lead->id} ({$lead->name}) - see log 'No-reply chase send rejected'");
                         }
 
                         // Add delay to avoid overwhelming the API
@@ -229,6 +229,15 @@ class NoReplyChaseCommand extends Command
 
                 return true;
             }
+
+            // The send was rejected (no connected WhatsApp instance, no recipient, rate limit, ...). This used to
+            // return false without saying why, which left "Failed to send chase to: " lines that could not be
+            // diagnosed. Record the reason so it shows in the log.
+            Log::warning('No-reply chase send rejected', [
+                'lead_id' => $lead->id,
+                'agent_id' => $agent->id,
+                'reason' => $result['error'] ?? 'unknown',
+            ]);
 
             return false;
 

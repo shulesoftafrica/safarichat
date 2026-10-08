@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Conversation;
 use App\Models\AiSalesAgent;
+use App\Exceptions\InsufficientAiCreditsException;
 use App\Services\AiWhatsAppService;
 use App\Services\OpenAiService;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,12 @@ class ConversationEngineCommand extends Command
 
     private $aiWhatsAppService;
     private $openAiService;
+
+    /** A conversation that failed this many times is never retried automatically. */
+    private const MAX_RETRIES = 3;
+
+    /** Conversations skipped in this run because the owner has no AI credits, keyed by lead id. */
+    private array $skippedForCredits = [];
 
     public function __construct(AiWhatsAppService $aiWhatsAppService, OpenAiService $openAiService)
     {
@@ -88,13 +95,38 @@ class ConversationEngineCommand extends Command
                 $processed++;
                 $this->line("  ✅ Processed conversation #{$conversation->id}");
                 
+            } catch (InsufficientAiCreditsException $e) {
+                // Permanent until the owner tops up: fail it once, never retry it, log one summary line.
+                $this->markConversationFailed($conversation, 'insufficient_ai_credits', false);
+
             } catch (\Exception $e) {
                 $this->error("  ❌ Failed to process conversation #{$conversation->id}: " . $e->getMessage());
                 $this->markConversationFailed($conversation, $e->getMessage());
             }
         }
 
+        $this->reportCreditSkips();
+
         return $processed;
+    }
+
+    /**
+     * One log line per run instead of one ERROR per conversation (this used to write ~400,000 lines).
+     */
+    private function reportCreditSkips(): void
+    {
+        if (empty($this->skippedForCredits)) {
+            return;
+        }
+
+        $count = array_sum($this->skippedForCredits);
+        $this->warn("  ⚠️  Skipped {$count} conversation(s): owner has no AI credits");
+        Log::warning('Conversations skipped: insufficient AI credits', [
+            'conversations' => $count,
+            'leads' => count($this->skippedForCredits),
+        ]);
+
+        $this->skippedForCredits = [];
     }
 
     private function handleStuckConversations(int $timeoutMinutes): int
@@ -112,11 +144,15 @@ class ConversationEngineCommand extends Command
                 $this->line("  🔄 Recovering stuck conversation #{$conversation->id}");
                 
                 // Reset conversation status
+                // There is no `last_error` column (it was silently discarded); keep the note in ai_metadata.
                 $conversation->update([
                     'status' => Conversation::STATUS_PENDING,
                     'processing_started_at' => null,
                     'retry_count' => ($conversation->retry_count ?? 0) + 1,
-                    'last_error' => 'Recovered from stuck state after ' . $timeoutMinutes . ' minutes'
+                    'ai_metadata' => $this->withLastError(
+                        $conversation,
+                        'Recovered from stuck state after ' . $timeoutMinutes . ' minutes'
+                    ),
                 ]);
 
                 $recovered++;
@@ -188,11 +224,16 @@ class ConversationEngineCommand extends Command
                 $this->processConversation($conversation);
                 $retried++;
                 
+            } catch (InsufficientAiCreditsException $e) {
+                $this->markConversationFailed($conversation, 'insufficient_ai_credits', false);
+
             } catch (\Exception $e) {
                 $this->error("  ❌ Retry failed for conversation #{$conversation->id}: " . $e->getMessage());
                 $this->markConversationFailed($conversation, 'Retry failed: ' . $e->getMessage());
             }
         }
+
+        $this->reportCreditSkips();
 
         return $retried;
     }
@@ -230,6 +271,10 @@ class ConversationEngineCommand extends Command
             );
 
             if (!$response['success']) {
+                if (($response['error'] ?? null) === 'insufficient_ai_credits') {
+                    throw new InsufficientAiCreditsException('insufficient_ai_credits');
+                }
+
                 throw new \Exception($response['error'] ?? 'Failed to generate AI response');
             }
 
@@ -289,14 +334,39 @@ class ConversationEngineCommand extends Command
         ];
     }
 
-    private function markConversationFailed(Conversation $conversation, string $error)
+    /**
+     * Keep the failure reason on the row. The conversations table has no `last_error` column (writing it
+     * was silently discarded, so reasons were only ever visible in the log); ai_metadata is a real JSON column.
+     */
+    private function withLastError(Conversation $conversation, string $error): array
+    {
+        $meta = is_array($conversation->ai_metadata) ? $conversation->ai_metadata : [];
+        $meta['last_error'] = $error;
+        $meta['last_error_at'] = now()->toDateTimeString();
+
+        return $meta;
+    }
+
+    /**
+     * @param bool $retryable false = permanent failure (e.g. no AI credits): retry_count is set to the
+     *                        maximum so retryFailedConversations() never picks it up again.
+     */
+    private function markConversationFailed(Conversation $conversation, string $error, bool $retryable = true)
     {
         $conversation->update([
             'status' => Conversation::STATUS_FAILED,
             'processing_started_at' => null,
-            'last_error' => $error,
-            'retry_count' => ($conversation->retry_count ?? 0) + 1
+            'ai_metadata' => $this->withLastError($conversation, $error),
+            'retry_count' => $retryable
+                ? ($conversation->retry_count ?? 0) + 1
+                : max(self::MAX_RETRIES, (int) ($conversation->retry_count ?? 0)),
         ]);
+
+        if (!$retryable) {
+            // Counted and reported once per run by reportCreditSkips() rather than one ERROR line each.
+            $this->skippedForCredits[$conversation->lead_id] = ($this->skippedForCredits[$conversation->lead_id] ?? 0) + 1;
+            return;
+        }
 
         Log::error('Conversation processing failed', [
             'conversation_id' => $conversation->id,
@@ -305,12 +375,20 @@ class ConversationEngineCommand extends Command
         ]);
     }
 
+    /**
+     * Take a failed high-priority conversation out of the automatic queue so a person can look at it.
+     * (Conversation::STATUS_ESCALATED and the requires_human_handoff / handoff_reason columns do not exist,
+     * so the old version of this method crashed with "Undefined constant" instead of escalating.)
+     */
     private function escalateConversation(Conversation $conversation, string $error)
     {
+        $meta = $this->withLastError($conversation, 'High priority conversation failed: ' . $error);
+        $meta['requires_human_handoff'] = true;
+
         $conversation->update([
-            'status' => Conversation::STATUS_ESCALATED,
-            'requires_human_handoff' => true,
-            'handoff_reason' => 'High priority conversation failed: ' . $error,
+            'status' => Conversation::STATUS_FAILED,
+            'ai_metadata' => $meta,
+            'retry_count' => max(self::MAX_RETRIES, (int) ($conversation->retry_count ?? 0)),
             'processing_started_at' => null
         ]);
 

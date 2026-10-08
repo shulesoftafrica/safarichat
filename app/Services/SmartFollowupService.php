@@ -133,6 +133,21 @@ class SmartFollowupService
                         continue;
                     }
 
+                    // Claim the lead BEFORE sending. The send routine's return value is not a reliable
+                    // "message went out" signal, and when it was false the lead was re-selected on every
+                    // scheduler tick and the same follow-up was sent over and over (182 sends to 30 leads
+                    // in 7 minutes on 2026-10-07). The claim is a single conditional UPDATE, so when two
+                    // scheduler runs overlap and both selected this lead, only the one that wins may send.
+                    $claimed = Lead::where('id', $lead->id)
+                        ->where(function ($q) {
+                            $q->whereNull('follow_up_sent_at')
+                              ->orWhere('follow_up_sent_at', '<', now()->subDays(7));
+                        })
+                        ->update(['follow_up_sent_at' => now()]);
+                    if ($claimed !== 1) {
+                        continue; // another run already took this lead
+                    }
+
                     // Send the followup
                     $sent = $this->sendSmartFollowup($lead, $followupMessage);
 

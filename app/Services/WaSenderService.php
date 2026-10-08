@@ -7,6 +7,7 @@ use App\Models\OutgoingMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -32,6 +33,35 @@ class WaSenderService
     {
         $this->baseUrl = rtrim(config('notifications.unified_api.base_url', 'https://notifications.shulesoft.africa/api'), '/');
         $this->bearerToken = config('notifications.unified_api.bearer_token', 'LhpxNaEsEaaBW45SANVDlrsrorFRwOheKowfouKSHEAvWBibmowWYDNBqqDBBxn');
+    }
+
+    /**
+     * POST one payload to the unified notification API.
+     */
+    private function postToUnifiedApi(array $payload)
+    {
+        return Http::withToken($this->bearerToken)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post("{$this->baseUrl}/notifications/send", $payload);
+    }
+
+    /**
+     * Keep our request rate under the API limit (2 requests per second). Waits up to ~5s for a free
+     * slot, then sends anyway so a stuck limiter can never block delivery.
+     */
+    private function throttleOutgoingRequests(): void
+    {
+        $key = 'unified-api-send';
+        $limit = (int) config('notifications.unified_api.requests_per_second', 2);
+
+        for ($i = 0; $i < 20 && RateLimiter::tooManyAttempts($key, $limit); $i++) {
+            usleep(250000);
+        }
+
+        RateLimiter::hit($key, 1);
     }
 
     /**
@@ -120,12 +150,17 @@ class WaSenderService
 
           
             
-            $response = Http::withToken($this->bearerToken)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->post("{$this->baseUrl}/notifications/send", $payload);
+            // The notification API allows only 2 requests per second. Bursts (campaigns, retries) used to
+            // hit HTTP 429 thousands of times; space our own calls out and retry once if it still happens.
+            $this->throttleOutgoingRequests();
+            $response = $this->postToUnifiedApi($payload);
+
+            if ($response->status() === 429) {
+                $wait = (int) $response->header('Retry-After');
+                usleep(max(1, min($wait, 5)) * 1000000);
+                $this->throttleOutgoingRequests();
+                $response = $this->postToUnifiedApi($payload);
+            }
 
             $result = $response->json() ?? [];
 

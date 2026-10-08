@@ -61,8 +61,16 @@ class ShulesoftAuthService
             Log::warning('⚠️ SSL verification is DISABLED - Not recommended for production!');
             $http = $http->withOptions(['verify' => false]);
         } elseif ($cacertPath = config('services.shulesoft_billing.cacert_path')) {
-            // Use custom CA certificate bundle if configured
-            $http = $http->withOptions(['verify' => $cacertPath]);
+            if (is_file($cacertPath)) {
+                // Use custom CA certificate bundle if configured
+                $http = $http->withOptions(['verify' => $cacertPath]);
+            } else {
+                // A configured bundle that does not exist made every call fail with "SSL CA bundle not found".
+                // Fall back to the system CA store (still verified) and say so once per hour.
+                if (Cache::add('shulesoft_missing_cacert_warned', 1, 3600)) {
+                    Log::warning('Configured CA bundle not found, using the system CA store instead', ['cacert_path' => $cacertPath]);
+                }
+            }
         }
         // Otherwise, use system default CA bundle (most secure)
         

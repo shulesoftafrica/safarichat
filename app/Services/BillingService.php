@@ -45,7 +45,9 @@ class BillingService
         if (!$verifySSL) {
             Log::warning('⚠️ SSL verification is DISABLED - Not recommended for production!');
             $http = $http->withOptions(['verify' => false]);
-        } elseif ($cacertPath = config('services.shulesoft_billing.cacert_path')) {
+        } elseif (($cacertPath = config('services.shulesoft_billing.cacert_path')) && is_file($cacertPath)) {
+            // Only use the custom bundle if it exists; a missing file made every call fail with
+            // "SSL CA bundle not found". Otherwise fall back to the system CA store (still verified).
             $http = $http->withOptions(['verify' => $cacertPath]);
         }
         
