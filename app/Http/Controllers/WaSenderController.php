@@ -1732,6 +1732,42 @@ class WaSenderController extends Controller
                 $incomingMessage = IncomingMessage::create($messageData);
             }
 
+            // CONTENT-WINDOW idempotency: the id-based guard above fails when a
+            // webhook RE-DELIVERY (e.g. a provider retry fired because our synchronous
+            // handler was slow) carries a different or missing message_id — the
+            // uniqid() fallback then mints a fresh id and a second row is created.
+            // A retry is the SAME text from the SAME sender within a short window, so
+            // if we've already claimed/answered an identical inbound, drop this one.
+            // The second reply was "different" only because it was an independent AI
+            // generation, which the exact-body outbound guard can't catch — this stops
+            // it at the source. The skipped row is marked 'duplicate' (not 'received')
+            // so the failed-message cron never re-replies it.
+            $dedupeWindow = (int) config('campaign.inbound_dedupe_window_minutes', 5);
+            $normalizedBody = trim((string) ($incomingMessage->message_body ?? ''));
+            if ($dedupeWindow > 0 && $normalizedBody !== '') {
+                $alreadyHandled = IncomingMessage::where('whatsapp_instance_id', $instance->id)
+                    ->where('phone_number', $incomingMessage->phone_number)
+                    ->where('id', '!=', $incomingMessage->id)
+                    ->whereIn('status', ['processing', 'processed', 'replied'])
+                    ->where('created_at', '>=', now()->subMinutes($dedupeWindow))
+                    ->whereRaw('LOWER(TRIM(message_body)) = LOWER(?)', [$normalizedBody])
+                    ->exists();
+
+                if ($alreadyHandled) {
+                    $incomingMessage->update(['status' => 'duplicate']);
+                    Log::info('Duplicate inbound ignored (identical message already handled within window)', [
+                        'instance_id'    => $instance->instance_id,
+                        'phone_number'   => $incomingMessage->phone_number,
+                        'duplicate_row'  => $incomingMessage->id,
+                        'window_minutes' => $dedupeWindow,
+                    ]);
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Duplicate message ignored (content window)',
+                    ], 200);
+                }
+            }
+
             Log::info('Created incoming message record', [
                 'message_id' => $incomingMessage->id,
                 'phone_number' => $incomingMessage->phone_number,

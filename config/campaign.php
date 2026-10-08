@@ -22,6 +22,13 @@ return [
     // Adjust via CAMPAIGN_PHONE_SMS_SEND_INTERVAL_SECONDS when needed.
     'phone_sms_send_interval_seconds' => (int) env('CAMPAIGN_PHONE_SMS_SEND_INTERVAL_SECONDS', 240),
 
+    // Inbound de-duplication window (minutes). A slow synchronous webhook can make
+    // WaSender RE-DELIVER the same inbound message minutes later, sometimes with a
+    // different/absent message_id, which would otherwise create a second row and a
+    // second AI reply. If an identical message from the same sender was already
+    // claimed/answered within this window, the re-delivery is dropped. 0 disables.
+    'inbound_dedupe_window_minutes' => (int) env('CAMPAIGN_INBOUND_DEDUPE_WINDOW_MINUTES', 5),
+
     // Safety: only send a campaign to contacts who have replied to us before
     // (an existing conversation). Cold-messaging brand-new numbers is what most
     // often triggers a WhatsApp restriction. Set false to allow cold outreach.
