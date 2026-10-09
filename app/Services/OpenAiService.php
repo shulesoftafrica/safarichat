@@ -22,6 +22,32 @@ class OpenAiService
     }
 
     /**
+     * Replace invalid UTF-8 byte sequences anywhere in a request payload (strings at any depth).
+     *
+     * Only the customer's message used to be cleaned, but the payload also carries the system prompt, product and
+     * knowledge-base text and the history. A multibyte character cut in half by substr() in any of them makes the
+     * client's json_encode() throw "Malformed UTF-8 characters, possibly incorrectly encoded" and the whole reply
+     * fails (14 failures in one day), even when the customer's own text is plain ASCII.
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    private function scrubUtf8($value)
+    {
+        if (is_string($value)) {
+            return mb_scrub($value, 'UTF-8');
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->scrubUtf8($item);
+            }
+        }
+
+        return $value;
+    }
+
+    /**
      * Clean and sanitize text to ensure valid UTF-8 encoding
      */
     private function sanitizeText(string $text): string
@@ -144,7 +170,7 @@ class OpenAiService
             
             $response = $this->client->chat()->create([
                 'model' => $this->defaultModel,
-                'messages' => $prompt,
+                'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 1000,
                 'temperature' => 0.7,
                 'presence_penalty' => 0.1,
@@ -396,7 +422,7 @@ class OpenAiService
             // Step 3: Generate response
             $response = $this->client->chat()->create([
                 'model' => $this->defaultModel,
-                'messages' => $prompt,
+                'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 1200, // Increased for more detailed responses
                 'temperature' => 0.7,
                 'presence_penalty' => 0.1,
@@ -1203,7 +1229,7 @@ class OpenAiService
 
             $response = $this->client->chat()->create([
                 'model' => $this->defaultModel,
-                'messages' => $prompt,
+                'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 300,
                 'temperature' => 0.7,
             ]);
@@ -1322,7 +1348,7 @@ class OpenAiService
 
             $response = $this->client->chat()->create([
                 'model' => 'gpt-3.5-turbo',
-                'messages' => $prompt,
+                'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 150,
                 'temperature' => 0.3,
             ]);
