@@ -1700,6 +1700,32 @@ class WaSenderController extends Controller
                 return response()->json(['success' => true, 'message' => 'Contact ignored']);
             }
 
+            // ATOMIC CONTENT LOCK (primary duplicate guard): the webhook handler is
+            // synchronous and slow, so the provider RE-DELIVERS the same message
+            // minutes later (and may hit both webhook routes at once). Those retries
+            // can carry a different/absent message_id, defeating the id-based guard.
+            // Cache::add is atomic on the database cache driver, so the FIRST delivery
+            // wins the lock and every identical re-delivery (same sender+text) within
+            // the window is dropped here — before a second row or a second AI reply can
+            // be created. This is time-robust (unlike a created_at window) and race-safe.
+            $dedupeWindow = (int) config('campaign.inbound_dedupe_window_minutes', 10);
+            $lockBody  = trim((string) ($messageData['message_body'] ?? ''));
+            $lockPhone = (string) ($messageData['phone_number'] ?? '');
+            if ($dedupeWindow > 0 && $lockBody !== '' && $lockPhone !== '') {
+                $lockKey = 'inbound_dedupe:' . $instance->id . ':' . md5($lockPhone . '|' . mb_strtolower($lockBody));
+                if (! \Cache::add($lockKey, 1, now()->addMinutes($dedupeWindow))) {
+                    Log::info('Duplicate inbound ignored (content lock within window)', [
+                        'instance_id'    => $instance->instance_id,
+                        'phone_number'   => $lockPhone,
+                        'window_minutes' => $dedupeWindow,
+                    ]);
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Duplicate message ignored (content lock)',
+                    ], 200);
+                }
+            }
+
             // Idempotency by provider message id: a duplicate webhook delivery — or a
             // second event type for the SAME WhatsApp message — carries the same
             // message_id. Without this, each delivery creates its own incoming_messages

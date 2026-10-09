@@ -27,7 +27,7 @@ return [
     // different/absent message_id, which would otherwise create a second row and a
     // second AI reply. If an identical message from the same sender was already
     // claimed/answered within this window, the re-delivery is dropped. 0 disables.
-    'inbound_dedupe_window_minutes' => (int) env('CAMPAIGN_INBOUND_DEDUPE_WINDOW_MINUTES', 5),
+    'inbound_dedupe_window_minutes' => (int) env('CAMPAIGN_INBOUND_DEDUPE_WINDOW_MINUTES', 10),
 
     // Safety: only send a campaign to contacts who have replied to us before
     // (an existing conversation). Cold-messaging brand-new numbers is what most
