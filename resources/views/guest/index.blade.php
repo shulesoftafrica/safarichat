@@ -2077,6 +2077,21 @@ body:not(.dark-mode) .modal-body .alert-danger {
                             'CHURNED' => 'Churned'
                         ];
                     @endphp
+                    <div class="d-flex flex-wrap align-items-center mb-3" style="gap:10px;">
+                        <label class="mb-0 font-weight-bold" for="leadStatusFilter">
+                            <i class="mdi mdi-filter-variant mr-1"></i>{{ __('customers.table.lead_status') }}:
+                        </label>
+                        <select id="leadStatusFilter" class="form-control" style="width:auto;min-width:210px;">
+                            <option value="all">{{ __('All statuses') }}</option>
+                            @foreach($statusLabels as $sKey => $sLabel)
+                                <option value="{{ $sKey }}">{{ $sLabel }}</option>
+                            @endforeach
+                        </select>
+                        <button type="button" id="clearLeadStatusFilter" class="btn btn-sm btn-outline-secondary" style="display:none;">
+                            <i class="mdi mdi-close mr-1"></i>{{ __('Clear') }}
+                        </button>
+                        <span id="leadStatusFilterInfo" class="text-muted small"></span>
+                    </div>
                     <div class="table-responsive">
                         <table class="table-standard contacts-datatable" id="datatable-buttons">
                             <thead>
@@ -2144,8 +2159,13 @@ body:not(.dark-mode) .modal-body .alert-danger {
                     <h4 class="mt-0 header-title mb-4">
                         <i class="mdi mdi-chart-bar"></i> {{ __('customers.summary.title') }}
                     </h4>
-                    
-                    <div class="row">
+                    <p class="text-muted mb-3" style="font-size:.85rem;margin-top:-10px;"><i class="mdi mdi-cursor-default-click-outline mr-1"></i>Tip: click any status below to filter the contacts table.</p>
+                    <style>
+                        .lead-status-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,0.15)!important;}
+                        .lead-status-card-active{outline:3px solid #6c5ce7;outline-offset:1px;box-shadow:0 6px 18px rgba(108,92,231,.25)!important;}
+                    </style>
+
+                    <div class="row" id="leadStatusSummaryRow">
                         <!-- New Leads -->
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card" style="border-left: 4px solid #17a2b8; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -4660,6 +4680,7 @@ $(document).ready(function() {
     // ---------------------------------------------------------------
     var activeHandoffFilter = 'all';
     var activeProductFilter = '';
+    var activeLeadStatusFilter = 'all';
 
     var contactsTable = $('#datatable-buttons').DataTable({
         processing  : true,
@@ -4670,6 +4691,7 @@ $(document).ready(function() {
             data : function (d) {
                 d.handoff_filter = activeHandoffFilter;
                 d.product_id = activeProductFilter;
+                d.lead_status = activeLeadStatusFilter;
             }
         },
         columns     : [
@@ -4712,6 +4734,53 @@ $(document).ready(function() {
     $('#product-filter').on('change', function() {
         activeProductFilter = $(this).val();
         contactsTable.ajax.reload();
+    });
+
+    // ---- Lead-status filter (dropdown + clickable summary cards) ----
+    function applyLeadStatusFilter(status) {
+        activeLeadStatusFilter = status || 'all';
+        $('#leadStatusFilter').val(activeLeadStatusFilter);
+        var isFiltered = activeLeadStatusFilter !== 'all';
+        $('#clearLeadStatusFilter').toggle(isFiltered);
+        var label = $('#leadStatusFilter option:selected').text();
+        $('#leadStatusFilterInfo').text(isFiltered ? ('Showing: ' + label) : '');
+        // Highlight the matching summary card.
+        $('.lead-status-card').removeClass('lead-status-card-active');
+        if (isFiltered) {
+            $('.lead-status-card[data-lead-status="' + activeLeadStatusFilter + '"]').addClass('lead-status-card-active');
+        }
+        contactsTable.ajax.reload();
+    }
+
+    // Tag each summary card (in document order) with its status so it's clickable.
+    (function () {
+        var order = ['NEW','OUTREACHED','REPLIED','ENGAGED','QUALIFIED','PITCHED',
+                     'DEMO_SCHEDULED','PROPOSAL_SENT','NEGOTIATING','CLOSED','LOST',
+                     'HANDED_OFF','DO_NOT_CONTACT','CHURNED'];
+        $('#leadStatusSummaryRow > div').each(function (i) {
+            if (i < order.length) {
+                $(this).find('.card').first()
+                    .attr('data-lead-status', order[i])
+                    .addClass('lead-status-card')
+                    .css({ cursor: 'pointer', transition: 'all .15s' })
+                    .attr('title', 'Filter contacts by this status');
+            }
+        });
+    })();
+
+    $('#leadStatusFilter').on('change', function () {
+        applyLeadStatusFilter($(this).val());
+    });
+    $('#clearLeadStatusFilter').on('click', function () {
+        applyLeadStatusFilter('all');
+    });
+
+    // Make the Lead Status Summary cards clickable shortcuts.
+    $(document).on('click', '.lead-status-card', function () {
+        var status = $(this).attr('data-lead-status');
+        // Toggle off if the same card is clicked again.
+        applyLeadStatusFilter(activeLeadStatusFilter === status ? 'all' : status);
+        $('html, body').animate({ scrollTop: $('#datatable-buttons').offset().top - 90 }, 300);
     });
 
     // Add hover effects to tabs

@@ -112,6 +112,7 @@ class Guest extends Controller {
         $search        = $request->input('search.value', '');
         $handoffFilter = $request->input('handoff_filter', 'all');
         $productId     = $request->input('product_id');
+        $leadStatus    = $request->input('lead_status');
 
         // Base query
         $query = EventsGuest::with(['lead.leadProducts.product', 'assignedAgent'])
@@ -122,6 +123,29 @@ class Guest extends Controller {
             $query->where('priority_level', '>=', 4);
         } elseif ($handoffFilter !== 'all') {
             $query->where('handoff_status', $handoffFilter);
+        }
+
+        // Lead-status filter — matches the LATEST lead per contact, exactly like the
+        // Lead Status Summary cards (COALESCE(latest.status,'NEW')). So 'NEW' also
+        // includes contacts that have no lead yet.
+        if (!empty($leadStatus) && $leadStatus !== 'all') {
+            $latestWithStatus = DB::table('leads')
+                ->select('business_contact_id')
+                ->whereIn('id', function ($sub) {
+                    $sub->selectRaw('MAX(id)')->from('leads')->groupBy('business_contact_id');
+                })
+                ->where('status', $leadStatus);
+
+            if ($leadStatus === 'NEW') {
+                $query->where(function ($q) use ($latestWithStatus) {
+                    $q->whereIn('id', $latestWithStatus)
+                      ->orWhereNotIn('id', function ($sub) {
+                          $sub->select('business_contact_id')->from('leads')->whereNotNull('business_contact_id');
+                      });
+                });
+            } else {
+                $query->whereIn('id', $latestWithStatus);
+            }
         }
 
         if (!empty($productId)) {
