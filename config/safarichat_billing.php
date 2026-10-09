@@ -5,7 +5,7 @@ return [
     'plans' => [
         'trial' => [
             'price' => 0,
-            'duration_days' => 3,
+            'duration_days' => 7,
             'limits' => [
                 'max_contacts' => 10,
                 'max_products' => 1,

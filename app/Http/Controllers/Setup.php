@@ -1763,13 +1763,15 @@ class Setup extends Controller {
 
     /**
      * Create trial billing account and subscription for new user
-     * Gives 3-day free trial with starter plan limits
+     * Gives a free trial (length from config: safarichat_billing.plans.trial.duration_days)
+     * with starter plan limits
      */
     private function createTrialBillingAccount($user, $business = null)
     {
         try {
             // Get trial plan limits from config
             $trialLimits = config('safarichat_billing.plans.trial');
+            $trialDays = (int) config('safarichat_billing.plans.trial.duration_days', 7);
             
             // Get or create user's business
             if (!$business) {
@@ -1796,9 +1798,9 @@ class Setup extends Controller {
                 'business_id' => $business->id,
                 'subscription_plan' => 'trial',
                 'subscription_started_at' => now(),
-                'subscription_expires_at' => now()->addDays(3), // 3-day trial
-                'trial_ends_at' => now()->addDays(3),           // explicit trial expiry for CS crons
-                'next_billing_date' => now()->addDays(3),
+                'subscription_expires_at' => now()->addDays($trialDays), // free trial
+                'trial_ends_at' => now()->addDays($trialDays),           // explicit trial expiry for CS crons
+                'next_billing_date' => now()->addDays($trialDays),
                 'base_credits' => $trialCredits,  // drives available_credits via GENERATED column
                 'topup_credits' => 0,
                 'ai_credits' => $trialCredits,    // kept in sync for backward-compat reads
@@ -1821,20 +1823,20 @@ class Setup extends Controller {
                 'user_id' => $user->id,
                 'status' => 'active',
                 'starts_at' => now(),
-                'trial_ends_at' => now()->addDays(3), // 3-day trial
-                'ends_at' => now()->addDays(3),
+                'trial_ends_at' => now()->addDays($trialDays), // free trial
+                'ends_at' => now()->addDays($trialDays),
                 'auto_renew' => false,
                 'metadata' => [
                     'plan_type' => 'trial',
                     'created_during' => 'registration',
-                    'trial_duration_days' => 3
+                    'trial_duration_days' => $trialDays
                 ]
             ]);
 
             Log::info('Trial billing account created for new user', [
                 'user_id' => $user->id,
                 'billing_account_id' => $billingAccount->id,
-                'trial_expires' => now()->addDays(3)->toDateTimeString()
+                'trial_expires' => now()->addDays($trialDays)->toDateTimeString()
             ]);
 
             return $billingAccount;

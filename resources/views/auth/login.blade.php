@@ -2761,7 +2761,7 @@
                             <div class="pricing-badge {{ $index == 1 ? 'popular' : ($index == 0 ? '' : 'best-value') }}">
                                 {{ $index == 1 ? '⭐ Most Popular' : ($index == 0 ? 'Starter' : '🏆 Best Value') }}
                             </div>
-                            <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                            <div class="free-trial-label">🎁 7 Days Free Trial</div>
                             <h3 class="pricing-title">{{ $plan['name'] ?? 'Plan' }}</h3>
                             <div class="pricing-amount" data-base-price="{{ $plan['amount'] ?? 0 }}">
                                 <span class="currency-symbol">TSh</span> 
@@ -2868,7 +2868,7 @@
                     <!-- Fallback to hardcoded pricing if BillingService fails -->
                     <div class="pricing-card">
                         <div class="pricing-badge">Starter</div>
-                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <div class="free-trial-label">🎁 7 Days Free Trial</div>
                         <h3 class="pricing-title">Winga</h3>
                         <div class="pricing-amount" data-base-price="69000"><span class="currency-symbol">TSh</span> <span class="price-value">69,000</span></div>
                         <div class="pricing-period">497 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">100</span>/message</div>
@@ -2885,7 +2885,7 @@
                     
                     <div class="pricing-card featured">
                         <div class="pricing-badge popular">⭐ Most Popular</div>
-                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <div class="free-trial-label">🎁 7 Days Free Trial</div>
                         <h3 class="pricing-title">Pro</h3>
                         <div class="pricing-amount" data-base-price="93700"><span class="currency-symbol">TSh</span> <span class="price-value">93,700</span></div>
                         <div class="pricing-period">1,041 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">90</span>/message</div>
@@ -2902,7 +2902,7 @@
                     
                     <div class="pricing-card">
                         <div class="pricing-badge best-value">🏆 Best Value</div>
-                        <div class="free-trial-label">🎁 3 Days Free Trial</div>
+                        <div class="free-trial-label">🎁 7 Days Free Trial</div>
                         <h3 class="pricing-title">Enterprise</h3>
                         <div class="pricing-amount" data-base-price="123600"><span class="currency-symbol">TSh</span> <span class="price-value">123,600</span></div>
                         <div class="pricing-period">1,545 AI messages/month • <span class="currency-symbol">TSh</span> <span class="per-message-price">80</span>/message</div>
@@ -3262,7 +3262,7 @@
             <div class="legal-text">
                 By clicking Start, you agree to our
                 <a href="{{ url('/terms-and-conditions') }}" target="_blank">Terms and Conditions</a>.
-                <br><strong>3 Days Free Trial</strong> • No setup fees • Cancel anytime
+                <br><strong>7 Days Free Trial</strong> • No setup fees • Cancel anytime
             </div>
         </form>
     </div>
@@ -3837,7 +3837,7 @@
                 startWorking: "Get Started Now",
                 termsAgreement: "By clicking Start, you agree to our",
                 termsConditions: "Terms and Conditions",
-                freeTrial: "3 Days Free Trial"
+                freeTrial: "7 Days Free Trial"
             },
             es: {
                 heroTitle: "Hola, soy tu nuevo Agente de Ventas IA",
@@ -3857,7 +3857,7 @@
                 startWorking: "Empezar a Trabajar Con Mi Agente de Ventas IA",
                 termsAgreement: "Al hacer clic en Empezar, aceptas nuestros",
                 termsConditions: "Términos y Condiciones",
-                freeTrial: "3 Días de Prueba Gratis"
+                freeTrial: "7 Días de Prueba Gratis"
             },
             pt: {
                 heroTitle: "Olá, eu sou seu novo Agente de Vendas IA",
@@ -3877,7 +3877,7 @@
                 startWorking: "Começar a Trabalhar Com Meu Agente de Vendas IA",
                 termsAgreement: "Ao clicar em Começar, você concorda com nossos",
                 termsConditions: "Termos e Condições",
-                freeTrial: "3 Dias de Teste Grátis"
+                freeTrial: "7 Dias de Teste Grátis"
             },
             hi: {
                 heroTitle: "नमस्ते, मैं आपका नया AI सेल्स एजेंट हूं",
@@ -3897,7 +3897,7 @@
                 startWorking: "मेरे AI सेल्स एजेंट के साथ काम शुरू करें",
                 termsAgreement: "शुरू पर क्लिक करके, आप हमारी",
                 termsConditions: "नियम और शर्तों",
-                freeTrial: "3 दिन का मुफ्त परीक्षण"
+                freeTrial: "7 दिन का मुफ्त परीक्षण"
             },
             ar: {
                 heroTitle: "مرحباً، أنا وكيل المبيعات الذكي الجديد",
@@ -3917,7 +3917,7 @@
                 startWorking: "ابدأ العمل مع وكيل المبيعات الذكي",
                 termsAgreement: "بالنقر على ابدأ، فإنك توافق على",
                 termsConditions: "الشروط والأحكام",
-                freeTrial: "تجربة مجانية لمدة 3 أيام"
+                freeTrial: "تجربة مجانية لمدة 7 أيام"
             },
             fr: {
                 heroTitle: "Salut, je suis votre nouvel Agent de Vente IA",
@@ -3957,7 +3957,7 @@
                 startWorking: "Anza Kufanya Kazi na Wakala wangu wa Mauzo wa AI",
                 termsAgreement: "Kwa kubofya Anza, unakubali",
                 termsConditions: "Masharti na Hali",
-                freeTrial: "Jaribio la Bure la Siku 3"
+                freeTrial: "Jaribio la Bure la Siku 7"
             }
         };
 

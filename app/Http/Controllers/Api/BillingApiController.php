@@ -599,7 +599,8 @@ class BillingApiController extends Controller
         $billingAccount = $user->billingAccount;
         $expiryDate = $billingAccount ? $billingAccount->subscription_expires_at : null;
         
-        return $expiryDate ? $expiryDate->toISOString() : now()->addDays(3)->toISOString(); // Default 3 days for trial
+        $trialDays = (int) config('safarichat_billing.plans.trial.duration_days', 7);
+        return $expiryDate ? $expiryDate->toISOString() : now()->addDays($trialDays)->toISOString(); // Default to trial length
     }
     
     /**

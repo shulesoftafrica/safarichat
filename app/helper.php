@@ -174,8 +174,8 @@ function is_trial()
         return 0; // Not in trial if has active subscription
     }
 
-    // Default trial period is 3 days for new users
-    $trialDays = config('app.TRIAL_DAYS', 3);
+    // Trial length for new users (falls back to the billing config's trial duration)
+    $trialDays = config('app.TRIAL_DAYS', config('safarichat_billing.plans.trial.duration_days', 7));
     
     $trial = 1;
     if ((int) $days > (int) $trialDays) {

@@ -358,7 +358,7 @@ class UserRegistrationService
     }
 
     /**
-     * Provision a 3-day trial billing account for a newly registered user.
+     * Provision a free trial billing account for a newly registered user.
      * Creates the business record if the user doesn't have one yet, then
      * creates a BillingAccount with base_credits set so the GENERATED
      * available_credits column starts at 1000 (not 0).
@@ -368,6 +368,7 @@ class UserRegistrationService
         try {
             $limits = config('safarichat_billing.plans.trial.limits', []);
             $trialCredits = $limits['ai_credits'] ?? 1000;
+            $trialDays = (int) config('safarichat_billing.plans.trial.duration_days', 7);
 
             $business = $user->business;
             if (!$business) {
@@ -388,9 +389,9 @@ class UserRegistrationService
                 'business_id'            => $business->id,
                 'subscription_plan'      => 'trial',
                 'subscription_started_at'=> now(),
-                'subscription_expires_at'=> now()->addDays(3),
-                'trial_ends_at'          => now()->addDays(3),
-                'next_billing_date'      => now()->addDays(3),
+                'subscription_expires_at'=> now()->addDays($trialDays),
+                'trial_ends_at'          => now()->addDays($trialDays),
+                'next_billing_date'      => now()->addDays($trialDays),
                 'base_credits'           => $trialCredits, // drives available_credits (GENERATED)
                 'topup_credits'          => 0,
                 'ai_credits'             => $trialCredits, // backward-compat reads
@@ -412,13 +413,13 @@ class UserRegistrationService
                 'user_id'       => $user->id,
                 'status'        => 'active',
                 'starts_at'     => now(),
-                'trial_ends_at' => now()->addDays(3),
-                'ends_at'       => now()->addDays(3),
+                'trial_ends_at' => now()->addDays($trialDays),
+                'ends_at'       => now()->addDays($trialDays),
                 'auto_renew'    => false,
                 'metadata'      => [
                     'plan_type'           => 'trial',
                     'created_during'      => 'whatsapp_otp_registration',
-                    'trial_duration_days' => 3,
+                    'trial_duration_days' => $trialDays,
                 ],
             ]);
 
@@ -426,7 +427,7 @@ class UserRegistrationService
                 'user_id'        => $user->id,
                 'business_id'    => $business->id,
                 'trial_credits'  => $trialCredits,
-                'trial_expires'  => now()->addDays(3)->toDateTimeString(),
+                'trial_expires'  => now()->addDays($trialDays)->toDateTimeString(),
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to provision trial billing after WhatsApp OTP registration', [
