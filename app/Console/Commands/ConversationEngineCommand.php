@@ -77,6 +77,7 @@ class ConversationEngineCommand extends Command
 
         $query = Conversation::where('status', Conversation::STATUS_PENDING)
             ->whereNull('processing_started_at')
+            ->awaitingAiReply()
             ->orderBy('priority', 'desc')
             ->orderBy('created_at');
 
@@ -171,6 +172,7 @@ class ConversationEngineCommand extends Command
 
         $query = Conversation::where('priority', '>', 7)
             ->whereIn('status', [Conversation::STATUS_PENDING, Conversation::STATUS_ACTIVE])
+            ->awaitingAiReply()
             ->orderByDesc('priority')
             ->orderBy('updated_at');
 

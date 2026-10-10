@@ -305,6 +305,20 @@ class Conversation extends Model
         return round($inputCost + $outputCost, 3);
     }
 
+    /**
+     * Customer messages that nobody has answered yet - the only rows the conversation engine should reply to.
+     * Outbound rows (ai_agent / user_manual follow-ups, campaigns, imports) and rows that already carry the reply
+     * the webhook sent are logs, not work; answering them again sent customers duplicate messages.
+     */
+    public function scopeAwaitingAiReply($query)
+    {
+        return $query
+            ->whereNull('ai_response')
+            ->where(function ($q) {
+                $q->whereNull('sender_type')->orWhere('sender_type', 'customer');
+            });
+    }
+
     // Scope for billing queries
     public function scopeWithTokens($query)
     {

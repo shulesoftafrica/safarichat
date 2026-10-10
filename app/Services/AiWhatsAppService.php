@@ -982,6 +982,12 @@ class AiWhatsAppService
             'message_type' => Conversation::TYPE_CUSTOMER, // Use constant instead of 'text'
             'customer_message' => $message->message_body,
             'ai_response' => $aiResult['response'],
+            // This reply is sent by the webhook itself, right after this row is saved. Left at the column default
+            // ('pending') the ConversationEngineCommand picked the row up 5-15 minutes later and sent the customer
+            // a second, differently worded answer to the same message.
+            'status' => Conversation::STATUS_COMPLETED,
+            'completed_at' => now(),
+            'last_ai_response' => $aiResult['response'],
             'sentiment' => $sentiment['sentiment'],
             'confidence_score' => $aiResult['confidence'],
             'tokens_used' => $aiResult['tokens_used'] ?? 0,
