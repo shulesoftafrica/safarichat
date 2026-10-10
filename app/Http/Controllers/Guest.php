@@ -91,7 +91,7 @@ class Guest extends Controller {
         }
         $this->data['available_agents'] = $agentsQuery->orderBy('name')->get();
 
-        $this->data['products'] = Product::forUser(Auth::id())
+        $this->data['products'] = Product::accessibleTo(Auth::user())
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -1267,7 +1267,7 @@ class Guest extends Controller {
             throw new \InvalidArgumentException('At least one product must be selected.');
         }
 
-        $validProductIds = Product::forUser(Auth::id())
+        $validProductIds = Product::accessibleTo(Auth::user())
             ->whereIn('id', $productIds)
             ->pluck('id')
             ->map(static fn ($id) => (int) $id)
@@ -2178,7 +2178,7 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'Product selection is required.']);
             }
 
-            $isProductValid = Product::forUser($user->id)->where('id', $productId)->exists();
+            $isProductValid = Product::accessibleTo($user)->where('id', $productId)->exists();
             if (!$isProductValid) {
                 return response()->json(['success' => false, 'message' => 'Invalid product selected.']);
             }
@@ -2319,7 +2319,7 @@ class Guest extends Controller {
                 return response()->json(['success' => false, 'message' => 'Product selection is required.']);
             }
 
-            $isProductValid = Product::forUser($user->id)->where('id', $productId)->exists();
+            $isProductValid = Product::accessibleTo($user)->where('id', $productId)->exists();
             if (!$isProductValid) {
                 return response()->json(['success' => false, 'message' => 'Invalid product selected.']);
             }

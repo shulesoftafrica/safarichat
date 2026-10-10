@@ -95,7 +95,7 @@ class Message extends Controller
         $this->data['whatsapp'] = $this->checkChannelStatus('whatsapp');
         $this->data['remained_sms'] = $this->checkChannelStatus('quick-sms');
         $this->data['phone_sms'] = $this->checkChannelStatus('phone-sms');
-        $this->data['products'] = Product::forUser(Auth::id())
+        $this->data['products'] = Product::accessibleTo(Auth::user())
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -610,7 +610,7 @@ class Message extends Controller
         }
 
         if (!empty($productId)) {
-            $isProductValid = Product::forUser(Auth::id())->where('id', $productId)->exists();
+            $isProductValid = Product::accessibleTo(Auth::user())->where('id', $productId)->exists();
             if (!$isProductValid) {
                 return $responseHelper(false, 'Invalid product selected.', ['product_id' => 'Invalid product selected.']);
             }

@@ -262,6 +262,26 @@ class Product extends Model
     }
 
     /**
+     * Products a given user may work with: their own, plus everything owned by the business they act for.
+     * Team members own no products themselves (they belong to the owner's business), so scoping by
+     * user_id alone left them with an empty product list and unable to create leads or customers.
+     */
+    public function scopeAccessibleTo($query, $user)
+    {
+        $business = $user ? $user->effectiveBusiness() : null;
+
+        if (! $business) {
+            return $query->where('user_id', $user ? $user->id : 0);
+        }
+
+        return $query->where(function ($q) use ($business, $user) {
+            $q->where('business_id', $business->id)
+              ->orWhere('user_id', $business->user_id)
+              ->orWhere('user_id', $user->id);
+        });
+    }
+
+    /**
      * Scope for products owned by a specific business
      */
     public function scopeForBusiness($query, $businessId)

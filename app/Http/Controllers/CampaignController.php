@@ -98,7 +98,7 @@ class CampaignController extends Controller
         // Get user's credit balance
         $data['credit_balance'] = Auth::user()->credits ?? 0;
 
-        $data['products'] = Product::forUser(Auth::id())
+        $data['products'] = Product::accessibleTo(Auth::user())
             ->orderBy('name')
             ->get(['id', 'name']);
 
