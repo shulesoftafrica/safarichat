@@ -20,6 +20,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Unpaid WaSender session alert
+    |--------------------------------------------------------------------------
+    |
+    | When a customer writes to a WhatsApp number whose WaSender session is not paid (WaSender answers every send
+    | with HTTP 402), an urgent Phone-SMS is sent from account `user_id` to `phone`, at most once per
+    | `cooldown_minutes` per WhatsApp number.
+    |
+    */
+
+    'wasender_unpaid_alert' => [
+        'enabled' => env('WASENDER_UNPAID_ALERT', true),
+        'user_id' => (int) env('WASENDER_UNPAID_ALERT_USER_ID', 45),
+        'phone' => env('WASENDER_UNPAID_ALERT_PHONE', '+255714825469'),
+        'cooldown_minutes' => (int) env('WASENDER_UNPAID_ALERT_COOLDOWN', 30),
+        'probe_cache_minutes' => (int) env('WASENDER_UNPAID_ALERT_PROBE_CACHE', 5),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Daily Summary
     |--------------------------------------------------------------------------
     |

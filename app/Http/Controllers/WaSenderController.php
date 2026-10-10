@@ -1794,6 +1794,11 @@ class WaSenderController extends Controller
                 }
             }
 
+            // A customer is waiting for an answer: if this number's WaSender session is unpaid, no reply can be
+            // delivered, so tell the owner by SMS right now (rate limited, never throws).
+            app(\App\Services\WhatsAppSessionAlertService::class)
+                ->checkAndAlert($instance, $incomingMessage->phone_number);
+
             Log::info('Created incoming message record', [
                 'message_id' => $incomingMessage->id,
                 'phone_number' => $incomingMessage->phone_number,
@@ -1820,6 +1825,13 @@ class WaSenderController extends Controller
                             'message_id' => $incomingMessage->id,
                             'phone_number' => $incomingMessage->phone_number
                         ]);
+
+                        // The conversation is saved as completed before sending. The send failed, so hand it back to
+                        // the conversation engine's bounded retry (max 3, last 24h) instead of leaving it unanswered.
+                        if (!empty($aiResult['conversation_id'])) {
+                            \App\Models\Conversation::where('id', $aiResult['conversation_id'])
+                                ->update(['status' => \App\Models\Conversation::STATUS_FAILED, 'completed_at' => null]);
+                        }
                     }
                 } else {
                     // AI decided not to respond (e.g., outside business hours)

@@ -183,9 +183,21 @@ class WaSenderService
             // Log the message
             $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : 'text';
             $instanceId = is_object($instance) ? $instance->id : $instance;
-            $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instanceId);
 
-            if ($response->successful() && isset($result['success']) && $result['success']) {
+            // The notification API answers HTTP 201 / success:true as soon as it has stored the message, even when
+            // the provider rejected it ("status":"failed", e.g. WaSender 402 "You didn't pay your session in time").
+            // Treating that as sent made the AI log "response sent" and mark the customer as replied while nothing
+            // was delivered.
+            $providerStatus = $result['status'] ?? ($result['data']['status'] ?? null);
+            $deliveryFailed = $providerStatus === 'failed' || !empty($result['data']['is_failed']);
+            $delivered = $response->successful() && !empty($result['success']) && !$deliveryFailed;
+
+            // A failed send is logged once, as 'failed', by the catch block below.
+            if ($delivered) {
+                $this->logOutgoingMessage($cleanPhone, $message, $messageType, $result, $userId, $instanceId);
+            }
+
+            if ($delivered) {
                 Log::info('WhatsApp message sent successfully via Unified API', [
                     'phone' => $cleanPhone,
                     'message_id' => $result['message_id'] ?? null,
@@ -206,7 +218,23 @@ class WaSenderService
             if (!$response->successful()) {
                 $errorMessage .= " (HTTP {$response->status()})";
             }
-            if (isset($result['message'])) {
+            if ($deliveryFailed) {
+                // Same signal from the other side: a reply was just rejected. If the provider says the session is
+                // unpaid (or a direct check does), alert the owner now.
+                $alertInstance = $instance instanceof \App\Models\WhatsappInstance
+                    ? $instance
+                    : \App\Models\WhatsappInstance::where('user_id', $userId)->where('is_primary', true)->first()
+                        ?? \App\Models\WhatsappInstance::where('user_id', $userId)->first();
+                app(\App\Services\WhatsAppSessionAlertService::class)->checkAndAlert(
+                    $alertInstance,
+                    $cleanPhone,
+                    (string) ($result['data']['error_message'] ?? $result['message'] ?? $result['error'] ?? '')
+                );
+
+                $errorMessage .= ': the messaging provider rejected the message'
+                    . (!empty($result['data']['error_message']) ? " ({$result['data']['error_message']})" : '')
+                    . ' - notification message_id ' . ($result['message_id'] ?? 'unknown');
+            } elseif (isset($result['message'])) {
                 $errorMessage .= ": {$result['message']}";
             } elseif (isset($result['error'])) {
                 $errorMessage .= ": {$result['error']}";
