@@ -187,6 +187,12 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::post('/guest/return-to-ai', [App\Http\Controllers\Guest::class, 'returnToAI'])->name('guest.returnToAI');
     Route::post('/guest/update-priority', [App\Http\Controllers\Guest::class, 'updatePriority'])->name('guest.updatePriority');
     Route::post('/guest/add-handoff-notes', [App\Http\Controllers\Guest::class, 'addHandoffNotes'])->name('guest.addHandoffNotes');
+    // LineShop (inventory) integration
+    Route::get('/lineshop/connect', [App\Http\Controllers\LineShopController::class, 'index'])->name('lineshop.index');
+    Route::post('/lineshop/connect', [App\Http\Controllers\LineShopController::class, 'connect'])->name('lineshop.connect');
+    Route::post('/lineshop/sync', [App\Http\Controllers\LineShopController::class, 'sync'])->name('lineshop.sync');
+    Route::post('/lineshop/disconnect', [App\Http\Controllers\LineShopController::class, 'disconnect'])->name('lineshop.disconnect');
+
     Route::post('/guest/log-activity', [App\Http\Controllers\Guest::class, 'logActivity'])->name('guest.logActivity');
     Route::get('/guest/activities/{guest}', [App\Http\Controllers\Guest::class, 'getActivities'])->name('guest.activities');
     Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');

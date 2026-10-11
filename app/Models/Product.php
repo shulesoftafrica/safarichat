@@ -25,7 +25,9 @@ class Product extends Model
         'service_deliverables', 'requires_consultation', 'pricing_type',
         'hourly_rate', 'service_tiers', 'prerequisites',
         // Active Campaign fields
-        'is_active_campaign', 'campaign_hook_text', 'campaign_pain_point', 'campaign_attachment_path'
+        'is_active_campaign', 'campaign_hook_text', 'campaign_pain_point', 'campaign_attachment_path',
+        // External sync (e.g. LineShop catalog)
+        'external_source', 'external_ref', 'external_synced_at',
     ];
 
     protected $casts = [

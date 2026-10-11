@@ -321,6 +321,11 @@ left: auto !important;
                                 <i class="fas fa-box" style="color: #667eea;"></i><span>{{ __('navigation.products') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= route('lineshop.index') ?>">
+                                <i class="fas fa-store" style="color: #16a34a;"></i><span>Connect Store</span>
+                            </a>
+                        </li>
                          <li class="nav-item">
                             <a class="nav-link" href="<?= url('ai-agents') ?>">
                                 <i class="fas fa-robot" style="color: #764ba2;"></i><span>{{ __('navigation.sales_agents') }}</span>
