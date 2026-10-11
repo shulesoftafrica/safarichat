@@ -9,16 +9,127 @@ use App\Models\Lead;
 use App\Models\Conversation;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use OpenAI\Exceptions\ErrorException as OpenAiErrorException;
+use OpenAI\Exceptions\RateLimitException as OpenAiRateLimitException;
+use OpenAI\Exceptions\TransporterException as OpenAiTransporterException;
 
 class OpenAiService
 {
     private $client;
+    private $fallbackClient = null;
     private $defaultModel = 'gpt-4o';
+
+    /** While OpenAI is known to be out (no credits / rate limited), skip it and go straight to Gemini. */
+    private const OPENAI_DOWN_CACHE_KEY = 'openai_unavailable_until_probe';
 
     public function __construct()
     {
         $this->client = OpenAI::client(config('services.openai.api_key'));
+    }
+
+    /**
+     * Chat completion with automatic fallback to Gemini.
+     *
+     * OpenAI answers HTTP 429 both for real rate limits and for an exhausted balance ("credit_balance_exhausted"),
+     * and the client library reports both as "Request rate limit has been exceeded". When the OpenAI account ran out
+     * of credits every customer message failed and no reply was sent for hours. On those failures (and on 5xx,
+     * auth and network errors) the same request is retried once against Gemini's OpenAI-compatible endpoint, which
+     * returns the same response object, so callers do not change.
+     *
+     * Not used for embeddings: Gemini vectors have a different size from the stored OpenAI ones, so RAG simply
+     * degrades to the standard response (as it already does) while OpenAI is down.
+     */
+    private function chatCreate(array $params)
+    {
+        $fallback = $this->geminiClient();
+
+        if ($fallback && Cache::has(self::OPENAI_DOWN_CACHE_KEY)) {
+            return $this->chatViaGemini($fallback, $params, 'OpenAI marked unavailable');
+        }
+
+        try {
+            return $this->client->chat()->create($params);
+        } catch (\Throwable $e) {
+            if (! $fallback || ! $this->shouldFallBackToGemini($e)) {
+                throw $e;
+            }
+
+            // Re-check OpenAI after a few minutes instead of paying its failure latency on every message.
+            Cache::put(
+                self::OPENAI_DOWN_CACHE_KEY,
+                now()->toDateTimeString(),
+                now()->addMinutes(max(1, (int) config('services.gemini.openai_retry_minutes', 5)))
+            );
+
+            return $this->chatViaGemini($fallback, $params, $this->describeOpenAiFailure($e));
+        }
+    }
+
+    private function chatViaGemini($client, array $params, string $reason)
+    {
+        // Gemini's compatibility layer rejects (or ignores) OpenAI-only sampling penalties.
+        unset($params['presence_penalty'], $params['frequency_penalty'], $params['logit_bias'], $params['n']);
+        $params['model'] = config('services.gemini.model', 'gemini-3.5-flash-lite');
+
+        Log::warning('OpenAI unavailable - answering with Gemini fallback', [
+            'reason' => $reason,
+            'gemini_model' => $params['model'],
+        ]);
+
+        return $client->chat()->create($params);
+    }
+
+    private function shouldFallBackToGemini(\Throwable $e): bool
+    {
+        if ($e instanceof OpenAiRateLimitException || $e instanceof OpenAiTransporterException) {
+            return true;
+        }
+
+        if ($e instanceof OpenAiErrorException) {
+            $status = $e->getStatusCode();
+
+            return $status >= 500
+                || in_array($status, [401, 402, 403, 429], true)
+                || in_array($e->getErrorType(), ['insufficient_quota', 'billing_not_active'], true);
+        }
+
+        return false;
+    }
+
+    /** The library message for a 429 hides whether it is a rate limit or an empty balance; read the body. */
+    private function describeOpenAiFailure(\Throwable $e): string
+    {
+        if ($e instanceof OpenAiRateLimitException) {
+            $body = (string) $e->response->getBody();
+            $decoded = json_decode($body, true);
+            $detail = $decoded['error']['message'] ?? $decoded['error']['code'] ?? substr($body, 0, 200);
+
+            return 'OpenAI 429: ' . $detail;
+        }
+
+        return get_class($e) . ': ' . $e->getMessage();
+    }
+
+    private function geminiClient()
+    {
+        if ($this->fallbackClient !== null) {
+            return $this->fallbackClient ?: null;
+        }
+
+        $key = config('services.gemini.api_key');
+        if (empty($key)) {
+            $this->fallbackClient = false;
+
+            return null;
+        }
+
+        return $this->fallbackClient = OpenAI::factory()
+            ->withApiKey($key)
+            ->withBaseUri('generativelanguage.googleapis.com/v1beta/openai')
+            ->withHttpClient(new \GuzzleHttp\Client(['timeout' => (int) config('services.gemini.timeout', 40)]))
+            ->make();
     }
 
     /**
@@ -168,7 +279,7 @@ class OpenAiService
 
             $prompt = $this->buildPromptWithAgent($customerMessage, $agent, $lead, $conversationHistory, $product, $instance);
             
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => $this->defaultModel,
                 'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 1000,
@@ -382,7 +493,7 @@ class OpenAiService
         try {
             $prompt = "Summarize this product documentation chunk for '{$productName}' in 1-2 sentences, focusing on key information for sales conversations:\n\n{$content}";
             
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => 'gpt-4o-mini', // Cheaper model for summaries
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are an expert at summarizing product documentation for sales teams. Focus on actionable information that helps answer customer questions.'],
@@ -420,7 +531,7 @@ class OpenAiService
             $prompt = $this->buildRAGPrompt($customerMessage, $agent, $lead, $conversationHistory, $product, $relevantDocs, $instance);
             
             // Step 3: Generate response
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => $this->defaultModel,
                 'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 1200, // Increased for more detailed responses
@@ -533,7 +644,7 @@ class OpenAiService
             $messages[] = ['role' => 'user', 'content' => $userContent];
 
             // --- 4. Call OpenAI (gpt-4o supports vision natively — no model switch) ---
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model'             => $this->defaultModel, // gpt-4o
                 'messages'          => $messages,
                 'max_tokens'        => 1200,
@@ -1227,7 +1338,7 @@ class OpenAiService
                 ]
             ];
 
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => $this->defaultModel,
                 'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 300,
@@ -1278,7 +1389,7 @@ class OpenAiService
                 . 'Respond ONLY with a JSON object: {"datetime":"YYYY-MM-DD HH:MM","interpretation":"short human phrase","confident":true|false}. '
                 . 'If you truly cannot infer a date, set datetime to null.';
 
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => 'gpt-4o',
                 'messages' => [
                     ['role' => 'system', 'content' => $system],
@@ -1346,7 +1457,7 @@ class OpenAiService
                 ]
             ];
 
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => 'gpt-3.5-turbo',
                 'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 150,
@@ -1471,7 +1582,7 @@ class OpenAiService
         try {
             $sanitizedPrompt = $this->sanitizeText($prompt);
             
-            $response = $this->client->chat()->create([
+            $response = $this->chatCreate([
                 'model' => $this->defaultModel,
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are an expert CRM analyst tasked with creating comprehensive client context summaries for AI sales agents. Generate clear, structured, actionable summaries that help AI agents understand client history and approach strategies.'],

@@ -37,6 +37,15 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    // Fallback chat provider when OpenAI is unavailable (no credits, rate limited, down). Uses Gemini's
+    // OpenAI-compatible endpoint. Set GEMINI_API_KEY in .env; without it there is no fallback.
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'timeout' => env('GEMINI_TIMEOUT', 40),
+        'openai_retry_minutes' => env('OPENAI_RETRY_AFTER_MINUTES', 5),
+    ],
+
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o'),
