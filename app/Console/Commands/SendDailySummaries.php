@@ -106,15 +106,24 @@ class SendDailySummaries extends Command
         // owner got skipped every day — i.e. no daily report was ever sent).
         $totalMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
+            ->where(function ($q) {
+                $q->whereNull('message_type')->orWhere('message_type', '!=', 'owner_report');
+            })
             ->count();
 
         $successfulMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
+            ->where(function ($q) {
+                $q->whereNull('message_type')->orWhere('message_type', '!=', 'owner_report');
+            })
             ->where('status', 'sent')
             ->count();
 
         $failedMessages = \App\Models\OutgoingMessage::where('user_id', $user->id)
             ->whereDate('created_at', $date)
+            ->where(function ($q) {
+                $q->whereNull('message_type')->orWhere('message_type', '!=', 'owner_report');
+            })
             ->where('status', 'failed')
             ->count();
 

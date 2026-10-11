@@ -103,14 +103,15 @@ class SendDailyBusinessSummaryJob implements ShouldQueue
             'recommendation'          => $recommendation,
         ];
 
-        $sent = $renderer->send($user, 'daily_summary', $vars, $this->businessId);
+        // From the business's own WhatsApp number to the manager on its AI agent (email if that is unavailable).
+        $result = $renderer->sendToOwner($user, 'daily_summary', $vars, $this->businessId);
 
-        if ($sent) {
-            Log::info('SendDailyBusinessSummaryJob: daily summary dispatched', [
-                'business_id' => $this->businessId,
-                'user_id'     => $user->id,
-            ]);
-        }
+        Log::log($result['sent'] ? 'info' : 'warning', 'SendDailyBusinessSummaryJob: daily summary ' . ($result['sent'] ? 'delivered' : 'NOT delivered'), [
+            'business_id' => $this->businessId,
+            'user_id'     => $user->id,
+            'channel'     => $result['channel'],
+            'reason'      => $result['reason'],
+        ]);
     }
 
     // ---------------------------------------------------------------------------
@@ -127,14 +128,27 @@ class SendDailyBusinessSummaryJob implements ShouldQueue
         SystemWhatsAppService   $systemWa,
         CsMessageRenderer       $renderer,
     ): void {
-        if (CsMessageLog::alreadySent($user->id, 'whatsapp_disconnected_alert', hours: 20)) {
+        // A disconnection is announced once per episode, not every day: this alert is the only thing the shared
+        // platform line sends for a business, so its volume has to stay small.
+        if (CsMessageLog::alreadySent($user->id, 'whatsapp_disconnected_alert', hours: (int) config('cs.disconnected_alert_cooldown_hours', 72))) {
             return; // already sent for this disconnection episode
         }
 
-        $sent = $renderer->send($user, 'disconnected_alert', [
+        $vars = [
             'business_name' => $business->name ?? $user->name,
             'reconnect_url' => config('app.url') . '/whatsapp/connect',
-        ], $this->businessId);
+        ];
+
+        $sent = $renderer->send($user, 'disconnected_alert', $vars, $this->businessId);
+
+        // WhatsApp is the thing that is down, and the platform line may be too: also tell them by email.
+        $emailed = app(\App\Services\OwnerReportDeliveryService::class)->deliverEmail(
+            $user,
+            'Your WhatsApp is disconnected - customers are not being answered',
+            'Your AI sales agent is offline because your WhatsApp is disconnected, so customers messaging you are not '
+            . "getting replies.\n\nReconnect here: {$vars['reconnect_url']}  (Settings > WhatsApp > scan the QR code)."
+        );
+        $sent = $sent || $emailed;
 
         Log::info('SendDailyBusinessSummaryJob: sent disconnection alert instead', [
             'business_id' => $this->businessId,

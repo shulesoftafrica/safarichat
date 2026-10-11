@@ -5,6 +5,7 @@ namespace App\Services\CustomerSuccess;
 use App\Models\CsMessageLog;
 use App\Models\User;
 use App\Services\OpenAiService;
+use App\Services\OwnerReportDeliveryService;
 use App\Services\SystemWhatsAppService;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
@@ -81,6 +82,54 @@ class CsMessageRenderer
         return $sent;
     }
 
+    /**
+     * Render a CS report and deliver it to the business's manager from the business's OWN WhatsApp number.
+     * (send() above goes through the shared platform line and is reserved for low-volume system messages.)
+     *
+     * Falls back to an email to the owner when the business's line cannot be used, with a short note saying why.
+     *
+     * @return array{sent:bool, channel:?string, reason:?string}
+     */
+    public function sendToOwner(User $user, string $type, array $vars = [], int $businessId = 0): array
+    {
+        $locale  = $this->resolveLocale($user);
+        $message = $this->renderTemplate($type, $vars, $locale);
+
+        if ($message === null) {
+            Log::error('CsMessageRenderer: template not found', ['user_id' => $user->id, 'type' => $type, 'locale' => $locale]);
+
+            return ['sent' => false, 'channel' => null, 'reason' => 'template_not_found'];
+        }
+
+        $delivery = app(OwnerReportDeliveryService::class);
+        $result   = $delivery->deliverWhatsApp($user, $message);
+        $channel  = $result['sent'] ? 'whatsapp' : null;
+
+        if (!$result['sent']) {
+            $note = match ($result['reason']) {
+                OwnerReportDeliveryService::REASON_NO_INSTANCE => "Your WhatsApp is not connected, so this report could not be sent there.\n\n",
+                OwnerReportDeliveryService::REASON_SAME_NUMBER => "The report number is the same as your connected WhatsApp number, so it was sent by email.\n\n",
+                OwnerReportDeliveryService::REASON_SEND_FAILED => "Your WhatsApp could not deliver this report (check that your WhatsApp session is connected and active).\n\n",
+                default => '',
+            };
+
+            if ($delivery->deliverEmail($user, 'Your daily report', $note . $message)) {
+                $channel = 'email';
+            }
+        }
+
+        if ($channel !== null) {
+            CsMessageLog::record(
+                $user->id,
+                $businessId ?: ($user->business_id ?? 0),
+                $type,
+                ['locale_used' => $locale, 'channel' => $channel]
+            );
+        }
+
+        return ['sent' => $channel !== null, 'channel' => $channel, 'reason' => $result['reason']];
+    }
+
     // ── Locale resolution ────────────────────────────────────────────────────
 
     public function resolveLocale(User $user): string
@@ -96,8 +145,15 @@ class CsMessageRenderer
 
         // Priority 3: most recent conversation language
         if (!$locale) {
-            $conv   = $user->conversations()->latest()->first();
-            $locale = $conv?->language_detected ?? null;
+            // User has no conversations() relation (calling it threw BadMethodCallException for every owner without
+            // a stored locale or agent language, which failed the whole report job). Optional hint only.
+            try {
+                $locale = \App\Models\Conversation::whereHas('lead', fn ($q) => $q->where('user_id', $user->id))
+                    ->latest()
+                    ->value('language_detected');
+            } catch (\Throwable $e) {
+                $locale = null;
+            }
         }
 
         // Normalise

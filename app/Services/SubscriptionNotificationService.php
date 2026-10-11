@@ -118,25 +118,25 @@ class SubscriptionNotificationService
         $whatsapp = false;
         $reason = null;
 
-        if (config('notifications.daily_summary.whatsapp', true)) {
-            $phone = $this->summaryRecipient($user);
+        $detail = null;
 
-            if (!$phone) {
-                $reason = 'no_phone';
-            } elseif (!Cache::add($this->summaryCacheKey($user, $yesterday), 1, now()->addDay())) {
+        if (config('notifications.daily_summary.whatsapp', true)) {
+            if (!Cache::add($this->summaryCacheKey($user, $yesterday), 1, now()->addDay())) {
                 // already delivered for this date (command re-run): not an error, but nothing new sent
                 $reason = 'already_sent_today';
                 $whatsapp = true;
             } else {
-                $whatsapp = $this->sendSummaryOnWhatsApp(
-                    $phone,
+                $delivery = $this->sendSummaryOnWhatsApp(
+                    $user,
                     $this->buildDailySummaryWhatsAppMessage($user, $stats, $businessName, $yesterday, $missedCount)
                 );
+                $whatsapp = (bool) ($delivery['sent'] ?? false);
 
                 if (!$whatsapp) {
                     // let a later run retry today instead of being blocked by our own dedupe key
                     Cache::forget($this->summaryCacheKey($user, $yesterday));
-                    $reason = 'whatsapp_send_failed';
+                    $detail = $delivery['reason'] ?? null;
+                    $reason = $detail === OwnerReportDeliveryService::REASON_NO_RECIPIENT ? 'no_phone' : 'whatsapp_send_failed';
                 }
             }
         } else {
@@ -154,7 +154,7 @@ class SubscriptionNotificationService
             Log::warning('Daily summary was not delivered', ['user_id' => $user->id, 'reason' => $reason ?? 'no_email']);
         }
 
-        return ['whatsapp' => $whatsapp, 'email' => $email, 'delivered' => $whatsapp || $email, 'reason' => $reason];
+        return ['whatsapp' => $whatsapp, 'email' => $email, 'delivered' => $whatsapp || $email, 'reason' => $reason, 'detail' => $detail];
     }
 
     /**
@@ -214,31 +214,27 @@ class SubscriptionNotificationService
         }
     }
 
-    /** Where the owner wants WhatsApp messages: their WhatsApp number, else their phone. */
-    private function summaryRecipient(User $user): ?string
-    {
-        $number = trim((string) ($user->whatsapp_number ?: $user->phone));
-
-        return $number !== '' ? $number : null;
-    }
-
     private function summaryCacheKey(User $user, Carbon $date): string
     {
         return 'daily_summary_whatsapp:' . $user->id . ':' . $date->toDateString();
     }
 
     /**
-     * Send through the platform's own (system) WhatsApp line, the same sender the reconnect alerts use,
-     * so it works whether or not the owner's own WhatsApp is connected.
+     * Send from the business's OWN connected WhatsApp number to the manager number set on its AI agent (else the
+     * owner's number). Not the shared platform line: one number cannot carry every business's reports, and one dead
+     * platform session used to silence all of them. When the business's line is unusable the reason is returned and
+     * the caller falls back to email.
+     *
+     * @return array{sent:bool, reason:?string, recipient:?string}
      */
-    protected function sendSummaryOnWhatsApp(string $phone, string $message): bool
+    protected function sendSummaryOnWhatsApp(User $owner, string $message): array
     {
         try {
-            return (bool) app(SystemWhatsAppService::class)->sendGenericMessage($phone, $message, 'system_notification');
+            return app(OwnerReportDeliveryService::class)->deliverWhatsApp($owner, $message);
         } catch (\Throwable $e) {
-            Log::error('Daily summary WhatsApp send failed', ['phone' => $phone, 'error' => $e->getMessage()]);
+            Log::error('Daily summary WhatsApp send failed', ['user_id' => $owner->id, 'error' => $e->getMessage()]);
 
-            return false;
+            return ['sent' => false, 'reason' => OwnerReportDeliveryService::REASON_SEND_FAILED, 'recipient' => null];
         }
     }
 

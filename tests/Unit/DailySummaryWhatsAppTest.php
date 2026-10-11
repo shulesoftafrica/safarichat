@@ -26,11 +26,19 @@ class DailySummaryWhatsAppTest extends TestCase
             {
             }
 
-            protected function sendSummaryOnWhatsApp(string $phone, string $message): bool
+            protected function sendSummaryOnWhatsApp(User $owner, string $message): array
             {
-                $this->sent[] = [$phone, $message];
+                // stands in for OwnerReportDeliveryService (which has its own tests): the manager number is the
+                // owner's WhatsApp number, else their phone
+                $recipient = $owner->whatsapp_number ?: $owner->phone;
 
-                return $this->ok;
+                if (!$recipient) {
+                    return ['sent' => false, 'reason' => 'no_recipient', 'recipient' => null];
+                }
+
+                $this->sent[] = [$recipient, $message];
+
+                return ['sent' => $this->ok, 'reason' => $this->ok ? null : 'send_failed', 'recipient' => $recipient];
             }
 
             protected function missedAutomationsCount(User $user, Carbon $date): int

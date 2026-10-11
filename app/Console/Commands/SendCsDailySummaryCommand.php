@@ -34,6 +34,13 @@ class SendCsDailySummaryCommand extends Command
         $dispatched = 0;
         $skipped    = 0;
 
+        // Spread the sends over a window instead of one burst: the notification API is capped at 2 requests/second
+        // and one WhatsApp number must not fire hundreds of messages in the same second. Ignored by the sync queue,
+        // which runs the jobs one after another (WaSenderService paces its own calls).
+        $spreadSeconds = max(0, (int) config('cs.daily_summary_spread_minutes', 60)) * 60;
+        $total         = max(1, $users->count());
+        $position      = 0;
+
         foreach ($users as $user) {
             $business = $user->business;
             if (!$business) {
@@ -46,7 +53,9 @@ class SendCsDailySummaryCommand extends Command
                 continue;
             }
 
-            SendDailyBusinessSummaryJob::dispatch($user->id, $business->id);
+            $delay = $spreadSeconds > 0 ? (int) floor($position * $spreadSeconds / $total) : 0;
+            SendDailyBusinessSummaryJob::dispatch($user->id, $business->id)->delay(now()->addSeconds($delay));
+            $position++;
             $dispatched++;
 
             $this->line("  ✅ Dispatched for: {$user->email} / {$business->name}");

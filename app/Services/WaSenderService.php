@@ -181,7 +181,7 @@ class WaSenderService
             ]);
 
             // Log the message
-            $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : 'text';
+            $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : ($options['log_message_type'] ?? 'text');
             $instanceId = is_object($instance) ? $instance->id : $instance;
 
             // The notification API answers HTTP 201 / success:true as soon as it has stored the message, even when
@@ -254,7 +254,7 @@ class WaSenderService
                 'has_bearer_token' => !empty($this->bearerToken)
             ]);
 
-            $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : 'text';
+            $messageType = !empty($options['attachment_path']) ? ($options['attachment_type'] ?? 'media') : ($options['log_message_type'] ?? 'text');
             $this->logOutgoingMessage($cleanPhone, $message, $messageType, [
                 'success' => false,
                 'error' => $e->getMessage()
