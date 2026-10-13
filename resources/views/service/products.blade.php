@@ -24,60 +24,44 @@
             <i class="fas fa-box"></i>
             Product Management
         </h2>
-        <div class="d-flex flex-wrap" style="gap:10px;">
-            <a href="{{ route('lineshop.index') }}" class="btn btn-success">
-                <i class="fas fa-store"></i>
-                Connect Store
-            </a>
-            <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#importProductsModal">
-                <i class="fas fa-file-excel"></i>
-                Import Excel
-            </button>
+        @if($lineshopConnected)
+            <div class="d-flex flex-wrap align-items-center" style="gap:10px;">
+                <span style="background:#dcfce7;color:#15803d;padding:8px 14px;border-radius:999px;font-weight:700;font-size:.82rem;">
+                    <i class="fas fa-store mr-1"></i>Synced from LineShop
+                </span>
+                <button type="button" class="btn btn-outline-primary" id="lsSyncNowBtn"><i class="fas fa-sync-alt mr-1"></i>Sync now</button>
+                <a href="{{ route('lineshop.index') }}" class="btn btn-light">Manage connection</a>
+            </div>
+        @else
             <button type="button" class="btn btn-primary btn-add-product" onclick="checkProductLimitBeforeAdd()">
                 <i class="fas fa-plus"></i>
                 Add New Product
             </button>
-        </div>
+        @endif
     </div>
 
-    <!-- Import Products Modal -->
-    <div class="modal fade" id="importProductsModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-file-excel mr-2 text-success"></i>Import products from Excel / CSV</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <form method="post" action="{{ route('products.import') }}" enctype="multipart/form-data">
-                    @csrf
-                    <div class="modal-body">
-                        <p class="text-muted" style="font-size:.9rem;">
-                            Have lots of products? Upload them all at once instead of adding one-by-one.
-                            Your file needs a <strong>Name</strong> column; everything else is optional.
-                        </p>
-                        <div class="alert alert-info" style="font-size:.85rem;">
-                            <strong>Expected columns</strong> (header names, any order — extras are ignored):<br>
-                            <code>name</code> (required), <code>sku</code>, <code>category</code>, <code>description</code>,
-                            <code>retail_price</code>, <code>wholesale_price</code>, <code>quantity</code>, <code>status</code>.
-                            <br>If <code>sku</code> is blank we generate one. Rows with the same <code>sku</code> update the existing product.
-                        </div>
-                        <div class="form-group">
-                            <label>Choose file (.xlsx, .xls or .csv)</label>
-                            <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                        </div>
-                        <a href="{{ route('products.importTemplate') }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-download mr-1"></i>Download template
-                        </a>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success"><i class="fas fa-upload mr-1"></i>Import products</button>
-                    </div>
-                </form>
-            </div>
+    @if($lineshopConnected)
+        {{-- LineShop mode: this page is a read-only summary of the synced catalog. --}}
+        <div class="alert" style="background:#eef6ff;border:1px solid #cfe3ff;border-radius:12px;">
+            <i class="fas fa-info-circle mr-1" style="color:#2563eb;"></i>
+            Your products are managed in <strong>LineShop</strong> and sync here automatically
+            (<strong>{{ number_format($lineshopConnection->product_count) }}</strong> synced{{ $lineshopConnection->last_synced_at ? ', last ' . $lineshopConnection->last_synced_at->diffForHumans() : '' }}).
+            This page is a read-only summary — add or edit products in LineShop.
         </div>
-    </div>
-    
+    @else
+        {{-- SafariChat mode: the second option is to connect a stock system instead. --}}
+        <div class="d-flex flex-wrap justify-content-between align-items-center"
+             style="gap:12px;background:#f3faf5;border:1px solid #cdeccf;border-radius:14px;padding:14px 18px;margin-bottom:18px;">
+            <div style="font-size:.92rem;color:#2f6b43;">
+                <strong><i class="fas fa-store mr-1"></i>Selling physical stock?</strong>
+                Connect your <strong>LineShop</strong> inventory — your whole catalog and live stock sync here automatically, no manual entry.
+            </div>
+            <a href="{{ route('lineshop.index') }}" class="btn btn-success btn-sm" style="white-space:nowrap;">
+                <i class="fas fa-link mr-1"></i>Connect LineShop
+            </a>
+        </div>
+    @endif
+
     <!-- Search and Filter Controls -->
     <div class="table-controls mb-3">
         <div class="row align-items-center">
@@ -373,6 +357,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeProductModal()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="addProductTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="tab-write" data-target="#pane-write" href="#pane-write"><i class="fas fa-pen mr-1"></i>Write product</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="tab-import" data-target="#pane-import" href="#pane-import"><i class="fas fa-file-excel mr-1"></i>Import from Excel</a>
+                    </li>
+                </ul>
+                <div class="tab-content" id="addProductTabContent">
+                <div class="tab-pane fade show active" id="pane-write" role="tabpanel">
                 <form id="addProductForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" id="productId" name="id">
@@ -806,12 +800,37 @@
                         </div>
                     </div>
                 </form>
+                </div><!-- /pane-write -->
+                <div class="tab-pane fade" id="pane-import" role="tabpanel">
+                    <form method="post" action="{{ route('products.import') }}" enctype="multipart/form-data">
+                        @csrf
+                        <p class="text-muted" style="font-size:.9rem;">
+                            Have lots of products? Upload them all at once instead of adding one-by-one.
+                            Your file only needs a <strong>name</strong> column; everything else is optional.
+                        </p>
+                        <div class="alert alert-info" style="font-size:.85rem;">
+                            <strong>Expected columns</strong> (any order; extra columns ignored):
+                            <code>name</code> (required), <code>sku</code>, <code>category</code>, <code>description</code>,
+                            <code>retail_price</code>, <code>wholesale_price</code>, <code>quantity</code>, <code>status</code>.
+                            If <code>sku</code> is blank we generate one; a repeated <code>sku</code> updates that product.
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>Choose file (.xlsx, .xls or .csv)</label>
+                            <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center" style="gap:10px;">
+                            <a href="{{ route('products.importTemplate') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-download mr-1"></i>Download template</a>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-upload mr-1"></i>Import products</button>
+                        </div>
+                    </form>
+                </div><!-- /pane-import -->
+                </div><!-- /tab-content -->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeProductModal()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-primary" onclick="saveProduct()">
+                <button type="button" class="btn btn-primary" id="addModalSaveBtn" onclick="saveProduct()">
                     <i class="fas fa-save"></i>
                     Save Product
                 </button>
@@ -5037,5 +5056,45 @@ function manageNurtureMessages() {
 
 <!-- Include Nurture Messages Modal -->
 @include('products.partials.nurture-messages-modal')
+
+<script>
+(function () {
+    // Add-Product modal tabs: "Write product" vs "Import from Excel" (BS-version agnostic).
+    document.querySelectorAll('#addProductTabs .nav-link').forEach(function (tab) {
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelectorAll('#addProductTabs .nav-link').forEach(function (n) { n.classList.remove('active'); });
+            this.classList.add('active');
+            document.querySelectorAll('#addProductModal .tab-pane').forEach(function (p) { p.classList.remove('show', 'active'); });
+            var pane = document.querySelector(this.getAttribute('data-target'));
+            if (pane) { pane.classList.add('show', 'active'); }
+            // The footer "Save Product" only applies to the write form; the Import tab has its own button.
+            var saveBtn = document.getElementById('addModalSaveBtn');
+            if (saveBtn) { saveBtn.style.display = (this.getAttribute('data-target') === '#pane-import') ? 'none' : ''; }
+        });
+    });
+
+    // "Sync now" (LineShop-connected view).
+    var syncBtn = document.getElementById('lsSyncNowBtn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function () {
+            var original = syncBtn.innerHTML;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Syncing…';
+            fetch('{{ route("lineshop.sync") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { alert(d.message || 'Sync complete.'); window.location.reload(); })
+            .catch(function () { alert('Sync failed — please try again.'); })
+            .finally(function () { syncBtn.disabled = false; syncBtn.innerHTML = original; });
+        });
+    }
+})();
+</script>
 
 @endsection

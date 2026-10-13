@@ -112,8 +112,19 @@ class ProductController extends Controller
         $subscription_plan = $currentPlan;
         $max_products = $planLimits['max_products'] ?? 1;
         $total_products = Product::forUser(auth()->id())->count();
-       
-        return view('service.products', compact('products', 'categories', 'subscription_plan', 'max_products', 'total_products'));
+
+        // LineShop connection (if any) — drives the "manage here vs synced from
+        // LineShop" mode on the products page.
+        $business = Auth::user()->effectiveBusiness();
+        $lineshopConnection = $business
+            ? \App\Models\LineShopConnection::where('business_id', $business->id)->first()
+            : null;
+        $lineshopConnected = $lineshopConnection && $lineshopConnection->isConnected();
+
+        return view('service.products', compact(
+            'products', 'categories', 'subscription_plan', 'max_products', 'total_products',
+            'lineshopConnection', 'lineshopConnected'
+        ));
     }
 
     /**

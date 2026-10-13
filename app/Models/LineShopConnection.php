@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class LineShopConnection extends Model
 {
+    protected $table = 'lineshop_connections';
+
     protected $fillable = [
         'business_id',
         'base_url',
