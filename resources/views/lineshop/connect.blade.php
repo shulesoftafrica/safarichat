@@ -137,7 +137,16 @@
                 </form>
             @else
                 <h4>Connect your store</h4>
-                <div class="sub">Enter your LineShop details. You'll find these in LineShop under <strong>Settings → API / Integrations</strong>.</div>
+                <div class="sub">Get these three values from LineShop (you only do this once).</div>
+
+                <div class="alert alert-info" style="background:#eef6ff;border:1px solid #cfe3ff;border-radius:10px;font-size:.84rem;padding:12px 14px;">
+                    <strong><i class="fas fa-list-ol mr-1"></i>In LineShop (as the owner):</strong>
+                    <ol style="margin:6px 0 0;padding-left:18px;">
+                        <li>In the top bar, click the <strong><i class="fas fa-plug"></i> plug icon</strong> &mdash; <strong>SafariChat Integration</strong>.</li>
+                        <li>Tick <strong>Enable API access</strong> and <strong>Save</strong>.</li>
+                        <li>Copy the <strong>Store URL</strong>, <strong>Client ID</strong> and <strong>API Key</strong> it shows, and paste them below.</li>
+                    </ol>
+                </div>
 
                 @if($connection && $connection->status === \App\Models\LineShopConnection::STATUS_ERROR && $connection->last_error)
                     <div class="ls-alert err"><i class="fas fa-exclamation-triangle mr-1"></i>{{ $connection->last_error }}</div>
@@ -155,12 +164,12 @@
                         <label class="ls-label">Client ID</label>
                         <input type="number" name="client_id" class="ls-input" placeholder="e.g. 42"
                                value="{{ old('client_id', $connection->client_id ?? '') }}" required>
-                        <div class="ls-hint">Your shop's ID in LineShop (shown on the API settings page).</div>
+                        <div class="ls-hint">Shown on LineShop's <strong>SafariChat Integration</strong> page.</div>
                     </div>
                     <div class="mb-3">
                         <label class="ls-label">API Key</label>
                         <input type="text" name="api_key" class="ls-input" placeholder="Paste your API key" value="{{ old('api_key') }}" required>
-                        <div class="ls-hint">In LineShop, open <strong>API / Integrations</strong>, enable the API, and copy the key.</div>
+                        <div class="ls-hint">On LineShop's <strong>SafariChat Integration</strong> page, enable the API and copy the key.</div>
                     </div>
                     <button type="submit" class="ls-btn"><i class="fas fa-link mr-1"></i>Connect &amp; verify</button>
                 </form>
