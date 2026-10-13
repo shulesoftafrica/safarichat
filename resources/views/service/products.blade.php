@@ -24,10 +24,58 @@
             <i class="fas fa-box"></i>
             Product Management
         </h2>
-        <button type="button" class="btn btn-primary btn-add-product" onclick="checkProductLimitBeforeAdd()">
-            <i class="fas fa-plus"></i>
-            Add New Product
-        </button>
+        <div class="d-flex flex-wrap" style="gap:10px;">
+            <a href="{{ route('lineshop.index') }}" class="btn btn-success">
+                <i class="fas fa-store"></i>
+                Connect Store
+            </a>
+            <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#importProductsModal">
+                <i class="fas fa-file-excel"></i>
+                Import Excel
+            </button>
+            <button type="button" class="btn btn-primary btn-add-product" onclick="checkProductLimitBeforeAdd()">
+                <i class="fas fa-plus"></i>
+                Add New Product
+            </button>
+        </div>
+    </div>
+
+    <!-- Import Products Modal -->
+    <div class="modal fade" id="importProductsModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-excel mr-2 text-success"></i>Import products from Excel / CSV</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <form method="post" action="{{ route('products.import') }}" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-muted" style="font-size:.9rem;">
+                            Have lots of products? Upload them all at once instead of adding one-by-one.
+                            Your file needs a <strong>Name</strong> column; everything else is optional.
+                        </p>
+                        <div class="alert alert-info" style="font-size:.85rem;">
+                            <strong>Expected columns</strong> (header names, any order — extras are ignored):<br>
+                            <code>name</code> (required), <code>sku</code>, <code>category</code>, <code>description</code>,
+                            <code>retail_price</code>, <code>wholesale_price</code>, <code>quantity</code>, <code>status</code>.
+                            <br>If <code>sku</code> is blank we generate one. Rows with the same <code>sku</code> update the existing product.
+                        </div>
+                        <div class="form-group">
+                            <label>Choose file (.xlsx, .xls or .csv)</label>
+                            <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                        <a href="{{ route('products.importTemplate') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-download mr-1"></i>Download template
+                        </a>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-upload mr-1"></i>Import products</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     
     <!-- Search and Filter Controls -->

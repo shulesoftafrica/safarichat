@@ -139,6 +139,8 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::put('/products/{id}', [App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [App\Http\Controllers\ProductController::class, 'destroy'])->name('products.destroy');
     Route::post('/products/bulk-action', [App\Http\Controllers\ProductController::class, 'bulkAction'])->name('products.bulk-action');
+    Route::post('/products/import', [App\Http\Controllers\ProductController::class, 'importProducts'])->name('products.import');
+    Route::get('/products/import-template', [App\Http\Controllers\ProductController::class, 'downloadProductTemplate'])->name('products.importTemplate');
 });
 
 // Contact Management Routes

@@ -865,7 +865,142 @@ class ProductController extends Controller
         $keywords = explode(' ', strtolower($minimalDescription));
         $product = ucwords(implode(' ', array_slice($keywords, 0, 3)));
         $benefit = implode(' ', array_slice($keywords, -3));
-        
+
         return str_replace(['{product}', '{benefit}'], [$product, $benefit], $template);
+    }
+
+    /**
+     * Bulk-import products from an uploaded Excel/CSV file. Only "name" is required;
+     * missing SKUs are generated, and rows with an existing SKU update that product.
+     */
+    public function importProducts(Request $request)
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240']);
+
+        ini_set('max_execution_time', 300);
+
+        $userId     = Auth::id();
+        $business   = Auth::user()->effectiveBusiness();
+        $businessId = $business->id ?? (Auth::user()->business_id ?? null);
+
+        // uploadExcel() (base Controller) returns assoc rows keyed by header, or a
+        // JSON error string if the file couldn't be read.
+        $rows = $this->uploadExcel();
+        if (! is_array($rows)) {
+            return redirect()->route('products.index')
+                ->with('error', 'Could not read that file. Please upload a valid .xlsx, .xls or .csv.');
+        }
+
+        $rows = $this->normalizeProductRows($rows);
+        if (empty($rows)) {
+            return redirect()->route('products.index')
+                ->with('error', 'No products found. Make sure the file has a "name" column with values.');
+        }
+
+        $created = 0; $updated = 0; $skipped = 0;
+
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') { $skipped++; continue; }
+
+            $sku = trim((string) ($row['sku'] ?? ''));
+            if ($sku === '') {
+                $sku = 'P-' . strtoupper(substr(md5($name . microtime(true) . mt_rand()), 0, 10));
+            }
+
+            $retail    = $this->toDecimal($row['retail_price'] ?? 0);
+            $wholesale = $this->toDecimal($row['wholesale_price'] ?? $retail);
+            if ($wholesale > $retail) { $wholesale = $retail; }
+
+            $status = strtolower(trim((string) ($row['status'] ?? 'active')));
+            if (! in_array($status, ['active', 'inactive', 'draft'], true)) { $status = 'active'; }
+
+            $fields = [
+                'name'            => $name,
+                'category'        => (trim((string) ($row['category'] ?? '')) ?: 'General'),
+                'description'     => (trim((string) ($row['description'] ?? '')) ?: $name),
+                'retail_price'    => $retail,
+                'wholesale_price' => $wholesale,
+                'quantity'        => (int) round($this->toDecimal($row['quantity'] ?? 0)),
+                'product_type'    => 'tangible',
+                'status'          => $status,
+            ];
+
+            $existing = Product::where('user_id', $userId)->where('sku', $sku)->first();
+            if ($existing) {
+                $existing->update($fields);
+                $updated++;
+            } else {
+                Product::create(array_merge($fields, [
+                    'user_id'     => $userId,
+                    'business_id' => $businessId,
+                    'sku'         => $sku,
+                ]));
+                $created++;
+            }
+        }
+
+        $msg = "Import complete: {$created} added, {$updated} updated"
+             . ($skipped ? ", {$skipped} skipped (missing name)" : '') . '.';
+
+        return redirect()->route('products.index')->with('success', $msg);
+    }
+
+    /** Download a CSV template for the product import. */
+    public function downloadProductTemplate()
+    {
+        $headers = ['name', 'sku', 'category', 'description', 'retail_price', 'wholesale_price', 'quantity', 'status'];
+        $example = ['Panadol Extra 20s', 'PARA500', 'Pain Relief', 'Fast pain relief tablets', '3500', '2800', '42', 'active'];
+
+        $callback = function () use ($headers, $example) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $example);
+            fclose($out);
+        };
+
+        return response()->streamDownload($callback, 'products_template.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * Normalize uploaded rows: lower-case headers and map common spellings to the
+     * canonical product fields, so users don't have to match an exact template.
+     */
+    private function normalizeProductRows(array $raw): array
+    {
+        $map = [
+            'name' => 'name', 'product' => 'name', 'product name' => 'name', 'item' => 'name', 'title' => 'name', 'product/service' => 'name',
+            'sku' => 'sku', 'code' => 'sku', 'barcode' => 'sku', 'item code' => 'sku', 'product code' => 'sku',
+            'category' => 'category', 'cat' => 'category', 'type' => 'category',
+            'description' => 'description', 'desc' => 'description', 'details' => 'description',
+            'retail_price' => 'retail_price', 'retail price' => 'retail_price', 'price' => 'retail_price', 'selling price' => 'retail_price', 'retail' => 'retail_price', 'unit price' => 'retail_price',
+            'wholesale_price' => 'wholesale_price', 'wholesale price' => 'wholesale_price', 'cost' => 'wholesale_price', 'cost price' => 'wholesale_price', 'buying price' => 'wholesale_price', 'wholesale' => 'wholesale_price',
+            'quantity' => 'quantity', 'qty' => 'quantity', 'stock' => 'quantity', 'stock quantity' => 'quantity', 'available' => 'quantity',
+            'status' => 'status',
+        ];
+
+        $out = [];
+        foreach ($raw as $row) {
+            if (! is_array($row)) { continue; }
+            $norm = [];
+            foreach ($row as $key => $val) {
+                $k = strtolower(trim((string) $key));
+                if (isset($map[$k]) && ! array_key_exists($map[$k], $norm)) {
+                    $norm[$map[$k]] = $val;
+                }
+            }
+            if (! empty($norm['name']) || ! empty($norm['sku'])) {
+                $out[] = $norm;
+            }
+        }
+        return $out;
+    }
+
+    /** Parse a loose numeric value ("TZS 3,500" -> 3500.0). */
+    private function toDecimal($v): float
+    {
+        if (is_numeric($v)) { return (float) $v; }
+        $clean = preg_replace('/[^0-9.\-]/', '', (string) $v);
+        return is_numeric($clean) ? (float) $clean : 0.0;
     }
 }
