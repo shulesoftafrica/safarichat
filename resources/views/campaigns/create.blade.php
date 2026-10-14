@@ -1358,13 +1358,9 @@
                 <div class="form-section">
                     <label class="form-label"><i class="fas fa-random"></i> Send via channel(s)</label>
                     <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:6px;">
-                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                            <input type="checkbox" name="source[]" value="whatsapp" checked>
-                            <i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp
-                        </label>
                         @if($activeChannels['phone_sms'] ?? false)
                         <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                            <input type="checkbox" name="source[]" value="phone_sms"> <i class="fas fa-sms"></i> Phone-SMS
+                            <input type="checkbox" name="source[]" value="phone_sms" checked> <i class="fas fa-sms"></i> Phone-SMS
                         </label>
                         @endif
                         @if($activeChannels['bulk_sms'] ?? false)
@@ -1379,8 +1375,8 @@
                         @endif
                     </div>
                     <small class="text-muted d-block mt-1">
-                        Each contact receives via <strong>one</strong> channel: WhatsApp if they've messaged you before, otherwise the first selected alternative (Bulk-SMS &rarr; Phone-SMS &rarr; Email).
-                        Enable more channels on the Sales Agent page.
+                        Each contact receives via <strong>one</strong> channel: the first one selected (Bulk-SMS &rarr; Phone-SMS &rarr; Email).
+                        Campaigns are not sent over WhatsApp. Enable more channels on the Sales Agent page.
                     </small>
                 </div>
 
@@ -1590,11 +1586,6 @@
                         <span id="wordCount">0 {{ __('campaigns.create.word_count') }}</span>
                         <span id="smsCount">1 {{ __('campaigns.create.sms_count') }}</span>
                         <span id="recipientCount">0 {{ __('campaigns.create.recipient_count') }}</span>
-                    </div>
-                    
-                    <div class="status-indicator">
-                        <div class="status-dot"></div>
-                        <span>{{ __('campaigns.create.whatsapp_connected') }}</span>
                     </div>
                 </div>
             </form>

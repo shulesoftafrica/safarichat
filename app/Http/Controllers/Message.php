@@ -616,15 +616,12 @@ class Message extends Controller
             }
         }
 
-        //save message to DB here first
-        if (in_array('whatsapp', $request->source)) {
-            $whatsappInstance = \App\Models\WhatsappInstance::where('user_id', Auth::id())
-                ->where('status', 'connected')
-                ->where('connect_status', 'ready')
-                ->first();
-            if (!$whatsappInstance) {
-                return $responseHelper(false, 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.', ['error' => 'WhatsApp channel is not activated or paid. Please activate and pay for WhatsApp integration.']);
-            }
+        // Campaigns never go out over WhatsApp (WhatsApp restricts bulk sending, even to people who messaged
+        // us first). Drop it from whatever the form/API sent and require an SMS / email channel that is enabled.
+        $request->merge(['source' => array_values(array_diff((array) $request->input('source', []), ['whatsapp']))]);
+        if (empty($this->campaignChannels($request->source))) {
+            $channelError = 'Select at least one sending channel that is enabled for your business: Phone-SMS, Bulk-SMS or Email.';
+            return $responseHelper(false, $channelError, ['source' => $channelError]);
         }
 
 
@@ -829,22 +826,7 @@ class Message extends Controller
      */
     private function resolveRecipientChannel($contact, array $selectedChannels, int $ownerUserId): ?string
     {
-        $phone  = (string) ($contact->guest_phone ?? '');
-        $digits = preg_replace('/\D/', '', $phone);
-
-        // 1. WhatsApp when the contact has engaged us on WhatsApp before.
-        if (in_array('whatsapp', $selectedChannels, true) && $digits !== '') {
-            $hasWhatsapp = \App\Models\IncomingMessage::where('user_id', $ownerUserId)
-                ->where(function ($q) use ($phone, $digits) {
-                    $q->where('phone_number', $phone)->orWhere('phone_number', $digits);
-                })
-                ->exists();
-            if ($hasWhatsapp) {
-                return 'whatsapp';
-            }
-        }
-
-        // 2. No WhatsApp engagement → first selected alternative, in priority order.
+        // WhatsApp is deliberately never a campaign channel: first selected alternative, in priority order.
         foreach (['bulk_sms', 'phone_sms', 'email'] as $c) {
             if (in_array($c, $selectedChannels, true)) {
                 if ($c === 'email' && empty($contact->guest_email)) {
@@ -854,33 +836,39 @@ class Message extends Controller
             }
         }
 
-        // 3. Last resort: WhatsApp if it was selected.
-        if (in_array('whatsapp', $selectedChannels, true)) {
-            return 'whatsapp';
-        }
-
         return null;
     }
 
-    private function queueMessages($users, $message, $sources, $attachments = [], $productId = null)
+    /**
+     * Campaign channels = selected ∩ enabled on the Sales Agent page (channels table). Never WhatsApp.
+     *
+     * @return string[]  subset of 'bulk_sms' | 'phone_sms' | 'email'
+     */
+    private function campaignChannels($sources): array
     {
-        // Resolve which channels this campaign may use: selected ∩ active.
-        // WhatsApp is always allowed; Email/Phone-SMS/Bulk-SMS only when enabled on
-        // the Sales Agent page (channels table).
         $businessId = Auth::user()->business->id ?? \App\Models\Business::where('user_id', Auth::id())->value('id');
-        $activeAlt = $businessId
+        $active = $businessId
             ? \App\Models\Channel::where('business_id', $businessId)
                 ->whereIn('channel_key', ['email', 'phone_sms', 'bulk_sms'])
                 ->where('is_active', true)->pluck('channel_key')->all()
             : [];
-        $selectedChannels = [];
-        foreach (['whatsapp', 'bulk_sms', 'phone_sms', 'email'] as $c) {
-            if (in_array($c, (array) $sources, true) && ($c === 'whatsapp' || in_array($c, $activeAlt, true))) {
-                $selectedChannels[] = $c;
-            }
-        }
+
+        return array_values(array_filter(
+            ['bulk_sms', 'phone_sms', 'email'],
+            fn ($c) => in_array($c, (array) $sources, true) && in_array($c, $active, true)
+        ));
+    }
+
+    private function queueMessages($users, $message, $sources, $attachments = [], $productId = null)
+    {
+        // Staging does several queries per recipient; a 2k-contact list took ~17s of the 30s php-fpm limit.
+        @set_time_limit(300);
+
+        // Channels this campaign may use: selected ∩ enabled on the Sales Agent page. Never WhatsApp.
+        $selectedChannels = $this->campaignChannels($sources);
         if (empty($selectedChannels)) {
-            $selectedChannels = ['whatsapp'];
+            Log::error('Campaign not staged: no enabled non-WhatsApp channel selected', ['sources' => $sources, 'user_id' => Auth::id()]);
+            return ['queued' => 0, 'skipped_invalid_phone' => 0, 'skipped_undeliverable' => 0, 'skipped_no_reply' => 0];
         }
         Log::info('Campaign channel selection', ['selected' => $selectedChannels, 'sources' => $sources]);
 
@@ -906,15 +894,6 @@ class Message extends Controller
             'recipient_count' => $userCount,
             'has_attachments' => !empty($attachments)
         ]);
-
-        // Get user's WhatsApp instance for validation
-        $waSenderService = new WaSenderService();
-        $instance = $waSenderService->getUserInstance(Auth::id());
-       
-        if (!$instance) {
-            Log::error('No active WhatsApp instance found for user', ['user_id' => Auth::id()]);
-            return;
-        }
 
         // STEP 1: Create Campaign record
         $campaign = \App\Models\Campaign::create([
@@ -1070,13 +1049,25 @@ class Message extends Controller
 
         // STEP 3: Dispatch AI personalization job
         if ($queuedCount > 0) {
-            \App\Jobs\PersonalizeCampaignMessagesJob::dispatch($campaign->id)
-                ->onQueue('ai_personalization');
-            
-            Log::info('PersonalizeCampaignMessagesJob dispatched', [
-                'campaign_id' => $campaign->id,
-                'messages_to_personalize' => $queuedCount
-            ]);
+            if (config('queue.default') === 'sync') {
+                // With QUEUE_CONNECTION=sync, dispatch() runs the job INSIDE this web request: the AI
+                // personalizes (and sends) every staged message one by one while the user's page spins
+                // forever (2k contacts = tens of minutes, then a gateway timeout), and it races the
+                // 5-minute "campaigns:personalize" scheduler over the same staged rows. Leave the rows
+                // staged; the scheduler picks them up in batches.
+                Log::info('Queue driver is sync - leaving campaign staged for the scheduler', [
+                    'campaign_id' => $campaign->id,
+                    'messages_to_personalize' => $queuedCount
+                ]);
+            } else {
+                \App\Jobs\PersonalizeCampaignMessagesJob::dispatch($campaign->id)
+                    ->onQueue('ai_personalization');
+
+                Log::info('PersonalizeCampaignMessagesJob dispatched', [
+                    'campaign_id' => $campaign->id,
+                    'messages_to_personalize' => $queuedCount
+                ]);
+            }
         }
 
         // Note: Attachments will be sent during the final delivery phase
