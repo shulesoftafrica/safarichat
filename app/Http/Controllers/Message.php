@@ -778,14 +778,18 @@ class Message extends Controller
         
      
         // Use queue system for message processing with attachments
-        $this->queueMessages($users, $request->message, $request->source, $attachments, $productId);
+        $queueResult = $this->queueMessages($users, $request->message, $request->source, $attachments, $productId);
         
-        $messageCount = is_array($users) ? count($users) : (isset($users) && method_exists($users, 'count') ? $users->count() : 0);
+        $messageCount = is_array($queueResult) ? (int) $queueResult['queued']
+            : (is_array($users) ? count($users) : (isset($users) && method_exists($users, 'count') ? $users->count() : 0));
         $attachmentCount = count($attachments);
         
         $successMessage = "Messages queued for delivery successfully to {$messageCount} recipients!";
         if ($attachmentCount > 0) {
             $successMessage .= " Including {$attachmentCount} attachment(s).";
+        }
+        if (is_array($queueResult) && $queueResult['skipped_invalid_phone'] > 0) {
+            $successMessage .= " {$queueResult['skipped_invalid_phone']} contact(s) were skipped because their phone number is not valid (7-15 digits).";
         }
         $successMessage .= " You will receive notifications as they are processed.";
         
@@ -953,12 +957,24 @@ class Message extends Controller
         $nurtureCount = 0;
         $skippedNoReply = 0;
         $skippedUndeliverable = 0;
+        $skippedInvalidPhone = 0;
+        $invalidPhoneSamples = [];
 
         foreach ($users as $user) {
             $user = (object) $user;
 
-            $phoneNumber = validate_phone_number($user->guest_phone);
-           
+            // One malformed number in a list must not abort the whole campaign (it used to throw here,
+            // leaving a half-staged campaign and an error page). Skip it, count it, carry on.
+            try {
+                $phoneNumber = validate_phone_number($user->guest_phone);
+            } catch (\InvalidArgumentException $e) {
+                $skippedInvalidPhone++;
+                if (count($invalidPhoneSamples) < 10) {
+                    $invalidPhoneSamples[] = trim(($user->guest_name ?? '') . ' ' . ($user->guest_phone ?? ''));
+                }
+                continue;
+            }
+
             if (is_array($phoneNumber)) {
                 $cleanPhone = $phoneNumber[1];
 
@@ -1047,6 +1063,8 @@ class Message extends Controller
             'queued_for_ai' => $queuedCount,
             'nurture_mode' => $nurtureCount,
             'skipped_no_reply' => $skippedNoReply,
+            'skipped_invalid_phone' => $skippedInvalidPhone,
+            'invalid_phone_samples' => $invalidPhoneSamples,
             'total_recipients' => $userCount
         ]);
 
@@ -1063,6 +1081,13 @@ class Message extends Controller
 
         // Note: Attachments will be sent during the final delivery phase
         // by ScheduleMessageSendJob after AI personalization is complete
+
+        return [
+            'queued' => $queuedCount,
+            'skipped_invalid_phone' => $skippedInvalidPhone,
+            'skipped_undeliverable' => $skippedUndeliverable,
+            'skipped_no_reply' => $skippedNoReply,
+        ];
     }
 
     private function ensureLeadProductAssociation(BusinessContact $contact, int $productId): void
@@ -1072,9 +1097,18 @@ class Message extends Controller
             ->first();
 
         if (!$lead) {
+            // leads.ai_sales_agent_id is NOT NULL: without an agent the insert failed for every contact of a
+            // campaign (hundreds of "Lead creation database error" lines). No agent -> nothing to attach to.
+            $agentId = \App\Models\AiSalesAgent::where('user_id', Auth::id())
+                ->orderByDesc('is_active')->orderBy('id')->value('id');
+            if (!$agentId) {
+                return;
+            }
+
             $result = Lead::safeCreate([
                 'business_contact_id' => $contact->id,
                 'business_id' => $contact->business_id,
+                'ai_sales_agent_id' => $agentId,
                 'user_id' => Auth::id(),
                 'name' => $contact->guest_name,
                 'phone_number' => $contact->guest_phone,
