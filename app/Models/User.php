@@ -142,6 +142,22 @@ class User extends Authenticatable implements MustVerifyEmail{
         return (int) ($business->user_id ?? $this->id);
     }
 
+    /**
+     * Whether this user may use the app as far as the WhatsApp setup gate is concerned: the business owner's
+     * connection counts (team members share it), and so does the user's own.
+     *
+     * One definition for both the CheckWhatsAppSetup middleware and the setup page. They used to disagree (the
+     * page looked at the user's own instance, the middleware at the owner's), so a team member with a connected
+     * instance of their own under an owner whose instance was disconnected bounced between the two forever
+     * (ERR_TOO_MANY_REDIRECTS on /auth/business/wasender).
+     */
+    public function hasConnectedWhatsApp(): bool
+    {
+        return \App\Models\WhatsappInstance::whereIn('user_id', array_unique([$this->ownerUserId(), (int) $this->id]))
+            ->whereIn('status', ['connected', 'active'])
+            ->exists();
+    }
+
     /** Who may add, edit and remove team members: the owner, and users with the admin or manager role. */
     public function canManageTeam(): bool
     {

@@ -47,9 +47,7 @@ class CheckWhatsAppSetup
         // and then to "add a product" right after logging in.
         $ownerId = $user->ownerUserId();
 
-        $hasConnectedWhatsApp = \App\Models\WhatsappInstance::where('user_id', $ownerId)
-            ->whereIn('status', ['connected', 'active'])
-            ->exists();
+        $hasConnectedWhatsApp = $user->hasConnectedWhatsApp();
 
         if (!$hasConnectedWhatsApp) {
             // Redirect to WhatsApp setup

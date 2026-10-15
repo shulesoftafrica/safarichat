@@ -25,14 +25,11 @@ class WaSenderController extends Controller
      */
     public function index()
     {
-        // Check if user already has a connected WhatsApp instance
-        $connectedInstance = Auth::user()->whatsappInstances()
-            ->where('status', 'connected')
-            ->first();
-
-        if ($connectedInstance) {
+        // Same test as the CheckWhatsAppSetup middleware (owner's or own connection, 'connected' or 'active').
+        // Redirecting away on a different test than the one that sent the user here is a redirect loop.
+        if (Auth::user()->hasConnectedWhatsApp()) {
             // User already has connected WhatsApp, redirect to product setup
-            $hasProducts = Auth::user()->products()->exists();
+            $hasProducts = \App\Models\Product::where('user_id', Auth::user()->ownerUserId())->exists();
             
             if (!$hasProducts) {
                 // Redirect to product setup
