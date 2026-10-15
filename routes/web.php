@@ -133,14 +133,16 @@ Route::get('/service/tab-content', [App\Http\Controllers\Service::class, 'getTab
 Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     Route::post('/products', [App\Http\Controllers\ProductController::class, 'store'])->name('products.store');
+    // Static product paths MUST be declared before /products/{id} or they get
+    // captured as an {id} (e.g. "import-template" -> show() -> "Product not found").
+    Route::get('/products/import-template', [App\Http\Controllers\ProductController::class, 'downloadProductTemplate'])->name('products.importTemplate');
+    Route::post('/products/import', [App\Http\Controllers\ProductController::class, 'importProducts'])->name('products.import');
     Route::get('/products/{id}/manage', [App\Http\Controllers\ProductController::class, 'manage'])->name('products.manage');
     Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{id}/edit', [App\Http\Controllers\ProductController::class, 'edit'])->name('products.edit');
     Route::put('/products/{id}', [App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [App\Http\Controllers\ProductController::class, 'destroy'])->name('products.destroy');
     Route::post('/products/bulk-action', [App\Http\Controllers\ProductController::class, 'bulkAction'])->name('products.bulk-action');
-    Route::post('/products/import', [App\Http\Controllers\ProductController::class, 'importProducts'])->name('products.import');
-    Route::get('/products/import-template', [App\Http\Controllers\ProductController::class, 'downloadProductTemplate'])->name('products.importTemplate');
 });
 
 // Contact Management Routes

@@ -17,7 +17,8 @@ return [
     'stock_path'           => env('LINESHOP_STOCK_PATH', '/api/v1/products/stock'),
     'connect_confirm_path' => env('LINESHOP_CONNECT_CONFIRM_PATH', '/api/v1/connect/confirm'),
 
-    'timeout'   => (int) env('LINESHOP_HTTP_TIMEOUT', 20),  // seconds per request
+    'timeout'         => (int) env('LINESHOP_HTTP_TIMEOUT', 15),   // total seconds per request
+    'connect_timeout' => (int) env('LINESHOP_CONNECT_TIMEOUT', 8), // fail fast if host unreachable
     'page_size' => (int) env('LINESHOP_SYNC_PAGE_SIZE', 200),
     'max_pages' => (int) env('LINESHOP_SYNC_MAX_PAGES', 2000), // safety cap (200 * 2000 = 400k SKUs)
 ];

@@ -152,7 +152,8 @@
                     <div class="ls-alert err"><i class="fas fa-exclamation-triangle mr-1"></i>{{ $connection->last_error }}</div>
                 @endif
 
-                <form method="post" action="{{ route('lineshop.connect') }}">
+                <form method="post" action="{{ route('lineshop.connect') }}"
+                      onsubmit="var b=this.querySelector('button[type=submit]'); b.disabled=true; b.innerHTML='<i class=&quot;fas fa-spinner fa-spin mr-1&quot;></i>Verifying… (a few seconds)';">
                     @csrf
                     <div class="mb-3">
                         <label class="ls-label">Store URL</label>

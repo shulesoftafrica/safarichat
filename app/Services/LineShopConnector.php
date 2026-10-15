@@ -26,7 +26,8 @@ class LineShopConnector
 
         try {
             $res = Http::withHeaders($this->headers($clientId, $apiKey))
-                ->timeout(config('lineshop.timeout', 20))
+                ->connectTimeout(config('lineshop.connect_timeout', 8))
+                ->timeout(config('lineshop.timeout', 15))
                 ->get($url, ['limit' => 1, 'page' => 1]);
 
             if ($res->status() === 401 || $res->status() === 403) {
@@ -75,7 +76,8 @@ class LineShopConnector
         try {
             for (; $page <= $maxPages; $page++) {
                 $res = Http::withHeaders($this->headers($conn->client_id, $conn->api_key))
-                    ->timeout(config('lineshop.timeout', 20))
+                    ->connectTimeout(config('lineshop.connect_timeout', 8))
+                ->timeout(config('lineshop.timeout', 15))
                     ->get($catalogUrl, ['limit' => $pageSize, 'page' => $page]);
 
                 if (! $res->successful()) {
@@ -123,7 +125,8 @@ class LineShopConnector
         }
         try {
             $res = Http::withHeaders($this->headers($conn->client_id, $conn->api_key))
-                ->timeout(config('lineshop.timeout', 20))
+                ->connectTimeout(config('lineshop.connect_timeout', 8))
+                ->timeout(config('lineshop.timeout', 15))
                 ->get($this->url($conn->base_url, config('lineshop.stock_path')), ['codes' => implode(',', $codes)]);
 
             if (! $res->successful()) {
