@@ -586,6 +586,34 @@ class OpenAiService
      * @param  string  $mediaUrl  Temporary WaSender CDN URL — download immediately
      * @param  string  $caption   WhatsApp caption text (may be empty)
      */
+    /**
+     * Identify the product shown in an image (name + brand + key attributes) so we
+     * can match it against the catalog. A cheap, focused call — returns a short
+     * descriptor like "Panadol Extra 20 tablets", not a sales reply.
+     */
+    private function extractProductFromImage(string $imageBase64): ?string
+    {
+        try {
+            $resp = $this->chatCreate([
+                'model' => $this->defaultModel,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You identify the product in an image for a catalog lookup. Reply with ONLY the product name, brand and key attributes — e.g. "Panadol Extra 20 tablets" or "Nike Air Force 1 white sneakers". No sentences, no punctuation beyond what is in the name. If unclear, give your best guess of the product type.'],
+                    ['role' => 'user', 'content' => [
+                        ['type' => 'text', 'text' => 'What product is this? Name + brand + key attributes only.'],
+                        ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,' . $imageBase64, 'detail' => 'low']],
+                    ]],
+                ],
+                'max_tokens'  => 40,
+                'temperature' => 0.2,
+            ]);
+            $text = trim($resp->choices[0]->message->content ?? '');
+            return $text !== '' ? mb_substr($text, 0, 120) : null;
+        } catch (\Throwable $e) {
+            Log::warning('Vision product extraction failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
     public function generateSalesResponseWithVision(
         string $mediaUrl,
         string $caption,
@@ -613,18 +641,24 @@ class OpenAiService
                 );
             }
 
-            // --- 2. Build full RAG context (system prompt + docs + history) ---
+            // --- 2a. Identify the product in the image so we can match the catalog ---
+            // This is what makes "customer sends an Instagram screenshot, no caption"
+            // work: we turn the picture into a searchable product descriptor.
+            $extracted  = $this->extractProductFromImage($imageBase64);
+            $searchText = trim(($caption ?: '') . ' ' . ($extracted ?: ''));
+
+            // --- 2b. Build full RAG context (system prompt + docs + catalog + history) ---
             $ragService  = app(\App\Services\RagSearchService::class);
             $productIds  = $product
                 ? [$product->id]
                 : $lead->leadProducts()->pluck('product_id')->toArray();
-            $relevantDocs = $ragService->searchDocuments($caption ?: 'image product match', $productIds, 3);
+            $relevantDocs = $ragService->searchDocuments($searchText ?: 'image product match', $productIds, 3);
 
-            // Borrow the RAG prompt builder for system/context/history setup.
-            // It appends a plain-text user message at the end — we pop it and
-            // replace with the multimodal content array.
+            // buildRAGPrompt injects MATCHING CATALOG PRODUCTS for $searchText (the
+            // identified item), so the reply quotes real names/prices/stock. It
+            // appends a plain-text user turn at the end — we pop it and send the image.
             $messages = $this->buildRAGPrompt(
-                $caption ?: '', $agent, $lead,
+                $searchText ?: '', $agent, $lead,
                 $conversationHistory, $product, $relevantDocs, $instance
             );
             array_pop($messages); // remove the plain-text user turn
@@ -646,9 +680,9 @@ class OpenAiService
 
             $userContent[] = [
                 'type' => 'text',
-                'text' => 'Please analyse the image the customer shared. Using our product catalog above, '
-                        . 'tell them whether we stock a matching item and describe the closest alternatives we have. '
-                        . 'Be helpful, specific, and concise.',
+                'text' => 'Identify the product in this image' . ($extracted ? ' (it looks like: ' . $extracted . ')' : '') . '. '
+                        . 'Using the MATCHING PRODUCTS IN OUR CATALOG above, tell the customer whether we have it, with the exact price and availability. '
+                        . 'If we do not stock that exact item, offer the closest in-stock alternative from our catalog. Never invent a product or price. Be concise and specific.',
             ];
 
             $messages[] = ['role' => 'user', 'content' => $userContent];
