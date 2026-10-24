@@ -210,8 +210,12 @@ class OpenAiService
                 continue;
             }
 
-            // Remove meta preambles like "Certainly! Here's a follow-up...".
-            if ($index === 0 && preg_match('/^(certainly|absolutely|sure|of course|great)\b.*\b(follow[- ]?up|message|version|approach|tailor|adjust)\b.*:?$/i', $trimmed)) {
+            // Remove meta preambles like "Certainly! Here's a follow-up message:". A preamble is a short lead-in line that
+            // ENDS WITH A COLON and is followed by the real text. The old pattern (".*" and an optional colon) matched any
+            // one-line reply that began with Sure/Absolutely/Great and mentioned "message" anywhere ("Absolutely! Just
+            // send us a message with your school name."), deleted the whole reply and left the customer unanswered.
+            if ($index === 0 && count($lines) > 1
+                && preg_match('/^(certainly|absolutely|sure|of course|great)\b[!.,]?[^.!?]*\b(follow[- ]?up|message|version|approach|tailor|adjust)\b[^.!?]*:\s*$/i', $trimmed)) {
                 continue;
             }
 
@@ -239,6 +243,12 @@ class OpenAiService
         // Collapse excess blank lines.
         $result = preg_replace('/\n{3,}/', "\n\n", $result);
         $result = trim($result, " \t\n\r\0\x0B\"");
+
+        // Cleaning must never turn a real answer into nothing: if every line was stripped, send the answer as written.
+        if (trim($result) === '') {
+            Log::warning('AI reply was emptied by the WhatsApp text cleanup; sending it uncleaned', ['original_preview' => mb_substr($text, 0, 200)]);
+            return trim($text, " \t\n\r\0\x0B\"");
+        }
 
         return trim($result);
     }
@@ -735,6 +745,38 @@ class OpenAiService
     /**
      * Build RAG-enhanced prompt
      */
+    /**
+     * Surface the business's own catalog products that match the customer's
+     * question so the AI quotes REAL names/prices/stock (and never invents them).
+     * Returns a context block, or null when nothing matches.
+     */
+    private function catalogGrounding(\App\Models\AiSalesAgent $agent, \App\Models\Lead $lead, string $customerMessage): ?string
+    {
+        if (trim($customerMessage) === '') {
+            return null;
+        }
+        try {
+            $matches = app(\App\Services\CatalogSearchService::class)->search($agent, $lead, $customerMessage, 6);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (empty($matches)) {
+            return null;
+        }
+
+        $lines = [];
+        foreach ($matches as $m) {
+            $price = $m['price'] > 0 ? number_format($m['price']) : 'ask';
+            $stock = $m['quantity'] > 0 ? 'In stock' : 'Out of stock';
+            $lines[] = "- {$m['name']} — Price: {$price} — {$stock}";
+        }
+
+        return "=== MATCHING PRODUCTS IN OUR CATALOG ===\n"
+            . "These are the real products we have that match the customer's question. Use THESE exact names, prices and availability — never invent a product or a price. If an item is Out of stock, say so plainly and offer an In-stock alternative from this list.\n"
+            . implode("\n", $lines)
+            . "\n========================================";
+    }
+
     private function buildRAGPrompt(
         string $customerMessage,
         \App\Models\AiSalesAgent $agent,
@@ -785,7 +827,13 @@ class OpenAiService
             $contextPrompt .= "Always mention that you're using the most current product information available.\n";
             $contextPrompt .= "===============================\n";
         }
-        
+
+        // Ground the reply in the business's real catalog (prices + live/last-synced stock).
+        $catalogBlock = $this->catalogGrounding($agent, $lead, $customerMessage);
+        if ($catalogBlock) {
+            $contextPrompt .= "\n\n" . $catalogBlock;
+        }
+
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'assistant', 'content' => $contextPrompt],
@@ -825,7 +873,13 @@ class OpenAiService
     ): array {
         $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product, $instance);
         $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
-        
+
+        // Ground the reply in the business's real catalog (names, prices, stock).
+        $catalogBlock = $this->catalogGrounding($agent, $lead, $customerMessage);
+        if ($catalogBlock) {
+            $contextPrompt .= "\n\n" . $catalogBlock;
+        }
+
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'assistant', 'content' => $contextPrompt],
@@ -836,7 +890,7 @@ class OpenAiService
             // Ensure content is never null and is sanitized
             $content = $message['content'] ?? '';
             $content = $this->sanitizeText($content);
-            
+
             // Only add message if content is not empty after sanitization
             if (!empty(trim($content))) {
                 $messages[] = [
