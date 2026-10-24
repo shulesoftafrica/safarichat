@@ -85,7 +85,7 @@
     }
 
     .nav-cta {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 12px 24px;
         border-radius: 8px;
@@ -102,7 +102,7 @@
 
     /* Hero Section */
     .corporate-hero {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 100px 20px;
         text-align: center;
@@ -414,7 +414,7 @@
 
     /* ROI Section */
     .corporate-roi {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 80px 0;
     }
@@ -597,7 +597,7 @@
 
     /* Final CTA Section */
     .corporate-final-cta {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 100px 20px;
         text-align: center;
@@ -607,12 +607,14 @@
         font-size: 3rem;
         font-weight: 900;
         margin-bottom: 25px;
+        color: #fff;
     }
 
     .final-cta-subtitle {
         font-size: 1.4rem;
         margin-bottom: 50px;
-        opacity: 0.9;
+        color: #fff;
+        opacity: 0.92;
     }
 
     .final-cta-buttons {
@@ -735,7 +737,7 @@
     }
 
     .modal-header {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 25px 30px;
         border-radius: 15px 15px 0 0;
@@ -820,7 +822,7 @@
     }
 
     .btn-submit {
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         padding: 15px 30px;
         border: none;
