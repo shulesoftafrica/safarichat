@@ -122,6 +122,22 @@ class AiWhatsAppService
                 return $aiResult;
             }
 
+            // Safety net: a customer must never be left without an answer. If the model returned nothing, or cleanup
+            // removed everything, the webhook used to record "No response" and stay silent (credits were still spent).
+            // Send a short holding reply instead and hand the conversation to a person.
+            if (trim((string) ($aiResult['response'] ?? '')) === '') {
+                Log::error('AI produced an empty reply; sending a holding reply and flagging it for a person', [
+                    'message_id'   => $message->id,
+                    'phone_number' => $message->phone_number,
+                    'tokens_used'  => $aiResult['tokens_used'] ?? null,
+                ]);
+                $aiResult['response'] = "Asante kwa ujumbe wako. Mmoja wa timu yetu atakujibu hivi punde.\n"
+                    . "Thank you for your message. One of our team will reply to you shortly.";
+                $aiResult['actions'] = array_merge($aiResult['actions'] ?? [], [
+                    'needs_escalation' => ['reason' => 'empty_ai_reply', 'priority' => 'normal', 'trigger_phrase' => 'empty_ai_reply'],
+                ]);
+            }
+
             // The booking action is keyword-triggered and carries no time. Read the time the customer actually
             // asked for (and the AI confirmed) so a booking or reschedule uses it instead of a default.
             $aiResult['actions'] = $this->applyRequestedAppointmentTime(
