@@ -37,6 +37,7 @@ class AiSalesAgent extends Model
         'industries',
         'communication_tone',
         'personality_description',
+        'after_sale_agent_phone',
         'always_available',
         'business_days',
         'start_time',

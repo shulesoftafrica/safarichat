@@ -13,6 +13,7 @@ use App\Http\Controllers\WaSenderController;
 use App\Http\Controllers\Auth\WhatsAppRegistrationController;
 use App\Http\Controllers\Api\BillingApiController;
 use App\Http\Controllers\Api\BillingWebhookController;
+use App\Http\Controllers\Api\EventHookController;
 
 /*
   |--------------------------------------------------------------------------
@@ -24,6 +25,11 @@ use App\Http\Controllers\Api\BillingWebhookController;
   | is assigned the "api" middleware group. Enjoy building your API!
   |
  */
+
+// Conversion event webhook (public — authed by the unguessable token in the URL)
+Route::post('/events/hook/{token}', [EventHookController::class, 'handle'])
+    ->middleware('throttle:120,1')
+    ->name('api.events.hook');
 
 // Billing API Routes (Revenue Protected)
 Route::prefix('billing')->name('api.billing.')->group(function () {

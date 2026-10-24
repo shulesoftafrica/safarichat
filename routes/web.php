@@ -232,6 +232,14 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
         Route::delete('/{aiSalesAgent}', [App\Http\Controllers\AiSalesAgentController::class, 'destroy'])->name('destroy');
         Route::patch('/{aiSalesAgent}/toggle-status', [App\Http\Controllers\AiSalesAgentController::class, 'toggleStatus'])->name('toggle-status');
 
+        // Conversion events & automations (Pro+)
+        Route::patch('/events/after-sale-phone', [App\Http\Controllers\EventConfigController::class, 'afterSalePhone'])->name('events.after-sale-phone');
+        Route::post('/events', [App\Http\Controllers\EventConfigController::class, 'store'])->name('events.store');
+        Route::put('/events/{eventConfig}', [App\Http\Controllers\EventConfigController::class, 'update'])->name('events.update');
+        Route::patch('/events/{eventConfig}/toggle', [App\Http\Controllers\EventConfigController::class, 'toggle'])->name('events.toggle');
+        Route::post('/events/{eventConfig}/test', [App\Http\Controllers\EventConfigController::class, 'test'])->name('events.test');
+        Route::delete('/events/{eventConfig}', [App\Http\Controllers\EventConfigController::class, 'destroy'])->name('events.destroy');
+
     });
     
    // AI Agent Terms route

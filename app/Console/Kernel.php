@@ -52,6 +52,8 @@ class Kernel extends ConsoleKernel {
         Commands\EnforceSubscriptionExpiry::class,
         // Smart retry — re-queue categorised failed outgoing messages
         Commands\RetryFailedMessagesCommand::class,
+        // Conversion events — nudge/escalate unmet lead commitments
+        Commands\ProcessLeadCommitmentsCommand::class,
     ];
     public $emails;
 
@@ -186,6 +188,21 @@ class Kernel extends ConsoleKernel {
             })
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Subscription expiry enforcement failed', 'error');
+            });
+
+        // Conversion commitments — nudge customers who promised to pay/sign up
+        // and escalate to the team when the promise goes unmet. Hourly, daytime.
+        $schedule->command('commitments:process --grace-hours=24')
+            ->hourly()
+            ->between('07:00', '21:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/commitments.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Lead commitments processed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Lead commitments processing failed', 'error');
             });
 
         // Auto-refresh every connected catalog source (LineShop / API / web+feed)

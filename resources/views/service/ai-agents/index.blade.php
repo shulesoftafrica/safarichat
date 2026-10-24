@@ -648,6 +648,8 @@
                     });
                 })();
                 </script>
+
+                @include('service.ai-agents.partials.events')
             @else
                 <!-- Empty State -->
                 <div class="empty-state">

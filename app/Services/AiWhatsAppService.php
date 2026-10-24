@@ -87,6 +87,25 @@ class AiWhatsAppService
                 ];
             }
 
+            // Won-customer guard — stop selling.
+            // Once a contact is WON (CONVERTED/CLOSED), the AI must not keep
+            // pushing sales. Make sure they're handed to the after-sale agent
+            // and let a human handle the conversation instead of auto-replying.
+            if (in_array($lead->status, [Lead::STATUS_CONVERTED, Lead::STATUS_CLOSED], true)) {
+                $this->ensureAfterSaleHandoff($lead, $agent);
+                DB::commit();
+                Log::info('Won customer messaged — AI sales reply suppressed, handed to after-sale', [
+                    'lead_id' => $lead->id,
+                    'status'  => $lead->status,
+                ]);
+                return [
+                    'success'        => true,
+                    'skipped'        => true,
+                    'reason'         => 'won_customer_after_sale',
+                    'requires_human' => true,
+                ];
+            }
+
             // Check business hours and agent availability
             if (!$agent->isAvailableNow()) {
                 DB::rollback();
@@ -902,6 +921,61 @@ class AiWhatsAppService
             $instance = $this->resolveBusinessInstance($r['user_id']);
             if (!$instance) { continue; }
             $this->waSenderService->sendMessage($r['phone'], $text, [], $instance, $r['user_id']);
+        }
+    }
+
+    /**
+     * Ensure a WON contact is handed to the after-sale agent (idempotent — only
+     * assigns once, so repeat inbound messages don't re-notify or re-assign).
+     */
+    private function ensureAfterSaleHandoff(Lead $lead, AiSalesAgent $agent): void
+    {
+        $contact = $lead->contact ?? $lead->businessContact ?? null;
+        if (!$contact) { return; }
+
+        // Already with a human? Nothing to do.
+        if (in_array($contact->handoff_status, ['handed_off', 'completed'], true) && $contact->assigned_agent_id) {
+            return;
+        }
+
+        try {
+            // Set handoff fields directly (priority_level is an integer column
+            // with its own default — leave it untouched).
+            $contact->forceFill([
+                'handoff_status'       => 'pending_handoff',
+                'handoff_reason'       => 'Won customer — after-sale support',
+                'handoff_notes'        => 'Auto handoff: WON contact messaged',
+                'handoff_requested_at' => now(),
+            ])->save();
+
+            // Resolve the after-sale user from the agent's configured number, else the owner.
+            $afterSaleUserId = null;
+            if (!empty($agent->after_sale_agent_phone)) {
+                $digits = preg_replace('/\D+/', '', $agent->after_sale_agent_phone);
+                $u = \App\Models\User::whereRaw("regexp_replace(phone, '\\D', '', 'g') = ?", [$digits])->first();
+                $afterSaleUserId = $u->id ?? null;
+            }
+            if (!$afterSaleUserId) {
+                $afterSaleUserId = $lead->business->user_id ?? $agent->user_id ?? null;
+            }
+            if ($afterSaleUserId) {
+                $contact->assignToAgent($afterSaleUserId);
+            }
+
+            // Tell the after-sale agent once.
+            if (!empty($agent->after_sale_agent_phone)) {
+                $name  = $contact->guest_name ?? $lead->name ?? 'A customer';
+                $phone = $contact->guest_phone ?? $lead->phone_number ?? '';
+                $text  = "🤝 *Won customer needs you*\n\n{$name} (a {$lead->status} customer) just messaged.\n";
+                if ($phone !== '') { $text .= "📞 {$phone}\n"; }
+                $text .= "\nThey've been handed to you for after-sale support — please take over the conversation.";
+                $instance = $this->resolveBusinessInstance($afterSaleUserId);
+                if ($instance) {
+                    $this->waSenderService->sendMessage($agent->after_sale_agent_phone, $text, [], $instance, $afterSaleUserId);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('ensureAfterSaleHandoff failed', ['lead_id' => $lead->id, 'error' => $e->getMessage()]);
         }
     }
 

@@ -97,7 +97,15 @@ class AiSalesAgentController extends Controller
         // Guided outreach-channel config (Email / Phone-SMS / Bulk-SMS).
         $channelConfigs = $this->loadChannelConfigs();
 
-        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus', 'channels', 'agentChannelMatrix', 'channelConfigs'));
+        // Conversion events & automations (Pro+).
+        $eventsEnabled = in_array($subscription_plan, \App\Http\Controllers\EventConfigController::ALLOWED_PLANS, true);
+        $eventConfigs = ($user->business)
+            ? \App\Models\EventConfig::where('business_id', $user->business->id)->orderBy('created_at', 'desc')->get()
+            : collect();
+        $eventTypes = \App\Models\EventConfig::types();
+        $eventActions = \App\Models\EventConfig::availableActions();
+
+        return view('service.ai-agents.index', compact('agents', 'subscription_plan', 'ai_credits', 'whatsappInstance', 'realTimeStatus', 'channels', 'agentChannelMatrix', 'channelConfigs', 'eventsEnabled', 'eventConfigs', 'eventTypes', 'eventActions'));
     }
 
     /**
@@ -920,6 +928,8 @@ class AiSalesAgentController extends Controller
             // Fallback & Escalation
             'fallback_number' => 'required|string|max:20',
             'fallback_person' => 'nullable|string|max:255',
+            // After-sale support agent (takes over once a contact is WON)
+            'after_sale_agent_phone' => 'nullable|string|max:30',
             'ignored_contacts_line' => 'nullable|string|max:2000',
             'escalation_triggers' => 'nullable|array',
             'escalation_triggers.*' => 'string|in:complex-questions,complaints,large-orders,payment-issues,angry-customer',
