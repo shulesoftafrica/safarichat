@@ -19,18 +19,26 @@
     </div>
     @endif
     
+    @php
+        // A "synced source" is LineShop or a generic stock API. When either is
+        // connected, this page is a read-only summary of that source.
+        $syncSource   = $lineshopConnected ? 'LineShop' : ($apiConnected ? ($apiConnection->name ?: 'your stock software') : null);
+        $syncManage   = $lineshopConnected ? route('lineshop.index') : ($apiConnected ? route('catalog-api.index') : null);
+        $syncConn     = $lineshopConnected ? $lineshopConnection : ($apiConnected ? $apiConnection : null);
+        $catalogSynced = $lineshopConnected || $apiConnected;
+    @endphp
+
     <div class="page-header">
         <h2 class="page-title">
             <i class="fas fa-box"></i>
             Product Management
         </h2>
-        @if($lineshopConnected)
+        @if($catalogSynced)
             <div class="d-flex flex-wrap align-items-center" style="gap:10px;">
                 <span style="background:#dcfce7;color:#15803d;padding:8px 14px;border-radius:999px;font-weight:700;font-size:.82rem;">
-                    <i class="fas fa-store mr-1"></i>Synced from LineShop
+                    <i class="fas fa-sync-alt mr-1"></i>Synced from {{ $syncSource }}
                 </span>
-                <button type="button" class="btn btn-outline-primary" id="lsSyncNowBtn"><i class="fas fa-sync-alt mr-1"></i>Sync now</button>
-                <a href="{{ route('lineshop.index') }}" class="btn btn-light">Manage connection</a>
+                <a href="{{ $syncManage }}" class="btn btn-light">Manage connection</a>
             </div>
         @else
             <button type="button" class="btn btn-primary btn-add-product" onclick="checkProductLimitBeforeAdd()">
@@ -40,25 +48,30 @@
         @endif
     </div>
 
-    @if($lineshopConnected)
-        {{-- LineShop mode: this page is a read-only summary of the synced catalog. --}}
+    @if($catalogSynced)
+        {{-- Synced mode: this page is a read-only summary. Manage products in the source. --}}
         <div class="alert" style="background:#eef6ff;border:1px solid #cfe3ff;border-radius:12px;">
             <i class="fas fa-info-circle mr-1" style="color:#2563eb;"></i>
-            Your products are managed in <strong>LineShop</strong> and sync here automatically
-            (<strong>{{ number_format($lineshopConnection->product_count) }}</strong> synced{{ $lineshopConnection->last_synced_at ? ', last ' . $lineshopConnection->last_synced_at->diffForHumans() : '' }}).
-            This page is a read-only summary — add or edit products in LineShop.
+            Your products are managed in <strong>{{ $syncSource }}</strong> and sync here automatically
+            (<strong>{{ number_format($syncConn->product_count) }}</strong> synced{{ $syncConn->last_synced_at ? ', last ' . $syncConn->last_synced_at->diffForHumans() : '' }}).
+            This page is a read-only summary — add or edit products in {{ $syncSource }}.
         </div>
     @else
-        {{-- SafariChat mode: the second option is to connect a stock system instead. --}}
+        {{-- SafariChat mode: the alternative is to connect a stock system instead. --}}
         <div class="d-flex flex-wrap justify-content-between align-items-center"
              style="gap:12px;background:#f3faf5;border:1px solid #cdeccf;border-radius:14px;padding:14px 18px;margin-bottom:18px;">
             <div style="font-size:.92rem;color:#2f6b43;">
-                <strong><i class="fas fa-store mr-1"></i>Selling physical stock?</strong>
-                Connect your <strong>LineShop</strong> inventory — your whole catalog and live stock sync here automatically, no manual entry.
+                <strong><i class="fas fa-store mr-1"></i>Have a stock system?</strong>
+                Sync your catalog automatically instead of adding products by hand.
             </div>
-            <a href="{{ route('lineshop.index') }}" class="btn btn-success btn-sm" style="white-space:nowrap;">
-                <i class="fas fa-link mr-1"></i>Connect LineShop
-            </a>
+            <div class="d-flex flex-wrap" style="gap:8px;">
+                <a href="{{ route('lineshop.index') }}" class="btn btn-success btn-sm" style="white-space:nowrap;">
+                    <i class="fas fa-link mr-1"></i>Connect LineShop
+                </a>
+                <a href="{{ route('catalog-api.index') }}" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap;">
+                    <i class="fas fa-plug mr-1"></i>Connect an API
+                </a>
+            </div>
         </div>
     @endif
 

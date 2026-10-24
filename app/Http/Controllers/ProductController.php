@@ -121,9 +121,14 @@ class ProductController extends Controller
             : null;
         $lineshopConnected = $lineshopConnection && $lineshopConnection->isConnected();
 
+        $apiConnection = $business
+            ? \App\Models\CatalogApiConnection::where('business_id', $business->id)->first()
+            : null;
+        $apiConnected = $apiConnection && $apiConnection->isConnected();
+
         return view('service.products', compact(
             'products', 'categories', 'subscription_plan', 'max_products', 'total_products',
-            'lineshopConnection', 'lineshopConnected'
+            'lineshopConnection', 'lineshopConnected', 'apiConnection', 'apiConnected'
         ));
     }
 

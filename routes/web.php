@@ -199,6 +199,12 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::post('/lineshop/sync', [App\Http\Controllers\LineShopController::class, 'sync'])->name('lineshop.sync');
     Route::post('/lineshop/disconnect', [App\Http\Controllers\LineShopController::class, 'disconnect'])->name('lineshop.disconnect');
 
+    // Generic catalog-API connection (custom stock software)
+    Route::get('/catalog-api/connect', [App\Http\Controllers\CatalogApiController::class, 'index'])->name('catalog-api.index');
+    Route::post('/catalog-api/connect', [App\Http\Controllers\CatalogApiController::class, 'connect'])->name('catalog-api.connect');
+    Route::post('/catalog-api/sync', [App\Http\Controllers\CatalogApiController::class, 'sync'])->name('catalog-api.sync');
+    Route::post('/catalog-api/disconnect', [App\Http\Controllers\CatalogApiController::class, 'disconnect'])->name('catalog-api.disconnect');
+
     Route::post('/guest/log-activity', [App\Http\Controllers\Guest::class, 'logActivity'])->name('guest.logActivity');
     Route::get('/guest/activities/{guest}', [App\Http\Controllers\Guest::class, 'getActivities'])->name('guest.activities');
     Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');
