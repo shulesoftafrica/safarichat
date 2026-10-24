@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CorporateApiController extends Controller
 {
@@ -67,6 +68,20 @@ class CorporateApiController extends Controller
                 "⏰ Timeline: " . $this->formatTimeline($request->adoptionTimeline) . "\n" .
                 ($request->customMessage ? "💬 Message: {$request->customMessage}\n" : "") .
                 "\n🔗 Review at: " . url('/admin/corporate-proposals')
+            );
+
+            // Email the lead to the company inbox
+            $this->sendLeadEmail(
+                "New Corporate Proposal Request #{$proposalId} — {$request->companyName}",
+                "A new corporate proposal request was submitted on SafariChat.\n\n" .
+                "Request ID: #{$proposalId}\n" .
+                "Company: {$request->companyName}\n" .
+                "Country: {$request->country}\n" .
+                "Email: {$request->officialEmail}\n" .
+                "Timeline: " . $this->formatTimeline($request->adoptionTimeline) . "\n" .
+                ($request->customMessage ? "Message: {$request->customMessage}\n" : "") .
+                "\nReview at: " . url('/admin/corporate-proposals'),
+                $request->officialEmail
             );
 
             return response()->json([
@@ -158,6 +173,24 @@ class CorporateApiController extends Controller
                 "\n🔗 Review at: " . url('/admin/strategy-sessions')
             );
 
+            // Email the lead to the company inbox
+            $this->sendLeadEmail(
+                "New Paid Strategy Session #{$sessionId} — {$request->companyName}",
+                "A new paid strategy session request was submitted on SafariChat.\n\n" .
+                "Session ID: #{$sessionId}\n" .
+                "Company: {$request->companyName}\n" .
+                "Country: {$request->country}\n" .
+                "Email: {$request->email}\n" .
+                "Phone: {$request->phone}\n" .
+                "Duration: {$request->meetingLength} minutes\n" .
+                "Price: \${$price}\n" .
+                "Payment: " . ucfirst($request->paymentMethod) . "\n" .
+                "Proposed: " . date('Y-m-d H:i', strtotime($request->proposedDateTime)) . "\n" .
+                "Agendas: {$request->meetingAgendas}\n" .
+                "\nReview at: " . url('/admin/strategy-sessions'),
+                $request->email
+            );
+
             // Here you would integrate with actual payment providers
             // For now, return success with payment instructions
             return response()->json([
@@ -175,6 +208,25 @@ class CorporateApiController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while submitting your request.'
             ], 500);
+        }
+    }
+
+    /**
+     * Email every corporate lead to the company inbox (reply-to = the submitter,
+     * so the team can answer directly). Never breaks the submission.
+     */
+    private function sendLeadEmail(string $subject, string $body, ?string $replyTo = null): void
+    {
+        $to = config('corporate.lead_email', 'shulesoftcompany@gmail.com');
+        try {
+            Mail::raw($body, function ($m) use ($to, $subject, $replyTo) {
+                $m->to($to)->subject($subject);
+                if ($replyTo) {
+                    $m->replyTo($replyTo);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Corporate lead email failed: ' . $e->getMessage());
         }
     }
 
