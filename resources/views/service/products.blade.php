@@ -842,13 +842,14 @@
                 </div><!-- /pane-import -->
                 <div class="tab-pane fade" id="pane-web" role="tabpanel">
                     <p class="text-muted" style="font-size:.9rem;">
-                        Already selling on a web store? Paste your shop link (e.g. your <strong>Jiji</strong> shop,
-                        or a Shopify/WooCommerce store) and we'll pull the products into your catalog.
+                        Already selling online? Paste a link and we'll pull the products in:
+                        a <strong>Jiji</strong> shop, a Shopify/WooCommerce store, or a
+                        <strong>Facebook/Instagram or Google product feed</strong> URL (from Commerce Manager).
                     </p>
                     <div class="form-group">
-                        <label>Store / shop URL</label>
-                        <input type="url" id="webImportUrl" class="form-control" placeholder="https://jiji.co.tz/shop/yourshop">
-                        <small class="text-muted">We read what's publicly on the page. Prices sync; stock is a snapshot (re-import to refresh).</small>
+                        <label>Store, shop, or product-feed URL</label>
+                        <input type="url" id="webImportUrl" class="form-control" placeholder="https://jiji.co.tz/shop/yourshop  —  or your feed URL">
+                        <small class="text-muted">We read what's publicly available. Prices sync; stock is a snapshot (re-import to refresh).</small>
                     </div>
                     <button type="button" class="btn btn-outline-primary" id="webPreviewBtn"><i class="fas fa-search mr-1"></i>Preview</button>
 

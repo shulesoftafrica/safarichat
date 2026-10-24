@@ -94,6 +94,8 @@ class WebCatalogImporter
                     if (($created + $updated) >= $maxItems) { break 2; }
                 }
 
+                // A feed is a single file with all products — never paginate it.
+                if ($this->isFeedSource($source)) { break; }
                 if ($newOnPage === 0) { break; }   // no fresh items -> stop
                 usleep(600000); // be polite between page fetches
             }
@@ -114,8 +116,21 @@ class WebCatalogImporter
     /** @return array{0:string,1:array} [source, items] */
     private function parse(string $html, string $baseUrl): array
     {
-        $host = parse_url($baseUrl, PHP_URL_HOST) ?: '';
+        $trim = ltrim($html);
 
+        // A product FEED (Facebook / Google Merchant) — XML (RSS with g: namespace
+        // or Atom) or CSV. This is the legit way to pull a Facebook/Instagram
+        // catalog: the seller generates a feed URL in Commerce Manager.
+        if (stripos($trim, '<?xml') === 0 || stripos($trim, '<rss') !== false || stripos($trim, '<feed') !== false) {
+            $items = $this->parseFeedXml($html);
+            if (! empty($items)) { return ['feed_xml', $items]; }
+        }
+        if ($this->looksLikeCsvFeed($trim)) {
+            $items = $this->parseFeedCsv($html);
+            if (! empty($items)) { return ['feed_csv', $items]; }
+        }
+
+        $host = parse_url($baseUrl, PHP_URL_HOST) ?: '';
         if (stripos($host, 'jiji.') !== false) {
             $items = $this->parseJiji($html, $baseUrl);
             if (! empty($items)) { return ['jiji', $items]; }
@@ -125,6 +140,94 @@ class WebCatalogImporter
         if (! empty($items)) { return ['jsonld', $items]; }
 
         return ['unknown', []];
+    }
+
+    /** True if source is a product feed (import should not paginate). */
+    private function isFeedSource(string $source): bool
+    {
+        return $source === 'feed_xml' || $source === 'feed_csv';
+    }
+
+    /** Parse a Facebook/Google Merchant product feed (RSS 2.0 with g: namespace). */
+    private function parseFeedXml(string $xml): array
+    {
+        libxml_use_internal_errors(true);
+        $sx = simplexml_load_string($xml);
+        if ($sx === false) { return []; }
+
+        // RSS: channel/item ; Atom: entry
+        $items = [];
+        $nodes = $sx->channel->item ?? ($sx->item ?? ($sx->entry ?? null));
+        if ($nodes === null) { return []; }
+
+        foreach ($nodes as $node) {
+            $g = $node->children('http://base.google.com/ns/1.0'); // g: namespace
+            $id    = (string) ($g->id ?? $node->guid ?? $node->id ?? '');
+            $title = (string) ($node->title ?? $g->title ?? '');
+            if ($id === '' && $title === '') { continue; }
+            if ($id === '') { $id = md5($title); }
+
+            $avail = strtolower((string) ($g->availability ?? ''));
+            $img   = (string) ($g->image_link ?? '');
+            $cat   = (string) ($g->product_type ?? ($g->google_product_category ?? ($g->brand ?? 'General')));
+
+            $items[(string) $id] = [
+                'ref'      => (string) $id,
+                'name'     => $title !== '' ? $title : ('Product ' . $id),
+                'price'    => $this->toNumber((string) ($g->price ?? $g->sale_price ?? '0')),
+                'url'      => (string) ($node->link ?? $g->link ?? ''),
+                'image'    => $img,
+                'category' => $cat ?: 'General',
+                'quantity' => (strpos($avail, 'in stock') !== false || strpos($avail, 'in_stock') !== false) ? 1 : 0,
+            ];
+        }
+        return array_values($items);
+    }
+
+    /** Parse a CSV/TSV product feed (header row with id/title/price/...). */
+    private function parseFeedCsv(string $csv): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', trim($csv));
+        if (count($lines) < 2) { return []; }
+        $delim = (substr_count($lines[0], "\t") > substr_count($lines[0], ',')) ? "\t" : ',';
+        $headers = array_map(fn ($h) => strtolower(trim($h, " \"'")), str_getcsv($lines[0], $delim));
+
+        $pick = function (array $row, array $keys, $default = '') use ($headers) {
+            foreach ($keys as $k) {
+                $i = array_search($k, $headers, true);
+                if ($i !== false && isset($row[$i]) && $row[$i] !== '') { return $row[$i]; }
+            }
+            return $default;
+        };
+
+        $out = [];
+        for ($i = 1; $i < count($lines); $i++) {
+            if (trim($lines[$i]) === '') { continue; }
+            $row = str_getcsv($lines[$i], $delim);
+            $id   = $pick($row, ['id', 'sku', 'g:id']);
+            $name = $pick($row, ['title', 'name']);
+            if ($id === '' && $name === '') { continue; }
+            if ($id === '') { $id = md5($name); }
+            $avail = strtolower($pick($row, ['availability', 'g:availability']));
+            $out[(string) $id] = [
+                'ref'      => (string) $id,
+                'name'     => $name ?: ('Product ' . $id),
+                'price'    => $this->toNumber($pick($row, ['price', 'sale_price', 'g:price'], '0')),
+                'url'      => $pick($row, ['link', 'url']),
+                'image'    => $pick($row, ['image_link', 'image', 'image_url']),
+                'category' => $pick($row, ['product_type', 'google_product_category', 'category', 'brand'], 'General'),
+                'quantity' => (strpos($avail, 'in stock') !== false || strpos($avail, 'in_stock') !== false) ? 1 : 0,
+            ];
+        }
+        return array_values($out);
+    }
+
+    private function looksLikeCsvFeed(string $s): bool
+    {
+        $first = strtolower(substr($s, 0, strpos($s . "\n", "\n")));
+        return (strpos($first, 'id') !== false || strpos($first, 'sku') !== false)
+            && (strpos($first, 'title') !== false || strpos($first, 'name') !== false)
+            && (strpos($first, ',') !== false || strpos($first, "\t") !== false);
     }
 
     /** Parse Jiji listing cards (server-rendered HTML). */
@@ -248,7 +351,7 @@ class WebCatalogImporter
             'description'     => mb_substr(trim($item['name']) . (empty($item['url']) ? '' : "\n" . $item['url']), 0, 2000),
             'retail_price'    => (float) ($item['price'] ?? 0),
             'wholesale_price' => (float) ($item['price'] ?? 0),
-            'quantity'        => 0,
+            'quantity'        => (int) round((float) ($item['quantity'] ?? 0)),
             'image_path'      => $item['image'] ?: null,
             'product_type'    => 'tangible',
             'status'          => 'active',
