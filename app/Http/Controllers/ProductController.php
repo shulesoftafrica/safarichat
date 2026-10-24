@@ -957,6 +957,30 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', $msg);
     }
 
+    /** Preview products from a web store / marketplace URL (no save). */
+    public function webPreview(Request $request, \App\Services\WebCatalogImporter $importer)
+    {
+        $request->validate(['url' => 'required|string|max:500']);
+        return response()->json($importer->preview($request->input('url')));
+    }
+
+    /** Import products from a web store / marketplace URL into the catalog. */
+    public function webImport(Request $request, \App\Services\WebCatalogImporter $importer)
+    {
+        $request->validate(['url' => 'required|string|max:500']);
+
+        $userId     = Auth::id();
+        $business   = Auth::user()->effectiveBusiness();
+        $businessId = $business->id ?? (Auth::user()->business_id ?? null);
+        if (! $businessId) {
+            return redirect()->route('products.index')->with('error', 'No business found for your account.');
+        }
+
+        $result = $importer->import($businessId, $userId, $request->input('url'), 200);
+
+        return redirect()->route('products.index')->with($result['ok'] ? 'success' : 'error', $result['message']);
+    }
+
     /** Download a CSV template for the product import. */
     public function downloadProductTemplate()
     {

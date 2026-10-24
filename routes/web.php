@@ -137,6 +137,8 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     // captured as an {id} (e.g. "import-template" -> show() -> "Product not found").
     Route::get('/products/import-template', [App\Http\Controllers\ProductController::class, 'downloadProductTemplate'])->name('products.importTemplate');
     Route::post('/products/import', [App\Http\Controllers\ProductController::class, 'importProducts'])->name('products.import');
+    Route::post('/products/web-preview', [App\Http\Controllers\ProductController::class, 'webPreview'])->name('products.webPreview');
+    Route::post('/products/web-import', [App\Http\Controllers\ProductController::class, 'webImport'])->name('products.webImport');
     Route::get('/products/{id}/manage', [App\Http\Controllers\ProductController::class, 'manage'])->name('products.manage');
     Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{id}/edit', [App\Http\Controllers\ProductController::class, 'edit'])->name('products.edit');

@@ -364,6 +364,9 @@
                     <li class="nav-item">
                         <a class="nav-link" id="tab-import" data-target="#pane-import" href="#pane-import"><i class="fas fa-file-excel mr-1"></i>Import from Excel</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="tab-web" data-target="#pane-web" href="#pane-web"><i class="fas fa-link mr-1"></i>From web link</a>
+                    </li>
                 </ul>
                 <div class="tab-content" id="addProductTabContent">
                 <div class="tab-pane fade show active" id="pane-write" role="tabpanel">
@@ -824,6 +827,27 @@
                         </div>
                     </form>
                 </div><!-- /pane-import -->
+                <div class="tab-pane fade" id="pane-web" role="tabpanel">
+                    <p class="text-muted" style="font-size:.9rem;">
+                        Already selling on a web store? Paste your shop link (e.g. your <strong>Jiji</strong> shop,
+                        or a Shopify/WooCommerce store) and we'll pull the products into your catalog.
+                    </p>
+                    <div class="form-group">
+                        <label>Store / shop URL</label>
+                        <input type="url" id="webImportUrl" class="form-control" placeholder="https://jiji.co.tz/shop/yourshop">
+                        <small class="text-muted">We read what's publicly on the page. Prices sync; stock is a snapshot (re-import to refresh).</small>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" id="webPreviewBtn"><i class="fas fa-search mr-1"></i>Preview</button>
+
+                    <div id="webPreviewResult" style="display:none;margin-top:14px;"></div>
+
+                    <form method="post" action="{{ route('products.webImport') }}" id="webImportForm" style="display:none;margin-top:12px;">
+                        @csrf
+                        <input type="hidden" name="url" id="webImportUrlHidden">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-download mr-1"></i>Import these products</button>
+                        <small class="text-muted d-block mt-1">Imports up to 200 at a time — run again to continue a large shop.</small>
+                    </form>
+                </div><!-- /pane-web -->
                 </div><!-- /tab-content -->
             </div>
             <div class="modal-footer">
@@ -5068,11 +5092,56 @@ function manageNurtureMessages() {
             document.querySelectorAll('#addProductModal .tab-pane').forEach(function (p) { p.classList.remove('show', 'active'); });
             var pane = document.querySelector(this.getAttribute('data-target'));
             if (pane) { pane.classList.add('show', 'active'); }
-            // The footer "Save Product" only applies to the write form; the Import tab has its own button.
+            // The footer "Save Product" only applies to the write form; the Import and
+            // From-web-link tabs have their own buttons.
+            var tgt = this.getAttribute('data-target');
             var saveBtn = document.getElementById('addModalSaveBtn');
-            if (saveBtn) { saveBtn.style.display = (this.getAttribute('data-target') === '#pane-import') ? 'none' : ''; }
+            if (saveBtn) { saveBtn.style.display = (tgt === '#pane-import' || tgt === '#pane-web') ? 'none' : ''; }
         });
     });
+
+    // "From web link" — preview before import.
+    var webPreviewBtn = document.getElementById('webPreviewBtn');
+    if (webPreviewBtn) {
+        webPreviewBtn.addEventListener('click', function () {
+            var url = (document.getElementById('webImportUrl').value || '').trim();
+            var box = document.getElementById('webPreviewResult');
+            var form = document.getElementById('webImportForm');
+            if (!url) { box.style.display = 'block'; box.innerHTML = '<div class="alert alert-warning">Enter your shop URL first.</div>'; return; }
+
+            var original = webPreviewBtn.innerHTML;
+            webPreviewBtn.disabled = true;
+            webPreviewBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Fetching…';
+            box.style.display = 'block';
+            box.innerHTML = '<div class="text-muted">Reading your shop page…</div>';
+            form.style.display = 'none';
+
+            var fd = new FormData();
+            fd.append('url', url);
+            fetch('{{ route("products.webPreview") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 'Accept': 'application/json' },
+                body: fd
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) { box.innerHTML = '<div class="alert alert-danger">' + (d.message || 'Could not read that page.') + '</div>'; return; }
+                var rows = (d.items || []).slice(0, 10).map(function (it) {
+                    var price = it.price ? Number(it.price).toLocaleString() : '-';
+                    var img = it.image ? '<img src="' + it.image + '" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin-right:8px;vertical-align:middle;">' : '';
+                    return '<tr><td>' + img + (it.name || '') + '</td><td class="text-right">' + price + '</td><td>' + (it.category || '') + '</td></tr>';
+                }).join('');
+                box.innerHTML =
+                    '<div class="alert alert-success mb-2"><i class="fas fa-check-circle mr-1"></i>' + d.message + (d.more ? ' (and more on the next pages)' : '') + '</div>' +
+                    '<div style="max-height:260px;overflow:auto;"><table class="table table-sm table-striped"><thead><tr><th>Product</th><th class="text-right">Price</th><th>Category</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+                    '<small class="text-muted">Showing a sample. Click Import to pull them into your catalog.</small>';
+                document.getElementById('webImportUrlHidden').value = url;
+                form.style.display = 'block';
+            })
+            .catch(function () { box.innerHTML = '<div class="alert alert-danger">Network error — please try again.</div>'; })
+            .finally(function () { webPreviewBtn.disabled = false; webPreviewBtn.innerHTML = original; });
+        });
+    }
 
     // "Sync now" (LineShop-connected view).
     var syncBtn = document.getElementById('lsSyncNowBtn');
