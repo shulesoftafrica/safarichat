@@ -983,6 +983,20 @@ class ProductController extends Controller
 
         $result = $importer->import($businessId, $userId, $request->input('url'), 200);
 
+        // Remember the source so the nightly job can auto-refresh it (and crawl a
+        // large shop fully on the cron, where there's no web-request timeout).
+        if ($result['ok']) {
+            \App\Models\WebCatalogConnection::updateOrCreate(
+                ['business_id' => $businessId, 'url' => rtrim(trim($request->input('url')), '/')],
+                [
+                    'status'         => 'connected',
+                    'last_synced_at' => now(),
+                    'product_count'  => \App\Models\Product::where('business_id', $businessId)->where('external_source', 'web')->count(),
+                    'last_error'     => null,
+                ]
+            );
+        }
+
         return redirect()->route('products.index')->with($result['ok'] ? 'success' : 'error', $result['message']);
     }
 

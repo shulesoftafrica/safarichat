@@ -187,6 +187,21 @@ class Kernel extends ConsoleKernel {
             ->onFailure(function () {
                 $this->logCronActivity(null, 'Subscription expiry enforcement failed', 'error');
             });
+
+        // Auto-refresh every connected catalog source (LineShop / API / web+feed)
+        // so prices and stock stay current. Runs inline (no queue worker needed);
+        // large web shops crawl fully here since there's no web-request timeout.
+        $schedule->command('catalog:sync-sources')
+            ->dailyAt('04:00')
+            ->withoutOverlapping(60)
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/catalog-sync.log'))
+            ->onSuccess(function () {
+                $this->logCronActivity(null, 'Catalog sources refreshed');
+            })
+            ->onFailure(function () {
+                $this->logCronActivity(null, 'Catalog source refresh failed', 'error');
+            });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
