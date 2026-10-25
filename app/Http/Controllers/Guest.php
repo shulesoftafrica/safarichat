@@ -385,6 +385,27 @@ class Guest extends Controller {
             ]);
         }
 
+        // Merge commitments (promises we're tracking) into the timeline too.
+        if ($lead) {
+            $commitments = \App\Models\LeadCommitment::where('lead_id', $lead->id)->get();
+            foreach ($commitments as $cm) {
+                $due = $cm->due_by ? ' • due ' . $cm->due_by->format('M j, g:i A') : '';
+                $state = [
+                    'pending'   => '⏳ awaiting',
+                    'fulfilled' => '✅ fulfilled',
+                    'missed'    => '⚠️ missed',
+                    'cancelled' => 'cancelled',
+                ][$cm->status] ?? $cm->status;
+                $what = $cm->promised_text ?: ('Promised: ' . str_replace('_', ' ', (string) $cm->expected_event_type));
+                $timeline->push([
+                    'direction' => 'commitment',
+                    'text'      => 'Commitment (' . $state . '): ' . $what . $due,
+                    'at'        => $cm->created_at,
+                    'by'        => $cm->created_by === 'ai' ? 'AI' : null,
+                ]);
+            }
+        }
+
         // Keep the merged timeline in chronological order.
         $timeline = $timeline->sortBy(function ($e) {
             return $e['at'] ? \Carbon\Carbon::parse($e['at'])->timestamp : 0;
@@ -446,6 +467,20 @@ class Guest extends Controller {
                 ['business_contact_id' => $contact->id, 'user_id' => $business->user_id ?? Auth::id()],
                 ['business_id' => $businessId, 'status' => $status, 'lead_score' => 10, 'source' => 'crm']
             );
+        }
+
+        // Won states fire the full conversion flow (congratulate, stop selling,
+        // hand off to after-sale, notify owner, record revenue) — same as a webhook.
+        if (in_array($status, [\App\Models\Lead::STATUS_CONVERTED, \App\Models\Lead::STATUS_CLOSED], true)) {
+            try {
+                app(\App\Services\ConversionEventService::class)
+                    ->markWon($businessId, $contact, $lead, $status);
+                return redirect()->route('crm.customer', $id)
+                    ->with('success', 'Customer marked as "' . $status . '". After-sale handoff and alerts sent.');
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('CRM mark-won failed', ['contact_id' => $contact->id, 'error' => $e->getMessage()]);
+                // Fall through to a plain status update so the action still lands.
+            }
         }
 
         $lead->update(['status' => $status, 'last_interaction_at' => now()]);

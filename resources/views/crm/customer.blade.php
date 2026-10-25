@@ -125,6 +125,19 @@
                                         </div>
                                     </div>
                                 </div>
+                            @elseif(($msg['direction'] ?? '') === 'commitment')
+                                {{-- Tracked commitment (promise to pay / sign up / ...) --}}
+                                <div class="d-flex mb-2 justify-content-center">
+                                    <div style="max-width:92%;padding:8px 14px;border-radius:10px;
+                                                background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;">
+                                        <div style="white-space:pre-wrap;word-break:break-word;">
+                                            <i class="mdi mdi-handshake-outline mr-1"></i>{{ $msg['text'] }}
+                                        </div>
+                                        <div class="text-right" style="font-size:0.7rem;color:#6366f1;margin-top:2px;">
+                                            {{ $msg['by'] ?? 'Sales' }} · {{ \Carbon\Carbon::parse($msg['at'])->format('d M, H:i') }}
+                                        </div>
+                                    </div>
+                                </div>
                             @else
                             @php $out = $msg['direction'] === 'out'; @endphp
                             <div class="d-flex mb-2 {{ $out ? 'justify-content-end' : 'justify-content-start' }}">

@@ -70,6 +70,21 @@ class AiWhatsAppService
             // the next AI reply will be allowed.
             $lead->markUserReplied();
 
+            // The contact is now reachable — process any conversion events that
+            // arrived earlier with no matching lead/contact (orphans). If one of
+            // them wins the deal, the WON guard below will pick it up.
+            try {
+                app(\App\Services\ConversionEventService::class)
+                    ->reprocessOrphansForContact(
+                        $lead->business_id,
+                        $message->phone_number,
+                        $lead->email
+                    );
+                $lead->refresh();
+            } catch (\Throwable $e) {
+                Log::warning('Inbound orphan re-process failed', ['lead_id' => $lead->id, 'error' => $e->getMessage()]);
+            }
+
             // Offer rotation: the prospect engaged — mark the in-flight offer as
             // engaged so the engine keeps the conversation on that module instead
             // of rotating away from a working angle. (No-op when feature is off.)
@@ -628,10 +643,65 @@ class AiWhatsAppService
                     // reschedules it in place, so all of these route to one handler.
                     $results['appointment'] = $this->scheduleAppointment($agent, $lead, $data);
                     break;
+
+                case 'commitment':
+                    $results['commitment'] = $this->recordCommitment($lead, $data);
+                    break;
             }
         }
 
         return $results;
+    }
+
+    /**
+     * Record a commitment the customer made ("I'll pay tomorrow"), with an
+     * inferred due date, so the commitments scheduler can chase it if the
+     * matching conversion event never arrives. The customer is never told.
+     */
+    private function recordCommitment(Lead $lead, array $data): array
+    {
+        try {
+            $type = $data['expected_event_type'] ?? null;
+            $text = $data['text'] ?? null;
+
+            $due = null;
+            if (!empty($text)) {
+                $parsed = $this->openAiService->parseFollowUpDateTime($text);
+                if ($parsed && !empty($parsed['datetime'])) {
+                    $due = \Carbon\Carbon::parse($parsed['datetime']);
+                }
+            }
+
+            // One open commitment per type per lead — refresh it rather than pile up.
+            $existing = \App\Models\LeadCommitment::where('lead_id', $lead->id)
+                ->where('status', \App\Models\LeadCommitment::STATUS_PENDING)
+                ->where('expected_event_type', $type)
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'promised_text' => $text,
+                    'due_by'        => $due ?? $existing->due_by,
+                ]);
+                return ['tracked' => true, 'commitment_id' => $existing->id, 'updated' => true];
+            }
+
+            $commitment = \App\Models\LeadCommitment::create([
+                'business_id'         => $lead->business_id,
+                'lead_id'             => $lead->id,
+                'business_contact_id' => $lead->business_contact_id,
+                'expected_event_type' => $type,
+                'promised_text'       => $text,
+                'due_by'              => $due,
+                'status'              => \App\Models\LeadCommitment::STATUS_PENDING,
+                'created_by'          => 'ai',
+            ]);
+
+            return ['tracked' => true, 'commitment_id' => $commitment->id];
+        } catch (\Throwable $e) {
+            Log::warning('recordCommitment failed', ['lead_id' => $lead->id, 'error' => $e->getMessage()]);
+            return ['tracked' => false];
+        }
     }
 
     /**

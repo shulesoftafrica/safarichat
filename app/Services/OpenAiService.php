@@ -1344,6 +1344,36 @@ class OpenAiService
             }
         }
 
+        // Detect a commitment the customer makes (a promise to pay / buy / sign up).
+        // First-person phrasing only, so questions ("can I pay tomorrow?") don't trip it.
+        $commitmentPatterns = [
+            'payment' => [
+                "i'll pay", 'i will pay', 'let me pay', "i'm going to pay", 'going to pay',
+                'will pay tomorrow', 'pay you tomorrow', 'i shall pay',
+                'nitalipa', 'nalipa kesho', 'nitalipia',
+            ],
+            'purchase' => [
+                "i'll buy", 'i will buy', "i'll take it", "i'll take the", "i'll order", 'i will order',
+                'nitanunua', 'nitachukua',
+            ],
+            'form_submitted' => [
+                "i'll fill", 'i will fill', "i'll apply", 'i will apply', "i'll register",
+                'i will register', "i'll sign up", 'i will sign up', "i'll complete the form",
+                'nitajaza', 'nitajiunga', 'nitaji-register',
+            ],
+        ];
+        foreach ($commitmentPatterns as $commitType => $phrases) {
+            foreach ($phrases as $phrase) {
+                if (stripos($userMessage, $phrase) !== false) {
+                    $actions['commitment'] = [
+                        'expected_event_type' => $commitType,
+                        'text'                => trim(mb_substr($customerMessage, 0, 400)),
+                    ];
+                    break 2;
+                }
+            }
+        }
+
         // Schedule followup if mentioned
         if (stripos($aiResponse, 'follow up') || stripos($aiResponse, 'check back')) {
             $actions['schedule_followup'] = true;

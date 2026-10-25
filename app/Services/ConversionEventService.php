@@ -152,6 +152,79 @@ class ConversionEventService
     }
 
     /**
+     * Fire the full WON flow manually (owner clicks "Mark converted/closed" on
+     * the CRM page). Reuses the same pipeline as a webhook event.
+     *
+     * @param string $status Lead::STATUS_CONVERTED or STATUS_CLOSED
+     */
+    public function markWon(int $businessId, BusinessContact $contact, ?Lead $lead, string $status, ?float $amount = null): ConversionEvent
+    {
+        // Map the chosen status to the event type whose default status matches it
+        // (payment -> CLOSED, form_submitted -> CONVERTED), so process() applies it.
+        $eventType = $status === Lead::STATUS_CLOSED
+            ? EventConfig::TYPE_PAYMENT
+            : EventConfig::TYPE_FORM_SUBMITTED;
+
+        $event = ConversionEvent::create([
+            'business_id'         => $businessId,
+            'event_type'          => $eventType,
+            'source'              => 'manual',
+            'identifier'          => $contact->guest_phone ?: $contact->guest_email,
+            'identifier_type'     => $contact->guest_phone ? 'phone' : 'email',
+            'amount'              => $amount,
+            'lead_id'             => $lead?->id,
+            'business_contact_id' => $contact->id,
+            'occurred_at'         => now(),
+            'status'              => ConversionEvent::STATUS_MATCHED,
+        ]);
+
+        try {
+            $this->process($event, null);
+        } catch (\Throwable $e) {
+            Log::error('Manual mark-won failed', ['event_id' => $event->id, 'error' => $e->getMessage()]);
+            $event->update(['status' => ConversionEvent::STATUS_FAILED]);
+        }
+
+        return $event->fresh();
+    }
+
+    /**
+     * Re-attempt any orphan events for a contact that just became reachable
+     * (e.g. the customer finally messaged, so the contact/lead now exists).
+     * Called from the inbound flow. Best-effort, never throws.
+     *
+     * @return int number of orphans re-processed
+     */
+    public function reprocessOrphansForContact(int $businessId, ?string $phone, ?string $email): int
+    {
+        $phone = $phone ? sanitize_phone_number($phone) : null;
+        $email = $email ? strtolower(trim($email)) : null;
+        if (!$phone && !$email) { return 0; }
+
+        $identifiers = array_values(array_filter([$phone, $email]));
+
+        $orphans = ConversionEvent::where('business_id', $businessId)
+            ->where('status', ConversionEvent::STATUS_ORPHAN)
+            ->whereIn('identifier', $identifiers)
+            ->limit(50)->get();
+
+        $done = 0;
+        foreach ($orphans as $event) {
+            try {
+                $config = $event->event_config_id ? EventConfig::find($event->event_config_id) : null;
+                $this->match($event, $phone, $email);
+                if (in_array($event->status, [ConversionEvent::STATUS_MATCHED], true)) {
+                    $this->process($event, $config);
+                    $done++;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Orphan re-process failed', ['event_id' => $event->id, 'error' => $e->getMessage()]);
+            }
+        }
+        return $done;
+    }
+
+    /**
      * Find the lead/contact this event belongs to, within the business.
      */
     private function match(ConversionEvent $event, ?string $phone, ?string $email): void
@@ -184,6 +257,26 @@ class ConversionEventService
         }
         if (!$contact && $lead && $lead->business_contact_id) {
             $contact = BusinessContact::find($lead->business_contact_id);
+        }
+
+        // A contact exists but has no lead yet — create one (source "event") so
+        // the conversion can advance a real pipeline record. Needs an agent, as
+        // leads.ai_sales_agent_id is required; without one we stay contact-only.
+        if (!$lead && $contact) {
+            $agent = $this->resolveAgent($businessId, null);
+            if ($agent) {
+                $lead = Lead::create([
+                    'business_id'         => $businessId,
+                    'user_id'             => $contact->user_id ?: $agent->user_id,
+                    'ai_sales_agent_id'   => $agent->id,
+                    'business_contact_id' => $contact->id,
+                    'name'                => $contact->guest_name ?: null,
+                    'phone_number'        => $contact->guest_phone ?: ($phone ?: null),
+                    'email'               => $contact->guest_email ?: ($email ?: null),
+                    'source'              => 'event',
+                    'status'              => Lead::STATUS_NEW,
+                ]);
+            }
         }
 
         $event->lead_id             = $lead?->id;
