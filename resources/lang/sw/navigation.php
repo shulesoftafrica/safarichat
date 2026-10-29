@@ -20,6 +20,7 @@ return [
     // Main Menu Items
     'summary' => 'Muhtasari',
     'customers' => 'Wateja',
+    'engagements' => 'Mazungumzo',
     'sales_campaigns' => 'Kampeni za Mauzo',
     'groups' => 'Vikundi',
     'channels' => 'Njia za Mawasiliano',

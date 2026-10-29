@@ -297,6 +297,14 @@ left: auto !important;
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="<?= url('engagements') ?>">
+                                <i class="fas fa-comments-dollar" style="color: #6c5ce7;"></i><span>{{ __('navigation.engagements') }}</span>
+                                @if(isset($activeEngagementsCount) && $activeEngagementsCount > 0)
+                                <span class="badge badge-soft-danger ml-1">{{ $activeEngagementsCount }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="<?= url('campaigns') ?>">
                                 <i class="fas fa-chart-line" style="color: #f59e0b;"></i><span>{{ __('navigation.sales_campaigns') }}</span>
                             </a>

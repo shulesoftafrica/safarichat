@@ -205,6 +205,11 @@ Route::middleware(['auth', 'whatsapp.setup'])->group(function () {
     Route::post('/catalog-api/sync', [App\Http\Controllers\CatalogApiController::class, 'sync'])->name('catalog-api.sync');
     Route::post('/catalog-api/disconnect', [App\Http\Controllers\CatalogApiController::class, 'disconnect'])->name('catalog-api.disconnect');
 
+    // Customer Engagements console (live AI conversations + take-over)
+    Route::get('/engagements', [App\Http\Controllers\EngagementController::class, 'index'])->name('engagements.index');
+    Route::get('/engagements/{contact}/thread', [App\Http\Controllers\EngagementController::class, 'thread'])->name('engagements.thread');
+    Route::post('/engagements/{contact}/take-over', [App\Http\Controllers\EngagementController::class, 'takeOver'])->name('engagements.takeOver');
+
     Route::post('/guest/log-activity', [App\Http\Controllers\Guest::class, 'logActivity'])->name('guest.logActivity');
     Route::get('/guest/activities/{guest}', [App\Http\Controllers\Guest::class, 'getActivities'])->name('guest.activities');
     Route::get('/guest/handoff-dashboard', [App\Http\Controllers\Guest::class, 'getHandoffDashboard'])->name('guest.handoffDashboard');

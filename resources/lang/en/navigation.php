@@ -20,6 +20,7 @@ return [
     // Main Menu Items
     'summary' => 'Summary',
     'customers' => 'Customers',
+    'engagements' => 'Engagements',
     'sales_campaigns' => 'Sales Campaigns',
     'groups' => 'Groups',
     'channels' => 'Channels',
