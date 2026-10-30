@@ -206,9 +206,13 @@ class EngagementController extends Controller
             $channelKey = $this->normalizeChannel($out->selected_channel ?? null);
             $product    = optional($lead->getPrimaryProduct())->name;
 
+            $phone = $lead->contact->guest_phone ?? $lead->phone_number ?? null;
+
             $items[] = [
                 'contact_id'  => $cid,
                 'lead_id'     => $lead->id,
+                'phone'       => $phone,
+                'phone_key'   => $phone ? preg_replace('/\D+/', '', $phone) : null,
                 'name'        => $lead->contact->guest_name ?? $lead->name ?? 'Unknown',
                 'initials'    => $this->initials($lead->contact->guest_name ?? $lead->name),
                 'snippet'     => $this->truncate($snippet, 90),
@@ -225,7 +229,29 @@ class EngagementController extends Controller
 
         // Most recent first.
         usort($items, fn ($a, $b) => $b['at']->timestamp <=> $a['at']->timestamp);
-        return $items;
+
+        // One card per customer. A person can have more than one lead/contact row
+        // (e.g. separate campaigns, or a re-created contact) but is still one
+        // conversation to the user — collapse by contact id and by phone number,
+        // keeping the most recent (we're already sorted newest-first).
+        $seenContact = [];
+        $seenPhone   = [];
+        $deduped = [];
+        foreach ($items as $it) {
+            if (isset($seenContact[$it['contact_id']])) {
+                continue;
+            }
+            if (!empty($it['phone_key']) && isset($seenPhone[$it['phone_key']])) {
+                continue;
+            }
+            $seenContact[$it['contact_id']] = true;
+            if (!empty($it['phone_key'])) {
+                $seenPhone[$it['phone_key']] = true;
+            }
+            $deduped[] = $it;
+        }
+
+        return $deduped;
     }
 
     /**
