@@ -661,63 +661,41 @@
                         </div>
                     </div>
 
-                    <!-- Product Attachments -->
-                    <div class="form-section">
-                        <h6 class="section-title">
-                            <i class="fas fa-paperclip"></i>
-                            Product Attachments
-                        </h6>
-                        <div class="mb-3">
-                            <label class="form-label">Product Documentation (Optional)</label>
-                            <input type="file" class="form-control" id="productAttachment" name="product_attachment" accept=".pdf,.doc,.docx,.txt">
-                            <small class="text-muted">Max 10MB. Supports: PDF, Word Documents, Text files.</small>
-                        </div>
-                    </div>
-
-                    <!-- RAG Document Management -->
+                    <!-- Documents the AI can use (one place for all of them) -->
                     <div class="form-section">
                         <h6 class="section-title">
                             <i class="fas fa-brain"></i>
-                            RAG Document Management
+                            Documents for the AI
                             <span class="badge bg-info ms-2">AI-Enhanced</span>
                         </h6>
                         <div class="alert alert-info">
                             <i class="fas fa-lightbulb"></i>
-                            <strong>RAG Enhancement:</strong> Upload documents to enhance AI responses with product-specific knowledge. Only PDF, Word (.doc/.docx), and text files are processed for AI search and retrieval.
+                            <strong>One place for your documents.</strong> Upload price lists, brochures, manuals or policies
+                            (PDF, Word .docx or text). The AI reads them and uses them to answer customers about this product.
+                            Each uploaded document is listed below with its status, and you can open, re-read or remove it.
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">AI Training Documents</label>
+                            <label class="form-label">Upload documents</label>
                             <input type="file" class="form-control" id="ragDocuments" name="rag_documents_upload" multiple accept=".pdf,.doc,.docx,.txt" onchange="handleRagDocuments(this)">
-                            <small class="text-muted">Max 10MB per file. Supports: PDF, Word Documents, Text files. Multiple files allowed.</small>
+                            <small class="text-muted">Max 10MB per file. Supports: PDF, Word (.docx), Text files. Multiple files allowed.</small>
                             <input type="hidden" name="rag_documents_processed" id="ragDocumentsProcessed" value="0">
+                            <!-- Documents are always read by the AI; the old on/off switch did nothing useful. -->
+                            <input type="hidden" name="enable_rag_processing" value="1" id="enable_rag_processing">
                             <!-- Debug button for testing -->
                             <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="testRagUpload()" style="display: none;" id="testRagBtn">
                                 🔧 Test Upload (Debug)
                             </button>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Document Type</label>
-                                    <select class="form-select form-control" name="attachment_type">
-                                        <option value="documentation">Product Documentation</option>
-                                        <option value="manual">User Manual</option>
-                                        <option value="specification">Technical Specifications</option>
-                                        <option value="brochure">Marketing Brochure</option>
-                                        <option value="faq">FAQ Document</option>
-                                        <option value="tutorial">Tutorial/Guide</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check mt-4">
-                                    <input class="form-check-input" type="checkbox" name="enable_rag_processing" value="1" id="enable_rag_processing" checked>
-                                    <label class="form-check-label" for="enable_rag_processing">
-                                        <i class="fas fa-robot"></i> Enable AI Document Processing
-                                    </label>
-                                    <small class="form-text text-muted d-block">Process documents for AI-enhanced customer responses</small>
-                                </div>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Document Type</label>
+                            <select class="form-select form-control" name="attachment_type">
+                                <option value="documentation">Product Documentation</option>
+                                <option value="manual">User Manual</option>
+                                <option value="specification">Technical Specifications</option>
+                                <option value="brochure">Marketing Brochure</option>
+                                <option value="faq">FAQ Document</option>
+                                <option value="tutorial">Tutorial/Guide</option>
+                            </select>
                         </div>
                         <div id="ragDocumentPreviews" class="mt-3">
                             <!-- Document previews will appear here -->
@@ -3580,7 +3558,7 @@ function saveProduct() {
     }
     
     // Add RAG processing flag
-    const enableRagProcessing = document.getElementById('enable_rag_processing')?.checked;
+    const enableRagProcessing = true; // documents are always read by the AI
     cleanFormData.append('enable_rag_processing', enableRagProcessing ? '1' : '0');
     
     // AI configuration is always enabled (hidden inputs)
@@ -3895,7 +3873,7 @@ function uploadRagDocuments(productId, files) {
             formData.append('is_public[]', '0'); // Use string "0" for false
         });
         
-        formData.append('process_with_rag', '0'); // Use string "0" for false
+        formData.append('process_with_rag', '1'); // the AI always reads uploaded documents
         
         // Always use Laravel development server for API calls (force absolute URL)
         var end_url=`/api/products/${productId}/attachments`
@@ -4339,7 +4317,7 @@ function populateEditForm(product) {
     
     const enableRagProcessing = document.getElementById('enable_rag_processing');
     if (enableRagProcessing) {
-        enableRagProcessing.checked = product.enable_rag_processing !== false;
+        // documents are always read by the AI: nothing to restore
     }
     
     // Populate tags
@@ -4492,24 +4470,25 @@ function populateEditForm(product) {
                         <i class="${getFileIcon(attachment.mime_type)}"></i>
                     </div>
                     <div class="file-details">
-                        <div class="file-name">${attachment.file_name}</div>
+                        <div class="file-name">${attachment.title || attachment.original_filename || attachment.file_name}</div>
                         <div class="file-meta text-muted">
                             ${formatFileSize(attachment.file_size)} • 
-                            <span class="badge bg-${attachment.processing_status === 'completed' ? 'success' : attachment.processing_status === 'processing' ? 'warning' : 'secondary'}">
-                                ${attachment.processing_status || 'pending'}
+                            <span class="badge bg-${attachment.vector_count > 0 ? 'success' : attachment.processing_status === 'failed' ? 'danger' : attachment.processing_status === 'processing' ? 'warning' : 'secondary'}">
+                                ${attachment.vector_count > 0 ? 'read by the AI' : attachment.processing_status === 'failed' ? 'could not be read' : attachment.processing_status === 'processing' ? 'being read...' : 'not read yet'}
                             </span>
-                            ${attachment.vector_count ? ` • ${attachment.vector_count} vectors` : ''}
+                            ${attachment.vector_count > 0 ? ` • ${attachment.vector_count} passages the AI can search` : ''}
+                            ${attachment.processing_status === 'failed' && attachment.processing_error ? `<div class="text-danger small mt-1">${attachment.processing_error}</div>` : ''}
                         </div>
                     </div>
                 </div>
                 <div class="file-actions">
-                    <a href="${attachment.file_path}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                    <a href="/storage/${attachment.file_path}" target="_blank" class="btn btn-sm btn-outline-primary me-2" title="Open">
                         <i class="fas fa-download"></i>
                     </a>
-                    <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="reprocessDocument(${attachment.id})" title="Reprocess for RAG">
+                    <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="reprocessDocument(${product.id}, ${attachment.id})" title="Read this document again">
                         <i class="fas fa-sync"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExistingDocument(${attachment.id})">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExistingDocument(${product.id}, ${attachment.id})" title="Remove this document">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -4520,12 +4499,12 @@ function populateEditForm(product) {
 }
 
 // Additional helper functions for document management
-function reprocessDocument(attachmentId) {
+function reprocessDocument(productId, attachmentId) {
     if (!confirm('Reprocess this document for RAG enhancement?')) {
         return;
     }
     
-    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}/reprocess`, {
+    fetch(`{{ url('/api/products') }}/${productId}/attachments/${attachmentId}/reprocess`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -4551,12 +4530,12 @@ function reprocessDocument(attachmentId) {
     });
 }
 
-function removeExistingDocument(attachmentId) {
+function removeExistingDocument(productId, attachmentId) {
     if (!confirm('Delete this document permanently?')) {
         return;
     }
     
-    fetch(`{{ url('/api/products/attachments') }}/${attachmentId}`, {
+    fetch(`{{ url('/api/products') }}/${productId}/attachments/${attachmentId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',

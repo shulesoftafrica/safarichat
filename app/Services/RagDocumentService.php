@@ -123,12 +123,33 @@ class RagDocumentService
      */
     private function extractFromPdf(string $filePath): string
     {
+        $binary = $this->pdfToTextBinary();
+
+        if ($binary === null) {
+            throw new Exception(
+                'Reading PDF files needs the "pdftotext" tool on the server (package poppler-utils), and it is not installed. '
+                . 'Upload the document as Word (.docx) or text instead, or ask your administrator to install poppler-utils.'
+            );
+        }
+
         try {
-            $pdf = new \Spatie\PdfToText\Pdf($filePath);
-            return $pdf->text();
+            // The package expects the path of the pdftotext program first and the PDF second; the old code passed the
+            // PDF as the program, so no PDF could ever be read.
+            return \Spatie\PdfToText\Pdf::getText($filePath, $binary);
         } catch (Exception $e) {
             throw new Exception("PDF text extraction failed: " . $e->getMessage());
         }
+    }
+
+    private function pdfToTextBinary(): ?string
+    {
+        foreach ([config('services.pdftotext.path'), '/usr/bin/pdftotext', '/usr/local/bin/pdftotext', '/opt/homebrew/bin/pdftotext'] as $candidate) {
+            if ($candidate && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -146,9 +167,14 @@ class RagDocumentService
                     $zip->close();
                     
                     if ($xml) {
-                        // Simple XML parsing to extract text
-                        $xml = preg_replace('/(<[^>]+>)/', ' ', $xml);
-                        return html_entity_decode($xml);
+                        // Paragraph ends and line breaks become blank lines / new lines first, so the document keeps its structure
+                        // and can be split into sensible chunks; then the tags go.
+                        $xml = preg_replace('/<\/w:p>/', "\n\n", $xml);
+                        $xml = preg_replace('/<w:(br|tab)\b[^>]*\/>/', "\n", $xml);
+                        $xml = preg_replace('/<[^>]+>/', '', $xml);
+                        $text = html_entity_decode($xml, ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+                        return trim(preg_replace("/\n{3,}/", "\n\n", $text));
                     }
                 }
             }
@@ -175,10 +201,19 @@ class RagDocumentService
         $pageNumber = 1;
         $sectionTitle = null;
         
+        // A paragraph longer than a chunk (a text file with no blank lines, a whole PDF page) is cut up first, so it does
+        // not become one huge chunk the embedding model cannot take.
+        $pieces = [];
         foreach ($paragraphs as $paragraph) {
             $paragraph = trim($paragraph);
-            if (empty($paragraph)) continue;
-            
+            if ($paragraph === '') continue;
+
+            foreach ($this->splitLongText($paragraph) as $piece) {
+                $pieces[] = $piece;
+            }
+        }
+
+        foreach ($pieces as $paragraph) {
             // Detect section headings (simple heuristic)
             if ($this->isSectionHeading($paragraph)) {
                 $sectionTitle = $paragraph;
@@ -205,6 +240,47 @@ class RagDocumentService
         }
         
         return $chunks;
+    }
+
+    /**
+     * Cut text longer than a chunk at sentence ends (or, failing that, at the chunk size).
+     *
+     * @return list<string>
+     */
+    private function splitLongText(string $text): array
+    {
+        if (strlen($text) <= $this->chunkSize) {
+            return [$text];
+        }
+
+        $pieces = [];
+        $current = '';
+
+        foreach (preg_split('/(?<=[.!?])\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [$text] as $sentence) {
+            if (strlen($sentence) > $this->chunkSize) {
+                if ($current !== '') {
+                    $pieces[] = $current;
+                    $current = '';
+                }
+                foreach (mb_str_split($sentence, $this->chunkSize) as $part) {
+                    $pieces[] = trim($part);
+                }
+                continue;
+            }
+
+            if ($current !== '' && strlen($current) + strlen($sentence) + 1 > $this->chunkSize) {
+                $pieces[] = $current;
+                $current = $sentence;
+            } else {
+                $current = $current === '' ? $sentence : $current . ' ' . $sentence;
+            }
+        }
+
+        if ($current !== '') {
+            $pieces[] = $current;
+        }
+
+        return $pieces;
     }
 
     /**

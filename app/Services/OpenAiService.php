@@ -823,7 +823,7 @@ class OpenAiService
         $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product, $instance);
         
         // Enhanced context with RAG documents
-        $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
+        $contextPrompt = $this->buildContextPrompt($agent, $lead, $product, $customerMessage);
         
         // Add relevant document context
         if (!empty($relevantDocs)) {
@@ -906,7 +906,7 @@ class OpenAiService
         ?\App\Models\WhatsappInstance $instance = null // New parameter
     ): array {
         $systemPrompt = $this->buildSystemPrompt($agent, $lead, $product, $instance);
-        $contextPrompt = $this->buildContextPrompt($agent, $lead, $product);
+        $contextPrompt = $this->buildContextPrompt($agent, $lead, $product, $customerMessage);
 
         // Ground the reply in the business's real catalog (names, prices, stock).
         $catalogBlock = $this->catalogGrounding($agent, $lead, $customerMessage);
@@ -1082,9 +1082,38 @@ class OpenAiService
 }
 
     /**
+     * The FAQ section of the prompt.
+     *
+     * @param \Illuminate\Support\Collection<int, object> $faqs  the FAQs chosen for this message
+     * @param int                                         $total how many FAQs the business has in all
+     */
+    private function faqBlock(\Illuminate\Support\Collection $faqs, int $total): string
+    {
+        if ($faqs->isEmpty()) {
+            return '';
+        }
+
+        $block = "\nFrequently Asked Questions (written by the business):\n";
+
+        foreach ($faqs as $faq) {
+            $block .= "Q: {$faq->question}\n";
+            $block .= "A: {$faq->answer}\n\n";
+        }
+
+        if ($faqs->count() < $total) {
+            $block .= "(Showing the {$faqs->count()} FAQs most relevant to this message, out of {$total}.)\n";
+        }
+
+        $block .= "IMPORTANT: If one of these FAQs answers the customer's question, answer from it - do not reply with general knowledge. "
+            . "These are the business's own, current answers.\n";
+
+        return $block;
+    }
+
+    /**
      * Build context prompt with lead and product information (enhanced for services and RAG)
      */
-    private function buildContextPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product): string
+    private function buildContextPrompt(AiSalesAgent $agent, Lead $lead, ?Product $product, ?string $customerMessage = null): string
     {
         $context = "Customer Context:\n";
         $context .= "- Lead ID: {$lead->id}\n";
@@ -1155,14 +1184,10 @@ class OpenAiService
                 $context .= "- AI Highlights: {$product->ai_description}\n";
             }
             
-            // Include FAQs for this product - ENHANCED with fresh loading
+            // Include the business's FAQs for this product. All of them go in when they fit; when there are too many,
+            // the ones matching the customer's message come first (see FaqSelector).
             if ($product->faqs && $product->faqs->count() > 0) {
-                $context .= "\nFrequently Asked Questions (LATEST):\n";
-                foreach ($product->faqs->sortByDesc('updated_at')->take(10) as $faq) { // Increased to 10 FAQs, sorted by latest
-                    $context .= "Q: {$faq->question}\n";
-                    $context .= "A: {$faq->answer}\n\n";
-                }
-                $context .= "IMPORTANT: Use ONLY these latest FAQs to answer customer questions. These are the most current answers available.\n";
+                $context .= $this->faqBlock(app(FaqSelector::class)->select($product->faqs, $customerMessage), $product->faqs->count());
             }
             
             // Include selling points if available
@@ -1198,6 +1223,17 @@ class OpenAiService
             }
             
         } else {
+            // No product identified for this message: the business's FAQs still apply, so the AI is not left with
+            // general knowledge only.
+            $businessFaqs = \App\Models\ProductFaq::whereIn(
+                'product_id',
+                Product::where('user_id', $lead->user_id)->pluck('id')
+            )->get();
+
+            if ($businessFaqs->isNotEmpty()) {
+                $context .= $this->faqBlock(app(FaqSelector::class)->select($businessFaqs, $customerMessage, 8000, 40), $businessFaqs->count());
+            }
+
             // Show lead's interested products
             $interestedProducts = $lead->leadProducts()->with('product')->get();
             if ($interestedProducts->count() > 0) {

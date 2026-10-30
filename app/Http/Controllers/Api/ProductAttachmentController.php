@@ -49,7 +49,10 @@ class ProductAttachmentController extends Controller
         $titles = $request->input('titles', []);
         $descriptions = $request->input('descriptions', []);
         $isPublic = $request->input('is_public', []);
-        $processRAG = $request->input('process_with_rag', true);
+        // The AI always reads uploaded documents. The page used to send process_with_rag="0", which PHP reads as
+        // "off", so every document was stored as "completed" but never read, chunked or embedded: the AI had
+        // nothing to retrieve from. There is no switch for this any more.
+        $processRAG = true;
 
         // Validate array lengths match
         if (count($files) !== count($types)) {
@@ -84,9 +87,7 @@ class ProductAttachmentController extends Controller
                 
                 // Dispatch RAG processing job if enabled and file type is supported
                 if ($processRAG && $this->isRAGSupported($file->getMimeType())) {
-                    ProcessDocumentForRAG::dispatch($attachment->id)
-                        ->onQueue('rag_processing')
-                        ->delay(now()->addSeconds(10)); // Small delay to ensure transaction commits
+                    $this->dispatchRagProcessing($attachment->id);
                     
                     $ragProcessingQueued++;
                 }
@@ -176,8 +177,15 @@ class ProductAttachmentController extends Controller
     /**
      * Delete an attachment
      */
-    public function destroy(ProductAttachment $attachment): JsonResponse
+    public function destroy(Product $product, ProductAttachment $attachment): JsonResponse
     {
+        if ((int) $attachment->product_id !== (int) $product->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attachment not found for this product'
+            ], 404);
+        }
+
         try {
             $productId = $attachment->product_id;
             $filename = $attachment->original_filename;
@@ -245,8 +253,15 @@ class ProductAttachmentController extends Controller
     /**
      * Reprocess document for RAG
      */
-    public function reprocessRAG(ProductAttachment $attachment): JsonResponse
+    public function reprocessRAG(Product $product, ProductAttachment $attachment): JsonResponse
     {
+        if ((int) $attachment->product_id !== (int) $product->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attachment not found for this product'
+            ], 404);
+        }
+
         try {
             if (!$attachment->supportsRAG()) {
                 return response()->json([
@@ -267,9 +282,7 @@ class ProductAttachmentController extends Controller
             $attachment->vectors()->delete();
 
             // Queue for reprocessing
-            ProcessDocumentForRAG::dispatch($attachment->id)
-                ->onQueue('rag_processing')
-                ->delay(now()->addSeconds(5));
+            $this->dispatchRagProcessing($attachment->id);
 
             Log::info("RAG reprocessing queued for attachment {$attachment->id}");
 
@@ -409,6 +422,24 @@ class ProductAttachmentController extends Controller
     /**
      * Check if file type supports RAG processing
      */
+    /**
+     * Read a document into the AI's searchable knowledge.
+     *
+     * With the "sync" queue a plain dispatch would read the whole document (one AI call per chunk) inside the
+     * upload request and time it out, so it runs right after the response has been sent instead. With a real
+     * queue it is queued once the upload has been committed.
+     */
+    private function dispatchRagProcessing(int $attachmentId): void
+    {
+        if (config('queue.default') === 'sync') {
+            ProcessDocumentForRAG::dispatchAfterResponse($attachmentId);
+
+            return;
+        }
+
+        ProcessDocumentForRAG::dispatch($attachmentId)->onQueue('rag_processing')->afterCommit();
+    }
+
     private function isRAGSupported(string $mimeType): bool
     {
         return in_array($mimeType, [
