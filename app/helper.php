@@ -224,22 +224,48 @@ function can_access($permission)
     return $return;
 }
 
+/**
+ * Maps the request path to "Controller@method" for the wildcard route in routes/web.php.
+ *
+ * The first path segment is the controller and the second the method, whether the app is served from
+ * the domain root (https://safarichat.ai/home/settings) or from a sub-folder
+ * (http://localhost/safarichat/home/settings). Only the second layout was understood before, so at a
+ * domain root "/home/settings" was read as controller "settings" and every page behind this route
+ * answered 404. The sub-folder reading is kept as the fallback for the second layout.
+ */
 function createRoute()
 {
-    $url = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-    $url_param = explode('/', $url);
+    $path = trim((string) parse_url(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', PHP_URL_PATH), '/');
+    $segments = $path === '' ? array() : explode('/', $path);
 
+    $fallback = NULL;
 
-    $controller = isset($url_param[2]) && !empty($url_param[2]) ? $url_param[2] . '' : 'home';
-    
-    if ($controller == 'api') {
-        return NULL;
+    // Offset 0: served from the domain root. Offset 1: the first segment is a sub-folder.
+    foreach (array(0, 1) as $offset) {
+        $controller = isset($segments[$offset]) && $segments[$offset] !== '' ? $segments[$offset] : 'home';
+
+        if ($controller == 'api') {
+            return NULL;
+        }
+
+        $method = isset($segments[$offset + 1]) && $segments[$offset + 1] !== '' ? $segments[$offset + 1] : 'index';
+        $view = $method == 'view' ? 'show' : $method;
+
+        if (in_array($controller, array('public', 'storage'))) {
+            return NULL;
+        }
+
+        $route = ucfirst($controller) . '@' . $view;
+
+        if (!function_exists('app_path') || file_exists(app_path('Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . ucfirst($controller) . '.php'))) {
+            return $route;
+        }
+
+        // Keep what the old reading produced (the sub-folder one) for the "nothing matches" case.
+        $fallback = $route;
     }
-    
-    $method = isset($url_param[3]) && !empty($url_param[3]) ? $url_param[3] : 'index';
-    $view = $method == 'view' ? 'show' : $method;
 
-    return in_array($controller, array('public', 'storage')) ? NULL : ucfirst($controller) . '@' . $view;
+    return $fallback;
 }
 
 function timeAgo($datetime, $full = false)

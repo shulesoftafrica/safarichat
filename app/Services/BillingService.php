@@ -218,7 +218,7 @@ class BillingService
         }
         
         $plan = $billingAccount->subscription_plan;
-        $aiCredits = $billingAccount->ai_credits;
+        $aiCredits = $billingAccount->available_credits ?? $billingAccount->ai_credits;
         
         // Build status from billing account data
         $status = [

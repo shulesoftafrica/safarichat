@@ -195,7 +195,7 @@ class Home extends Controller
             $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
             $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
           
-            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
+            $this->data['available_credits'] = $billingAccount->available_credits ?? $billingAccount->ai_credits ?? 0;
             $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
         } else {
             $this->data['subscription_status'] = 'inactive';
@@ -413,7 +413,7 @@ class Home extends Controller
         if ($billingAccount) {
             $this->data['subscription_status'] = $billingAccount->status ?? 'inactive';
             $this->data['subscription_plan'] = $billingAccount->subscription_plan ?? 'trial';
-            $this->data['available_credits'] = $billingAccount->ai_credits ?? 0;
+            $this->data['available_credits'] = $billingAccount->available_credits ?? $billingAccount->ai_credits ?? 0;
             $this->data['subscription_expires_at'] = $billingAccount->subscription_expires_at;
             $this->data['subscription_started_at'] = $billingAccount->subscription_started_at;
             $this->data['billing_account'] = $billingAccount;

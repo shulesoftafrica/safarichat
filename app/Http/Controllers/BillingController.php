@@ -822,7 +822,7 @@ class BillingController extends Controller
         return view('billing.wallet', [
             'subscription_plan' => $billingAccount ? $billingAccount->subscription_plan : 'trial',
             'subscription_expires_at' => $billingAccount ? $billingAccount->subscription_expires_at : null,
-            'ai_credits' => $billingAccount ? $billingAccount->ai_credits : 0
+            'ai_credits' => $billingAccount ? ($billingAccount->available_credits ?? $billingAccount->ai_credits) : 0
         ]);
     }
 
@@ -923,7 +923,7 @@ class BillingController extends Controller
                     'plan' => $billingAccount->subscription_plan ?? 'trial',
                     'status' => $billingAccount->subscription_status ?? 'inactive',
                     'expires_at' => $billingAccount->subscription_expires_at ? $billingAccount->subscription_expires_at->toISOString() : null,
-                    'ai_credits' => $billingAccount->ai_credits ?? 0
+                    'ai_credits' => $billingAccount->available_credits ?? $billingAccount->ai_credits ?? 0
                 ]
             ]);
             
@@ -949,8 +949,8 @@ class BillingController extends Controller
             $user = Auth::user();
             $billingAccount = $user->billingAccount;
             
-            // Get wallet balance (ai_credits serves as wallet balance)
-            $balance = $billingAccount ? ($billingAccount->ai_credits ?? 0) : 0;
+            // Get wallet balance (the remaining balance is available_credits = base + top-up - used)
+            $balance = $billingAccount ? ($billingAccount->available_credits ?? $billingAccount->ai_credits ?? 0) : 0;
             
             // For now, we don't store UCN reference in the database
             // It will be generated on-demand by the frontend when needed
