@@ -311,6 +311,28 @@ class BillingWebhookController extends Controller
     /**
      * Handle successful payment webhook
      */
+    /**
+     * Credits bought by a wallet top-up, from the paid invoice items.
+     *
+     * One shilling buys one credit (a TZS 69,000 plan carries 69,000 credits), configurable through
+     * safarichat_billing.credits_per_tzs. Only TZS invoices are converted: for any other currency the rate is
+     * not known here, so nothing is guessed and no credits are added.
+     */
+    private function creditsFromInvoiceItems(Request $request): int
+    {
+        $currency = strtoupper((string) ($request->input('invoice.currency') ?? $request->input('payment.currency') ?? ''));
+
+        if ($currency !== 'TZS') {
+            return 0;
+        }
+
+        $total = collect($request->input('invoice.items', []))
+            ->filter(fn ($item) => str_contains($item['price_plan_name'] ?? '', 'Credit'))
+            ->sum(fn ($item) => (float) ($item['total'] ?? 0));
+
+        return (int) floor($total * (float) config('safarichat_billing.credits_per_tzs', 1));
+    }
+
     private function handlePaymentSuccess(Request $request): array
     {
         return DB::transaction(function () use ($request) {
@@ -339,8 +361,30 @@ class BillingWebhookController extends Controller
             
             // AI credits: explicit field, or root-level credits field, or 0
             $aiCredits = $subscription['ai_credits'] ?? $request->input('credits', 0);
-            
+
+            // The billing platform's payment.success for a wallet top-up carries neither field (it only lists the
+            // invoice items), so the credits bought were silently counted as 0. Work them out from the paid items.
+            if ($isCreditPurchase && (int) $aiCredits <= 0) {
+                $aiCredits = $this->creditsFromInvoiceItems($request);
+            }
+
             if ($isCreditPurchase) {
+                // The same payment must never add credits twice (a re-delivery, or a manual replay).
+                $transactionId = $payment['transaction_id'] ?? null;
+                if ($transactionId && (string) $billingAccount->last_transaction_id === (string) $transactionId) {
+                    Log::info('Credit top-up already applied, skipping', [
+                        'billing_account_id' => $billingAccount->id,
+                        'transaction_id'     => $transactionId,
+                    ]);
+
+                    return [
+                        'success'            => true,
+                        'message'            => 'Credits already applied for this payment',
+                        'billing_account_id' => $billingAccount->id,
+                        'credits_added'      => 0,
+                    ];
+                }
+
                 // Credit top-up only — update payment record and add credits; leave subscription untouched.
                 // Use topup_credits (never wiped on renewal) instead of ai_credits.
                 // The DB trigger detects topup_credits increasing and logs to credit_adjustments.
