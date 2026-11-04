@@ -64,6 +64,9 @@ return [
         'access_token' => env('WASENDER_ACCESS_TOKEN'),
         'base_url' => env('WASENDER_BASE_URL', 'https://api.wasenderapi.com'),
         'timeout' => env('WASENDER_TIMEOUT', 30),
+        // Reject inbound webhooks whose X-Webhook-Signature is wrong or absent (instances with a stored secret only).
+        // Off = log-only, so the rollout cannot drop customer messages; switch on after the logs look clean.
+        'enforce_webhook_signature' => env('WASENDER_ENFORCE_WEBHOOK_SIGNATURE', false),
         'default' => true,
     ],
 

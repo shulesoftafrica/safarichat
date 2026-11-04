@@ -1494,6 +1494,58 @@ class WaSenderController extends Controller
             || isset($webhookData['data']['message']);
     }
 
+    /**
+     * Result of checking the sender of an inbound WaSender webhook against the secret stored for the
+     * instance: 'valid', 'invalid' (secret stored, header present but wrong), 'missing' (secret stored, no
+     * header) or 'no_secret' (nothing stored for this instance, so the sender cannot be verified).
+     * WaSender sends the session secret in X-Webhook-Signature, either verbatim or as an HMAC-SHA256 of
+     * the raw body -- both forms are accepted.
+     */
+    public function webhookSignatureStatus(Request $request, WhatsappInstance $instance): string
+    {
+        $secret = (string) ($instance->webhook_secret ?? '');
+        if ($secret === '') {
+            return 'no_secret';
+        }
+
+        $signature = (string) $request->header('X-Webhook-Signature', '');
+        if ($signature === '') {
+            return 'missing';
+        }
+
+        $valid = hash_equals($secret, $signature)
+            || hash_equals(hash_hmac('sha256', $request->getContent(), $secret), strtolower($signature));
+
+        return $valid ? 'valid' : 'invalid';
+    }
+
+    /**
+     * Gate for inbound webhooks. Until WASENDER_ENFORCE_WEBHOOK_SIGNATURE is switched on, a request that
+     * fails verification is only logged (so a rollout cannot silently drop customer messages); once it is
+     * on, 'invalid' and 'missing' are rejected. Instances with no stored secret cannot be verified and are
+     * always let through, with a warning, until their secret is backfilled.
+     */
+    private function webhookIsAuthentic(Request $request, WhatsappInstance $instance): bool
+    {
+        $status = $this->webhookSignatureStatus($request, $instance);
+
+        if ($status === 'valid') {
+            return true;
+        }
+
+        Log::warning('WaSender webhook signature check: ' . $status, [
+            'instance_id' => $instance->instance_id,
+            'enforced' => (bool) config('services.wasender.enforce_webhook_signature'),
+            'ip' => $request->ip(),
+        ]);
+
+        if ($status === 'no_secret') {
+            return true;
+        }
+
+        return !config('services.wasender.enforce_webhook_signature');
+    }
+
     public function handleWebhook(Request $request, $instanceId)
     {
         try {
@@ -1510,6 +1562,10 @@ class WaSenderController extends Controller
             if (!$instance) {
                 Log::warning('Webhook received for unknown instance', ['instance_id' => $instanceId]);
                 return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+            }
+
+            if (!$this->webhookIsAuthentic($request, $instance)) {
+                return response()->json(['success' => false, 'message' => 'Invalid signature'], 403);
             }
 
             // Update instance last seen
@@ -1593,6 +1649,10 @@ class WaSenderController extends Controller
             if (!$instance) {
                 Log::warning('Webhook received for unknown instance UUID', ['instance_uuid' => $instanceUuid]);
                 return response()->json(['success' => false, 'message' => 'Instance not found'], 404);
+            }
+
+            if (!$this->webhookIsAuthentic($request, $instance)) {
+                return response()->json(['success' => false, 'message' => 'Invalid signature'], 403);
             }
 
             // Update instance last seen
