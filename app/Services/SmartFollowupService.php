@@ -71,7 +71,7 @@ class SmartFollowupService
                                     ->when(config('outreach.reply_required', true), function($query) {
                                         $query->whereNotNull('last_reply_at');
                                     })
-                                    ->with(['contact', 'conversations', 'aiSalesAgent'])
+                                    ->with(['contact', 'aiSalesAgent']) // not 'conversations': the full history of 20 leads exhausted memory every minute; the last 10 are queried per lead below
                                     ->limit(20)
                                     ->get();
 
