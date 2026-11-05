@@ -14,7 +14,7 @@ return [
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'default_model' => env('OPENAI_MODEL', 'gpt-4o'),
-        'fallback_model' => env('OPENAI_FALLBACK_MODEL', 'gpt-3.5-turbo'),
+        'fallback_model' => env('OPENAI_FALLBACK_MODEL', 'gpt-4o-mini'),
         'max_tokens' => (int) env('OPENAI_MAX_TOKENS', 1000),
         'temperature' => (float) env('OPENAI_TEMPERATURE', 0.7),
         'timeout' => (int) env('OPENAI_TIMEOUT', 30),

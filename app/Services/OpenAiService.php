@@ -1612,7 +1612,7 @@ class OpenAiService
             ];
 
             $response = $this->chatCreate([
-                'model' => 'gpt-3.5-turbo',
+                'model' => 'gpt-4o-mini',
                 'messages' => $this->scrubUtf8($prompt),
                 'max_tokens' => 150,
                 'temperature' => 0.3,
