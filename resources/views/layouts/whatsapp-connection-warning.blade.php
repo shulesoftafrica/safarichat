@@ -1,9 +1,12 @@
 @auth
 @php
-    // Cache the disconnected instances check for 1 minute to avoid repeated DB queries
-    $cacheKey = 'whatsapp_disconnected_' . Auth::id();
-    $disconnectedInstances = Cache::remember($cacheKey, 60, function () {
-        return \App\Models\WhatsappInstance::where('user_id', Auth::id())
+    // Cache the disconnected instances check for 1 minute to avoid repeated DB queries.
+    // The connection that matters is the business owner's: a team member shares it, and their own (old) instance must not
+    // raise a "disconnected" alert while the owner's number is working.
+    $warningUserId = Auth::user()->ownerUserId();
+    $cacheKey = 'whatsapp_disconnected_' . $warningUserId;
+    $disconnectedInstances = Cache::remember($cacheKey, 60, function () use ($warningUserId) {
+        return \App\Models\WhatsappInstance::where('user_id', $warningUserId)
             ->where('connect_status', '!=', 'ready')
             ->get();
     });

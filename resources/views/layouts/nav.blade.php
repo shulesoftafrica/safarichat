@@ -6,10 +6,15 @@ $showNavigation = false;
 
 if (Auth::check()) {
     $user = Auth::user();
-    $hasConnectedWhatsApp = $user->whatsappInstances()
+    // A team member works with the business owner's WhatsApp connection and products (their own are empty or an old,
+    // disconnected instance), exactly as Home::index() already treats them. Using the member's own made the sidebar
+    // say "Connect WhatsApp First" and hide the whole menu even though the owner's number was connected.
+    $ownerId = $user->ownerUserId();
+    $owner = $ownerId === (int) $user->id ? $user : (\App\Models\User::find($ownerId) ?: $user);
+    $hasConnectedWhatsApp = $owner->whatsappInstances()
         ->where('status', 'connected')
         ->exists();
-    $hasProducts = $user->products()->exists();
+    $hasProducts = $owner->products()->exists();
     $showNavigation = $hasConnectedWhatsApp && $hasProducts;
 }
 ?>
