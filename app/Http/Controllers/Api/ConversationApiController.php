@@ -77,7 +77,7 @@ class ConversationApiController extends Controller
             $perPage = min($request->get('per_page', 50), 100);
             $conversations = $query->paginate($perPage);
 
-            $formattedConversations = $conversations->items()->map(function($conversation) {
+            $formattedConversations = $conversations->getCollection()->map(function($conversation) {
                 return $this->formatConversationResponse($conversation);
             });
 
@@ -479,7 +479,7 @@ class ConversationApiController extends Controller
             $perPage = min($request->get('per_page', 20), 50);
             $results = $query->paginate($perPage);
 
-            $formattedResults = $results->items()->map(function($conversation) use ($searchTerm) {
+            $formattedResults = $results->getCollection()->map(function($conversation) use ($searchTerm) {
                 $formatted = $this->formatConversationResponse($conversation);
                 
                 // Add search highlighting context

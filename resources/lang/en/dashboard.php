@@ -31,6 +31,7 @@ return [
         'complete_message' => 'Your WhatsApp AI Sales System is ready! You\'ve successfully connected WhatsApp, added products, and configured your AI agent. You\'re all set to start converting leads into sales.',
         'proactive_title' => 'Ready for Proactive Outreach!',
         'proactive_message' => 'You can start importing contacts and sending targeted messages. Your AI will handle all conversations automatically.',
+        'video_hide' => 'Hide video',
     ],
 
     // Instance Selector

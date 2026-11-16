@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\NurtureLibrary;
 use Illuminate\Support\Facades\Log;
-use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI;
 
 class NurtureLibraryGenerator
 {
@@ -18,10 +18,12 @@ class NurtureLibraryGenerator
      */
     public function generateForProduct(Product $product)
     {
-        $prompt = $this->buildProductPrompt($product);
-        
         try {
-            $response = OpenAI::chat()->create([
+            $prompt = $this->buildProductPrompt($product);
+
+            // The plain openai-php/client, built like OpenAiService does: the Laravel facade
+            // (openai-php/laravel) is not installed, so OpenAI::chat() failed every product save.
+            $response = OpenAI::client(config('services.openai.api_key'))->chat()->create([
                 'model' => 'gpt-4',
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are an expert B2B content strategist specializing in value-first messaging.'],
@@ -65,7 +67,8 @@ class NurtureLibraryGenerator
             
             return collect($created);
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Throwable: a missing API key is a TypeError, and nurture messages are optional.
             Log::error("Failed to generate nurture messages: " . $e->getMessage());
             return collect([]);
         }
@@ -124,7 +127,7 @@ Generate 8-10 VALUE-FIRST nurture messages SPECIFICALLY for this product:
 PRODUCT DETAILS:
 - Name: {$product->name}
 - Description: {$product->description}
-- Key Features: " . (is_array($product->key_features) ? implode(', ', $product->key_features) : $product->selling_points) . "
+- Key Features: " . implode(', ', array_filter((array) ($product->key_features ?: $product->selling_points))) . "
 - Target Industry: {$product->target_industry}
 - Price: {$product->retail_price} (use to position value)
 

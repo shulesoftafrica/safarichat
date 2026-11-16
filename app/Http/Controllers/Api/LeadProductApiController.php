@@ -398,7 +398,7 @@ class LeadProductApiController extends Controller
             $perPage = min($request->get('per_page', 15), 50);
             $leads = $query->paginate($perPage);
 
-            $formattedLeads = $leads->items()->map(function($lead) use ($productId) {
+            $formattedLeads = $leads->getCollection()->map(function($lead) use ($productId) {
                 $leadProduct = $lead->leadProducts->first();
                 return [
                     'lead_id' => $lead->id,

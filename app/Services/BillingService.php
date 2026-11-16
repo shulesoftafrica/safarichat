@@ -145,10 +145,11 @@ class BillingService
         // REVENUE PROTECTION: Validate cache integrity
         if (!$status || !self::isCacheValid($status)) {
             Log::warning("Billing cache invalid for customer {$customerId}, using fallback");
-            return self::getFallbackStatus($customerId);
+            $status = self::getFallbackStatus($customerId);
         }
-        
-        return $status;
+
+        // An admin suspension overrides whatever the billing platform says.
+        return AccountSuspensionService::applyTo($status, $customerId);
     }
     
     /**

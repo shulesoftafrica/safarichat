@@ -9,7 +9,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "barryvdh/laravel-dompdf": "^2.0",
+        "barryvdh/laravel-dompdf": "^3.1",
         "doctrine/dbal": "^3.0",
         "guzzlehttp/guzzle": "^7.2",
         "jeroendesloovere/vcard": "^1.7",
@@ -55,10 +55,9 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         },
-        "files":
-                [
-                    "app/helper.php"
-                ]
+        "files": [
+            "app/helper.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

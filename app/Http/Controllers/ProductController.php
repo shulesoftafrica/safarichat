@@ -913,6 +913,22 @@ class ProductController extends Controller
                 ->with('error', 'No products found. Make sure the file has a "name" column with values.');
         }
 
+        [$created, $updated, $skipped] = $this->importRows($rows, $userId, $businessId);
+
+        $msg = "Import complete: {$created} added, {$updated} updated"
+             . ($skipped ? ", {$skipped} skipped (missing name)" : '') . '.';
+
+        return redirect()->route('products.index')->with('success', $msg);
+    }
+
+    /**
+     * Upsert normalized import rows into one user's catalog (a repeated sku updates that
+     * product). Also used by the admin panel's client workspace (Api\AdminWorkspaceController).
+     *
+     * @return array{0:int,1:int,2:int} created, updated, skipped
+     */
+    public function importRows(array $rows, int $userId, ?int $businessId): array
+    {
         $created = 0; $updated = 0; $skipped = 0;
 
         foreach ($rows as $row) {
@@ -956,10 +972,7 @@ class ProductController extends Controller
             }
         }
 
-        $msg = "Import complete: {$created} added, {$updated} updated"
-             . ($skipped ? ", {$skipped} skipped (missing name)" : '') . '.';
-
-        return redirect()->route('products.index')->with('success', $msg);
+        return [$created, $updated, $skipped];
     }
 
     /** Preview products from a web store / marketplace URL (no save). */
@@ -1020,7 +1033,7 @@ class ProductController extends Controller
      * Normalize uploaded rows: lower-case headers and map common spellings to the
      * canonical product fields, so users don't have to match an exact template.
      */
-    private function normalizeProductRows(array $raw): array
+    public function normalizeProductRows(array $raw): array
     {
         $map = [
             'name' => 'name', 'product' => 'name', 'product name' => 'name', 'item' => 'name', 'title' => 'name', 'product/service' => 'name',

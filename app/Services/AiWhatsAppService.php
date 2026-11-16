@@ -11,6 +11,7 @@ use App\Models\IncomingMessage;
 use App\Models\OutgoingMessage;
 use App\Models\Handoff;
 use App\Services\WaSenderService;
+use App\Services\AccountSuspensionService;
 use App\Services\BillingService;
 use App\Services\MultiChannel\OutboundOrchestratorService;
 use Illuminate\Support\Facades\Log;
@@ -59,6 +60,13 @@ class AiWhatsAppService
                     'phone_number' => $message->phone_number,
                 ]);
                 return ['success' => false, 'skipped' => true, 'reason' => 'duplicate_processing'];
+            }
+
+            // Suspended from the ShuleSoft admin panel: the AI agent stays silent.
+            if (AccountSuspensionService::isSuspended($message->user_id)) {
+                DB::table('incoming_messages')->where('id', $message->id)->update(['status' => 'processed']);
+                Log::info('AI reply skipped: account suspended', ['message_id' => $message->id, 'user_id' => $message->user_id]);
+                return ['success' => false, 'skipped' => true, 'reason' => 'account_suspended'];
             }
 
             DB::beginTransaction();
@@ -1464,6 +1472,10 @@ class AiWhatsAppService
     public function sendOutreachMessage(Lead $lead, string $message, AiSalesAgent $agent, string $campaign = 'daily_outreach'): array
     {
         try {
+            if (AccountSuspensionService::isSuspended($agent->user_id)) {
+                return ['success' => false, 'error' => 'Account suspended'];
+            }
+
             // Get lead's contact information
             $contact = $lead->contact;
             if (!$contact || !$contact->guest_phone) {

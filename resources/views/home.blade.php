@@ -956,6 +956,30 @@
     </div>
     @endif
     
+    {{-- Onboarding demo video, set in the ShuleSoft admin panel (App\Services\OnboardingVideo).
+         Closing it is remembered per video in this browser, so a new video shows again. --}}
+    @if(!empty($onboarding_video))
+    <div class="card mb-4" id="onboarding-video" data-video="{{ $onboarding_video['video_id'] }}" style="border-radius:12px">
+        <div class="card-header d-flex align-items-center justify-content-between" style="background:transparent">
+            <strong><i class="fab fa-youtube text-danger mr-2"></i>{{ $onboarding_video['video_title'] }}</strong>
+            <button type="button" class="close" aria-label="{{ __('dashboard.onboarding.video_hide') }}" title="{{ __('dashboard.onboarding.video_hide') }}"
+                    onclick="try { localStorage.setItem('onboarding_video_hidden', this.closest('#onboarding-video').dataset.video); } catch (e) {} this.closest('#onboarding-video').remove();"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="card-body">
+            <div class="embed-responsive embed-responsive-16by9" style="max-width:760px">
+                <iframe class="embed-responsive-item" src="https://www.youtube-nocookie.com/embed/{{ $onboarding_video['video_id'] }}?rel=0&modestbranding=1" title="{{ $onboarding_video['video_title'] }}"
+                        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy" style="border:0;border-radius:8px"></iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+        try {
+            var ov = document.getElementById('onboarding-video');
+            if (localStorage.getItem('onboarding_video_hidden') === ov.dataset.video) ov.remove();
+        } catch (e) {}
+    </script>
+    @endif
+
     <!-- Key Metrics Row -->
     <div class="row">
         <!-- Subscription Status -->

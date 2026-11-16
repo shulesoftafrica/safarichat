@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact as EventsGuest;
 use App\Services\BillingService;
 use App\Services\LocalBillingValidator;
 use Illuminate\Http\Request;

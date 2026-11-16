@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Lead;
 use App\Models\AiSalesAgent;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact as EventsGuest;
 use App\Models\Product;
 use App\Services\AiWhatsAppService;
 use App\Services\OpenAiService;

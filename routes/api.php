@@ -204,7 +204,7 @@ Route::middleware('auth:sanctum')->prefix('contacts')->name('api.contacts.')->gr
 });
 
 // Lead Management API Routes - Phase 1 CRM Integration
-Route::middleware('auth:sanctum')->prefix('leads')->name('api.leads.')->group(function () {
+Route::middleware('auth:sanctum')->prefix('leads')->name('api.leads.')->where(['id' => '[0-9]+', 'leadId' => '[0-9]+'])->group(function () {
     // Core CRUD operations
     Route::post('/', [LeadApiController::class, 'store'])->name('store');
     Route::get('/', [LeadApiController::class, 'index'])->name('index');
@@ -243,7 +243,7 @@ Route::middleware('auth:sanctum')->prefix('products')->name('api.products.')->gr
 });
 
 // Conversation Management API Routes - Phase 2 CRM Integration
-Route::middleware('auth:sanctum')->prefix('conversations')->name('api.conversations.')->group(function () {
+Route::middleware('auth:sanctum')->prefix('conversations')->name('api.conversations.')->where(['id' => '[0-9]+', 'leadId' => '[0-9]+'])->group(function () {
     // Core conversation operations
     Route::post('/', [ConversationApiController::class, 'store'])->name('store');
     Route::get('/{leadId}', [ConversationApiController::class, 'getConversationHistory'])->name('history');
@@ -345,7 +345,7 @@ Route::post('/webhook/whatsapp/{instanceUuid}', 'WaSenderController@handleWebhoo
 Route::middleware('auth:sanctum')->put('/wasender/instances/{instanceId}/ignored-contacts', [App\Http\Controllers\WaSenderController::class, 'updateIgnoredContacts']);
 
 // WhatsApp Instance Management API Routes
-Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whatsapp.instances.')->group(function () {
+Route::middleware('auth:sanctum')->prefix('whatsapp/instances')->name('api.whatsapp.instances.')->where(['id' => '[0-9]+'])->group(function () {
     Route::get('/', 'WhatsappInstanceController@index');
     Route::post('/', 'WhatsappInstanceController@store');
     Route::get('/active', 'WhatsappInstanceController@getActiveInstance');

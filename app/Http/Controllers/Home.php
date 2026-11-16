@@ -204,6 +204,8 @@ class Home extends Controller
             $this->data['subscription_expires_at'] = null;
         }
         
+        $this->data['onboarding_video'] = \App\Services\OnboardingVideo::forDashboard();
+
         return view('home', $this->data);
     }
 

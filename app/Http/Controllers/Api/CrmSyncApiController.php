@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
-use App\Models\EventsGuest;
+use App\Models\BusinessContact as EventsGuest;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -275,20 +275,18 @@ class CrmSyncApiController extends Controller
         try {
             $userId = Auth::id();
 
-            // Get last sync info from metadata
+            // Contacts keep their CRM link in dedicated columns; leads keep it in metadata
             $lastContactSync = EventsGuest::where('user_id', $userId)
-                ->whereNotNull('metadata->last_sync_at')
-                ->orderBy(DB::raw("JSON_EXTRACT(metadata, '$.last_sync_at')"), 'desc')
-                ->first();
+                ->whereNotNull('external_crm_id')
+                ->max('crm_updated_at');
 
             $lastLeadSync = Lead::where('user_id', $userId)
                 ->whereNotNull('metadata->last_sync_at')
-                ->orderBy(DB::raw("JSON_EXTRACT(metadata, '$.last_sync_at')"), 'desc')
-                ->first();
+                ->max(DB::raw("metadata->>'last_sync_at'"));
 
             // Count syncable items
             $syncableContacts = EventsGuest::where('user_id', $userId)
-                ->whereNotNull('metadata->external_id')
+                ->whereNotNull('external_crm_id')
                 ->count();
 
             $syncableLeads = Lead::where('user_id', $userId)
@@ -297,10 +295,8 @@ class CrmSyncApiController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'last_contact_sync' => $lastContactSync ? 
-                        $lastContactSync->metadata['last_sync_at'] : null,
-                    'last_lead_sync' => $lastLeadSync ? 
-                        $lastLeadSync->metadata['last_sync_at'] : null,
+                    'last_contact_sync' => $lastContactSync,
+                    'last_lead_sync' => $lastLeadSync,
                     'syncable_contacts' => $syncableContacts,
                     'total_leads' => $syncableLeads,
                     'sync_enabled' => true

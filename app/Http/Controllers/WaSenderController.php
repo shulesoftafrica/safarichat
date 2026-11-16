@@ -2629,6 +2629,39 @@ class WaSenderController extends Controller
     /**
      * Get all WaSender sessions via unified API
      */
+    /**
+     * Check that the WaSender API is reachable with the configured key
+     */
+    public function testConnection()
+    {
+        $apiKey = config('services.wasender.access_token');
+        if (!$apiKey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'WaSender API key not configured'
+            ]);
+        }
+
+        try {
+            $response = Http::timeout(15)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Accept'        => 'application/json',
+            ])->get('https://www.wasenderapi.com/api/whatsapp-sessions');
+
+            return response()->json([
+                'success' => $response->successful(),
+                'message' => $response->successful()
+                    ? 'Connected to WaSender'
+                    : 'WaSender responded with HTTP ' . $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function getSessions(Request $request)
     {
         try {

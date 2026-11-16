@@ -303,7 +303,7 @@ function refreshInstances() {
 
 function testWaSenderConnection() {
     $.ajax({
-        url: '{{ url("api/WaSender/test-connection") }}',
+        url: '{{ url("api/wasender/test-connection") }}',
         method: 'GET',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
