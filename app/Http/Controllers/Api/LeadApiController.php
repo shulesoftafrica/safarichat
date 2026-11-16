@@ -220,7 +220,7 @@ class LeadApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $leads->items()->map(function($lead) {
+                'data' => $leads->getCollection()->map(function($lead) {
                     return $this->formatLeadResponse($lead);
                 }),
                 'pagination' => [

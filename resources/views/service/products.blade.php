@@ -22,6 +22,11 @@
     @php
         // A "synced source" is LineShop or a generic stock API. When either is
         // connected, this page is a read-only summary of that source.
+        // Service::index/getTabContent render this view without the connection data.
+        $lineshopConnection = $lineshopConnection ?? null;
+        $lineshopConnected  = $lineshopConnected ?? false;
+        $apiConnection      = $apiConnection ?? null;
+        $apiConnected       = $apiConnected ?? false;
         $syncSource   = $lineshopConnected ? 'LineShop' : ($apiConnected ? ($apiConnection->name ?: 'your stock software') : null);
         $syncManage   = $lineshopConnected ? route('lineshop.index') : ($apiConnected ? route('catalog-api.index') : null);
         $syncConn     = $lineshopConnected ? $lineshopConnection : ($apiConnected ? $apiConnection : null);

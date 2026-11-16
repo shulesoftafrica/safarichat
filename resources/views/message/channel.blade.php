@@ -1,15 +1,6 @@
 @extends('layouts.app')
 @section('content')
 
- @php
-                                                                // Simulate $booking for pay.blade.php
-                                                                $booking =\App\Models\AdminBooking::where([
-                                                                    'admin_package_id' => 4,
-                                                                    'user_id' => Auth::user()->id,
-                                                                ])->first();
-                                                                $minimal = true;
-                                                            @endphp
-
 <div class="container">
     <!-- Page-Title -->
     <div class="row">
@@ -35,23 +26,16 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3" style="gap: 1rem;">
                         @php
-                            // Check if user has paid for WhatsApp (admin_package_id = 4)
-                            $hasWhatsappPayment = \App\Models\AdminPayment::where([
-                                'user_id' => Auth::id(),
-                                'method' => 'whatsapp',
-                            ])->exists();
-
-                            // Check if user has paid for BulkSMS (admin_package_id = 5 or method = 'bulksms')
-                            $hasBulkSmsPayment = \App\Models\AdminPayment::where([
-                                'user_id' => Auth::id(),
-                                'method' => 'bulksms',
-                            ])->exists();
+                            // Paid = an active billing account (the old AdminPayment records were removed with the legacy payment system)
+                            $billingAccount = Auth::user()->business?->billingAccount;
+                            $hasWhatsappPayment = $billingAccount && $billingAccount->isActive();
+                            $hasBulkSmsPayment = $hasWhatsappPayment;
 
                             $hasBulkSms = $instances->where('type', 'bulksms')->count() > 0;
                         @endphp
 
                         @if(!$hasWhatsappPayment)
-                            <a href="{{ url('home/upgrade') }}" class="btn btn-success btn-sm d-flex align-items-center" style="background-color: #25D366; border-color: #25D366;">
+                            <a href="{{ route('billing.payment') }}" class="btn btn-success btn-sm d-flex align-items-center" style="background-color: #25D366; border-color: #25D366;">
                                 <i class="fab fa-whatsapp mr-2" style="font-size: 1.2em;"></i>
                                 {{ __('create_new_whatsapp_instance') }}
                             </a>
@@ -66,7 +50,7 @@
                         ?>
                         @if(!$hasBulkSms)
                             @if(!$hasBulkSmsPayment)
-                                <a href="{{ url('home/upgrade') }}" class="btn btn-primary btn-sm d-flex align-items-center" style="background-color: #007bff; border-color: #007bff;">
+                                <a href="{{ route('billing.payment') }}" class="btn btn-primary btn-sm d-flex align-items-center" style="background-color: #007bff; border-color: #007bff;">
                                     <i class="fas fa-sms mr-2" style="font-size: 1.2em;"></i>
                                     {{ __('create_bulk-sms_instance') }}
                                 </a>
@@ -252,45 +236,10 @@ function getPairingCode(instanceId, modalId) {
                                         @if($instance->status === 'pending')
 
  
-                                            @if(empty($booking))
-                                                <a href="{{ url('home/upgrade') }}" class="btn btn-warning btn-sm">
-                                                    {{ __('pay') }}
-                                                </a>
-                                            @else
-                                                <button 
-                                                    class="btn btn-warning btn-sm" 
-                                                    data-toggle="modal" 
-                                                    data-target="#payModal{{$instance->id}}">
-                                                    {{ __('pay') }}
-                                                </button>
-                                            @endif
-
-                                            <!-- Payment Modal -->
-                                            <div class="modal fade" id="payModal{{$instance->id}}" tabindex="-1" role="dialog" aria-labelledby="payModalLabel{{$instance->id}}" aria-hidden="true">
-                                                <div class="modal-dialog modal-lg" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="payModalLabel{{$instance->id}}">{{ __('pay_for_whatsapp_instance') }}</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <div class="modal-body p-0">
-                                                            @php
-                                                                // Simulate $booking for pay.blade.php
-                                                                $booking =\App\Models\AdminBooking::where([
-                                                                    'admin_package_id' => 4,
-                                                                    'user_id' => Auth::user()->id,
-                                                                ])->first();
-                                                                $minimal = true;
-                                                            @endphp
-                                                            @include('payment.pay', ['booking' => $booking, 'minimal' => true])
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <a href="{{ route('billing.payment') }}" class="btn btn-warning btn-sm">
+                                                {{ __('pay') }}
+                                            </a>
                                         @endif
-                                  @endif
                                 @if($instance->status === 'active')
                                     {{-- All instances are WhatsApp instances now --}}
                                         <!-- WhatsApp instance actions -->
@@ -331,7 +280,6 @@ function getPairingCode(instanceId, modalId) {
                                             </div>
                                         </div>
                                     @endif
-                                @endif
                                       <form action="{{ url('message/channelDelete', $instance->uuid) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
@@ -368,16 +316,6 @@ function getPairingCode(instanceId, modalId) {
                 <div class="modal-body">
                     <div class="card-body" id="whatsapp_content">
                         <div class="pricingTable1 text-center">
-                            <div class="p-3 m-2">
-                                <?php
-                              
-                                $whatsapp_price =\App\Models\AdminPackage::where('name','whatsapp')->first()->price;
-
-                                ?>
-                                <h3 class="amount amount-border d-inline-block">{{ __('tsh') }} <?= number_format($whatsapp_price) ?></h3>
-                                <small class="font-12 text-muted">{{ __('per_one_sender') }}</small>
-                            </div>
-                            <hr class="hr-dashed">
                             <ul class="list-unstyled pricing-content-2 text-left py-3 border-0 mb-0">
                                 <li><i class="fa fa-check text-success"></i> {{ __('send_and_receive_messages_to_members_via_whatsapp') }}</li>
                                 <li><i class="fa fa-check text-success"></i> {{ __('send_photo_audio_videos_etc_to_event_member_via_your_whatsapp') }} </li>
@@ -422,14 +360,6 @@ function getPairingCode(instanceId, modalId) {
                             <strong>{{ __('important') }}:</strong> {{ __('to_register_a_bulk-sms_sender_name,_you_must_submit_the_following_details_for_approval_by_tcra._the_approval_process_may_take_up_to_3_weeks.') }}
                         </div>
                         <div class="pricingTable1 text-center">
-                            <div class="p-3 m-2">
-                                <?php
-                                $bulksms_price = \App\Models\AdminPackage::where('name','bulksms')->first()->price ?? 0;
-                                ?>
-                                <h3 class="amount amount-border d-inline-block">{{ __('tsh') }} <?= number_format($bulksms_price) ?></h3>
-                                <small class="font-12 text-muted">{{ __('per_sender_name') }}</small>
-                            </div>
-                            <hr class="hr-dashed">
 
                             <form method="POST" action="#" enctype="multipart/form-data" class="text-left">
                                 @csrf
@@ -456,7 +386,7 @@ function getPairingCode(instanceId, modalId) {
                                 </div>
 <?php
 if (is_trial()) {
-    echo '<a href="' . url('home/upgrade') . '" class="btn btn-warning btn-block">' . __('submit_sender_name_for_approval') . '</a>';
+    echo '<a href="' . route('billing.payment') . '" class="btn btn-warning btn-block">' . __('submit_sender_name_for_approval') . '</a>';
 } else {
     echo '<button type="submit" class="btn btn-primary btn-block">' . __('submit_sender_name_for_approval') . '</button>';
 }

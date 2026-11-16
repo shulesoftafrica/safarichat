@@ -251,6 +251,32 @@ class ProductAttachmentController extends Controller
     }
 
     /**
+     * Get document counts per processing status
+     */
+    public function getProcessingStatus(): JsonResponse
+    {
+        try {
+            $counts = ProductAttachment::select('processing_status', DB::raw('count(*) as total'))
+                ->groupBy('processing_status')
+                ->pluck('total', 'processing_status');
+
+            return response()->json([
+                'success' => true,
+                'statuses' => $counts,
+                'total' => $counts->sum()
+            ]);
+
+        } catch (Exception $e) {
+            Log::error("Failed to get document processing status: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get processing status'
+            ], 500);
+        }
+    }
+
+    /**
      * Reprocess document for RAG
      */
     public function reprocessRAG(Product $product, ProductAttachment $attachment): JsonResponse
