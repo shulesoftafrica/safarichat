@@ -457,13 +457,19 @@ class ProductAttachmentController extends Controller
      */
     private function dispatchRagProcessing(int $attachmentId): void
     {
-        if (config('queue.default') === 'sync') {
+        // RAG_QUEUE_CONNECTION (e.g. rag_redis) sends only this job to its own queue and worker,
+        // even when the rest of the app runs on the sync driver.
+        $connection = config('queue.rag_connection');
+        if (!$connection && config('queue.default') === 'sync') {
             ProcessDocumentForRAG::dispatchAfterResponse($attachmentId);
 
             return;
         }
 
-        ProcessDocumentForRAG::dispatch($attachmentId)->onQueue('rag_processing')->afterCommit();
+        $job = ProcessDocumentForRAG::dispatch($attachmentId)->onQueue('rag_processing')->afterCommit();
+        if ($connection) {
+            $job->onConnection($connection);
+        }
     }
 
     private function isRAGSupported(string $mimeType): bool

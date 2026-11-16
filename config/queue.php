@@ -31,6 +31,10 @@ return [
     |
     */
 
+    // Connection for ProcessDocumentForRAG only (e.g. rag_redis, with a worker on the
+    // rag_processing queue). Unset: the default connection, or after the response on sync.
+    'rag_connection' => env('RAG_QUEUE_CONNECTION'),
+
     'connections' => [
 
         'sync' => [
@@ -54,12 +58,12 @@ return [
             'after_commit' => false,
         ],
         
-        // Dedicated RAG processing queue
+        // Dedicated RAG processing queue (used when RAG_QUEUE_CONNECTION=rag_redis)
         'rag_redis' => [
             'driver' => 'redis',
             'connection' => 'default',
             'queue' => 'rag_processing',
-            'retry_after' => 600, // 10 minutes
+            'retry_after' => 660, // longer than ProcessDocumentForRAG's 600-second timeout
             'block_for' => null,
             'after_commit' => false,
         ],
