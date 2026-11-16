@@ -86,6 +86,11 @@ return [
         'webhook_secret' => env('LIPA_NUMBER_WEBHOOK_SECRET'),
     ],
 
+    // Shared secret for the ShuleSoft admin panel's signed calls to /api/admin-panel/*.
+    'admin_panel' => [
+        'secret' => env('ADMIN_PANEL_API_SECRET'),
+    ],
+
     'billing' => [
         'api_url' => env('BILLING_API_URL', 'https://api.safaribank.africa/api/v1'),
         'access_token' => env('BILLING_ACCESS_TOKEN', ''),

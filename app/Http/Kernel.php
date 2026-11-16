@@ -38,6 +38,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\EnsureAccountNotSuspended::class,
         ],
 
         'api' => [
@@ -70,5 +71,6 @@ class Kernel extends HttpKernel
         'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
         'whatsapp.setup' => \App\Http\Middleware\CheckWhatsAppSetup::class,
         'billing.webhook.ip' => \App\Http\Middleware\ValidateBillingWebhookIP::class,
+        'admin.panel.signature' => \App\Http\Middleware\VerifyAdminPanelSignature::class,
     ];
 }

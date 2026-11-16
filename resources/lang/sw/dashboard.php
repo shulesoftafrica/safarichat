@@ -28,6 +28,7 @@ return [
         'complete_message' => 'Mfumo wako wa Mauzo wa WhatsApp AI uko tayari! Umeunganisha WhatsApp kwa mafanikio, kuongeza bidhaa, na kusanidi wakala wako wa AI. Uko tayari kabisa kuanza kubadilisha wateja kuwa mauzo.',
         'proactive_title' => 'Tayari kwa Mawasiliano ya Kianzilishi!',
         'proactive_message' => 'Unaweza kuanza kuleta wawasiliani na kutuma meseji zilizolengwa. AI yako itashughulikia mazungumzo yote kiotomatiki.',
+        'video_hide' => 'Ficha video',
     ],
 
     // Instance Selector
