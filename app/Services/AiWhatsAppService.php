@@ -311,6 +311,10 @@ class AiWhatsAppService
                 'win_back_attempts' => 0,
                 'product_ids' => $initialProduct ? [$initialProduct->id] : [],
                 'primary_product_id' => $initialProduct?->id,
+                // A greeting like "Hello" names no product, and businesses with several
+                // products and no active campaign would otherwise fail lead creation and
+                // the customer would never get a reply. Fall back to a default product.
+                'fallback_product_id' => $initialProduct ? null : $this->defaultProductIdForUser($message->user_id),
             ]);
 
             if (!$result['success']) {
@@ -328,6 +332,27 @@ class AiWhatsAppService
         }
 
         return $lead;
+    }
+
+    /**
+     * Default product for a new inbound lead when none can be inferred:
+     * the active product most often attached to this user's leads, else the
+     * most recently updated active product.
+     */
+    private function defaultProductIdForUser(int $userId): ?int
+    {
+        $activeIds = Product::active()->forUser($userId)->pluck('id');
+        if ($activeIds->isEmpty()) {
+            return null;
+        }
+
+        $mostUsed = \App\Models\LeadProduct::whereIn('product_id', $activeIds)
+            ->selectRaw('product_id, COUNT(*) as uses')
+            ->groupBy('product_id')
+            ->orderByDesc('uses')
+            ->value('product_id');
+
+        return (int) ($mostUsed ?? Product::active()->forUser($userId)->latest('updated_at')->value('id'));
     }
 
     /**

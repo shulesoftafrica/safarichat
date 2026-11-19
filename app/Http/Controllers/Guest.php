@@ -823,7 +823,7 @@ class Guest extends Controller {
                         'guest_email' => (string) ($user->email ?? ''),
                         'guest_phone' => $phone,
                         'contact_category_id' => $category_id,
-                        'guest_pledge' => (string) ($user->pledge ?? ''),
+                        'guest_pledge' => is_numeric($user->pledge ?? null) ? $user->pledge : 0,
                     ]) : $check_guests;
                     
                 // Increment counter only if new contact was created
