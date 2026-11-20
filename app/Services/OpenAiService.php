@@ -997,11 +997,23 @@ class OpenAiService
     }
 
     // === LANGUAGE ===
-    $prompt .= "\n\nLANGUAGE:";
-    $prompt .= "\n- Primary language: {$agent->primary_language}";
-    if ($agent->auto_detect_language && $agent->additional_languages) {
-        $prompt .= "\n- You may switch languages naturally when appropriate";
+    // The prompt used to say only "Primary language: en". With no rule to follow the customer, the model sometimes
+    // refused a language it was writing in ("Samahani, kwa sasa naweza kutoa maelezo tu kwa Kiingereza") and often
+    // answered Swahili customers in English. English and Kiswahili are always available; the agent's primary language is
+    // only the default for a customer who has not written anything yet.
+    $languageNames = ['en' => 'English', 'sw' => 'Kiswahili', 'fr' => 'French', 'ar' => 'Arabic', 'pt' => 'Portuguese', 'am' => 'Amharic'];
+    $primaryLanguage = $languageNames[$agent->primary_language] ?? (string) $agent->primary_language;
+    $prompt .= "\n\nLANGUAGE (MANDATORY):";
+    $prompt .= "\n- Default language: {$primaryLanguage}. Use it only when the customer has not shown which language they prefer.";
+    $prompt .= "\n- ALWAYS reply in the language the customer is writing in. If they write in Kiswahili, or ask for Kiswahili, answer fully in natural Kiswahili. If they write in English, answer in English. If they mix English and Kiswahili (Sheng), match them. You write both English and Kiswahili well.";
+    $prompt .= "\n- NEVER say you can only reply in English (or in any one language), never refuse a language and never apologise for language. If the customer asks you to change language (for example \"naomba kiswahili\", \"niambie kiswahili\", \"speak Swahili\", \"in English please\"), simply switch and answer their last question again in that language.";
+    $prompt .= "\n- A language switch is NOT a new conversation: keep the context. For example, if they asked for a demo and then ask for the explanation in Kiswahili, explain the demo in Kiswahili and share the same link; do not restart, re-introduce yourself or ask what they want.";
+    $additionalLanguages = array_filter((array) ($agent->additional_languages ?? []));
+    if ($agent->auto_detect_language && $additionalLanguages) {
+        $names = array_map(fn ($code) => $languageNames[$code] ?? (string) $code, $additionalLanguages);
+        $prompt .= "\n- You may also reply in: " . implode(', ', $names) . ".";
     }
+    $prompt .= "\n- For any other language: reply in it if you can write it well; if not, say so in that language and continue in English or Kiswahili.";
 
     // === CRITICAL SALES PHASE CONTROL ===
     $prompt .= "\n\n🔥 SALES PHASE CONTROL (MANDATORY):";
