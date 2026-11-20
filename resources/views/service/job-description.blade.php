@@ -281,6 +281,33 @@
                             </div>
                             
                             <div class="capability-section">
+                                <h4>Follow-ups</h4>
+                                <div class="form-group">
+                                    <div class="toggle-option">
+                                        <input type="checkbox" id="auto_followup" name="auto_followup"
+                                               {{ old('auto_followup', $existingAgent->auto_followup ?? true) ? 'checked' : '' }}>
+                                        <label for="auto_followup">
+                                            <span class="toggle-slider"></span>
+                                            <div class="toggle-content">
+                                                <h4>Automatic Follow-ups</h4>
+                                                <p>Follow up with leads who replied to you and then went quiet for 3 days or more</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            {{-- Settings that have no checkbox on this page keep their saved value on save (they used to be reset to 0). --}}
+                            @php
+                                $savedAgentFlags = $existingAgent
+                                    ? collect(['always_available', 'allow_negotiation', 'accept_installments', 'stop_orders_low_stock', 'auto_followup', 'notify_on_deal'])
+                                        ->mapWithKeys(fn ($flag) => [$flag => (bool) ($existingAgent->{$flag} ?? false)])->all()
+                                    : null;
+                            @endphp
+                            <script>
+                                window.__savedAgentFlags = {!! json_encode($savedAgentFlags) !!};
+                            </script>
+
+                            <div class="capability-section">
                                 <h4>Sales Capabilities</h4>
                                 <div class="form-group">
                                     <div class="toggle-option">
@@ -2043,7 +2070,13 @@ function submitConfiguration() {
     
     booleanFields.forEach(fieldName => {
         const checkbox = document.getElementById(fieldName) || document.querySelector(`input[name="${fieldName}"]`);
-        formData.set(fieldName, checkbox?.checked ? '1' : '0');
+        if (checkbox) {
+            formData.set(fieldName, checkbox.checked ? '1' : '0');
+        } else {
+            // No control for this setting on the page: keep the saved value (new agent: off, as before).
+            const saved = window.__savedAgentFlags;
+            formData.set(fieldName, saved && saved[fieldName] ? '1' : '0');
+        }
     });
     
     fetch(form.action, {
@@ -2159,7 +2192,13 @@ function finalSave() {
     
     booleanFields.forEach(fieldName => {
         const checkbox = document.getElementById(fieldName);
-        formData.set(fieldName, checkbox?.checked ? '1' : '0');
+        if (checkbox) {
+            formData.set(fieldName, checkbox.checked ? '1' : '0');
+        } else {
+            // No control for this setting on the page: keep the saved value (new agent: off, as before).
+            const saved = window.__savedAgentFlags;
+            formData.set(fieldName, saved && saved[fieldName] ? '1' : '0');
+        }
     });
     
     // Debug: Log form data and action
