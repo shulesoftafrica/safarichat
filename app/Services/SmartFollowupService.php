@@ -45,15 +45,28 @@ class SmartFollowupService
                 Log::info('Smart followup: Skipped due to outside business hours (' . $now->format('H:i') . ')');
                 return;
             }
+            // Daily cap per account: accounts that already used today's allowance are left out of this run.
+            $dailyCap = (int) config('outreach.smart_followup_daily_cap', 0);
+            $cappedUserIds = [];
+            if ($dailyCap > 0) {
+                $cappedUserIds = Lead::where('follow_up_sent_at', '>=', now()->startOfDay())
+                    ->select('user_id')->groupBy('user_id')
+                    ->havingRaw('count(*) >= ?', [$dailyCap])
+                    ->pluck('user_id')->all();
+            }
+
             // Get leads that are NOT closed and need followup.
             // Only fetch leads whose AI agent has auto_followup enabled — filtering here
             // avoids fetching leads that will always be skipped and never updated.
-            $leadsNeedingFollowUp = Lead::whereNotIn('status', [
-                                        Lead::STATUS_CLOSED, 
-                                        Lead::STATUS_LOST, 
-                                        Lead::STATUS_DO_NOT_CONTACT,
-                                        Lead::STATUS_CONVERTED
-                                    ])
+            // 1) Everyone who passes the basic rules (the DO_NOT_CONTACT "do not engage" status, closed/lost/converted/
+            //    churned/handed-off leads, opted-out and handed-off contacts are left out here).
+            $candidates = Lead::whereNotIn('status', \App\Services\FollowupPriorityService::EXCLUDED_STATUSES)
+                                    ->where(function ($query) {
+                                        $query->whereNull('is_churned')->orWhere('is_churned', false);
+                                    })
+                                    ->whereDoesntHave('contact', function ($query) {
+                                        $query->where('opt_out_status', true)->orWhere('handoff_status', 'handed_off');
+                                    })
                                     ->whereHas('aiSalesAgent', function($query) {
                                         $query->where('auto_followup', true);
                                     })
@@ -71,9 +84,36 @@ class SmartFollowupService
                                     ->when(config('outreach.reply_required', true), function($query) {
                                         $query->whereNotNull('last_reply_at');
                                     })
-                                    ->with(['contact', 'aiSalesAgent']) // not 'conversations': the full history of 20 leads exhausted memory every minute; the last 10 are queried per lead below
-                                    ->limit(20)
-                                    ->get();
+                                    ->when(!empty($cappedUserIds), function($query) use ($cappedUserIds) {
+                                        $query->whereNotIn('user_id', $cappedUserIds);
+                                    })
+                                    ->get(['id', 'user_id', 'status', 'lead_score', 'last_reply_at', 'business_contact_id']);
+
+            // 2) Rank them: highest effective lead score first (stored score, AI probability, pipeline status and buying
+            //    intent in the customer's own words), recent replies preferred, old contacts only when interest is high.
+            $ranking = app(\App\Services\FollowupPriorityService::class)->rank($candidates);
+            $top = array_slice($ranking['ranked'], 0, 20);
+            $rankInfo = [];
+            foreach ($top as $t) {
+                $rankInfo[$t['id']] = $t;
+            }
+            $orderIds = array_column($top, 'id');
+
+            $skipReasons = array_count_values($ranking['skipped']);
+            $this->selectionLog()->info('smart followup run', [
+                'candidates' => $candidates->count(),
+                'ranked_eligible' => count($ranking['ranked']),
+                'taking' => count($top),
+                'skipped' => $skipReasons,
+                'skipped_stop_wording_lead_ids' => array_keys(array_filter($ranking['skipped'], fn ($r) => str_starts_with($r, 'contact asked us to stop'))),
+            ]);
+
+            // not 'conversations': the full history of 20 leads exhausted memory every minute; the last 10 are queried per lead below
+            $leadsNeedingFollowUp = Lead::whereIn('id', $orderIds ?: [0])
+                                    ->with(['contact', 'aiSalesAgent'])
+                                    ->get()
+                                    ->sortBy(fn ($l) => array_search($l->id, $orderIds))
+                                    ->values();
 
             Log::info("Smart followup: Found {$leadsNeedingFollowUp->count()} leads needing followup");
 
@@ -117,6 +157,14 @@ class SmartFollowupService
                         continue;
                     }
 
+                    // Daily cap, re-checked per lead: one run can take up to 20 leads of the same account.
+                    if ($dailyCap > 0 && Lead::where('user_id', $lead->user_id)
+                            ->where('follow_up_sent_at', '>=', now()->startOfDay())->count() >= $dailyCap) {
+                        Log::info("Smart followup: daily cap of {$dailyCap} reached for account {$lead->user_id}, lead {$lead->id} left for tomorrow");
+                        $skipCount++;
+                        continue;
+                    }
+
                     // Offer rotation: choose the next module/angle to pitch this touch
                     // (null when the feature is off — legacy template ladder is used).
                     $offer = app(\App\Services\Sales\NextBestOfferService::class)->resolveForLead($lead);
@@ -147,6 +195,9 @@ class SmartFollowupService
                     if ($claimed !== 1) {
                         continue; // another run already took this lead
                     }
+
+                    // Audit trail: why this lead was chosen now.
+                    $this->selectionLog()->info('selected', ($rankInfo[$lead->id] ?? ['id' => $lead->id]) + ['agent_id' => $lead->ai_sales_agent_id]);
 
                     // Send the followup
                     $sent = $this->sendSmartFollowup($lead, $followupMessage);
@@ -185,6 +236,17 @@ class SmartFollowupService
         } catch (\Exception $e) {
             Log::error('Smart followup processing failed: ' . $e->getMessage());
         }
+    }
+
+    /** Dedicated daily log (90 days) explaining every follow-up selection: storage/logs/smart-followup-selection-YYYY-MM-DD.log */
+    private function selectionLog(): \Psr\Log\LoggerInterface
+    {
+        return Log::build([
+            'driver' => 'daily',
+            'path' => storage_path('logs/smart-followup-selection.log'),
+            'level' => 'info',
+            'days' => 90,
+        ]);
     }
 
     /**
