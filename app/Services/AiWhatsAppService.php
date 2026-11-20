@@ -316,6 +316,9 @@ class AiWhatsAppService
                 // products and no active campaign would otherwise fail lead creation and
                 // the customer would never get a reply. Fall back to a default product.
                 'fallback_product_id' => $initialProduct ? null : $this->defaultProductIdForUser($message->user_id),
+                // ...and a business with no active product at all (96 inbound messages in two days were dropped with
+                // "At least one product is required for every lead") still gets its customer answered.
+                'allow_without_product' => true,
             ]);
 
             if (!$result['success']) {

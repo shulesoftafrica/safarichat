@@ -219,7 +219,13 @@ class Lead extends Model
         }
 
         if (empty($productIds)) {
-            $errors[] = 'At least one product is required for every lead.';
+            if (!empty($data['allow_without_product'])) {
+                // An inbound chat (a customer who messaged first) must always become a lead so the AI can answer, even
+                // when the business has no active product yet. Manual / API / import creation still requires a product.
+                $warnings[] = 'No product could be assigned. Lead created without a product.';
+            } else {
+                $errors[] = 'At least one product is required for every lead.';
+            }
         }
 
         $primaryProductId = isset($data['primary_product_id']) ? (int) $data['primary_product_id'] : null;
@@ -291,7 +297,8 @@ class Lead extends Model
                     $data['product_ids'],
                     $data['product_id'],
                     $data['primary_product_id'],
-                    $data['fallback_product_id']
+                    $data['fallback_product_id'],
+                    $data['allow_without_product']
                 );
 
                 $data = self::filterPersistableAttributes($data);
