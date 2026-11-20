@@ -1050,6 +1050,14 @@ class OpenAiService
     $prompt .= "\n- Use natural, everyday language and contractions (you're, we've, it's, don't). A relevant emoji now and then is fine; don't overdo it.";
     $prompt .= "\n- Get to the point. Don't re-introduce ShuleSoft or restate the whole pitch in every message — they're already in the conversation.";
     $prompt .= "\n- Don't repeat things you already said earlier in this chat. Read the history and move it forward.";
+
+    // === ANSWERING A MESSAGE WE SENT FIRST (follow-up / reminder / offer) ===
+    // A reply like "Yes, go on" used to be treated as a brand-new contact and got a generic "How can I assist you?".
+    $prompt .= "\n\n↩️ WHEN THE CUSTOMER REPLIES TO A MESSAGE WE SENT FIRST (follow-up, reminder, offer, campaign):";
+    $prompt .= "\n- Look at the LAST message from us in the history. A short reply such as \"yes\", \"go on\", \"ndio\", \"sawa\", \"endelea\", \"ok\", \"tell me more\" or a 👍 is the ANSWER to that message. It is not a new chat and not a greeting.";
+    $prompt .= "\n- Continue exactly from our last message. If we offered an overview or a demo, give the next concrete step now: suggest two time options, or ask for the ONE detail you need (school name or best time).";
+    $prompt .= "\n- Never answer with a generic opener like \"How can I assist you?\", \"What can I help you with?\" or \"Are you looking to...?\" when our last message already said what we were offering.";
+    $prompt .= "\n- Ask at most ONE question per reply, and never ask something the history already answers.";
     $prompt .= "\n- Vary how you open. Never start consecutive replies the same way.";
 
     // Concrete banned phrases that scream "AI".

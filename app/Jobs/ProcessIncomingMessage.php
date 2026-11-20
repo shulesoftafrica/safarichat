@@ -119,15 +119,22 @@ class ProcessIncomingMessage implements ShouldQueue
             // WAITING_FOR_USER guard: resolve the lead and check if the AI is
             // still waiting for the user's reply before generating another response.
             // -------------------------------------------------------------------
-            $lead = \App\Models\Lead::where('user_id', $this->whatsappInstance->user_id)
-                ->whereHas('contact', function ($q) use ($phoneNumber) {
-                    $q->where('guest_phone', $phoneNumber);
+            // Match by the last 9 digits: contacts are stored as "+255...", "0..." or "255...", WhatsApp sends "255...".
+            // Every record of this person is cleared, not just the first one found.
+            $phoneDigits = preg_replace('/\D+/', '', (string) $phoneNumber) ?? '';
+            $phoneKey = strlen($phoneDigits) >= 9 ? substr($phoneDigits, -9) : $phoneDigits;
+            $leads = $phoneKey === '' ? collect() : \App\Models\Lead::where('user_id', $this->whatsappInstance->user_id)
+                ->whereHas('contact', function ($q) use ($phoneKey) {
+                    $q->whereRaw(strlen($phoneKey) === 9
+                        ? "right(regexp_replace(guest_phone, '[^0-9]', '', 'g'), 9) = ?"
+                        : "regexp_replace(guest_phone, '[^0-9]', '', 'g') = ?", [$phoneKey]);
                 })
-                ->first();
+                ->get();
+            $lead = $leads->first();
 
-            if ($lead) {
+            foreach ($leads as $siblingLead) {
                 // User just sent us a message — clear the waiting state.
-                $lead->markUserReplied();
+                $siblingLead->markUserReplied();
             }
 
             $recentMessages = IncomingMessage::where('phone_number', $phoneNumber)

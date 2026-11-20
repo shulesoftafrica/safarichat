@@ -255,9 +255,10 @@ class AiWhatsAppService
 
         // Scope the contact lookup to THIS business — a customer may contact
         // multiple businesses; each business must have its own contact record.
-        $businessContact = BusinessContact::where('guest_phone', $message->phone_number)
-                                          ->where('business_id', $business->id)
-                                          ->first();
+        // Match the number by its last 9 digits, not by the exact string: contacts are stored as "+255...", "0..." or
+        // "255..." while WhatsApp delivers "255...", so an exact match missed the contact we had just followed up, created
+        // a second contact + lead, and the AI answered "Yes, go on" as if it were a brand-new customer.
+        $businessContact = $this->findContactByPhone((int) $business->id, $message->phone_number, (int) $message->user_id);
 
         // Create BusinessContact for this business if it doesn't exist yet
         if (!$businessContact) {
@@ -458,36 +459,128 @@ class AiWhatsAppService
     /**
      * Get conversation history for context
      */
-    private function getConversationHistory(Lead $lead, int $limit = 10): array
+    private function getConversationHistory(Lead $lead, int $limit = 12): array
     {
-        $conversations = $lead->conversations()
-            ->latest()
+        // Every lead of the same person (same business, same last 9 digits): older contact records of the same number
+        // hold the follow-up we sent and the earlier chat.
+        $conversations = \App\Models\Conversation::whereIn('lead_id', $this->siblingLeadIds($lead))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->reverse(); // oldest first
 
         $history = [];
         foreach ($conversations as $conversation) {
-            // Only add customer message if it's not null or empty
-            if (!empty($conversation->customer_message)) {
+            $customerText = $conversation->customer_message;
+            $aiText = $conversation->ai_response;
+
+            if (!empty($customerText)) {
                 $history[] = [
                     'from_customer' => true,
-                    'content' => $conversation->customer_message,
+                    'content' => $customerText,
                     'timestamp' => $conversation->created_at,
                 ];
             }
-            
-            // Only add AI response if it exists and is not empty
-            if (!empty($conversation->ai_response)) {
+
+            if (!empty($aiText)) {
                 $history[] = [
                     'from_customer' => false,
-                    'content' => $conversation->ai_response,
+                    'content' => $aiText,
+                    'timestamp' => $conversation->created_at,
+                ];
+            }
+
+            // Messages we SENT on our own (smart follow-ups, outreach, campaigns, a person typing) and some customer
+            // messages are stored only in message_content. This reader used to look at customer_message / ai_response
+            // only, so the follow-up the customer was answering never reached the AI.
+            if (empty($customerText) && empty($aiText) && !empty($conversation->message_content)) {
+                $history[] = [
+                    'from_customer' => ($conversation->sender_type === 'customer'),
+                    'content' => $conversation->message_content,
                     'timestamp' => $conversation->created_at,
                 ];
             }
         }
 
-        // Return in chronological order (oldest first for context)
-        return array_reverse($history);
+        return $history; // chronological: oldest first, question before its answer
+    }
+
+    /** Last 9 digits of a phone number ("+255 710 242 355", "0710242355" and "255710242355" give the same key). */
+    private function phoneKey(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
+
+        return strlen($digits) >= 9 ? substr($digits, -9) : $digits;
+    }
+
+    /** SQL fragment matching business_contacts.guest_phone to a phone key (PostgreSQL). */
+    private function phoneKeyWhere(string $key): array
+    {
+        if (strlen($key) === 9) {
+            return ["right(regexp_replace(business_contacts.guest_phone, '[^0-9]', '', 'g'), 9) = ?", [$key]];
+        }
+
+        return ["regexp_replace(business_contacts.guest_phone, '[^0-9]', '', 'g') = ?", [$key]];
+    }
+
+    /**
+     * The contact record of this number in this business. When the same number exists under several formats
+     * (+255..., 0..., 255...) the one with the most recent conversation wins, so we never start a new record.
+     */
+    private function findContactByPhone(int $businessId, ?string $phone, int $userId): ?BusinessContact
+    {
+        $key = $this->phoneKey($phone);
+        if ($key === '') {
+            return null;
+        }
+
+        [$sql, $bindings] = $this->phoneKeyWhere($key);
+        $contacts = BusinessContact::where('business_contacts.business_id', $businessId)
+            ->whereNotNull('business_contacts.guest_phone')
+            ->whereRaw($sql, $bindings)
+            ->get();
+
+        if ($contacts->count() <= 1) {
+            return $contacts->first();
+        }
+
+        $best = null;
+        $bestActivity = -1;
+        foreach ($contacts as $contact) {
+            $activity = (int) DB::table('conversations')
+                ->join('leads', 'leads.id', '=', 'conversations.lead_id')
+                ->where('leads.business_contact_id', $contact->id)
+                ->where('leads.user_id', $userId)
+                ->max('conversations.id');
+            if ($activity > $bestActivity) {
+                $best = $contact;
+                $bestActivity = $activity;
+            }
+        }
+
+        return $best ?? $contacts->first();
+    }
+
+    /** This lead plus every other lead of the same person (same business, same last 9 digits). */
+    private function siblingLeadIds(Lead $lead): array
+    {
+        $contact = $lead->contact;
+        $key = $this->phoneKey($contact->guest_phone ?? null);
+        if (!$contact || $key === '') {
+            return [$lead->id];
+        }
+
+        [$sql, $bindings] = $this->phoneKeyWhere($key);
+        $ids = DB::table('leads')
+            ->join('business_contacts', 'business_contacts.id', '=', 'leads.business_contact_id')
+            ->where('leads.user_id', $lead->user_id)
+            ->where('business_contacts.business_id', $contact->business_id)
+            ->whereRaw($sql, $bindings)
+            ->pluck('leads.id')
+            ->all();
+
+        return array_values(array_unique(array_merge([$lead->id], array_map('intval', $ids))));
     }
 
     /**
@@ -566,16 +659,25 @@ class AiWhatsAppService
      */
     private function lastCampaignMessage(Lead $lead): ?string
     {
-        $conversation = $lead->conversations()
-            ->whereNotNull('ai_response')
-            ->latest()
+        // The last thing WE sent: an AI reply (ai_response) or a message sent on our own (follow-up, outreach, campaign:
+        // stored in message_content with sender_type other than customer). Includes other records of the same number.
+        $conversation = \App\Models\Conversation::whereIn('lead_id', $this->siblingLeadIds($lead))
+            ->where(function ($q) {
+                $q->where(function ($w) {
+                    $w->whereNotNull('ai_response')->where('ai_response', '<>', '');
+                })->orWhere(function ($w) {
+                    $w->where('sender_type', '<>', 'customer')->whereNotNull('message_content')->where('message_content', '<>', '');
+                });
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->first();
 
         if (!$conversation) {
             return null;
         }
 
-        return $conversation->ai_response ?? $conversation->message_content ?? null;
+        return !empty($conversation->ai_response) ? $conversation->ai_response : ($conversation->message_content ?? null);
     }
 
     /**
@@ -1331,15 +1433,19 @@ class AiWhatsAppService
                 // Look up by contact phone first; fall back to lead.phone_number
                 // in case of format mismatch between IncomingMessage and BusinessContact.
                 // ---------------------------------------------------------------
-                $lead = Lead::where('user_id', $originalMessage->user_id)
-                    ->where(function ($q) use ($originalMessage) {
-                        $q->whereHas('contact', function ($q2) use ($originalMessage) {
-                            $q2->where('guest_phone', $originalMessage->phone_number);
+                $replyKey = $this->phoneKey($originalMessage->phone_number);
+                $replyLead = Lead::where('user_id', $originalMessage->user_id)
+                    ->where(function ($q) use ($originalMessage, $replyKey) {
+                        $q->whereHas('contact', function ($q2) use ($replyKey) {
+                            [$sql, $bindings] = $this->phoneKeyWhere($replyKey);
+                            $q2->whereRaw(str_replace('business_contacts.', '', $sql), $bindings);
                         })->orWhere('phone_number', $originalMessage->phone_number);
                     })
+                    ->orderByDesc('last_interaction_at')
                     ->first();
-                if ($lead) {
-                    $lead->markAiReplied();
+                if ($replyKey !== '' && $replyLead) {
+                    // Mark the lead the customer is actually talking on (most recent activity), as before for a single lead.
+                    $replyLead->markAiReplied();
                 }
 
                 return true;
