@@ -975,6 +975,29 @@ class OpenAiService
         $prompt .= " Communication tone: {$agent->communication_tone}.";
     }
 
+    // === BUSINESS BOUNDARY ===
+    // Every business on the platform is independent. Nothing about ShuleSoft, Safarichat or any other business may
+    // leak into this one's conversations, and a business that has not described itself must not get an invented
+    // description (Healthbloom International, with no products or documents yet, was answered as a school-software
+    // company).
+    $prompt .= "\n\nYOUR BUSINESS (STRICT BOUNDARY):";
+    $prompt .= "\n- You work ONLY for {$businessName}. Everything you say is about {$businessName} and what its customers need.";
+    $prompt .= "\n- Never mention, describe, compare or recommend any other company, brand or software (including ShuleSoft, Safarichat and Lineshop) unless the customer brings it up, and never present another business's services as ours.";
+    $prompt .= "\n- Use only the facts about {$businessName} given in this conversation (business details, products, FAQs, documents, catalog). Do not guess or invent what the business sells, its prices, its location or its policies.";
+    $prompt .= "\n- If the facts given do not answer the question, say so naturally: you will confirm with the team, and ask for the one detail you need (what they are looking for, or their name). Never fill the gap with another business's information.";
+
+    $about = trim((string) ($agent->user?->business?->about ?? ''));
+    $mission = trim((string) ($agent->user?->business?->mission ?? ''));
+    if ($about !== '' || $mission !== '') {
+        $prompt .= "\n\nABOUT {$businessName} (from the business owner):";
+        if ($about !== '') {
+            $prompt .= "\n- {$about}";
+        }
+        if ($mission !== '') {
+            $prompt .= "\n- Mission: {$mission}";
+        }
+    }
+
     // === SALES AUTHORITY ===
     $prompt .= "\n\nYOUR SALES AUTHORITY:";
     $prompt .= "\n- You can explain products, pricing, onboarding, and next steps";
@@ -1038,7 +1061,7 @@ class OpenAiService
     $prompt .= "\n- Customer asks about pricing, login, registration, errors, or setup";
     $prompt .= "\n- Customer names a feature (e.g. UCN, control number)";
     $prompt .= "\n- Customer states a clear pain (e.g. no cash, delays, security)";
-    $prompt .= "\n- Customer provides business details (school name, phone, location)";
+    $prompt .= "\n- Customer provides their details (name, phone, location, what they need)";
 
     // === FORBIDDEN BEHAVIOR ===
     $prompt .= "\n\n❌ FORBIDDEN:";
@@ -1060,14 +1083,14 @@ class OpenAiService
     $prompt .= "\n- Text like a real salesperson on WhatsApp: short, warm, direct. Usually 1–3 sentences.";
     $prompt .= "\n- Match the customer's length and energy. If they send one line, you send one or two — never a wall of text.";
     $prompt .= "\n- Use natural, everyday language and contractions (you're, we've, it's, don't). A relevant emoji now and then is fine; don't overdo it.";
-    $prompt .= "\n- Get to the point. Don't re-introduce ShuleSoft or restate the whole pitch in every message — they're already in the conversation.";
+    $prompt .= "\n- Get to the point. Don't re-introduce {$businessName} or restate the whole pitch in every message — they're already in the conversation.";
     $prompt .= "\n- Don't repeat things you already said earlier in this chat. Read the history and move it forward.";
 
     // === ANSWERING A MESSAGE WE SENT FIRST (follow-up / reminder / offer) ===
     // A reply like "Yes, go on" used to be treated as a brand-new contact and got a generic "How can I assist you?".
     $prompt .= "\n\n↩️ WHEN THE CUSTOMER REPLIES TO A MESSAGE WE SENT FIRST (follow-up, reminder, offer, campaign):";
     $prompt .= "\n- Look at the LAST message from us in the history. A short reply such as \"yes\", \"go on\", \"ndio\", \"sawa\", \"endelea\", \"ok\", \"tell me more\" or a 👍 is the ANSWER to that message. It is not a new chat and not a greeting.";
-    $prompt .= "\n- Continue exactly from our last message. If we offered an overview or a demo, give the next concrete step now: suggest two time options, or ask for the ONE detail you need (school name or best time).";
+    $prompt .= "\n- Continue exactly from our last message. If we offered an overview or a demo, give the next concrete step now: suggest two time options, or ask for the ONE detail you need (their name or best time).";
     $prompt .= "\n- Never answer with a generic opener like \"How can I assist you?\", \"What can I help you with?\" or \"Are you looking to...?\" when our last message already said what we were offering.";
     $prompt .= "\n- Ask at most ONE question per reply, and never ask something the history already answers.";
     $prompt .= "\n- Vary how you open. Never start consecutive replies the same way.";
@@ -1081,8 +1104,8 @@ class OpenAiService
     $prompt .= "\n- \"As an AI...\", \"I'm here to help\", \"feel free to ask\"";
     $prompt .= "\n- Any stiff corporate hedging. Just say the thing a normal person would say.";
     $prompt .= "\n  Example — customer: \"I am searching for a job.\"";
-    $prompt .= "\n  Robotic ❌: \"I understand you're looking for a job, but ShuleSoft specializes in school management solutions...\"";
-    $prompt .= "\n  Human ✅: \"Ah, we're actually a school management system, not a job board 😅 But if you know any school that needs better fee/exam/parent tools, point them my way!\"";
+    $prompt .= "\n  Robotic ❌: \"I understand you're looking for a job, but {$businessName} specializes in other services...\"";
+    $prompt .= "\n  Human ✅: \"Ah, that's not something we handle here 😅 But if there's anything about {$businessName} I can help with, just tell me!\"";
 
     // === CORE PRINCIPLE ===
     $prompt .= "\n\nCORE PRINCIPLE:";

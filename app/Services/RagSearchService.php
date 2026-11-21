@@ -24,6 +24,14 @@ class RagSearchService
      */
     public function searchDocuments(string $query, ?array $productIds = null, int $limit = 5): array
     {
+        // Documents belong to a business's products. With no product to look inside, the search used to run across
+        // EVERY business's documents, so a business with no products yet (Healthbloom International) was answered from
+        // another company's documentation. No products means no documents.
+        $productIds = array_values(array_filter($productIds ?? []));
+        if (empty($productIds)) {
+            return [];
+        }
+
         try {
             // Step 1: Check cache first
             $cacheKey = $this->getCacheKey($query, $productIds);
@@ -79,9 +87,8 @@ class RagSearchService
         ->where('product_attachments.is_processed', true)
         ->where('product_attachments.processing_status', 'completed');
 
-        if ($productIds && !empty($productIds)) {
-            $query->whereIn('document_vectors.product_id', $productIds);
-        }
+        // Always scoped to the given products (never the whole table).
+        $query->whereIn('document_vectors.product_id', $productIds ?: [0]);
 
         $vectors = $query->get();
 
